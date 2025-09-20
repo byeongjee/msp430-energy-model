@@ -14,6 +14,23 @@ struct TrainingData
 end
 
 """
+Data structure to hold MSP430 training data
+"""
+struct MSP430TrainingData
+    programs::Vector{Vector{MSP430Instruction}}
+    energies::Vector{Float64}
+end
+
+"""
+Unified training data structure that supports both architectures
+"""
+struct UnifiedTrainingData{T}
+    programs::Vector{Vector{T}}
+    energies::Vector{Float64}
+    architecture::Symbol
+end
+
+"""
 Generative model for parameter inference
 Each instruction type has learnable gamma distribution parameters
 """
@@ -189,24 +206,24 @@ function learn_parameters_mle(training_data::TrainingData)
 end
 
 """
-Predict energy consumption for a new program using learned parameters
+Predict energy consumption for a new ARM program using learned parameters
 """
-function predict_energy(program::Vector{ARMInstruction}, 
+function predict_energy(program::Vector{ARMInstruction},
                        learned_params::Dict{Symbol,Tuple{Float64,Float64}};
                        n_samples::Int=1000)
-    
+
     energies = Float64[]
-    
+
     for _ in 1:n_samples
         total_energy = 0.0
         for inst in program
-            alpha, beta = get(learned_params, inst.opcode, get_energy_params(inst.opcode))
+            alpha, beta = get(learned_params, inst.opcode, get_arm_energy_params(inst.opcode))
             inst_energy = rand(Gamma(alpha, beta))
             total_energy += inst_energy
         end
         push!(energies, total_energy)
     end
-    
+
     return EnergyStats(
         mean(energies),
         std(energies),
@@ -214,6 +231,52 @@ function predict_energy(program::Vector{ARMInstruction},
         maximum(energies),
         energies
     )
+end
+
+"""
+Predict energy consumption for a new MSP430 program using learned parameters
+"""
+function predict_msp430_energy(program::Vector{MSP430Instruction},
+                              learned_params::Dict{Symbol,Tuple{Float64,Float64}};
+                              n_samples::Int=1000)
+
+    energies = Float64[]
+
+    for _ in 1:n_samples
+        total_energy = 0.0
+        for inst in program
+            alpha, beta = get(learned_params, inst.opcode, get_msp430_energy_params(inst.opcode))
+            inst_energy = rand(Gamma(alpha, beta))
+            total_energy += inst_energy
+        end
+        push!(energies, total_energy)
+    end
+
+    return EnergyStats(
+        mean(energies),
+        std(energies),
+        minimum(energies),
+        maximum(energies),
+        energies
+    )
+end
+
+"""
+Unified prediction function for ARM programs
+"""
+function predict_energy_unified(program::Vector{ARMInstruction},
+                               learned_params::Dict{Symbol,Tuple{Float64,Float64}};
+                               n_samples::Int=1000)
+    return predict_energy(program, learned_params; n_samples=n_samples)
+end
+
+"""
+Unified prediction function for MSP430 programs
+"""
+function predict_energy_unified(program::Vector{MSP430Instruction},
+                               learned_params::Dict{Symbol,Tuple{Float64,Float64}};
+                               n_samples::Int=1000)
+    return predict_msp430_energy(program, learned_params; n_samples=n_samples)
 end
 
 """
