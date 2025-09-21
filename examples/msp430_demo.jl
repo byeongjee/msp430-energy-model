@@ -146,8 +146,135 @@ println("  ARM mean:    $(round(mean(arm_samples), digits=3))")
 println("  MSP430 mean: $(round(mean(msp430_samples), digits=3))")
 println("  Ratio (ARM/MSP430): $(round(mean(arm_samples)/mean(msp430_samples), digits=2))")
 
-# Example 6: MSP430 instruction format analysis
-println("\n6. MSP430 Instruction Format Analysis")
+# Example 6: MSP430 Energy Parameter Inference
+println("\n6. MSP430 Energy Parameter Inference")
+
+# Create training data for MSP430 parameter learning
+function create_msp430_training_data()
+    # Training program 1: Simple arithmetic operations
+    program1 = [
+        MSP430Instruction(:mov, [0x0100, :R4], :immediate),
+        MSP430Instruction(:mov, [0x0200, :R5], :immediate),
+        MSP430Instruction(:add, [:R4, :R5], :register),
+    ]
+
+    # Training program 2: Memory and control operations
+    program2 = [
+        MSP430Instruction(:mov, [50, :R6], :immediate),
+        MSP430Instruction(:push, [:R6], :register),
+        MSP430Instruction(:call, [0x2000], :immediate),
+        MSP430Instruction(:reti, [], :register)
+    ]
+
+    # Training program 3: Comparison and jumping
+    program3 = [
+        MSP430Instruction(:mov, [0, :R7], :immediate),
+        MSP430Instruction(:mov, [10, :R8], :immediate),
+        MSP430Instruction(:cmp, [:R7, :R8], :register),
+        MSP430Instruction(:jnz, [4], :immediate),
+    ]
+
+    # Training program 4: Complex program
+    program4 = [
+        MSP430Instruction(:mov, [0x1000, :R4], :immediate),
+        MSP430Instruction(:mov, [0x2000, :R5], :immediate),
+        MSP430Instruction(:add, [:R4, :R5], :register),
+        MSP430Instruction(:sub, [100, :R5], :immediate),
+        MSP430Instruction(:cmp, [:R4, :R5], :register),
+        MSP430Instruction(:push, [:R5], :register),
+    ]
+
+    programs = [program1, program2, program3, program4]
+
+    # Generate "observed" energy measurements with some realistic noise
+    println("Generating simulated MSP430 training data...")
+    observed_energies = Float64[]
+    for program in programs
+        # Use current model to generate realistic observations
+        trace = simulate(interpret_msp430_program, (program,))
+        base_energy = get_retval(trace)
+        # Add measurement noise (±10%)
+        noisy_energy = base_energy + randn() * base_energy * 0.1
+        push!(observed_energies, max(0.05, noisy_energy))  # Ensure positive
+    end
+
+    return MSP430TrainingData(programs, observed_energies)
+end
+
+# Create and display training data
+training_data = create_msp430_training_data()
+
+println("MSP430 Training Programs:")
+for (i, (program, energy)) in enumerate(zip(training_data.programs, training_data.energies))
+    println("Program $i (observed energy: $(round(energy, digits=3)) mJ):")
+    for inst in program
+        println("  $(inst.opcode) $(inst.operands)")
+    end
+    println()
+end
+
+# Show original parameters
+println("Original (predefined) MSP430 parameters:")
+all_opcodes = Set{Symbol}()
+for program in training_data.programs
+    for inst in program
+        push!(all_opcodes, inst.opcode)
+    end
+end
+
+for opcode in sort(collect(all_opcodes))
+    alpha, beta = get_msp430_energy_params(opcode)
+    println("  $opcode: α=$alpha, β=$beta (mean=$(round(alpha*beta, digits=3)))")
+end
+println()
+
+# Learn parameters using MLE approach (faster for demo)
+println("Learning MSP430 parameters from training data...")
+learned_params = learn_msp430_parameters_mle(training_data)
+
+println("Learned MSP430 parameters:")
+for opcode in sort(collect(keys(learned_params)))
+    alpha, beta = learned_params[opcode]
+    println("  $opcode: α=$(round(alpha, digits=3)), β=$(round(beta, digits=3)) (mean=$(round(alpha*beta, digits=3)))")
+end
+println()
+
+# Test prediction on new MSP430 program
+println("Testing prediction on new MSP430 program...")
+test_program = [
+    MSP430Instruction(:mov, [42, :R9], :immediate),
+    MSP430Instruction(:mov, [84, :R10], :immediate),
+    MSP430Instruction(:add, [:R9, :R10], :register),
+    MSP430Instruction(:cmp, [:R10, 200], :immediate),
+    MSP430Instruction(:jnz, [2], :immediate),
+    MSP430Instruction(:push, [:R10], :register),
+]
+
+println("Test program:")
+for inst in test_program
+    println("  $(inst.opcode) $(inst.operands)")
+end
+
+# Predict with original parameters
+original_trace = simulate(interpret_msp430_program, (test_program,))
+original_energy = get_retval(original_trace)
+
+# Predict with learned parameters
+learned_stats = predict_msp430_energy(test_program, learned_params, n_samples=1000)
+
+println("\nPrediction Results:")
+println("Original model: $(round(original_energy, digits=3)) mJ")
+println("Learned model:  mean=$(round(learned_stats.mean, digits=3)) mJ, std=$(round(learned_stats.std, digits=3))")
+
+# Evaluate on training data
+println("\nEvaluation on MSP430 training data:")
+evaluation = evaluate_msp430_parameters(learned_params, training_data)
+println("MSE: $(round(evaluation.mse, digits=6))")
+println("MAE: $(round(evaluation.mae, digits=6))")
+println("Correlation: $(round(evaluation.correlation, digits=4))")
+
+# Example 7: MSP430 instruction format analysis
+println("\n7. MSP430 Instruction Format Analysis")
 instruction_formats = Dict{Symbol, Int}()
 
 for inst in sample_program
@@ -160,8 +287,8 @@ for (format, count) in instruction_formats
     println("  $format: $count instructions")
 end
 
-# Example 7: Addressing mode analysis
-println("\n7. MSP430 Addressing Mode Analysis")
+# Example 8: Addressing mode analysis
+println("\n8. MSP430 Addressing Mode Analysis")
 addressing_modes = Dict{Symbol, Int}()
 
 for inst in sample_program
@@ -183,3 +310,5 @@ println("✓ MSP430-specific energy parameters (optimized for low-power)")
 println("✓ Probabilistic energy modeling using Gen.jl")
 println("✓ Support for all 27 core MSP430 instructions")
 println("✓ Unified interface supporting both ARM and MSP430")
+println("✓ MSP430 energy parameter inference from measurement data")
+println("✓ Trait-based instruction execution architecture")

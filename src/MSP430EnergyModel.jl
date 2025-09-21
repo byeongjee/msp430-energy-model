@@ -44,7 +44,8 @@ export interpret_arm_program, interpret_msp430_program, interpret_program
 export custom_arm_energy_model, custom_msp430_energy_model
 
 # Export inference functions
-export learn_parameters, learn_parameters_mle
+export learn_parameters, learn_parameters_mle, learn_msp430_parameters, learn_msp430_parameters_mle
+export predict_msp430_energy, evaluate_msp430_parameters
 export predict_energy, predict_msp430_energy, predict_energy_unified
 export evaluate_parameters
 

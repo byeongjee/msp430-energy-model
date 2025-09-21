@@ -1,6 +1,48 @@
 # msp430_machine_state.jl - MSP430 machine state management and instruction execution
 
 """
+Abstract type for MSP430 instruction execution
+"""
+abstract type MSP430InstructionExecutor end
+
+"""
+Dual-operand instruction executor
+"""
+struct DualOperandExecutor <: MSP430InstructionExecutor end
+
+"""
+Single-operand instruction executor
+"""
+struct SingleOperandExecutor <: MSP430InstructionExecutor end
+
+"""
+Jump instruction executor
+"""
+struct JumpExecutor <: MSP430InstructionExecutor end
+
+"""
+Get the appropriate executor for an instruction opcode
+"""
+function get_executor(opcode::Symbol)
+    if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
+        return DualOperandExecutor()
+    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti]
+        return SingleOperandExecutor()
+    elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
+        return JumpExecutor()
+    else
+        error("Unknown instruction opcode: $opcode")
+    end
+end
+
+"""
+Execute instruction using trait-based dispatch
+"""
+function execute!(executor::MSP430InstructionExecutor, state::MSP430MachineState, opcode::Symbol, ops)
+    error("execute! not implemented for $(typeof(executor))")
+end
+
+"""
 Initialize a new MSP430 machine state
 """
 function MSP430MachineState()
@@ -30,22 +72,15 @@ function MSP430MachineState()
 end
 
 """
-Execute an MSP430 instruction and update machine state
+Execute an MSP430 instruction and update machine state using trait-based dispatch
 """
 function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Instruction)
     opcode = inst.opcode
     ops = inst.operands
 
-    # Dual-operand instructions
-    if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
-        execute_dual_operand!(state, opcode, ops)
-    # Single-operand instructions
-    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti]
-        execute_single_operand!(state, opcode, ops)
-    # Jump instructions
-    elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
-        execute_jump!(state, opcode, ops)
-    end
+    # Get appropriate executor and execute instruction
+    executor = get_executor(opcode)
+    execute!(executor, state, opcode, ops)
 
     # Update PC (most instructions increment by 2 for 16-bit words)
     if opcode != :jmp && !startswith(string(opcode), "j")
@@ -53,6 +88,27 @@ function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Inst
         state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
     end
+end
+
+"""
+Execute dual-operand instructions using trait dispatch
+"""
+function execute!(executor::DualOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops)
+    execute_dual_operand!(state, opcode, ops)
+end
+
+"""
+Execute single-operand instructions using trait dispatch
+"""
+function execute!(executor::SingleOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops)
+    execute_single_operand!(state, opcode, ops)
+end
+
+"""
+Execute jump instructions using trait dispatch
+"""
+function execute!(executor::JumpExecutor, state::MSP430MachineState, opcode::Symbol, ops)
+    execute_jump!(state, opcode, ops)
 end
 
 """
