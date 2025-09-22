@@ -69,8 +69,9 @@ function parse_msp430_operands(op_str::String)
 
         elseif startswith(op, "@")
             # Indirect register mode: @Rn
-            reg_name = Symbol(uppercase(strip(op[2:end])))
-            push!(operands, reg_name)
+            reg_name = uppercase(strip(op[2:end]))
+            indirect_symbol = Symbol("@" * reg_name)
+            push!(operands, indirect_symbol)
             addressing_mode = :indirect
 
         elseif contains(op, "(") && contains(op, ")")
