@@ -105,16 +105,24 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction})
                 end
             end
 
-            # Track memory writes for indexed addressing
-            memory_write = ""
-            if length(inst.operands) >= 2 && isa(inst.operands[2], Tuple)
-                # Destination is indexed addressing - memory write
-                offset, reg = inst.operands[2]
-                base_addr = get(old_regs, reg, UInt16(0))
-                addr = UInt16((base_addr + offset) & 0xFFFF)
-                if inst.opcode == :mov
-                    src_val = MSP430EnergyModel.get_operand_value(state, inst.operands[1])
-                    memory_write = "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
+            # Track memory operations
+            memory_operation = ""
+            if length(inst.operands) >= 2
+                # Check for memory writes (indexed addressing destination)
+                if isa(inst.operands[2], Tuple)
+                    offset, reg = inst.operands[2]
+                    base_addr = get(old_regs, reg, UInt16(0))
+                    addr = UInt16((base_addr + offset) & 0xFFFF)
+                    if inst.opcode == :mov
+                        src_val = MSP430EnergyModel.get_operand_value(state, inst.operands[1])
+                        memory_operation = "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
+                    end
+                # Check for memory reads (indirect addressing source)
+                elseif isa(inst.operands[1], Symbol) && string(inst.operands[1])[1] == '@'
+                    reg_name = Symbol(string(inst.operands[1])[2:end])
+                    addr = get(old_regs, reg_name, UInt16(0))
+                    val = get(state.memory, addr, UInt16(0))
+                    memory_operation = "    Memory[0x$(string(addr, base=16, pad=4))] → $val"
                 end
             end
 
@@ -123,9 +131,9 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction})
             println("  Step $i: $(inst.opcode) $(inst.operands)")
             println("    PC: 0x$(string(old_pc, base=16, pad=4)) → 0x$(string(state.pc, base=16, pad=4))")
 
-            # Show memory writes
-            if !isempty(memory_write)
-                println(memory_write)
+            # Show memory operations
+            if !isempty(memory_operation)
+                println(memory_operation)
             end
 
             # Show register changes (excluding R0/PC since it always changes)

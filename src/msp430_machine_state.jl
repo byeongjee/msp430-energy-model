@@ -293,8 +293,17 @@ Get value from operand (register, immediate, or memory)
 """
 function get_operand_value(state::MSP430MachineState, operand)
     if isa(operand, Symbol)
-        # Register
-        return get(state.registers, operand, UInt16(0))
+        # Check if it's indirect addressing (@register)
+        operand_str = string(operand)
+        if startswith(operand_str, "@")
+            # Indirect addressing: @R1 means "value at address contained in R1"
+            reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
+            addr = get(state.registers, reg_name, UInt16(0))
+            return get(state.memory, addr, UInt16(0))
+        else
+            # Regular register
+            return get(state.registers, operand, UInt16(0))
+        end
     elseif isa(operand, Integer)
         # Immediate value
         return UInt16(operand & 0xFFFF)
