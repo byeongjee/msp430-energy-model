@@ -45,6 +45,7 @@ const MSP430_ENERGY_PARAMS = Dict{Symbol,Tuple{Float64,Float64}}(
     :reti => (2.5, 0.6),     # Return from interrupt
     :clr => (1.1, 0.2),      # Clear register - very low energy
     :ret => (2.0, 0.4),      # Return from subroutine - stack pop
+    :inc => (1.2, 0.25),     # Increment - low energy arithmetic
 
     # Jump instructions - generally low energy
     :jnz => (1.0, 0.2),      # Jump if not zero

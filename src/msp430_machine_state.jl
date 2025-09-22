@@ -26,7 +26,7 @@ Get the appropriate executor for an instruction opcode
 function get_executor(opcode::Symbol)
     if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
         return DualOperandExecutor()
-    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret]
+    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret, :inc]
         return SingleOperandExecutor()
     elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
         return JumpExecutor()
@@ -77,10 +77,11 @@ Execute an MSP430 instruction and update machine state using trait-based dispatc
 function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Instruction)
     opcode = inst.opcode
     ops = inst.operands
+    data_size = inst.data_size
 
     # Get appropriate executor and execute instruction
     executor = get_executor(opcode)
-    execute!(executor, state, opcode, ops)
+    execute!(executor, state, opcode, ops, data_size)
 
     # Update PC (most instructions increment by 2 for 16-bit words)
     if opcode != :jmp && !startswith(string(opcode), "j")
@@ -93,34 +94,34 @@ end
 """
 Execute dual-operand instructions using trait dispatch
 """
-function execute!(executor::DualOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops)
-    execute_dual_operand!(state, opcode, ops)
+function execute!(executor::DualOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+    execute_dual_operand!(state, opcode, ops, data_size)
 end
 
 """
 Execute single-operand instructions using trait dispatch
 """
-function execute!(executor::SingleOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops)
-    execute_single_operand!(state, opcode, ops)
+function execute!(executor::SingleOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+    execute_single_operand!(state, opcode, ops, data_size)
 end
 
 """
 Execute jump instructions using trait dispatch
 """
-function execute!(executor::JumpExecutor, state::MSP430MachineState, opcode::Symbol, ops)
-    execute_jump!(state, opcode, ops)
+function execute!(executor::JumpExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+    execute_jump!(state, opcode, ops)  # Jump instructions don't use data_size
 end
 
 """
 Execute dual-operand instructions (src, dst)
 """
-function execute_dual_operand!(state::MSP430MachineState, opcode::Symbol, ops)
+function execute_dual_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
     if length(ops) < 2
         return
     end
 
-    src_val = get_operand_value(state, ops[1])
-    dst_val = get_operand_value(state, ops[2])
+    src_val = get_operand_value(state, ops[1], data_size)
+    dst_val = get_operand_value(state, ops[2], data_size)
 
     result = UInt16(0)
 
@@ -163,18 +164,18 @@ function execute_dual_operand!(state::MSP430MachineState, opcode::Symbol, ops)
     end
 
     # Store result in destination
-    set_operand_value!(state, ops[2], result)
+    set_operand_value!(state, ops[2], result, data_size)
 end
 
 """
 Execute single-operand instructions
 """
-function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops)
+function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
     if length(ops) < 1
         return
     end
 
-    operand_val = get_operand_value(state, ops[1])
+    operand_val = get_operand_value(state, ops[1], data_size)
     result = UInt16(0)
 
     if opcode == :rrc
@@ -242,11 +243,16 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops)
         state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
         return
+    elseif opcode == :inc
+        # Increment operand by 1
+        operand_val = get_operand_value(state, ops[1])
+        result = UInt16((operand_val + 1) & 0xFFFF)
+        update_flags_simple!(state, result)
     end
 
     # Store result for most single-operand instructions
     if opcode != :push && opcode != :call && opcode != :reti && opcode != :ret
-        set_operand_value!(state, ops[1], result)
+        set_operand_value!(state, ops[1], result, data_size)
     end
 end
 
@@ -291,7 +297,9 @@ end
 """
 Get value from operand (register, immediate, or memory)
 """
-function get_operand_value(state::MSP430MachineState, operand)
+function get_operand_value(state::MSP430MachineState, operand, data_size::Symbol = :word)
+    value = UInt16(0)
+
     if isa(operand, Symbol)
         # Check if it's indirect addressing (@register)
         operand_str = string(operand)
@@ -299,53 +307,81 @@ function get_operand_value(state::MSP430MachineState, operand)
             # Indirect addressing: @R1 means "value at address contained in R1"
             reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
             addr = get(state.registers, reg_name, UInt16(0))
-            return get(state.memory, addr, UInt16(0))
+            value = get(state.memory, addr, UInt16(0))
         else
             # Regular register
-            return get(state.registers, operand, UInt16(0))
+            value = get(state.registers, operand, UInt16(0))
         end
     elseif isa(operand, Integer)
         # Immediate value
-        return UInt16(operand & 0xFFFF)
+        value = UInt16(operand & 0xFFFF)
     elseif isa(operand, Tuple) && length(operand) == 2
         # Indexed addressing: (offset, register) -> offset(register)
         offset, reg = operand
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
-        return get(state.memory, addr, UInt16(0))
+        value = get(state.memory, addr, UInt16(0))
+    end
+
+    # Apply data size mask
+    if data_size == :byte
+        return UInt16(value & 0xFF)  # Keep only lower 8 bits
     else
-        # Default
-        return UInt16(0)
+        return value  # Full 16-bit word
     end
 end
 
 """
 Set value to operand (register or memory)
 """
-function set_operand_value!(state::MSP430MachineState, operand, value::UInt16)
+function set_operand_value!(state::MSP430MachineState, operand, value::UInt16, data_size::Symbol = :word)
+    # Apply data size mask to value
+    masked_value = if data_size == :byte
+        UInt16(value & 0xFF)  # Keep only lower 8 bits
+    else
+        value  # Full 16-bit word
+    end
+
     if isa(operand, Symbol)
         # Register
-        state.registers[operand] = value
+        if data_size == :byte
+            # For byte operations on registers, only modify lower 8 bits
+            old_value = get(state.registers, operand, UInt16(0))
+            new_value = UInt16((old_value & 0xFF00) | masked_value)
+            state.registers[operand] = new_value
+        else
+            state.registers[operand] = masked_value
+        end
+
         # Update special register aliases
+        final_value = state.registers[operand]
         if operand == :R0 || operand == :PC
-            state.pc = value
-            state.registers[:R0] = value
-            state.registers[:PC] = value
+            state.pc = final_value
+            state.registers[:R0] = final_value
+            state.registers[:PC] = final_value
         elseif operand == :R1 || operand == :SP
-            state.sp = value
-            state.registers[:R1] = value
-            state.registers[:SP] = value
+            state.sp = final_value
+            state.registers[:R1] = final_value
+            state.registers[:SP] = final_value
         elseif operand == :R2 || operand == :SR
-            state.sr = value
-            state.registers[:R2] = value
-            state.registers[:SR] = value
+            state.sr = final_value
+            state.registers[:R2] = final_value
+            state.registers[:SR] = final_value
         end
     elseif isa(operand, Tuple) && length(operand) == 2
         # Indexed addressing: (offset, register) -> offset(register)
         offset, reg = operand
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
-        state.memory[addr] = value
+
+        if data_size == :byte
+            # For byte operations to memory, only modify lower 8 bits
+            old_value = get(state.memory, addr, UInt16(0))
+            new_value = UInt16((old_value & 0xFF00) | masked_value)
+            state.memory[addr] = new_value
+        else
+            state.memory[addr] = masked_value
+        end
     end
 end
 

@@ -15,6 +15,7 @@ struct MSP430Instruction
     opcode::Symbol
     operands::Vector{Any}
     addressing_mode::Symbol  # src_mode, dst_mode for MSP430
+    data_size::Symbol        # :byte or :word
 end
 
 """

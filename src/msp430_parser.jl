@@ -30,7 +30,23 @@ function parse_msp430_line(line::String)
     end
 
     parts = split(line)
-    opcode = Symbol(lowercase(parts[1]))
+
+    # Parse opcode and data size suffix
+    opcode_str = lowercase(parts[1])
+    data_size = :word  # default
+
+    if contains(opcode_str, ".")
+        opcode_parts = split(opcode_str, ".")
+        opcode_str = opcode_parts[1]
+        suffix = opcode_parts[2]
+        if suffix == "b"
+            data_size = :byte
+        elseif suffix == "w"
+            data_size = :word
+        end
+    end
+
+    opcode = Symbol(opcode_str)
 
     # Parse operands
     operands = []
@@ -41,7 +57,7 @@ function parse_msp430_line(line::String)
         operands, addressing_mode = parse_msp430_operands(op_str)
     end
 
-    return MSP430Instruction(opcode, operands, addressing_mode)
+    return MSP430Instruction(opcode, operands, addressing_mode, data_size)
 end
 
 """

@@ -67,7 +67,8 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction})
     # Show the program
     println("\n📋 MSP430 Program ($(length(instructions)) instructions):")
     for (i, inst) in enumerate(instructions)
-        println("  $i: $(inst.opcode) $(inst.operands) [$(inst.addressing_mode)]")
+        size_str = inst.data_size == :byte ? ".b" : ""
+        println("  $i: $(inst.opcode)$size_str $(inst.operands) [$(inst.addressing_mode)]")
     end
 
     # Create initial machine state
