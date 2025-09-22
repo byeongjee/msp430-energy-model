@@ -26,7 +26,7 @@ Get the appropriate executor for an instruction opcode
 function get_executor(opcode::Symbol)
     if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
         return DualOperandExecutor()
-    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti]
+    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret]
         return SingleOperandExecutor()
     elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
         return JumpExecutor()
@@ -229,10 +229,23 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops)
         state.registers[:R2] = state.sr
         state.registers[:SR] = state.sr
         return
+    elseif opcode == :clr
+        # Clear (set to zero)
+        result = UInt16(0)
+        update_flags_simple!(state, result)
+    elseif opcode == :ret
+        # Return from subroutine (pop PC from stack)
+        state.pc = state.memory[state.sp]
+        state.sp += 2
+        state.registers[:R1] = state.sp
+        state.registers[:SP] = state.sp
+        state.registers[:R0] = state.pc
+        state.registers[:PC] = state.pc
+        return
     end
 
     # Store result for most single-operand instructions
-    if opcode != :push && opcode != :call && opcode != :reti
+    if opcode != :push && opcode != :call && opcode != :reti && opcode != :ret
         set_operand_value!(state, ops[1], result)
     end
 end
@@ -285,6 +298,12 @@ function get_operand_value(state::MSP430MachineState, operand)
     elseif isa(operand, Integer)
         # Immediate value
         return UInt16(operand & 0xFFFF)
+    elseif isa(operand, Tuple) && length(operand) == 2
+        # Indexed addressing: (offset, register) -> offset(register)
+        offset, reg = operand
+        base_addr = get(state.registers, reg, UInt16(0))
+        addr = UInt16((base_addr + offset) & 0xFFFF)
+        return get(state.memory, addr, UInt16(0))
     else
         # Default
         return UInt16(0)
@@ -312,6 +331,12 @@ function set_operand_value!(state::MSP430MachineState, operand, value::UInt16)
             state.registers[:R2] = value
             state.registers[:SR] = value
         end
+    elseif isa(operand, Tuple) && length(operand) == 2
+        # Indexed addressing: (offset, register) -> offset(register)
+        offset, reg = operand
+        base_addr = get(state.registers, reg, UInt16(0))
+        addr = UInt16((base_addr + offset) & 0xFFFF)
+        state.memory[addr] = value
     end
 end
 

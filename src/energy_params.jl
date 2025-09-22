@@ -43,6 +43,8 @@ const MSP430_ENERGY_PARAMS = Dict{Symbol,Tuple{Float64,Float64}}(
     :push => (2.0, 0.5),     # Stack operations - memory access
     :call => (2.5, 0.6),     # Function call - stack + jump
     :reti => (2.5, 0.6),     # Return from interrupt
+    :clr => (1.1, 0.2),      # Clear register - very low energy
+    :ret => (2.0, 0.4),      # Return from subroutine - stack pop
 
     # Jump instructions - generally low energy
     :jnz => (1.0, 0.2),      # Jump if not zero
