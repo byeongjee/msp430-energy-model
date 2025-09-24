@@ -71,10 +71,10 @@ function parse_asm_file(filename::String)
             end
 
             try
-                # Parse the instruction string using existing parser
-                parsed_instrs = MSP430EnergyModel.parse_msp430_assembly([String(instr_str)])
-                if !isempty(parsed_instrs)
-                    push!(instructions, parsed_instrs[1])
+                # Parse the instruction string with current address for relative jump resolution
+                parsed_instr = MSP430EnergyModel.parse_msp430_line(String(instr_str), addr)
+                if !isnothing(parsed_instr)
+                    push!(instructions, parsed_instr)
                     push!(addresses, addr)
                 end
             catch e

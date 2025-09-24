@@ -266,8 +266,12 @@ function execute_jump!(state::MSP430MachineState, opcode::Symbol, ops)
         return
     end
 
-    # Get jump offset (signed)
-    offset = get_operand_value(state, ops[1])
+    # Get jump offset (keep as signed for relative jumps)
+    offset = if isa(ops[1], Integer)
+        Int16(ops[1])  # Keep as signed integer
+    else
+        Int16(get_operand_value(state, ops[1]))  # Convert from other types
+    end
     should_jump = false
 
     if opcode == :jmp
@@ -290,7 +294,7 @@ function execute_jump!(state::MSP430MachineState, opcode::Symbol, ops)
 
     if should_jump
         # Jump is relative to PC + 2
-        state.pc = UInt16((Int32(state.pc) + 2 + (Int16(offset) * 2)) & 0xFFFF)
+        state.pc = UInt16((Int32(state.pc) + 2 + (Int32(offset) * 2)) & 0xFFFF)
         state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
     end

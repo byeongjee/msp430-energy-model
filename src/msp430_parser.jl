@@ -3,13 +3,15 @@
 """
 Parse MSP430 assembly string into instruction objects
 """
-function parse_msp430_assembly(asm_lines::Vector{String})
+function parse_msp430_assembly(asm_lines::Vector{String}, start_addr::UInt16 = UInt16(0x4000))
     instructions = MSP430Instruction[]
+    current_addr = start_addr
 
     for line in asm_lines
-        inst = parse_msp430_line(line)
+        inst = parse_msp430_line(line, current_addr)
         if !isnothing(inst)
             push!(instructions, inst)
+            current_addr += 2  # Assume 2-byte instructions for demo purposes
         end
     end
 
@@ -19,7 +21,7 @@ end
 """
 Parse a single line of MSP430 assembly
 """
-function parse_msp430_line(line::String)
+function parse_msp430_line(line::String, current_addr::UInt16)
     # Remove comments and trim
     line = strip(split(line, ";")[1])
     isempty(line) && return nothing
@@ -54,7 +56,7 @@ function parse_msp430_line(line::String)
 
     if length(parts) > 1
         op_str = join(parts[2:end], " ")
-        operands, addressing_mode = parse_msp430_operands(op_str)
+        operands, addressing_mode = parse_msp430_operands(op_str, current_addr)
     end
 
     return MSP430Instruction(opcode, operands, addressing_mode, data_size)
@@ -63,7 +65,7 @@ end
 """
 Parse MSP430 operand string into structured operands with addressing modes
 """
-function parse_msp430_operands(op_str::String)
+function parse_msp430_operands(op_str::String, current_addr::UInt16)
     operands = []
     addressing_mode = :register
     op_parts = split(op_str, ",")
@@ -117,6 +119,23 @@ function parse_msp430_operands(op_str::String)
             end
             push!(operands, addr)
             addressing_mode = :absolute
+
+        elseif startswith(op, "\$")
+            # Jump offset: $+0, $-2, etc.
+            # MSP430 relative jumps: target = PC + 2 + (offset * 2)
+            # So for $+N: we want current_addr + N = PC + 2 + (offset * 2)
+            # Therefore: offset = (current_addr + N - PC - 2) / 2
+            # Since PC will be current_addr when executing: offset = (N - 2) / 2
+            offset_str = strip(op[2:end])  # Remove $ prefix
+            if startswith(offset_str, "+")
+                byte_offset = parse(Int16, offset_str[2:end])  # Remove + and parse
+            else
+                byte_offset = parse(Int16, offset_str)  # Parse number directly
+            end
+            # Convert to MSP430 word offset
+            word_offset = div(byte_offset - 2, 2)
+            push!(operands, word_offset)
+            addressing_mode = :relative
 
         else
             # Register mode: Rn or register name
