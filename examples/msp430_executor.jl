@@ -147,11 +147,15 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
             old_pc = state.pc
             old_regs = copy(state.registers)
 
-            # Handle call instruction return address setup
+            # Find current instruction index for address-based PC management
+            current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
+            if current_addr_idx === nothing
+                error("Cannot find current PC 0x$(string(old_pc, base=16, pad=4)) in addresses array. This indicates a serious bug in PC management.")
+            end
+
             if inst.opcode == :call
-                # Find next instruction address for return address
-                current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
-                if current_addr_idx !== nothing && current_addr_idx < length(addresses)
+                # Special handling for call instruction to set up return address
+                if current_addr_idx < length(addresses)
                     next_addr = addresses[current_addr_idx+1]
                     # MSP430 call instruction: push return address to stack, then jump
                     # SP decrements by 2 because MSP430 stack grows downward and each entry is 16-bit (2 bytes)
@@ -166,11 +170,10 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                         state.registers[:R0] = state.pc
                         state.registers[:PC] = state.pc
                     end
-                else
-                    execute_msp430_instruction!(state, inst)
                 end
             else
-                execute_msp430_instruction!(state, inst)
+                # Use the new centralized PC management function
+                execute_msp430_instruction!(state, inst, addresses, current_addr_idx)
             end
 
             # Log execution details
@@ -225,18 +228,6 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
 
             # Print all register values after each step
             print_msp430_registers(state)
-
-            # Handle PC updates for non-control-flow instructions
-            if inst.opcode != :jmp && inst.opcode != :call && inst.opcode != :ret && inst.opcode != :reti && !startswith(string(inst.opcode), "j")
-                # Find next instruction address
-                current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
-                if current_addr_idx !== nothing && current_addr_idx < length(addresses)
-                    next_addr = addresses[current_addr_idx+1]
-                    state.pc = next_addr
-                    state.registers[:R0] = state.pc
-                    state.registers[:PC] = state.pc
-                end
-            end
 
             # Check for jmp $+0 (program termination) or other infinite loops
             if inst.opcode == :jmp

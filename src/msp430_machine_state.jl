@@ -72,9 +72,10 @@ function MSP430MachineState()
 end
 
 """
-Execute an MSP430 instruction and update machine state using trait-based dispatch
+Execute an MSP430 instruction with proper PC management using instruction addresses
 """
-function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Instruction)
+function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Instruction, addresses::Vector{UInt16}, current_idx::Int)
+    old_pc = state.pc
     opcode = inst.opcode
     ops = inst.operands
     data_size = inst.data_size
@@ -83,9 +84,29 @@ function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Inst
     executor = get_executor(opcode)
     execute!(executor, state, opcode, ops, data_size)
 
-    # PC increment is now handled by the executor using real instruction addresses
-    # Only skip PC increment for control flow instructions that set PC themselves
-    # For all other instructions, PC will be updated by the executor to the next instruction address
+    # Handle PC updates based on instruction type
+    if opcode == :jmp || opcode == :call || opcode == :ret || opcode == :reti
+        # These instructions manage PC themselves, don't override
+        return
+    elseif startswith(string(opcode), "j")
+        # Conditional jump: check if PC changed (jumped) or stayed same (condition false)
+        if state.pc == old_pc
+            # Condition was false, advance to next instruction
+            if current_idx < length(addresses)
+                state.pc = addresses[current_idx + 1]
+                state.registers[:R0] = state.pc
+                state.registers[:PC] = state.pc
+            end
+        end
+        # If PC changed, the jump happened, don't override
+    else
+        # Regular instruction: advance to next instruction
+        if current_idx < length(addresses)
+            state.pc = addresses[current_idx + 1]
+            state.registers[:R0] = state.pc
+            state.registers[:PC] = state.pc
+        end
+    end
 end
 
 """

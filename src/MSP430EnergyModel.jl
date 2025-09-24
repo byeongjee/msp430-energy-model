@@ -14,7 +14,6 @@ include("machine_state.jl")
 include("msp430_machine_state.jl")
 include("parser.jl")
 include("msp430_parser.jl")
-include("interpreter.jl")
 include("inference.jl")
 
 # Export main types
