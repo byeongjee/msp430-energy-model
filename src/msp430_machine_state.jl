@@ -26,7 +26,7 @@ Get the appropriate executor for an instruction opcode
 function get_executor(opcode::Symbol)
     if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
         return DualOperandExecutor()
-    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret, :inc]
+    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret, :inc, :dint, :nop, :pushm, :popm]
         return SingleOperandExecutor()
     elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
         return JumpExecutor()
@@ -91,28 +91,28 @@ end
 """
 Execute dual-operand instructions using trait dispatch
 """
-function execute!(executor::DualOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+function execute!(executor::DualOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
     execute_dual_operand!(state, opcode, ops, data_size)
 end
 
 """
 Execute single-operand instructions using trait dispatch
 """
-function execute!(executor::SingleOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+function execute!(executor::SingleOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
     execute_single_operand!(state, opcode, ops, data_size)
 end
 
 """
 Execute jump instructions using trait dispatch
 """
-function execute!(executor::JumpExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+function execute!(executor::JumpExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
     execute_jump!(state, opcode, ops)  # Jump instructions don't use data_size
 end
 
 """
 Execute dual-operand instructions (src, dst)
 """
-function execute_dual_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+function execute_dual_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
     if length(ops) < 2
         return
     end
@@ -167,7 +167,7 @@ end
 """
 Execute single-operand instructions
 """
-function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
     # Handle instructions that don't need operands first
     if opcode == :ret
         # Return from subroutine (pop PC from stack)
@@ -178,6 +178,28 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         state.registers[:SP] = state.sp
         state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
+        return
+    elseif opcode == :nop
+        # No operation - do nothing
+        return
+    elseif opcode == :dint
+        # Disable interrupt - clear Global Interrupt Enable bit in SR
+        state.sr &= ~0x0008  # Clear GIE bit (bit 3)
+        state.registers[:R2] = state.sr
+        state.registers[:SR] = state.sr
+        return
+    elseif opcode == :reti
+        # Return from interrupt
+        state.sr = state.memory[state.sp]
+        state.sp += 2
+        state.pc = state.memory[state.sp]
+        state.sp += 2
+        state.registers[:R1] = state.sp
+        state.registers[:SP] = state.sp
+        state.registers[:R0] = state.pc
+        state.registers[:PC] = state.pc
+        state.registers[:R2] = state.sr
+        state.registers[:SR] = state.sr
         return
     end
 
@@ -228,19 +250,6 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
         return
-    elseif opcode == :reti
-        # Return from interrupt
-        state.sr = state.memory[state.sp]
-        state.sp += 2
-        state.pc = state.memory[state.sp]
-        state.sp += 2
-        state.registers[:R1] = state.sp
-        state.registers[:SP] = state.sp
-        state.registers[:R0] = state.pc
-        state.registers[:PC] = state.pc
-        state.registers[:R2] = state.sr
-        state.registers[:SR] = state.sr
-        return
     elseif opcode == :clr
         # Clear (set to zero)
         result = UInt16(0)
@@ -250,10 +259,50 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         operand_val = get_operand_value(state, ops[1])
         result = UInt16((operand_val + 1) & 0xFFFF)
         update_flags_simple!(state, result)
+    elseif opcode == :pushm
+        # Push multiple registers: pushm #n, Rdst
+        # Pushes n registers from Rdst-n+1 to Rdst
+        if length(ops) >= 2
+            n = get_operand_value(state, ops[1])
+            dst_reg = ops[2]
+            dst_num = reg_symbol_to_num(dst_reg)
+
+            for i in (dst_num-n+1):dst_num
+                if i >= 0 && i <= 15
+                    reg_sym = reg_num_to_symbol(i)
+                    reg_val = get(state.registers, reg_sym, UInt16(0))
+                    state.sp -= 2
+                    state.memory[state.sp] = reg_val
+                end
+            end
+            state.registers[:R1] = state.sp
+            state.registers[:SP] = state.sp
+        end
+        return
+    elseif opcode == :popm
+        # Pop multiple registers: popm #n, Rdst
+        # Pops n registers from Rdst-n+1 to Rdst
+        if length(ops) >= 2
+            n = get_operand_value(state, ops[1])
+            dst_reg = ops[2]
+            dst_num = reg_symbol_to_num(dst_reg)
+
+            for i in (dst_num-n+1):dst_num
+                if i >= 0 && i <= 15
+                    reg_sym = reg_num_to_symbol(i)
+                    reg_val = get(state.memory, state.sp, UInt16(0))
+                    state.registers[reg_sym] = reg_val
+                    state.sp += 2
+                end
+            end
+            state.registers[:R1] = state.sp
+            state.registers[:SP] = state.sp
+        end
+        return
     end
 
     # Store result for most single-operand instructions
-    if opcode != :push && opcode != :call && opcode != :reti && opcode != :ret
+    if opcode != :push && opcode != :call && opcode != :reti && opcode != :ret && opcode != :nop && opcode != :dint && opcode != :pushm && opcode != :popm
         set_operand_value!(state, ops[1], result, data_size)
     end
 end
@@ -303,7 +352,7 @@ end
 """
 Get value from operand (register, immediate, or memory)
 """
-function get_operand_value(state::MSP430MachineState, operand, data_size::Symbol = :word)
+function get_operand_value(state::MSP430MachineState, operand, data_size::Symbol=:word)
     value = UInt16(0)
 
     if isa(operand, Symbol)
@@ -340,7 +389,7 @@ end
 """
 Set value to operand (register or memory)
 """
-function set_operand_value!(state::MSP430MachineState, operand, value::UInt16, data_size::Symbol = :word)
+function set_operand_value!(state::MSP430MachineState, operand, value::UInt16, data_size::Symbol=:word)
     # Apply data size mask to value
     masked_value = if data_size == :byte
         UInt16(value & 0xFF)  # Keep only lower 8 bits
