@@ -99,9 +99,9 @@ end
 Execute MSP430 program and show detailed results with PC-based execution
 """
 function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16})
-    println("\n" * "=" ^ 60)
+    println("\n" * "="^60)
     println("MSP430 Program Execution & Analysis")
-    println("=" ^ 60)
+    println("="^60)
 
     # Show the program
     println("\n📋 MSP430 Program ($(length(instructions)) instructions):")
@@ -111,7 +111,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
     end
 
     # Create PC to instruction mapping
-    pc_to_instruction = Dict{UInt16, Tuple{Int, MSP430Instruction}}()
+    pc_to_instruction = Dict{UInt16,Tuple{Int,MSP430Instruction}}()
     for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
         pc_to_instruction[addr] = (i, inst)
     end
@@ -152,7 +152,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                 # Find next instruction address for return address
                 current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
                 if current_addr_idx !== nothing && current_addr_idx < length(addresses)
-                    next_addr = addresses[current_addr_idx + 1]
+                    next_addr = addresses[current_addr_idx+1]
                     # MSP430 call instruction: push return address to stack, then jump
                     # SP decrements by 2 because MSP430 stack grows downward and each entry is 16-bit (2 bytes)
                     state.sp -= 2
@@ -175,13 +175,13 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
 
             # Log execution details
             step_info = (
-                step = step_count,
-                instruction_index = instruction_index,
-                address = old_pc,
-                instruction = inst,
-                old_pc = old_pc,
-                new_pc = state.pc,
-                register_changes = Dict()
+                step=step_count,
+                instruction_index=instruction_index,
+                address=old_pc,
+                instruction=inst,
+                old_pc=old_pc,
+                new_pc=state.pc,
+                register_changes=Dict()
             )
 
             # Track register changes
@@ -204,7 +204,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                         src_val = MSP430EnergyModel.get_operand_value(state, inst.operands[1])
                         memory_operation = "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
                     end
-                # Check for memory reads (indirect addressing source)
+                    # Check for memory reads (indirect addressing source)
                 elseif isa(inst.operands[1], Symbol) && string(inst.operands[1])[1] == '@'
                     reg_name = Symbol(string(inst.operands[1])[2:end])
                     addr = get(old_regs, reg_name, UInt16(0))
@@ -231,17 +231,19 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                 # Find next instruction address
                 current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
                 if current_addr_idx !== nothing && current_addr_idx < length(addresses)
-                    next_addr = addresses[current_addr_idx + 1]
+                    next_addr = addresses[current_addr_idx+1]
                     state.pc = next_addr
                     state.registers[:R0] = state.pc
                     state.registers[:PC] = state.pc
                 end
             end
 
-            # Check for infinite loop or program end conditions
-            if inst.opcode == :jmp && old_pc == state.pc
-                println("  🔄 Infinite loop detected at PC 0x$(string(state.pc, base=16, pad=4)). Execution stopped.")
-                break
+            # Check for jmp $+0 (program termination) or other infinite loops
+            if inst.opcode == :jmp
+                if length(inst.operands) > 0 && inst.operands[1] == -1  # jmp $+0 has offset -1
+                    println("  🏁 Program termination: jmp \$+0 instruction executed")
+                    break
+                end
             end
 
         catch e
@@ -303,7 +305,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})
     println("    Max:  $(round(max_energy, digits=3)) energy units")
 
     # Show energy per instruction type
-    instruction_counts = Dict{Symbol, Int}()
+    instruction_counts = Dict{Symbol,Int}()
     for inst in instructions
         instruction_counts[inst.opcode] = get(instruction_counts, inst.opcode, 0) + 1
     end
@@ -335,7 +337,7 @@ function main()
     asm_file = ARGS[1]
 
     println("MSP430 Instruction Executor")
-    println("=" ^ 40)
+    println("="^40)
     println("Assembly file: $asm_file")
 
     try
@@ -349,9 +351,9 @@ function main()
         energy_stats = estimate_energy(instructions)
 
         # Summary
-        println("\n" * "=" ^ 60)
+        println("\n" * "="^60)
         println("🎯 EXECUTION SUMMARY")
-        println("=" ^ 60)
+        println("="^60)
         println("✅ Successfully executed $(length(instructions)) MSP430 instructions")
         if energy_stats !== nothing
             println("📊 Estimated energy: $(round(energy_stats.mean, digits=3)) ± $(round(energy_stats.std, digits=3)) units")
