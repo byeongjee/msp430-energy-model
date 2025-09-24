@@ -31,57 +31,74 @@ function print_msp430_registers(state::MSP430MachineState)
 end
 
 """
-Parse objdump output from a file containing assembly instructions
+Parse MSP430 assembly file and extract instructions with their addresses
 """
-function parse_instructions_file(filename::String)
+function parse_asm_file(filename::String)
     if !isfile(filename)
-        error("Instructions file not found: $filename")
+        error("Assembly file not found: $filename")
     end
 
     lines = readlines(filename)
+    instructions = MSP430Instruction[]
+    addresses = UInt16[]
+    base_address = nothing
 
-    # Filter out empty lines and comments, clean hex prefixes
-    cleaned_lines = String[]
+    println("Parsing assembly file: $filename")
+
     for line in lines
         line = strip(line)
-        if !isempty(line) && !startswith(line, "#")
-            # Clean up lines that start with hex bytes like "ff 3f jmp $+0"
-            if occursin(r"^[0-9a-fA-F]{2} [0-9a-fA-F]{2}", line)
-                # Extract just the instruction part after hex bytes
-                parts = split(line, r"\s+", limit=3)
-                if length(parts) >= 3
-                    line = parts[3]
-                end
+
+        # Skip empty lines and headers
+        if isempty(line) || occursin("Disassembly", line) || occursin("file format", line)
+            continue
+        end
+
+        # Parse instruction lines like "4002:	31 40 00 2c 	mov	#11264,	r1	;#0x2c00"
+        # Format: ADDRESS: HEX_BYTES INSTRUCTION
+        match_result = match(r"^\s*([0-9a-fA-F]{4}):\s+([0-9a-fA-F\s]+)\s+([a-zA-Z][^;]*)", line)
+
+        if match_result !== nothing
+            addr_str = match_result.captures[1]
+            hex_bytes = match_result.captures[2]
+            instr_str = strip(match_result.captures[3])
+
+            # Parse address
+            addr = parse(UInt16, addr_str, base=16)
+
+            # Set base address to the first instruction address
+            if base_address === nothing
+                base_address = addr
             end
-            push!(cleaned_lines, line)
+
+            try
+                # Parse the instruction string using existing parser
+                parsed_instrs = MSP430EnergyModel.parse_msp430_assembly([String(instr_str)])
+                if !isempty(parsed_instrs)
+                    push!(instructions, parsed_instrs[1])
+                    push!(addresses, addr)
+                end
+            catch e
+                println("  Warning: Could not parse instruction at 0x$(addr_str): $instr_str")
+                println("  Error: $e")
+                continue
+            end
         end
     end
 
-    if isempty(cleaned_lines)
-        error("No assembly instructions found in file: $filename")
+    if isempty(instructions)
+        error("No parseable instructions found in assembly file")
     end
 
-    println("Found $(length(cleaned_lines)) assembly instructions")
+    println("✓ Successfully parsed $(length(instructions)) MSP430 instructions")
+    println("✓ Base address: 0x$(string(base_address, base=16, pad=4))")
 
-    # Parse using existing MSP430 parser
-    try
-        instructions = parse_msp430_assembly(cleaned_lines)
-        println("✓ Successfully parsed $(length(instructions)) MSP430 instructions")
-        return instructions
-    catch e
-        println("❌ Error parsing instructions: $e")
-        println("Raw assembly lines:")
-        for (i, line) in enumerate(cleaned_lines)
-            println("  $i: $line")
-        end
-        rethrow(e)
-    end
+    return instructions, addresses, base_address
 end
 
 """
-Execute MSP430 program and show detailed results
+Execute MSP430 program and show detailed results with PC-based execution
 """
-function execute_and_analyze(instructions::Vector{MSP430Instruction})
+function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16})
     println("\n" * "=" ^ 60)
     println("MSP430 Program Execution & Analysis")
     println("=" ^ 60)
@@ -93,27 +110,74 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction})
         println("  $i: $(inst.opcode)$size_str $(inst.operands) [$(inst.addressing_mode)]")
     end
 
-    # Create initial machine state
+    # Create PC to instruction mapping
+    pc_to_instruction = Dict{UInt16, Tuple{Int, MSP430Instruction}}()
+    for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
+        pc_to_instruction[addr] = (i, inst)
+    end
+
+    # Create initial machine state and set PC to first instruction address
     state = MSP430MachineState()
+    state.pc = addresses[1]  # Start at the first instruction address
+    state.registers[:R0] = state.pc
+    state.registers[:PC] = state.pc
+
     println("\n🔧 Initial machine state:")
-    println("  PC: 0x$(string(state.pc, base=16, pad=4))")
+    println("  PC: 0x$(string(state.pc, base=16, pad=4)) (first instruction)")
     println("  SP: 0x$(string(state.sp, base=16, pad=4))")
     println("  R0-R5: $(state.registers[:R0]), $(state.registers[:R1]), $(state.registers[:R2]), $(state.registers[:R3]), $(state.registers[:R4]), $(state.registers[:R5])")
 
-    # Execute instructions step by step
-    println("\n⚡ Executing instructions:")
+    # Execute instructions using PC-based execution
+    println("\n⚡ Executing instructions (PC-based execution):")
     execution_log = []
+    step_count = 0
+    max_steps = 1000  # Prevent infinite loops
 
-    for (i, inst) in enumerate(instructions)
+    while step_count < max_steps
+        step_count += 1
+
+        # Get instruction at current PC
+        if !haskey(pc_to_instruction, state.pc)
+            println("  🏁 Execution finished: PC 0x$(string(state.pc, base=16, pad=4)) not in program")
+            break
+        end
+
+        instruction_index, inst = pc_to_instruction[state.pc]
         try
             old_pc = state.pc
             old_regs = copy(state.registers)
 
-            execute_msp430_instruction!(state, inst)
+            # Handle call instruction return address setup
+            if inst.opcode == :call
+                # Find next instruction address for return address
+                current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
+                if current_addr_idx !== nothing && current_addr_idx < length(addresses)
+                    next_addr = addresses[current_addr_idx + 1]
+                    # MSP430 call instruction: push return address to stack, then jump
+                    # SP decrements by 2 because MSP430 stack grows downward and each entry is 16-bit (2 bytes)
+                    state.sp -= 2
+                    state.registers[:R1] = state.sp
+                    state.registers[:SP] = state.sp
+                    state.memory[state.sp] = next_addr  # Store return address on stack
+                    # Execute the call (will set PC to target)
+                    if length(inst.operands) > 0
+                        target_addr = inst.operands[1]
+                        state.pc = target_addr
+                        state.registers[:R0] = state.pc
+                        state.registers[:PC] = state.pc
+                    end
+                else
+                    execute_msp430_instruction!(state, inst)
+                end
+            else
+                execute_msp430_instruction!(state, inst)
+            end
 
             # Log execution details
             step_info = (
-                step = i,
+                step = step_count,
+                instruction_index = instruction_index,
+                address = old_pc,
                 instruction = inst,
                 old_pc = old_pc,
                 new_pc = state.pc,
@@ -151,7 +215,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction})
 
             push!(execution_log, step_info)
 
-            println("  Step $i: $(inst.opcode) $(inst.operands)")
+            println("  Step $step_count @ 0x$(string(old_pc, base=16, pad=4)): $(inst.opcode) $(inst.operands)")
             println("    PC: 0x$(string(old_pc, base=16, pad=4)) → 0x$(string(state.pc, base=16, pad=4))")
 
             # Show memory operations
@@ -162,10 +226,32 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction})
             # Print all register values after each step
             print_msp430_registers(state)
 
+            # Handle PC updates for non-control-flow instructions
+            if inst.opcode != :jmp && inst.opcode != :call && inst.opcode != :ret && inst.opcode != :reti && !startswith(string(inst.opcode), "j")
+                # Find next instruction address
+                current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
+                if current_addr_idx !== nothing && current_addr_idx < length(addresses)
+                    next_addr = addresses[current_addr_idx + 1]
+                    state.pc = next_addr
+                    state.registers[:R0] = state.pc
+                    state.registers[:PC] = state.pc
+                end
+            end
+
+            # Check for infinite loop or program end conditions
+            if inst.opcode == :jmp && old_pc == state.pc
+                println("  🔄 Infinite loop detected at PC 0x$(string(state.pc, base=16, pad=4)). Execution stopped.")
+                break
+            end
+
         catch e
-            println("  ❌ Error executing instruction $i ($(inst.opcode)): $e")
+            println("  ❌ Error executing instruction at PC 0x$(string(state.pc, base=16, pad=4)) ($(inst.opcode)): $e")
             break
         end
+    end
+
+    if step_count >= max_steps
+        println("  ⚠️  Execution stopped: Maximum steps ($max_steps) reached")
     end
 
     # Show final state
@@ -241,23 +327,23 @@ Main function
 """
 function main()
     if length(ARGS) < 1
-        println("Usage: julia msp430_executor.jl <instructions_file>")
-        println("Example: julia msp430_executor.jl build/asm/simple.instructions")
+        println("Usage: julia msp430_executor.jl <assembly_file>")
+        println("Example: julia msp430_executor.jl build/asm/simple.asm")
         exit(1)
     end
 
-    instructions_file = ARGS[1]
+    asm_file = ARGS[1]
 
     println("MSP430 Instruction Executor")
     println("=" ^ 40)
-    println("Instructions file: $instructions_file")
+    println("Assembly file: $asm_file")
 
     try
-        # Parse instructions from file
-        instructions = parse_instructions_file(instructions_file)
+        # Parse instructions from assembly file
+        instructions, addresses, base_address = parse_asm_file(asm_file)
 
         # Execute and analyze
-        final_state, execution_log = execute_and_analyze(instructions)
+        final_state, execution_log = execute_and_analyze(instructions, addresses)
 
         # Estimate energy
         energy_stats = estimate_energy(instructions)

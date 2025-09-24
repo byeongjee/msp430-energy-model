@@ -83,12 +83,9 @@ function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Inst
     executor = get_executor(opcode)
     execute!(executor, state, opcode, ops, data_size)
 
-    # Update PC (most instructions increment by 2 for 16-bit words)
-    if opcode != :jmp && !startswith(string(opcode), "j")
-        state.pc += 2
-        state.registers[:R0] = state.pc
-        state.registers[:PC] = state.pc
-    end
+    # PC increment is now handled by the executor using real instruction addresses
+    # Only skip PC increment for control flow instructions that set PC themselves
+    # For all other instructions, PC will be updated by the executor to the next instruction address
 end
 
 """
@@ -171,6 +168,19 @@ end
 Execute single-operand instructions
 """
 function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol = :word)
+    # Handle instructions that don't need operands first
+    if opcode == :ret
+        # Return from subroutine (pop PC from stack)
+        return_addr = get(state.memory, state.sp, UInt16(0))
+        state.pc = return_addr
+        state.sp += 2
+        state.registers[:R1] = state.sp
+        state.registers[:SP] = state.sp
+        state.registers[:R0] = state.pc
+        state.registers[:PC] = state.pc
+        return
+    end
+
     if length(ops) < 1
         return
     end
@@ -209,10 +219,11 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         return  # Don't store result for push
     elseif opcode == :call
         # Call subroutine
+        return_addr = state.pc + 2  # Note: This will be updated by the executor to use real addresses
         state.sp -= 2
         state.registers[:R1] = state.sp
         state.registers[:SP] = state.sp
-        state.memory[state.sp] = state.pc + 2  # Return address
+        state.memory[state.sp] = return_addr  # Return address
         state.pc = operand_val
         state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
@@ -234,15 +245,6 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         # Clear (set to zero)
         result = UInt16(0)
         update_flags_simple!(state, result)
-    elseif opcode == :ret
-        # Return from subroutine (pop PC from stack)
-        state.pc = state.memory[state.sp]
-        state.sp += 2
-        state.registers[:R1] = state.sp
-        state.registers[:SP] = state.sp
-        state.registers[:R0] = state.pc
-        state.registers[:PC] = state.pc
-        return
     elseif opcode == :inc
         # Increment operand by 1
         operand_val = get_operand_value(state, ops[1])

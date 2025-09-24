@@ -81,10 +81,10 @@ extract-asm: disasm
 	@echo "✓ Instructions extracted to: $(ASM_DIR)/$$(basename $(FILE) .c).instructions"
 
 # Run full pipeline
-pipeline: extract-asm
+pipeline: disasm
 	@echo "Running MSP430 execution and energy analysis..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	julia examples/msp430_executor.jl $(ASM_DIR)/$$BASENAME.instructions
+	julia examples/msp430_executor.jl $(ASM_DIR)/$$BASENAME.asm
 	@echo "✓ Pipeline completed!"
 
 # Test with example programs
