@@ -9,6 +9,28 @@ using Statistics
 using Gen
 
 """
+Print all register values in a formatted way for MSP430
+"""
+function print_msp430_registers(state::MSP430MachineState)
+    println("    --- MSP430 Register State ---")
+
+    # Print general registers R0-R15
+    for i in 0:15
+        reg_name = Symbol("R$i")
+        value = get(state.registers, reg_name, UInt16(0))
+        println("    R$i: 0x$(string(value, base=16, pad=4)) ($value)")
+    end
+
+    # Print flags
+    print("    flags: ")
+    for (flag, value) in state.flags
+        print("$flag=$value ")
+    end
+    println()
+    println("    -----------------------------")
+end
+
+"""
 Parse objdump output from a file containing assembly instructions
 """
 function parse_instructions_file(filename::String)
@@ -137,14 +159,8 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction})
                 println(memory_operation)
             end
 
-            # Show register changes (excluding R0/PC since it always changes)
-            if !isempty(step_info.register_changes)
-                for (reg, (old_val, new_val)) in step_info.register_changes
-                    if reg != :R0 && reg != :PC  # Skip PC since it changes every instruction
-                        println("    $reg: $old_val → $new_val")
-                    end
-                end
-            end
+            # Print all register values after each step
+            print_msp430_registers(state)
 
         catch e
             println("  ❌ Error executing instruction $i ($(inst.opcode)): $e")
