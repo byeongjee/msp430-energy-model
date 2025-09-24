@@ -358,19 +358,6 @@ function main()
         if energy_stats !== nothing
             println("📊 Estimated energy: $(round(energy_stats.mean, digits=3)) ± $(round(energy_stats.std, digits=3)) units")
         end
-        println("🔧 Final PC: 0x$(string(final_state.pc, base=16, pad=4))")
-
-        # Show final register values
-        important_regs = [:R4, :R5, :R6, :R7]  # Commonly used for variables
-        println("📋 Key registers:")
-        for reg in important_regs
-            if haskey(final_state.registers, reg)
-                val = final_state.registers[reg]
-                if val != 0
-                    println("   $reg = $val (0x$(string(val, base=16, pad=4)))")
-                end
-            end
-        end
 
     catch e
         println("❌ Execution failed: $e")
