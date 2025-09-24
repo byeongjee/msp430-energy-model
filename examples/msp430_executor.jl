@@ -259,8 +259,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
     # Show final state
     println("\n🏁 Final machine state:")
     println("  PC: 0x$(string(state.pc, base=16, pad=4))")
-    println("  SP: 0x$(string(state.sp, base=16, pad=4))")
-    println("  R0-R7: $(state.registers[:R0]), $(state.registers[:R1]), $(state.registers[:R2]), $(state.registers[:R3]), $(state.registers[:R4]), $(state.registers[:R5]), $(state.registers[:R6]), $(state.registers[:R7])")
+    print_msp430_registers(state)
     println("  Flags: V=$(state.flags[:V]), N=$(state.flags[:N]), Z=$(state.flags[:Z]), C=$(state.flags[:C])")
 
     return state, execution_log
