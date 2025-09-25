@@ -72,18 +72,6 @@ disasm: compile | $(ASM_DIR)
 	$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm
 	@echo "✓ Disassembly saved to: $(ASM_DIR)/$$(basename $(FILE) .c).asm"
 
-# Extract just the assembly instructions for Julia parsing
-# This extracts instruction mnemonics from objdump output format:
-# "    4010:	31 80 06 00 	sub	#6,	r1	;" -> "sub	#6,	r1"
-# The pattern matches lines with hex addresses, then extracts everything after the hex bytes
-extract-asm: disasm
-	@echo "Extracting assembly instructions..."
-	@BASENAME=$$(basename $(FILE) .c); \
-	grep -E '^[[:space:]]*[0-9a-fA-F]+:.*\t[a-zA-Z]' $(ASM_DIR)/$$BASENAME.asm | \
-	awk '{for(i=1;i<=NF;i++) if($$i ~ /^[a-zA-Z]/) {for(j=i;j<=NF && $$j !~ /^;/;j++) printf "%s ", $$j; print ""; break}}' | \
-	sed 's/[[:space:]]*$$//' | \
-	sed 's/^[0-9a-fA-F][0-9a-fA-F] [0-9a-fA-F][0-9a-fA-F] [0-9a-fA-F][0-9a-fA-F] [0-9a-fA-F][0-9a-fA-F] //' > $(ASM_DIR)/$$BASENAME.instructions
-	@echo "✓ Instructions extracted to: $(ASM_DIR)/$$(basename $(FILE) .c).instructions"
 
 # Run full pipeline
 pipeline: disasm
