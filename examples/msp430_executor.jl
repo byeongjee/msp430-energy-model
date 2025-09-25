@@ -345,16 +345,16 @@ function main()
         final_state, execution_log = execute_and_analyze(instructions, addresses, verbose)
 
         # Estimate energy
-        energy_stats = estimate_energy(instructions)
+        # energy_stats = estimate_energy(instructions)
 
         # Summary
         println("\n" * "="^60)
         println("🎯 EXECUTION SUMMARY")
         println("="^60)
         println("✅ Successfully executed $(length(instructions)) MSP430 instructions")
-        if energy_stats !== nothing
-            println("📊 Estimated energy: $(round(energy_stats.mean, digits=3)) ± $(round(energy_stats.std, digits=3)) units")
-        end
+        # if energy_stats !== nothing
+        #     println("📊 Estimated energy: $(round(energy_stats.mean, digits=3)) ± $(round(energy_stats.std, digits=3)) units")
+        # end
 
     catch e
         println("❌ Execution failed: $e")
