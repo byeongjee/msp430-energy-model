@@ -98,7 +98,7 @@ end
 """
 Execute MSP430 program and show detailed results with PC-based execution
 """
-function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16})
+function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)
     println("\n" * "="^60)
     println("MSP430 Program Execution & Analysis")
     println("="^60)
@@ -122,13 +122,15 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
     state.registers[:R0] = state.pc
     state.registers[:PC] = state.pc
 
-    println("\n🔧 Initial machine state:")
-    println("  PC: 0x$(string(state.pc, base=16, pad=4)) (first instruction)")
-    println("  SP: 0x$(string(state.sp, base=16, pad=4))")
-    println("  R0-R5: $(state.registers[:R0]), $(state.registers[:R1]), $(state.registers[:R2]), $(state.registers[:R3]), $(state.registers[:R4]), $(state.registers[:R5])")
+    if verbose
+        println("\n🔧 Initial machine state:")
+        println("  PC: 0x$(string(state.pc, base=16, pad=4)) (first instruction)")
+        println("  SP: 0x$(string(state.sp, base=16, pad=4))")
+        println("  R0-R5: $(state.registers[:R0]), $(state.registers[:R1]), $(state.registers[:R2]), $(state.registers[:R3]), $(state.registers[:R4]), $(state.registers[:R5])")
 
-    # Execute instructions using PC-based execution
-    println("\n⚡ Executing instructions (PC-based execution):")
+        # Execute instructions using PC-based execution
+        println("\n⚡ Executing instructions (PC-based execution):")
+    end
     execution_log = []
     step_count = 0
     max_steps = 1000  # Prevent infinite loops
@@ -218,16 +220,18 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
 
             push!(execution_log, step_info)
 
-            println("  Step $step_count @ 0x$(string(old_pc, base=16, pad=4)): $(inst.opcode) $(inst.operands)")
-            println("    PC: 0x$(string(old_pc, base=16, pad=4)) → 0x$(string(state.pc, base=16, pad=4))")
+            if verbose
+                println("  Step $step_count @ 0x$(string(old_pc, base=16, pad=4)): $(inst.opcode) $(inst.operands)")
+                println("    PC: 0x$(string(old_pc, base=16, pad=4)) → 0x$(string(state.pc, base=16, pad=4))")
 
-            # Show memory operations
-            if !isempty(memory_operation)
-                println(memory_operation)
+                # Show memory operations
+                if !isempty(memory_operation)
+                    println(memory_operation)
+                end
+
+                # Print all register values after each step
+                print_msp430_registers(state)
             end
-
-            # Print all register values after each step
-            print_msp430_registers(state)
 
             # Check for jmp $+0 (program termination) or other infinite loops
             if inst.opcode == :jmp
@@ -319,12 +323,15 @@ Main function
 """
 function main()
     if length(ARGS) < 1
-        println("Usage: julia msp430_executor.jl <assembly_file>")
+        println("Usage: julia msp430_executor.jl <assembly_file> [--verbose|-v]")
         println("Example: julia msp430_executor.jl build/asm/simple.asm")
+        println("Options:")
+        println("  --verbose, -v    Show detailed execution log")
         exit(1)
     end
 
     asm_file = ARGS[1]
+    verbose = length(ARGS) >= 2 && (ARGS[2] == "--verbose" || ARGS[2] == "-v")
 
     println("MSP430 Instruction Executor")
     println("="^40)
@@ -335,7 +342,7 @@ function main()
         instructions, addresses, base_address = parse_asm_file(asm_file)
 
         # Execute and analyze
-        final_state, execution_log = execute_and_analyze(instructions, addresses)
+        final_state, execution_log = execute_and_analyze(instructions, addresses, verbose)
 
         # Estimate energy
         energy_stats = estimate_energy(instructions)
