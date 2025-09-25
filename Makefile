@@ -12,9 +12,14 @@ OBJCOPY := $(MSPGCC_PATH)/msp430-elf-objcopy
 # Device configuration
 DEVICE := MSP430FR5994
 
+MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+MKFILE_DIR := $(dir $(MKFILE_PATH))
+MEASUREMENT_INCLUDE_PATH := $(MKFILE_DIR)/include
+
+
 # Compiler flags
 CFLAGS := -mmcu=$(DEVICE) -O0 -g -Wall
-INCLUDES := -I$(MSP430_INC_PATH)
+INCLUDES := -I$(MSP430_INC_PATH) -I$(MEASUREMENT_INCLUDE_PATH)
 LDFLAGS := -L$(MSP430_LD_PATH)
 
 # Directories
