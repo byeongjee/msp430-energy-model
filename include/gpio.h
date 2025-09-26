@@ -32,5 +32,5 @@ void initialize() {
 }
 
 void toggle_gpio() { P1OUT ^= BIT3; }
-void gpio_up() { P1OUT |= BIT4; }
-void gpio_down() { P1OUT &= ~BIT4; }
+void gpio_up() { P1OUT |= BIT3; }
+void gpio_down() { P1OUT &= ~BIT3; }
