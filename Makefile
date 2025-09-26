@@ -28,7 +28,7 @@ BUILD_DIR := build
 ASM_DIR := $(BUILD_DIR)/asm
 
 # Default target
-.PHONY: all clean help pipeline test
+.PHONY: all clean help pipeline test flash
 
 all: help
 
@@ -40,12 +40,14 @@ help:
 	@echo "  compile FILE=<file.c>     - Compile C file to MSP430 binary"
 	@echo "  disasm FILE=<file.c>      - Compile and disassemble"
 	@echo "  pipeline FILE=<file.c>    - Run full pipeline (compile -> disasm -> execute)"
+	@echo "  flash FILE=<file.c>       - Flash binary to microcontroller"
 	@echo "  test                      - Run pipeline on all example programs"
 	@echo "  clean                     - Clean build artifacts"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make compile FILE=examples/c_programs/simple.c"
 	@echo "  make pipeline FILE=examples/c_programs/simple.c"
+	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make test"
 
 # Create directories
@@ -91,6 +93,16 @@ test: $(SRC_DIR)
 		echo ""; \
 	done
 	@echo "✅ All tests completed!"
+
+# Flash binary to microcontroller
+flash: compile
+ifndef FILE
+	$(error Please specify FILE=<filename.c>)
+endif
+	@echo "Flashing binary to microcontroller..."
+	@BASENAME=$$(basename $(FILE) .c); \
+	mspdebug tilib "prog $(BUILD_DIR)/$$BASENAME.elf"
+	@echo "✓ Flash completed!"
 
 # Clean build artifacts
 clean:
