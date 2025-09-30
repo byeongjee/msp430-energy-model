@@ -88,7 +88,7 @@ int main(void) {
     __no_operation();
   }
 
-  for (uint16_t iter = 0; iter < 8; ++iter) {
+  for (uint16_t iter = 0; iter < 3; ++iter) {
     // A: ALU-dense @ 16 MHz (compute-bound)
     gpio_up();
     segment_alu_dense();
