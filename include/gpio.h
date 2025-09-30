@@ -23,14 +23,15 @@ void clockSetup() {
   CSCTL0_H = 0;
 }
 
+void toggle_gpio() { P1OUT ^= BIT3; }
+void gpio_up() { P1OUT |= BIT3; }
+void gpio_down() { P1OUT &= ~BIT3; }
+
 void initialize() {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
   PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
 
   clockSetup();
   P1DIR |= BIT3; // mark beginning of execution with given input
+  gpio_down();
 }
-
-void toggle_gpio() { P1OUT ^= BIT3; }
-void gpio_up() { P1OUT |= BIT3; }
-void gpio_down() { P1OUT &= ~BIT3; }
