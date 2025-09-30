@@ -80,8 +80,10 @@ function parse_msp430_operands(op_str::String, current_addr::UInt16)
                 # Hexadecimal
                 push!(operands, parse(UInt16, value_str[3:end], base=16))
             else
-                # Decimal
-                push!(operands, parse(UInt16, value_str))
+                # Decimal (may be negative)
+                int_val = parse(Int16, value_str)
+                # Convert to UInt16 representation (two's complement)
+                push!(operands, reinterpret(UInt16, int_val))
             end
             addressing_mode = :immediate
 
