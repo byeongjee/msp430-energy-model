@@ -71,17 +71,11 @@ function parse_asm_file(filename::String)
                 base_address = addr
             end
 
-            try
-                # Parse the instruction string with current address for relative jump resolution
-                parsed_instr = MSP430EnergyModel.parse_msp430_line(String(instr_str), addr)
-                if !isnothing(parsed_instr)
-                    push!(instructions, parsed_instr)
-                    push!(addresses, addr)
-                end
-            catch e
-                println("  Warning: Could not parse instruction at 0x$(addr_str): $instr_str")
-                println("  Error: $e")
-                continue
+            # Parse the instruction string with current address for relative jump resolution
+            parsed_instr = MSP430EnergyModel.parse_msp430_line(String(instr_str), addr)
+            if !isnothing(parsed_instr)
+                push!(instructions, parsed_instr)
+                push!(addresses, addr)
             end
         end
     end
