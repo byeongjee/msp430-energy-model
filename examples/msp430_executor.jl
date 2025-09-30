@@ -55,7 +55,8 @@ function parse_asm_file(filename::String)
 
         # Parse instruction lines like "4002:	31 40 00 2c 	mov	#11264,	r1	;#0x2c00"
         # Format: ADDRESS: HEX_BYTES INSTRUCTION
-        match_result = match(r"^\s*([0-9a-fA-F]{4}):\s+([0-9a-fA-F\s]+)\s+([a-zA-Z][^;]*)", line)
+        # Hex bytes are pairs of hex digits separated by single spaces, followed by tabs/multiple spaces
+        match_result = match(r"^\s*([0-9a-fA-F]{4}):\s+([0-9a-fA-F\s]+?)\s{2,}([a-zA-Z][^;]*)", line)
 
         if match_result !== nothing
             addr_str = match_result.captures[1]
