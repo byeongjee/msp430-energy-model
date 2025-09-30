@@ -150,28 +150,8 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                 error("Cannot find current PC 0x$(string(old_pc, base=16, pad=4)) in addresses array. This indicates a serious bug in PC management.")
             end
 
-            if inst.opcode == :call
-                # Special handling for call instruction to set up return address
-                if current_addr_idx < length(addresses)
-                    next_addr = addresses[current_addr_idx+1]
-                    # MSP430 call instruction: push return address to stack, then jump
-                    # SP decrements by 2 because MSP430 stack grows downward and each entry is 16-bit (2 bytes)
-                    state.sp -= 2
-                    state.registers[:R1] = state.sp
-                    state.registers[:SP] = state.sp
-                    state.memory[state.sp] = next_addr  # Store return address on stack
-                    # Execute the call (will set PC to target)
-                    if length(inst.operands) > 0
-                        target_addr = inst.operands[1]
-                        state.pc = target_addr
-                        state.registers[:R0] = state.pc
-                        state.registers[:PC] = state.pc
-                    end
-                end
-            else
-                # Use the new centralized PC management function
-                execute_msp430_instruction!(state, inst, addresses, current_addr_idx)
-            end
+            # Use the new centralized PC management function
+            execute_msp430_instruction!(state, inst, addresses, current_addr_idx)
 
             # Log execution details
             step_info = (

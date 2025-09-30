@@ -38,7 +38,7 @@ end
 """
 Execute instruction using trait-based dispatch
 """
-function execute!(executor::MSP430InstructionExecutor, state::MSP430MachineState, opcode::Symbol, ops)
+function execute!(executor::MSP430InstructionExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)
     error("execute! not implemented for $(typeof(executor))")
 end
 
@@ -82,52 +82,40 @@ function execute_msp430_instruction!(state::MSP430MachineState, inst::MSP430Inst
 
     # Get appropriate executor and execute instruction
     executor = get_executor(opcode)
-    execute!(executor, state, opcode, ops, data_size)
-
-    # Handle PC updates based on instruction type
-    if opcode == :jmp || opcode == :call || opcode == :ret || opcode == :reti
-        # These instructions manage PC themselves, don't override
-        return
-    elseif startswith(string(opcode), "j")
-        # Conditional jump: check if PC changed (jumped) or stayed same (condition false)
-        if state.pc == old_pc
-            # Condition was false, advance to next instruction
-            if current_idx < length(addresses)
-                state.pc = addresses[current_idx + 1]
-                state.registers[:R0] = state.pc
-                state.registers[:PC] = state.pc
-            end
-        end
-        # If PC changed, the jump happened, don't override
-    else
-        # Regular instruction: advance to next instruction
-        if current_idx < length(addresses)
-            state.pc = addresses[current_idx + 1]
-            state.registers[:R0] = state.pc
-            state.registers[:PC] = state.pc
-        end
-    end
+    execute!(executor, state, opcode, ops, data_size, addresses, current_idx)
 end
 
 """
 Execute dual-operand instructions using trait dispatch
 """
-function execute!(executor::DualOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
+function execute!(executor::DualOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)
     execute_dual_operand!(state, opcode, ops, data_size)
+    # Advance PC to next instruction
+    if current_idx < length(addresses)
+        state.pc = addresses[current_idx + 1]
+        state.registers[:R0] = state.pc
+        state.registers[:PC] = state.pc
+    end
 end
 
 """
 Execute single-operand instructions using trait dispatch
 """
-function execute!(executor::SingleOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
-    execute_single_operand!(state, opcode, ops, data_size)
+function execute!(executor::SingleOperandExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)
+    execute_single_operand!(state, opcode, ops, data_size, addresses, current_idx)
+    # call, ret, reti manage their own PC, others need to advance
+    if opcode != :call && opcode != :ret && opcode != :reti && current_idx < length(addresses)
+        state.pc = addresses[current_idx + 1]
+        state.registers[:R0] = state.pc
+        state.registers[:PC] = state.pc
+    end
 end
 
 """
 Execute jump instructions using trait dispatch
 """
-function execute!(executor::JumpExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
-    execute_jump!(state, opcode, ops)  # Jump instructions don't use data_size
+function execute!(executor::JumpExecutor, state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)
+    execute_jump!(state, opcode, ops, addresses, current_idx)
 end
 
 """
@@ -188,7 +176,7 @@ end
 """
 Execute single-operand instructions
 """
-function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol=:word)
+function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)
     # Handle instructions that don't need operands first
     if opcode == :ret
         # Return from subroutine (pop PC from stack)
@@ -262,7 +250,10 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         return  # Don't store result for push
     elseif opcode == :call
         # Call subroutine
-        return_addr = state.pc + 2  # Note: This will be updated by the executor to use real addresses
+        if current_idx >= length(addresses)
+            error("Call instruction at index $current_idx has no next instruction for return address")
+        end
+        return_addr = addresses[current_idx + 1]
         state.sp -= 2
         state.registers[:R1] = state.sp
         state.registers[:SP] = state.sp
@@ -322,8 +313,13 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         return
     end
 
-    # Store result for most single-operand instructions
-    if opcode != :push && opcode != :call && opcode != :reti && opcode != :ret && opcode != :nop && opcode != :dint && opcode != :pushm && opcode != :popm
+    # Store result for single-operand instructions that modify their operand
+    # Instructions that handle their own logic and don't need to store result here:
+    # - push, pushm, popm: stack operations
+    # - call, ret, reti: control flow
+    # - nop, dint: no side effects on operands
+    instructions_that_dont_store_result = [:push, :call, :reti, :ret, :nop, :dint, :pushm, :popm]
+    if opcode ∉ instructions_that_dont_store_result
         set_operand_value!(state, ops[1], result, data_size)
     end
 end
@@ -331,7 +327,7 @@ end
 """
 Execute jump instructions
 """
-function execute_jump!(state::MSP430MachineState, opcode::Symbol, ops)
+function execute_jump!(state::MSP430MachineState, opcode::Symbol, ops, addresses::Vector{UInt16}, current_idx::Int)
     if length(ops) < 1
         return
     end
@@ -365,9 +361,14 @@ function execute_jump!(state::MSP430MachineState, opcode::Symbol, ops)
     if should_jump
         # Jump is relative to PC + 2
         state.pc = UInt16((Int32(state.pc) + 2 + (Int32(offset) * 2)) & 0xFFFF)
-        state.registers[:R0] = state.pc
-        state.registers[:PC] = state.pc
+    else
+        # Advance to next instruction
+        if current_idx < length(addresses)
+            state.pc = addresses[current_idx + 1]
+        end
     end
+    state.registers[:R0] = state.pc
+    state.registers[:PC] = state.pc
 end
 
 """
