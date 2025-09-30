@@ -26,7 +26,7 @@ Get the appropriate executor for an instruction opcode
 function get_executor(opcode::Symbol)
     if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
         return DualOperandExecutor()
-    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret, :inc, :dint, :nop, :pushm, :popm]
+    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret, :inc, :dec, :dint, :nop, :pushm, :popm, :rla]
         return SingleOperandExecutor()
     elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
         return JumpExecutor()
@@ -270,6 +270,18 @@ function execute_single_operand!(state::MSP430MachineState, opcode::Symbol, ops,
         # Increment operand by 1
         operand_val = get_operand_value(state, ops[1])
         result = UInt16((operand_val + 1) & 0xFFFF)
+        update_flags_simple!(state, result)
+    elseif opcode == :dec
+        # Decrement operand by 1
+        operand_val = get_operand_value(state, ops[1])
+        result = UInt16((operand_val - 1) & 0xFFFF)
+        update_flags_simple!(state, result)
+    elseif opcode == :rla
+        # Rotate left arithmetic (shift left, carry gets MSB, LSB gets 0)
+        operand_val = get_operand_value(state, ops[1])
+        new_carry = (operand_val & 0x8000) != 0
+        result = UInt16((operand_val << 1) & 0xFFFF)
+        state.flags[:C] = new_carry
         update_flags_simple!(state, result)
     elseif opcode == :pushm
         # Push multiple registers: pushm #n, Rdst
