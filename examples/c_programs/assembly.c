@@ -140,11 +140,11 @@ static inline void TEST_BLOCK_NOP(void) {
 #define RUN_PLATEAU_BLOCK(block_fn)                                            \
   do {                                                                         \
     delay_us(GUARD_US);                                                        \
-    gpio_up();                                                                 \
+    gpio_pin13_up();                                                           \
     for (volatile unsigned i = 0; i < REPS; ++i) {                             \
       block_fn();                                                              \
     }                                                                          \
-    gpio_down();                                                               \
+    gpio_pin13_down();                                                         \
     delay_us(GUARD_US);                                                        \
   } while (0)
 
@@ -152,22 +152,22 @@ static inline void TEST_BLOCK_NOP(void) {
 #define RUN_PLATEAU_BLOCK_1(block_fn, arg1)                                    \
   do {                                                                         \
     delay_us(GUARD_US);                                                        \
-    gpio_up();                                                                 \
+    gpio_pin13_up();                                                           \
     for (volatile unsigned i = 0; i < REPS; ++i) {                             \
       block_fn(arg1);                                                          \
     }                                                                          \
-    gpio_down();                                                               \
+    gpio_pin13_down();                                                         \
     delay_us(GUARD_US);                                                        \
   } while (0)
 
 #define RUN_PLATEAU_BLOCK_2(block_fn, a1, a2)                                  \
   do {                                                                         \
     delay_us(GUARD_US);                                                        \
-    gpio_up();                                                                 \
+    gpio_pin13_up();                                                           \
     for (volatile unsigned i = 0; i < REPS; ++i) {                             \
       block_fn(a1, a2);                                                        \
     }                                                                          \
-    gpio_down();                                                               \
+    gpio_pin13_down();                                                         \
     delay_us(GUARD_US);                                                        \
   } while (0)
 

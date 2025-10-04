@@ -1,4 +1,4 @@
-#include "gpio.h" // expects initialize(), gpio_up(), gpio_down()
+#include "gpio.h" // expects initialize(), gpio_pin13_up(), gpio_pin13_down()
 #include <msp430.h>
 #include <stdint.h>
 
@@ -7,8 +7,8 @@
 //   P1DIR |= BIT3;      // P1.3 as output marker
 //   P1OUT &= ~BIT3;
 // }
-// static inline void gpio_up(void)   { P1OUT |=  BIT3; }
-// static inline void gpio_down(void) { P1OUT &= ~BIT3; }
+// static inline void gpio_pin13_up(void)   { P1OUT |=  BIT3; }
+// static inline void gpio_pin13_down(void) { P1OUT &= ~BIT3; }
 // static inline void clock_setup_16mhz(void) {
 //   CSCTL0_H = CSKEY_H;
 //   CSCTL1   = DCOFSEL_4 | DCORSEL;            // DCO ~16 MHz
@@ -90,23 +90,23 @@ int main(void) {
 
   for (uint16_t iter = 0; iter < 3; ++iter) {
     // A: ALU-dense @ 16 MHz (compute-bound)
-    gpio_up();
+    gpio_pin13_up();
     segment_alu_dense();
-    gpio_down();
+    gpio_pin13_down();
 
     __delay_cycles(10000);
 
     // B: SRAM-stream @ 16 MHz (memory-bound)
-    gpio_up();
+    gpio_pin13_up();
     segment_sram_stream();
-    gpio_down();
+    gpio_pin13_down();
 
     __delay_cycles(10000);
 
     // C: MPY hot loop @ 16 MHz (peripheral activity + some memory)
-    gpio_up();
+    gpio_pin13_up();
     segment_mpy_hotloop();
-    gpio_down();
+    gpio_pin13_down();
 
     __delay_cycles(10000);
   }
