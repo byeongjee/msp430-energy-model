@@ -35,6 +35,10 @@ void initialize() {
   PM5CTL0 &= ~LOCKLPM5; // Disable the GPIO power-on default high-impedance mode
 
   clockSetup();
-  P1DIR |= BIT3; // mark beginning of execution with given input
+
+  // mark beginning of execution with given input
+  P1DIR |= BIT3;
+  P1DIR |= BIT2;
   gpio_pin13_down();
+  gpio_pin12_down();
 }
