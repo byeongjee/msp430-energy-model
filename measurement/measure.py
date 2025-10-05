@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, csv, os, subprocess, sys, time, logging
+import argparse, csv, os, subprocess, sys, time, logging, socket
 from typing import List, Tuple, Dict
 from dotenv import load_dotenv
 
@@ -93,6 +93,65 @@ def get_single_arc_and_id(otii) -> Tuple[Arc, str]:
     return arc, device_id
 
 
+def _wait_for_port(host: str, port: int, timeout: float) -> bool:
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except OSError:
+            time.sleep(0.1)
+    return False
+
+
+def start_otii_server(logger: logging.Logger) -> subprocess.Popen | None:
+    """
+    Start otii_server and return the Popen handle.
+    Uses OTII_SERVER_BIN from env (loaded via dotenv) or 'otii_server'.
+    Waits until the TCP port is accepting connections.
+    """
+    bin_path = os.getenv("OTII_SERVER_BIN", "otii_server")
+    host = os.getenv("OTII_SERVER_HOST", "127.0.0.1")
+    port = int(os.getenv("OTII_SERVER_PORT", "1905"))
+
+    logger.info("Starting otii_server: %s (host=%s, port=%d)", bin_path, host, port)
+    # Spawn server; keep stdout/stderr to console only at DEBUG to avoid noise
+    stdout = subprocess.PIPE if logger.level <= logging.DEBUG else subprocess.DEVNULL
+    stderr = subprocess.STDOUT if logger.level <= logging.DEBUG else subprocess.DEVNULL
+    proc = subprocess.Popen([bin_path], stdout=stdout, stderr=stderr)
+
+    # Optionally stream logs when DEBUG
+    if logger.level <= logging.DEBUG and proc.stdout is not None:
+        logger.debug("otii_server started, streaming logs...")
+
+    # Wait for readiness
+    if not _wait_for_port(host, port, timeout=10.0):
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        raise RuntimeError("otii_server did not become ready on time")
+
+    logger.info("otii_server is ready")
+    return proc
+
+
+def stop_otii_server(proc: subprocess.Popen | None, logger: logging.Logger):
+    """Terminate only the server process we started."""
+    if not proc:
+        return
+    logger.info("Stopping otii_server...")
+    try:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            logger.warning("Force killing otii_server")
+            proc.kill()
+    except Exception as e:
+        logger.debug("While stopping otii_server: %r", e)
+
+
 # ---------- main ----------
 def main():
     ap = argparse.ArgumentParser(
@@ -139,6 +198,8 @@ def main():
         args.outfile,
         args.chunk,
     )
+
+    server_proc = start_otii_server(logger)
 
     client = otii_client.OtiiClient()
     otii = client.connect()
@@ -264,11 +325,9 @@ def main():
         logger.info("GPI2 edges in window: kept=%d, collisions=%d", kept, collisions)
 
         # --- Prepare streaming GPI1 state (per-sample) ---
-        # Sort events and find initial state at t_start
         ev_i1_sorted = sorted(ev_i1, key=lambda e: e["timestamp"])
         gpi1_state = 0  # default low if no prior event
         gpi1_idx = 0
-        # Advance to first event > t_start; remember the last <= t_start as initial state
         while (
             gpi1_idx < len(ev_i1_sorted)
             and ev_i1_sorted[gpi1_idx]["timestamp"] <= t_start
@@ -349,7 +408,9 @@ def main():
         try:
             otii.shutdown()
         except Exception:
+            logger.exception("Error shutting down Otii client")
             pass
+        stop_otii_server(server_proc, logger)
 
 
 if __name__ == "__main__":
