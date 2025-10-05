@@ -41,7 +41,7 @@ def find_window_first(csv_path: str, gpi1_col="gpi1") -> Tuple[int, int, int]:
 
 # ---------- efficient loading of a slice ----------
 def load_slice(csv_path: str, i_start: int, i_end: int):
-    cols = ("timestamp_s", "current_A", "power_W", "gpi1", "gpi2_event")
+    cols = ("timestamp_s", "current_A", "power_W", "gpi1", "gpi2")
     ts, ia, pw, g1, e2 = [], [], [], [], []
     with open(csv_path, "r", newline="") as f:
         r = csv.DictReader(f)
@@ -62,7 +62,7 @@ def load_slice(csv_path: str, i_start: int, i_end: int):
                 g1.append(int(row["gpi1"]))
             except Exception:
                 g1.append(0)
-            e2.append(row["gpi2_event"].strip())  # "", "1", "0"
+            e2.append(row["gpi2"].strip())  # "", "1", "0"
     return (
         np.asarray(ts),
         np.asarray(ia),
