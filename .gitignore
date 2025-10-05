@@ -27,11 +27,6 @@ ENV/
 *.egg-info/
 dist/
 
-# Plots and visualizations
-*.png
-*.jpg
-*.jpeg
-*.pdf
 
 # IDE
 .vscode/
