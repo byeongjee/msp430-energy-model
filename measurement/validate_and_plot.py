@@ -233,7 +233,9 @@ def main():
 
     ax1.grid(True, linewidth=0.3, alpha=0.5)
     ax1.legend(loc="upper left", fontsize=8, frameon=False)
+    ax2.legend(loc="upper right", fontsize=8, frameon=False)
     fig.tight_layout()
+    plt.savefig("plot.png")
     plt.show()
 
 
