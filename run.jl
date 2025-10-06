@@ -6,7 +6,7 @@ using Logging
 include("examples/demo.jl")
 include("examples/inference_demo.jl")
 
-function main()
+function main()::Nothing
     @info "ARM Energy Model - Task 1.1 Implementation"
     @info "="^50
 
@@ -49,6 +49,7 @@ function main()
             break
         end
     end
+    return nothing
 end
 
 # Run main if executed directly

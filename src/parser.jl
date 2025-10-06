@@ -3,7 +3,7 @@
 """
 Parse a simple ARM assembly string into instruction objects
 """
-function parse_arm_assembly(asm_lines::Vector{String})
+function parse_arm_assembly(asm_lines::Vector{String})::Vector{ARMInstruction}
     instructions = ARMInstruction[]
 
     for line in asm_lines
@@ -19,7 +19,7 @@ end
 """
 Parse a single line of assembly
 """
-function parse_line(line::String)
+function parse_line(line::String)::Union{ARMInstruction,Nothing}
     # Remove comments and trim
     line = strip(split(line, ";")[1])
     isempty(line) && return nothing
@@ -40,7 +40,7 @@ end
 """
 Parse operand string into structured operands
 """
-function parse_operands(op_str::String)
+function parse_operands(op_str::String)::Vector{Any}
     operands = []
     op_parts = split(op_str, ",")
 
@@ -67,7 +67,7 @@ end
 """
 Parse assembly from a file
 """
-function parse_arm_file(filename::String)
+function parse_arm_file(filename::String)::Vector{ARMInstruction}
     lines = readlines(filename)
     return parse_arm_assembly(lines)
 end

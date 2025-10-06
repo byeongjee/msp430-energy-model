@@ -35,7 +35,7 @@ Generative model for parameter inference - ARM version
 Each instruction type has learnable gamma distribution parameters
 """
 @gen function instruction_energy_model(instructions::Vector{ARMInstruction},
-                                     params::Dict{Symbol,Tuple{Float64,Float64}})
+                                     params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)
@@ -52,7 +52,7 @@ Generative model for parameter inference - MSP430 version
 Each instruction type has learnable gamma distribution parameters
 """
 @gen function msp430_instruction_energy_model(instructions::Vector{MSP430Instruction},
-                                             params::Dict{Symbol,Tuple{Float64,Float64}})
+                                             params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)
@@ -67,7 +67,7 @@ end
 """
 Inference model that learns parameters from ARM data
 """
-@gen function parameter_inference_model(training_data::TrainingData)
+@gen function parameter_inference_model(training_data::TrainingData)::Dict{Symbol,Tuple{Float64,Float64}}
     # Prior distributions for gamma parameters
     learned_params = Dict{Symbol,Tuple{Float64,Float64}}()
 
@@ -105,7 +105,7 @@ end
 """
 Inference model that learns parameters from MSP430 data
 """
-@gen function msp430_parameter_inference_model(training_data::MSP430TrainingData)
+@gen function msp430_parameter_inference_model(training_data::MSP430TrainingData)::Dict{Symbol,Tuple{Float64,Float64}}
     # Prior distributions for gamma parameters
     learned_params = Dict{Symbol,Tuple{Float64,Float64}}()
 
@@ -143,24 +143,24 @@ end
 """
 Learn instruction energy parameters from training data using importance sampling
 """
-function learn_parameters(training_data::TrainingData; 
+function learn_parameters(training_data::TrainingData;
                          n_samples::Int=1000,
-                         n_particles::Int=100)
-    
+                         n_particles::Int=100)::Dict{Symbol,Tuple{Float64,Float64}}
+
     # Create constraints for observed energies
     constraints = choicemap()
     for (i, energy) in enumerate(training_data.energies)
         constraints[(:observed_energy, i)] = energy
     end
-    
+
     # Run importance sampling
     (traces, log_weights) = importance_sampling(
-        parameter_inference_model, 
-        (training_data,), 
-        constraints, 
+        parameter_inference_model,
+        (training_data,),
+        constraints,
         n_samples
     )
-    
+
     # Get weighted average of parameters
     all_opcodes = Set{Symbol}()
     for program in training_data.programs
@@ -168,14 +168,14 @@ function learn_parameters(training_data::TrainingData;
             push!(all_opcodes, inst.opcode)
         end
     end
-    
+
     learned_params = Dict{Symbol,Tuple{Float64,Float64}}()
-    
+
     for opcode in all_opcodes
         alphas = Float64[]
         betas = Float64[]
         weights = Float64[]
-        
+
         for (trace, log_weight) in zip(traces, log_weights)
             params = get_retval(trace)
             if haskey(params, opcode)
@@ -185,7 +185,7 @@ function learn_parameters(training_data::TrainingData;
                 push!(weights, exp(log_weight))
             end
         end
-        
+
         # Weighted average
         total_weight = sum(weights)
         if total_weight > 0
@@ -197,7 +197,7 @@ function learn_parameters(training_data::TrainingData;
             learned_params[opcode] = get_energy_params(opcode)
         end
     end
-    
+
     return learned_params
 end
 
@@ -206,7 +206,7 @@ Learn MSP430 instruction energy parameters from training data using importance s
 """
 function learn_msp430_parameters(training_data::MSP430TrainingData;
                                 n_samples::Int=1000,
-                                n_particles::Int=100)
+                                n_particles::Int=100)::Dict{Symbol,Tuple{Float64,Float64}}
 
     # Create constraints for observed energies
     constraints = choicemap()
@@ -265,10 +265,10 @@ end
 """
 Alternative maximum likelihood estimation approach for ARM
 """
-function learn_parameters_mle(training_data::TrainingData)
+function learn_parameters_mle(training_data::TrainingData)::Dict{Symbol,Tuple{Float64,Float64}}
     # Collect instruction counts and total energies per instruction type
     instruction_energies = Dict{Symbol,Vector{Float64}}()
-    
+
     # For each program, distribute total energy proportionally among instructions
     for (program, total_energy) in zip(training_data.programs, training_data.energies)
         # Simple heuristic: distribute energy based on current parameter means
@@ -277,7 +277,7 @@ function learn_parameters_mle(training_data::TrainingData)
             alpha, beta = get_energy_params(inst.opcode)
             push!(instruction_weights, alpha * beta)  # Expected value of gamma dist
         end
-        
+
         total_weight = sum(instruction_weights)
         if total_weight > 0
             for (inst, weight) in zip(program, instruction_weights)
@@ -289,26 +289,26 @@ function learn_parameters_mle(training_data::TrainingData)
             end
         end
     end
-    
+
     # Fit gamma distributions to each instruction's energy samples
     learned_params = Dict{Symbol,Tuple{Float64,Float64}}()
-    
+
     for (opcode, energies) in instruction_energies
         if length(energies) >= 2
             # Method of moments estimation for gamma distribution
             sample_mean = mean(energies)
             sample_var = var(energies)
-            
+
             if sample_var > 0 && sample_mean > 0
                 # For gamma distribution: mean = α*β, variance = α*β²
                 # So: β = variance/mean, α = mean/β = mean²/variance
                 beta_est = sample_var / sample_mean
                 alpha_est = sample_mean / beta_est
-                
+
                 # Ensure parameters are positive and reasonable
                 alpha_est = max(alpha_est, 0.1)
                 beta_est = max(beta_est, 0.01)
-                
+
                 learned_params[opcode] = (alpha_est, beta_est)
             else
                 learned_params[opcode] = get_energy_params(opcode)
@@ -317,14 +317,14 @@ function learn_parameters_mle(training_data::TrainingData)
             learned_params[opcode] = get_energy_params(opcode)
         end
     end
-    
+
     return learned_params
 end
 
 """
 Alternative maximum likelihood estimation approach for MSP430
 """
-function learn_msp430_parameters_mle(training_data::MSP430TrainingData)
+function learn_msp430_parameters_mle(training_data::MSP430TrainingData)::Dict{Symbol,Tuple{Float64,Float64}}
     # Collect instruction counts and total energies per instruction type
     instruction_energies = Dict{Symbol,Vector{Float64}}()
 
@@ -385,7 +385,7 @@ Predict energy consumption for a new ARM program using learned parameters
 """
 function predict_energy(program::Vector{ARMInstruction},
                        learned_params::Dict{Symbol,Tuple{Float64,Float64}};
-                       n_samples::Int=1000)
+                       n_samples::Int=1000)::EnergyStats
 
     energies = Float64[]
 
@@ -413,7 +413,7 @@ Predict energy consumption for a new MSP430 program using learned parameters
 """
 function predict_msp430_energy(program::Vector{MSP430Instruction},
                               learned_params::Dict{Symbol,Tuple{Float64,Float64}};
-                              n_samples::Int=1000)
+                              n_samples::Int=1000)::EnergyStats
 
     energies = Float64[]
 
@@ -441,7 +441,7 @@ Unified prediction function for ARM programs
 """
 function predict_energy_unified(program::Vector{ARMInstruction},
                                learned_params::Dict{Symbol,Tuple{Float64,Float64}};
-                               n_samples::Int=1000)
+                               n_samples::Int=1000)::EnergyStats
     return predict_energy(program, learned_params; n_samples=n_samples)
 end
 
@@ -450,7 +450,7 @@ Unified prediction function for MSP430 programs
 """
 function predict_energy_unified(program::Vector{MSP430Instruction},
                                learned_params::Dict{Symbol,Tuple{Float64,Float64}};
-                               n_samples::Int=1000)
+                               n_samples::Int=1000)::EnergyStats
     return predict_msp430_energy(program, learned_params; n_samples=n_samples)
 end
 
@@ -459,7 +459,7 @@ Evaluate learned parameters on ARM test data
 """
 function evaluate_parameters(learned_params::Dict{Symbol,Tuple{Float64,Float64}},
                            test_data::TrainingData;
-                           n_samples::Int=1000)
+                           n_samples::Int=1000)::NamedTuple{(:mse, :mae, :correlation, :predictions, :actual), Tuple{Float64, Float64, Float64, Vector{Float64}, Vector{Float64}}}
 
     predictions = Float64[]
     actual_energies = test_data.energies
@@ -488,7 +488,7 @@ Evaluate learned parameters on MSP430 test data
 """
 function evaluate_msp430_parameters(learned_params::Dict{Symbol,Tuple{Float64,Float64}},
                                    test_data::MSP430TrainingData;
-                                   n_samples::Int=1000)
+                                   n_samples::Int=1000)::NamedTuple{(:mse, :mae, :correlation, :predictions, :actual), Tuple{Float64, Float64, Float64, Vector{Float64}, Vector{Float64}}}
 
     predictions = Float64[]
     actual_energies = test_data.energies

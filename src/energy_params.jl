@@ -66,44 +66,46 @@ const ENERGY_PARAMS = merge(ARM_ENERGY_PARAMS, MSP430_ENERGY_PARAMS)
 """
 Add a new instruction type with its energy parameters
 """
-function register_instruction!(opcode::Symbol, alpha::Float64, beta::Float64)
+function register_instruction!(opcode::Symbol, alpha::Float64, beta::Float64)::Nothing
     ENERGY_PARAMS[opcode] = (alpha, beta)
+    return nothing
 end
 
 """
 Get energy parameters for an instruction
 """
-function get_energy_params(opcode::Symbol)
+function get_energy_params(opcode::Symbol)::Tuple{Float64,Float64}
     return get(ENERGY_PARAMS, opcode, (2.0, 0.5))  # Default for unknown
 end
 
 """
 Get energy parameters specifically for ARM instructions
 """
-function get_arm_energy_params(opcode::Symbol)
+function get_arm_energy_params(opcode::Symbol)::Tuple{Float64,Float64}
     return get(ARM_ENERGY_PARAMS, opcode, (5.0, 1.5))  # Default for unknown ARM
 end
 
 """
 Get energy parameters specifically for MSP430 instructions
 """
-function get_msp430_energy_params(opcode::Symbol)
+function get_msp430_energy_params(opcode::Symbol)::Tuple{Float64,Float64}
     return get(MSP430_ENERGY_PARAMS, opcode, (2.0, 0.5))  # Default for unknown MSP430
 end
 
 """
 Register all MSP430 instructions with default parameters
 """
-function register_msp430_defaults!()
+function register_msp430_defaults!()::Nothing
     for (opcode, params) in MSP430_ENERGY_PARAMS
         ENERGY_PARAMS[opcode] = params
     end
+    return nothing
 end
 
 """
 Get architecture-specific energy parameters
 """
-function get_energy_params_for_architecture(opcode::Symbol, architecture::Symbol)
+function get_energy_params_for_architecture(opcode::Symbol, architecture::Symbol)::Tuple{Float64,Float64}
     if architecture == :ARM
         return get_arm_energy_params(opcode)
     elseif architecture == :MSP430

@@ -4,7 +4,7 @@ push!(LOAD_PATH, "../src")
 using ARMEnergyModel
 using Logging
 
-function demo()
+function demo()::EnergyStats
     @info "ARM Energy Model Demo"
     @info "="^50
 
@@ -40,7 +40,7 @@ function demo()
     return stats
 end
 
-function example_comparison()
+function example_comparison()::NamedTuple{(:program1_stats, :program2_stats, :mean_difference, :relative_difference), Tuple{EnergyStats, EnergyStats, Float64, Float64}}
     @info "Comparing two implementations"
 
     # Implementation 1: Using multiplication

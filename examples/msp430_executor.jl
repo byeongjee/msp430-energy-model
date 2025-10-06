@@ -12,7 +12,7 @@ using Logging
 """
 Print all register values in a formatted way for MSP430
 """
-function print_msp430_registers(state::MSP430MachineState)
+function print_msp430_registers(state::MSP430MachineState)::Nothing
     @debug "--- MSP430 Register State ---"
 
     # Print general registers R0-R15
@@ -25,12 +25,13 @@ function print_msp430_registers(state::MSP430MachineState)
     # Print flags
     @debug "flags" flags=state.flags
     @debug "-----------------------------"
+    return nothing
 end
 
 """
 Parse MSP430 assembly file and extract instructions with their addresses
 """
-function parse_asm_file(filename::String)
+function parse_asm_file(filename::String)::Tuple{Vector{MSP430Instruction}, Vector{UInt16}, UInt16}
     if !isfile(filename)
         error("Assembly file not found: $filename")
     end
@@ -89,7 +90,7 @@ end
 """
 Execute MSP430 program and show detailed results with PC-based execution
 """
-function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)
+function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)::Tuple{MSP430MachineState, Vector{Any}}
     @info "="^60
     @info "MSP430 Program Execution & Analysis"
     @info "="^60
@@ -230,7 +231,7 @@ end
 """
 Estimate energy consumption using probabilistic model
 """
-function estimate_energy(instructions::Vector{MSP430Instruction})
+function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTuple{(:mean, :std, :min, :max, :samples), Tuple{Float64, Float64, Float64, Float64, Vector{Float64}}}, Nothing}
     @info "Energy Consumption Analysis"
 
     # Run probabilistic energy simulation
@@ -284,7 +285,7 @@ end
 """
 Main function
 """
-function main()
+function main()::Nothing
     if length(ARGS) < 1
         @info "Usage: julia msp430_executor.jl <assembly_file> [--verbose|-v]"
         @info "Example: julia msp430_executor.jl build/asm/simple.asm"
@@ -330,6 +331,7 @@ function main()
         @error "Execution failed" error=e
         exit(1)
     end
+    return nothing
 end
 
 # Run main function if called directly

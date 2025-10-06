@@ -6,7 +6,7 @@ using Distributions
 """
 Sample energy consumption for a given instruction using stateless Gamma distribution
 """
-@gen function sample_instruction_energy(opcode::Symbol, architecture::Symbol=:ARM)
+@gen function sample_instruction_energy(opcode::Symbol, architecture::Symbol=:ARM)::Float64
     alpha, beta = get_energy_params_for_architecture(opcode, architecture)
     energy ~ gamma(alpha, beta)
     return energy
@@ -16,7 +16,7 @@ end
 Probabilistic interpreter for ARM assembly programs.
 Returns a generative function that models the program's energy distribution.
 """
-@gen function interpret_arm_program(instructions::Vector{ARMInstruction})
+@gen function interpret_arm_program(instructions::Vector{ARMInstruction})::Float64
     state = MachineState()
     total_energy = 0.0
 
@@ -38,7 +38,7 @@ end
 Probabilistic interpreter for MSP430 assembly programs.
 Returns a generative function that models the program's energy distribution.
 """
-@gen function interpret_msp430_program(instructions::Vector{MSP430Instruction})
+@gen function interpret_msp430_program(instructions::Vector{MSP430Instruction})::Float64
     state = MSP430MachineState()
     total_energy = 0.0
 
@@ -59,14 +59,14 @@ end
 """
 Unified probabilistic interpreter for ARM programs
 """
-@gen function interpret_program(instructions::Vector{ARMInstruction})
+@gen function interpret_program(instructions::Vector{ARMInstruction})::Float64
     return @trace(interpret_arm_program(instructions), :arm_program)
 end
 
 """
 Unified probabilistic interpreter for MSP430 programs
 """
-@gen function interpret_program(instructions::Vector{MSP430Instruction})
+@gen function interpret_program(instructions::Vector{MSP430Instruction})::Float64
     return @trace(interpret_msp430_program(instructions), :msp430_program)
 end
 
@@ -74,7 +74,7 @@ end
 Create a program-specific energy model with custom parameters for ARM
 """
 @gen function custom_arm_energy_model(instructions::Vector{ARMInstruction},
-    custom_params::Dict{Symbol,Tuple{Float64,Float64}})
+    custom_params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)
@@ -91,7 +91,7 @@ end
 Create a program-specific energy model with custom parameters for MSP430
 """
 @gen function custom_msp430_energy_model(instructions::Vector{MSP430Instruction},
-    custom_params::Dict{Symbol,Tuple{Float64,Float64}})
+    custom_params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)

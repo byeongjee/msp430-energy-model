@@ -3,7 +3,7 @@
 """
 Initialize a new machine state
 """
-function MachineState()
+function MachineState()::MachineState
     registers = Dict(Symbol("r$i") => 0 for i in 0:15)
     registers[:sp] = 0x10000  # Stack pointer
     registers[:lr] = 0        # Link register
@@ -20,7 +20,7 @@ end
 """
 Execute an instruction and update machine state (side effects)
 """
-function execute_instruction!(state::MachineState, inst::ARMInstruction)
+function execute_instruction!(state::MachineState, inst::ARMInstruction)::Nothing
     opcode = inst.opcode
     ops = inst.operands
 
@@ -45,56 +45,64 @@ function execute_instruction!(state::MachineState, inst::ARMInstruction)
     end
 
     state.pc += 4  # ARM instructions are 4 bytes
+    return nothing
 end
 
 # Individual instruction implementations
-function execute_mov!(state::MachineState, ops)
+function execute_mov!(state::MachineState, ops::Vector{Any})::Nothing
     dest, src = ops
     if isa(src, Symbol)
         state.registers[dest] = state.registers[src]
     else
         state.registers[dest] = src
     end
+    return nothing
 end
 
-function execute_add!(state::MachineState, ops)
+function execute_add!(state::MachineState, ops::Vector{Any})::Nothing
     dest, src1, src2 = ops
     val1 = state.registers[src1]
     val2 = isa(src2, Symbol) ? state.registers[src2] : src2
     state.registers[dest] = val1 + val2
+    return nothing
 end
 
-function execute_sub!(state::MachineState, ops)
+function execute_sub!(state::MachineState, ops::Vector{Any})::Nothing
     dest, src1, src2 = ops
     val1 = state.registers[src1]
     val2 = isa(src2, Symbol) ? state.registers[src2] : src2
     state.registers[dest] = val1 - val2
+    return nothing
 end
 
-function execute_mul!(state::MachineState, ops)
+function execute_mul!(state::MachineState, ops::Vector{Any})::Nothing
     dest, src1, src2 = ops
     val1 = state.registers[src1]
     val2 = state.registers[src2]
     state.registers[dest] = val1 * val2
+    return nothing
 end
 
-function execute_ldr!(state::MachineState, ops)
+function execute_ldr!(state::MachineState, ops::Vector{Any})::Nothing
     dest, addr_reg = ops
     addr = state.registers[addr_reg]
     state.registers[dest] = get(state.memory, addr, 0)
+    return nothing
 end
 
-function execute_str!(state::MachineState, ops)
+function execute_str!(state::MachineState, ops::Vector{Any})::Nothing
     src, addr_reg = ops
     addr = state.registers[addr_reg]
     state.memory[addr] = state.registers[src]
+    return nothing
 end
 
-function execute_cmp!(state::MachineState, ops)
+function execute_cmp!(state::MachineState, ops::Vector{Any})::Nothing
     src1, src2 = ops
     val1 = state.registers[src1]
     val2 = isa(src2, Symbol) ? state.registers[src2] : src2
     result = val1 - val2
     state.flags[:Z] = (result == 0)
     state.flags[:N] = (result < 0)
+    return nothing
 end

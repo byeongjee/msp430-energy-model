@@ -6,7 +6,7 @@ using Plots
 using Logging
 
 # Create some example training programs
-function create_training_data()
+function create_training_data()::TrainingData
     # Program 1: Simple arithmetic
     program1 = [
         ARMInstruction(:mov, [:r1, 10]),
@@ -58,7 +58,7 @@ function create_training_data()
     return TrainingData(programs, observed_energies)
 end
 
-function demo_parameter_learning()
+function demo_parameter_learning()::Dict{Symbol,Tuple{Float64,Float64}}
     @info "=== Parameter Inference Demo ==="
 
     # Create training data
@@ -180,7 +180,7 @@ function demo_parameter_learning()
         layout_dims = (3, 3)  # Can accommodate up to 9 plots
         plot_size = (1200, 900)
     end
-    
+
     learned_dist_plot = plot(learned_instruction_plots...,
         layout=layout_dims,
         size=plot_size,

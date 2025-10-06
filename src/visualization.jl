@@ -8,7 +8,7 @@ using Logging
 """
 Visualize energy distribution for individual instructions
 """
-function plot_instruction_energy_distributions(n_samples::Int=10000)
+function plot_instruction_energy_distributions(n_samples::Int=10000)::Plots.Plot
     plots = []
 
     for (opcode, (alpha, beta)) in ENERGY_PARAMS
@@ -47,7 +47,7 @@ end
 Visualize energy distribution for a complete program
 """
 function plot_program_energy_distribution(program::Vector{ARMInstruction},
-    n_samples::Int=5000)
+    n_samples::Int=5000)::Plots.Plot
     stats = analyze_energy_distribution(program, n_samples)
     energies = stats.samples
 
@@ -79,7 +79,7 @@ end
 """
 Visualize per-instruction energy breakdown
 """
-function plot_instruction_breakdown(program::Vector{ARMInstruction}, n_samples::Int=1000)
+function plot_instruction_breakdown(program::Vector{ARMInstruction}, n_samples::Int=1000)::Plots.Plot
     stats = analyze_instruction_energies(program, n_samples)
 
     data = []
@@ -107,7 +107,7 @@ end
 """
 Plot cumulative energy consumption
 """
-function plot_cumulative_energy(program::Vector{ARMInstruction}, n_traces::Int=100)
+function plot_cumulative_energy(program::Vector{ARMInstruction}, n_traces::Int=100)::Plots.Plot
     cumulative_energies = []
 
     for _ in 1:n_traces
@@ -145,7 +145,7 @@ end
 """
 Create comprehensive analysis visualization
 """
-function comprehensive_energy_analysis(program::Vector{ARMInstruction}, n_samples::Int=5000)
+function comprehensive_energy_analysis(program::Vector{ARMInstruction}, n_samples::Int=5000)::Plots.Plot
     p1 = plot_program_energy_distribution(program, n_samples)
     p2 = plot_instruction_breakdown(program, min(n_samples, 1000))
     p3 = plot_cumulative_energy(program, 100)
@@ -161,20 +161,20 @@ end
 """
 Visualize comparison between original and learned parameters
 """
-function plot_parameter_comparison(learned_params::Dict{Symbol,Tuple{Float64,Float64}}, 
-                                 n_samples::Int=10000)
+function plot_parameter_comparison(learned_params::Dict{Symbol,Tuple{Float64,Float64}},
+                                 n_samples::Int=10000)::Plots.Plot
     opcodes = sort(collect(keys(learned_params)))
     plots = []
-    
+
     for opcode in opcodes
         # Original parameters
         orig_alpha, orig_beta = get_energy_params(opcode)
         orig_samples = rand(Gamma(orig_alpha, orig_beta), n_samples)
-        
-        # Learned parameters  
+
+        # Learned parameters
         learned_alpha, learned_beta = learned_params[opcode]
         learned_samples = rand(Gamma(learned_alpha, learned_beta), n_samples)
-        
+
         # Create comparison plot
         p = histogram(orig_samples,
             bins=50,
@@ -185,22 +185,22 @@ function plot_parameter_comparison(learned_params::Dict{Symbol,Tuple{Float64,Flo
             title=String(opcode),
             xlabel="Energy (mJ)",
             ylabel="PDF")
-            
+
         histogram!(p, learned_samples,
-            bins=50, 
+            bins=50,
             normalize=:pdf,
             alpha=0.6,
             color=:red,
             label="Learned Γ($(round(learned_alpha,digits=2)), $(round(learned_beta,digits=2)))")
-            
+
         push!(plots, p)
     end
-    
+
     final_plot = plot(plots...,
         layout=(length(plots) > 6 ? (3, 3) : (2, 3)),
         size=(1200, 800),
         plot_title="Original vs Learned Parameter Distributions")
-        
+
     return final_plot
 end
 
@@ -209,13 +209,13 @@ Visualize prediction comparison for a test program
 """
 function plot_prediction_comparison(program::Vector{ARMInstruction},
                                   learned_params::Dict{Symbol,Tuple{Float64,Float64}},
-                                  n_samples::Int=5000)
+                                  n_samples::Int=5000)::Plots.Plot
     # Get predictions from original model
     original_stats = analyze_energy_distribution(program, n_samples)
-    
+
     # Get predictions from learned model
     learned_stats = predict_energy(program, learned_params, n_samples=n_samples)
-    
+
     # Create comparison plot
     p = histogram(original_stats.samples,
         bins=50,
@@ -226,27 +226,27 @@ function plot_prediction_comparison(program::Vector{ARMInstruction},
         title="Energy Prediction Comparison",
         xlabel="Total Energy (mJ)",
         ylabel="PDF")
-        
+
     histogram!(p, learned_stats.samples,
         bins=50,
-        normalize=:pdf, 
+        normalize=:pdf,
         alpha=0.6,
         color=:red,
         label="Learned Model")
-        
+
     # Add mean lines
     vline!(p, [original_stats.mean],
         color=:blue,
         linewidth=2,
         linestyle=:dash,
         label="Original Mean: $(round(original_stats.mean, digits=2))")
-        
+
     vline!(p, [learned_stats.mean],
         color=:red,
-        linewidth=2, 
+        linewidth=2,
         linestyle=:dash,
         label="Learned Mean: $(round(learned_stats.mean, digits=2))")
-        
+
     return p
 end
 
@@ -255,18 +255,18 @@ Visualize training vs prediction accuracy
 """
 function plot_training_evaluation(learned_params::Dict{Symbol,Tuple{Float64,Float64}},
                                 training_data::TrainingData,
-                                n_samples::Int=1000)
+                                n_samples::Int=1000)::Plots.Plot
     evaluation = evaluate_parameters(learned_params, training_data, n_samples=n_samples)
-    
+
     p = scatter(evaluation.actual, evaluation.predictions,
         xlabel="Actual Energy (mJ)",
-        ylabel="Predicted Energy (mJ)", 
+        ylabel="Predicted Energy (mJ)",
         title="Training Data: Actual vs Predicted Energy",
         label="Programs",
         color=:blue,
         markersize=8,
         alpha=0.7)
-        
+
     # Add perfect prediction line
     min_val = min(minimum(evaluation.actual), minimum(evaluation.predictions))
     max_val = max(maximum(evaluation.actual), maximum(evaluation.predictions))
@@ -275,10 +275,10 @@ function plot_training_evaluation(learned_params::Dict{Symbol,Tuple{Float64,Floa
         linewidth=2,
         linestyle=:dash,
         label="Perfect Prediction")
-        
+
     # Add correlation info
     corr_text = "Correlation: $(round(evaluation.correlation, digits=3))\nMSE: $(round(evaluation.mse, digits=4))"
     annotate!(p, [(max_val * 0.1, max_val * 0.9, text(corr_text, 10, :left))])
-    
+
     return p
 end

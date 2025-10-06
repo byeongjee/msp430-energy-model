@@ -3,7 +3,7 @@
 """
 Parse MSP430 assembly string into instruction objects
 """
-function parse_msp430_assembly(asm_lines::Vector{String}, start_addr::UInt16 = UInt16(0x4000))
+function parse_msp430_assembly(asm_lines::Vector{String}, start_addr::UInt16 = UInt16(0x4000))::Vector{MSP430Instruction}
     instructions = MSP430Instruction[]
     current_addr = start_addr
 
@@ -21,7 +21,7 @@ end
 """
 Parse a single line of MSP430 assembly
 """
-function parse_msp430_line(line::String, current_addr::UInt16)
+function parse_msp430_line(line::String, current_addr::UInt16)::Union{MSP430Instruction, Nothing}
     # Remove comments and trim
     line = strip(split(line, ";")[1])
     isempty(line) && return nothing
@@ -65,7 +65,7 @@ end
 """
 Parse MSP430 operand string into structured operands with addressing modes
 """
-function parse_msp430_operands(op_str::String, current_addr::UInt16)
+function parse_msp430_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}, Symbol}
     operands = []
     addressing_mode = :register
     op_parts = split(op_str, ",")
@@ -153,7 +153,7 @@ end
 """
 Parse MSP430 assembly from a file
 """
-function parse_msp430_file(filename::String)
+function parse_msp430_file(filename::String)::Vector{MSP430Instruction}
     lines = readlines(filename)
     return parse_msp430_assembly(lines)
 end
@@ -161,7 +161,7 @@ end
 """
 Convert register number to register symbol (R0-R15)
 """
-function reg_num_to_symbol(reg_num::Int)
+function reg_num_to_symbol(reg_num::Int)::Symbol
     if 0 <= reg_num <= 15
         return Symbol("R$reg_num")
     else
@@ -172,7 +172,7 @@ end
 """
 Convert register symbol to register number
 """
-function reg_symbol_to_num(reg_sym::Symbol)
+function reg_symbol_to_num(reg_sym::Symbol)::Int
     reg_str = string(reg_sym)
     if startswith(reg_str, "R") && length(reg_str) >= 2
         num_str = reg_str[2:end]
@@ -200,7 +200,7 @@ end
 """
 Identify MSP430 instruction format
 """
-function get_instruction_format(opcode::Symbol)
+function get_instruction_format(opcode::Symbol)::Symbol
     # Dual-operand instructions (Format I)
     dual_operand = [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
 
@@ -224,7 +224,7 @@ end
 """
 Validate MSP430 instruction operands
 """
-function validate_msp430_instruction(inst::MSP430Instruction)
+function validate_msp430_instruction(inst::MSP430Instruction)::Bool
     format = get_instruction_format(inst.opcode)
 
     if format == :dual_operand

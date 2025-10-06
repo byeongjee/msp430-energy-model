@@ -6,7 +6,7 @@ using Gen
 """
 Analyze energy distribution by sampling from the program multiple times
 """
-function analyze_energy_distribution(program::Vector{ARMInstruction}, n_samples::Int=1000)
+function analyze_energy_distribution(program::Vector{ARMInstruction}, n_samples::Int=1000)::EnergyStats
     model = interpret_arm_program
 
     energies = Float64[]
@@ -27,7 +27,7 @@ end
 """
 Get per-instruction energy statistics
 """
-function analyze_instruction_energies(program::Vector{ARMInstruction}, n_samples::Int=1000)
+function analyze_instruction_energies(program::Vector{ARMInstruction}, n_samples::Int=1000)::Dict{Int,EnergyStats}
     instruction_stats = Dict{Int,EnergyStats}()
     instruction_energies = Dict{Int,Vector{Float64}}()
 
@@ -62,7 +62,7 @@ Compare two programs' energy efficiency
 """
 function compare_programs(program1::Vector{ARMInstruction},
     program2::Vector{ARMInstruction},
-    n_samples::Int=1000)
+    n_samples::Int=1000)::NamedTuple{(:program1_stats, :program2_stats, :mean_difference, :relative_difference), Tuple{EnergyStats, EnergyStats, Float64, Float64}}
     stats1 = analyze_energy_distribution(program1, n_samples)
     stats2 = analyze_energy_distribution(program2, n_samples)
 
