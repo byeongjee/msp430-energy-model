@@ -25,10 +25,10 @@ void clockSetup() {
 
 void toggle_gpio() { P1OUT ^= BIT3; }
 void gpio_pin13_up() { P1OUT |= BIT3; }
-void gpio_pin13_down() { P1OUT &= ~BIT3; }
+void end_event() { P1OUT &= ~BIT3; }
 
-void gpio_pin12_up() { P1OUT |= BIT2; }
-void gpio_pin12_down() { P1OUT &= ~BIT2; }
+void begin_measurement_window() { P1OUT |= BIT2; }
+void end_measurement_window() { P1OUT &= ~BIT2; }
 
 void initialize() {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
@@ -39,6 +39,6 @@ void initialize() {
   // mark beginning of execution with given input
   P1DIR |= BIT3;
   P1DIR |= BIT2;
-  gpio_pin13_down();
-  gpio_pin12_down();
+  end_event();
+  end_measurement_window();
 }

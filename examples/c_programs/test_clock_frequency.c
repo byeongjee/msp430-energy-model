@@ -1,4 +1,4 @@
-#include "gpio.h" // expects initialize(), gpio_pin13_up(), gpio_pin13_down()
+#include "gpio.h" // expects initialize(), gpio_pin13_up(), end_event()
 #include <msp430.h>
 #include <stdint.h>
 
@@ -8,7 +8,7 @@
 //   P1OUT &= ~BIT3;
 // }
 // static inline void gpio_pin13_up(void)   { P1OUT |=  BIT3; }
-// static inline void gpio_pin13_down(void) { P1OUT &= ~BIT3; }
+// static inline void end_event(void) { P1OUT &= ~BIT3; }
 // static inline void clock_setup_16mhz(void) {
 //   // FR5994 CS: set DCO ~16MHz, MCLK=DCO, SMCLK=DCO/1
 //   CSCTL0_H = CSKEY_H;
@@ -113,23 +113,23 @@ int main(void) {
   // Repeat a few iterations to get a nice pattern in the trace
   for (uint16_t iter = 0; iter < 10; ++iter) {
     // A: compute-heavy @ 16 MHz
-    gpio_pin13_up();
+    begin_event();
     segment_compute_heavy();
-    gpio_pin13_down();
+    end_event();
 
     __delay_cycles(100);
 
     // B: memory stream @ 8 MHz
-    gpio_pin13_up();
+    begin_event();
     segment_memory_stream();
-    gpio_pin13_down();
+    end_event();
 
     __delay_cycles(100);
 
     // C: delay-dominant @ 1 MHz
-    gpio_pin13_up();
+    begin_event();
     segment_idleish_delay();
-    gpio_pin13_down();
+    end_event();
     __delay_cycles(100);
   }
 

@@ -7,15 +7,15 @@ int main(void) {
   int sum = 0;
   int i;
 
-  gpio_pin12_up();
+  begin_measurement_window();
 
   for (i = 1; i <= 100; i++) {
-    gpio_pin13_up();
+    begin_event();
     sum += i;
-    gpio_pin13_down();
+    end_event();
   }
 
-  gpio_pin12_down();
+  end_measurement_window();
 
   return sum;
 }
