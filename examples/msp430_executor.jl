@@ -7,27 +7,24 @@ include("../src/MSP430EnergyModel.jl")
 using .MSP430EnergyModel
 using Statistics
 using Gen
+using Logging
 
 """
 Print all register values in a formatted way for MSP430
 """
 function print_msp430_registers(state::MSP430MachineState)
-    println("    --- MSP430 Register State ---")
+    @debug "--- MSP430 Register State ---"
 
     # Print general registers R0-R15
     for i in 0:15
         reg_name = Symbol("R$i")
         value = get(state.registers, reg_name, UInt16(0))
-        println("    R$i: 0x$(string(value, base=16, pad=4)) ($value)")
+        @debug "R$i" value_hex=string(value, base=16, pad=4) value_dec=value
     end
 
     # Print flags
-    print("    flags: ")
-    for (flag, value) in state.flags
-        print("$flag=$value ")
-    end
-    println()
-    println("    -----------------------------")
+    @debug "flags" flags=state.flags
+    @debug "-----------------------------"
 end
 
 """
@@ -43,7 +40,7 @@ function parse_asm_file(filename::String)
     addresses = UInt16[]
     base_address = nothing
 
-    println("Parsing assembly file: $filename")
+    @info "Parsing assembly file" filename
 
     for line in lines
         line = strip(line)
@@ -84,8 +81,7 @@ function parse_asm_file(filename::String)
         error("No parseable instructions found in assembly file")
     end
 
-    println("✓ Successfully parsed $(length(instructions)) MSP430 instructions")
-    println("✓ Base address: 0x$(string(base_address, base=16, pad=4))")
+    @info "Successfully parsed MSP430 instructions" count=length(instructions) base_address=string(base_address, base=16, pad=4)
 
     return instructions, addresses, base_address
 end
@@ -94,15 +90,15 @@ end
 Execute MSP430 program and show detailed results with PC-based execution
 """
 function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)
-    println("\n" * "="^60)
-    println("MSP430 Program Execution & Analysis")
-    println("="^60)
+    @info "="^60
+    @info "MSP430 Program Execution & Analysis"
+    @info "="^60
 
     # Show the program
-    println("\n📋 MSP430 Program ($(length(instructions)) instructions):")
+    @info "MSP430 Program" instruction_count=length(instructions)
     for (i, inst) in enumerate(instructions)
         size_str = inst.data_size == :byte ? ".b" : ""
-        println("  $i: $(inst.opcode)$size_str $(inst.operands) [$(inst.addressing_mode)]")
+        @debug "Instruction $i" opcode="$(inst.opcode)$size_str" operands=inst.operands addressing_mode=inst.addressing_mode
     end
 
     # Create PC to instruction mapping
@@ -118,13 +114,10 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
     state.registers[:PC] = state.pc
 
     if verbose
-        println("\n🔧 Initial machine state:")
-        println("  PC: 0x$(string(state.pc, base=16, pad=4)) (first instruction)")
-        println("  SP: 0x$(string(state.sp, base=16, pad=4))")
-        println("  R0-R5: $(state.registers[:R0]), $(state.registers[:R1]), $(state.registers[:R2]), $(state.registers[:R3]), $(state.registers[:R4]), $(state.registers[:R5])")
+        @info "Initial machine state" pc=string(state.pc, base=16, pad=4) sp=string(state.sp, base=16, pad=4) r0=state.registers[:R0] r1=state.registers[:R1] r2=state.registers[:R2] r3=state.registers[:R3] r4=state.registers[:R4] r5=state.registers[:R5]
 
         # Execute instructions using PC-based execution
-        println("\n⚡ Executing instructions (PC-based execution):")
+        @info "Executing instructions (PC-based execution)"
     end
     execution_log = []
     step_count = 0
@@ -135,7 +128,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
 
         # Get instruction at current PC
         if !haskey(pc_to_instruction, state.pc)
-            println("  🏁 Execution finished: PC 0x$(string(state.pc, base=16, pad=4)) not in program")
+            @info "Execution finished" pc=string(state.pc, base=16, pad=4) reason="PC not in program"
             break
         end
 
@@ -196,12 +189,12 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
             push!(execution_log, step_info)
 
             if verbose
-                println("  Step $step_count @ 0x$(string(old_pc, base=16, pad=4)): $(inst.opcode) $(inst.operands)")
-                println("    PC: 0x$(string(old_pc, base=16, pad=4)) → 0x$(string(state.pc, base=16, pad=4))")
+                @debug "Step $step_count" address=string(old_pc, base=16, pad=4) opcode=inst.opcode operands=inst.operands
+                @debug "PC transition" old_pc=string(old_pc, base=16, pad=4) new_pc=string(state.pc, base=16, pad=4)
 
                 # Show memory operations
                 if !isempty(memory_operation)
-                    println(memory_operation)
+                    @debug memory_operation
                 end
 
                 # Print all register values after each step
@@ -211,26 +204,25 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
             # Check for jmp $+0 (program termination) or other infinite loops
             if inst.opcode == :jmp
                 if length(inst.operands) > 0 && inst.operands[1] == -1  # jmp $+0 has offset -1
-                    println("  🏁 Program termination: jmp \$+0 instruction executed")
+                    @info "Program termination: jmp \$+0 instruction executed"
                     break
                 end
             end
 
         catch e
-            println("  ❌ Error executing instruction at PC 0x$(string(state.pc, base=16, pad=4)) ($(inst.opcode)): $e")
+            @error "Error executing instruction" pc=string(state.pc, base=16, pad=4) opcode=inst.opcode error=e
             break
         end
     end
 
     if step_count >= max_steps
-        println("  ⚠️  Execution stopped: Maximum steps ($max_steps) reached")
+        @warn "Execution stopped: Maximum steps reached" max_steps
     end
 
     # Show final state
-    println("\n🏁 Final machine state:")
-    println("  PC: 0x$(string(state.pc, base=16, pad=4))")
+    @info "Final machine state" pc=string(state.pc, base=16, pad=4)
     print_msp430_registers(state)
-    println("  Flags: V=$(state.flags[:V]), N=$(state.flags[:N]), Z=$(state.flags[:Z]), C=$(state.flags[:C])")
+    @info "Flags" V=state.flags[:V] N=state.flags[:N] Z=state.flags[:Z] C=state.flags[:C]
 
     return state, execution_log
 end
@@ -239,26 +231,26 @@ end
 Estimate energy consumption using probabilistic model
 """
 function estimate_energy(instructions::Vector{MSP430Instruction})
-    println("\n⚡ Energy Consumption Analysis:")
+    @info "Energy Consumption Analysis"
 
     # Run probabilistic energy simulation
     n_samples = 1000
     energy_samples = Float64[]
 
-    println("  Running $n_samples energy simulations...")
+    @info "Running energy simulations" n_samples
 
     for _ in 1:n_samples
         try
             trace = simulate(interpret_msp430_program, (instructions,))
             push!(energy_samples, get_retval(trace))
         catch e
-            println("  Warning: Energy simulation failed: $e")
+            @warn "Energy simulation failed" error=e
             # Continue with other samples
         end
     end
 
     if isempty(energy_samples)
-        println("  ❌ All energy simulations failed")
+        @error "All energy simulations failed"
         return nothing
     end
 
@@ -267,11 +259,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})
     min_energy = minimum(energy_samples)
     max_energy = maximum(energy_samples)
 
-    println("  📊 Energy statistics ($(length(energy_samples)) samples):")
-    println("    Mean: $(round(mean_energy, digits=3)) energy units")
-    println("    Std:  $(round(std_energy, digits=3)) energy units")
-    println("    Min:  $(round(min_energy, digits=3)) energy units")
-    println("    Max:  $(round(max_energy, digits=3)) energy units")
+    @info "Energy statistics" samples=length(energy_samples) mean=round(mean_energy, digits=3) std=round(std_energy, digits=3) min=round(min_energy, digits=3) max=round(max_energy, digits=3)
 
     # Show energy per instruction type
     instruction_counts = Dict{Symbol,Int}()
@@ -279,7 +267,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})
         instruction_counts[inst.opcode] = get(instruction_counts, inst.opcode, 0) + 1
     end
 
-    println("  📈 Energy breakdown by instruction type:")
+    @info "Energy breakdown by instruction type"
     unique_opcodes = unique([inst.opcode for inst in instructions])
     for opcode in sort(unique_opcodes)
         count = instruction_counts[opcode]
@@ -287,7 +275,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})
         mean_inst_energy = alpha * beta
         total_inst_energy = mean_inst_energy * count
         percentage = (total_inst_energy / mean_energy) * 100
-        println("    $opcode: $(count)x @ $(round(mean_inst_energy, digits=2)) = $(round(total_inst_energy, digits=2)) ($(round(percentage, digits=1))%)")
+        @info "Instruction energy" opcode count mean_inst=round(mean_inst_energy, digits=2) total=round(total_inst_energy, digits=2) percentage=round(percentage, digits=1)
     end
 
     return (mean=mean_energy, std=std_energy, min=min_energy, max=max_energy, samples=energy_samples)
@@ -298,19 +286,26 @@ Main function
 """
 function main()
     if length(ARGS) < 1
-        println("Usage: julia msp430_executor.jl <assembly_file> [--verbose|-v]")
-        println("Example: julia msp430_executor.jl build/asm/simple.asm")
-        println("Options:")
-        println("  --verbose, -v    Show detailed execution log")
+        @info "Usage: julia msp430_executor.jl <assembly_file> [--verbose|-v]"
+        @info "Example: julia msp430_executor.jl build/asm/simple.asm"
+        @info "Options:"
+        @info "  --verbose, -v    Show detailed execution log"
         exit(1)
     end
 
     asm_file = ARGS[1]
     verbose = length(ARGS) >= 2 && (ARGS[2] == "--verbose" || ARGS[2] == "-v")
 
-    println("MSP430 Instruction Executor")
-    println("="^40)
-    println("Assembly file: $asm_file")
+    # Set logging level based on verbose flag
+    if verbose
+        global_logger(ConsoleLogger(stderr, Logging.Debug))
+    else
+        global_logger(ConsoleLogger(stderr, Logging.Info))
+    end
+
+    @info "MSP430 Instruction Executor"
+    @info "="^40
+    @info "Assembly file" path=asm_file
 
     try
         # Parse instructions from assembly file
@@ -323,16 +318,16 @@ function main()
         # energy_stats = estimate_energy(instructions)
 
         # Summary
-        println("\n" * "="^60)
-        println("🎯 EXECUTION SUMMARY")
-        println("="^60)
-        println("✅ Successfully executed $(length(instructions)) MSP430 instructions")
+        @info "="^60
+        @info "EXECUTION SUMMARY"
+        @info "="^60
+        @info "Successfully executed MSP430 instructions" count=length(instructions)
         # if energy_stats !== nothing
-        #     println("📊 Estimated energy: $(round(energy_stats.mean, digits=3)) ± $(round(energy_stats.std, digits=3)) units")
+        #     @info "Estimated energy" mean=round(energy_stats.mean, digits=3) std=round(energy_stats.std, digits=3)
         # end
 
     catch e
-        println("❌ Execution failed: $e")
+        @error "Execution failed" error=e
         exit(1)
     end
 end

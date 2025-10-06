@@ -2,10 +2,11 @@
 
 push!(LOAD_PATH, "../src")
 using ARMEnergyModel
+using Logging
 
 function demo()
-    println("ARM Energy Model Demo")
-    println("="^50)
+    @info "ARM Energy Model Demo"
+    @info "="^50
 
     # Example program
     asm_code = [
@@ -21,18 +22,18 @@ function demo()
 
     # Parse and analyze
     program = parse_arm_assembly(asm_code)
-    println("\\nParsed $(length(program)) instructions")
+    @info "Parsed instructions" count=length(program)
 
     # Get statistics
     stats = analyze_energy_distribution(program, 1000)
-    println("\\nEnergy Statistics:")
-    println("  Mean: $(round(stats.mean, digits=2)) mJ")
-    println("  Std:  $(round(stats.std, digits=2)) mJ")
-    println("  Min:  $(round(stats.min, digits=2)) mJ")
-    println("  Max:  $(round(stats.max, digits=2)) mJ")
+    @info "Energy Statistics:"
+    @info "Mean" value=round(stats.mean, digits=2) unit="mJ"
+    @info "Std" value=round(stats.std, digits=2) unit="mJ"
+    @info "Min" value=round(stats.min, digits=2) unit="mJ"
+    @info "Max" value=round(stats.max, digits=2) unit="mJ"
 
     # Generate visualizations
-    println("\\nGenerating visualizations...")
+    @info "Generating visualizations"
     p = comprehensive_energy_analysis(program, 2000)
     display(p)
 
@@ -40,7 +41,7 @@ function demo()
 end
 
 function example_comparison()
-    println("\\nComparing two implementations...")
+    @info "Comparing two implementations"
 
     # Implementation 1: Using multiplication
     prog1 = parse_arm_assembly([
@@ -60,9 +61,9 @@ function example_comparison()
 
     comparison = compare_programs(prog1, prog2, 1000)
 
-    println("Program 1 mean energy: $(round(comparison.program1_stats.mean, digits=2)) mJ")
-    println("Program 2 mean energy: $(round(comparison.program2_stats.mean, digits=2)) mJ")
-    println("Difference: $(round(comparison.mean_difference, digits=2)) mJ ($(round(comparison.relative_difference, digits=1))%)")
+    @info "Program 1 mean energy" value=round(comparison.program1_stats.mean, digits=2) unit="mJ"
+    @info "Program 2 mean energy" value=round(comparison.program2_stats.mean, digits=2) unit="mJ"
+    @info "Difference" absolute=round(comparison.mean_difference, digits=2) relative=round(comparison.relative_difference, digits=1) unit="mJ (%)"
 
     return comparison
 end

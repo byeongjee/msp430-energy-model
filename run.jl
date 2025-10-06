@@ -2,22 +2,23 @@
 
 push!(LOAD_PATH, "src")
 using ARMEnergyModel
+using Logging
 include("examples/demo.jl")
 include("examples/inference_demo.jl")
 
 function main()
-    println("ARM Energy Model - Task 1.1 Implementation")
-    println("="^50)
+    @info "ARM Energy Model - Task 1.1 Implementation"
+    @info "="^50
 
     # Interactive menu
     while true
-        println("\\nOptions:")
-        println("1. Run demo")
-        println("2. Run inference demo")
-        println("3. Analyze custom program")
-        println("4. View instruction distributions")
-        println("5. Compare programs")
-        println("6. Exit")
+        @info "\nOptions:"
+        @info "1. Run demo"
+        @info "2. Run inference demo"
+        @info "3. Analyze custom program"
+        @info "4. View instruction distributions"
+        @info "5. Compare programs"
+        @info "6. Exit"
         print("Choice: ")
 
         choice = readline()
@@ -27,7 +28,7 @@ function main()
         elseif choice == "2"
             demo_parameter_learning()
         elseif choice == "3"
-            println("Enter assembly instructions (empty line to finish):")
+            @info "Enter assembly instructions (empty line to finish):"
             lines = String[]
             while true
                 line = readline()
@@ -36,7 +37,7 @@ function main()
             end
             program = parse_arm_assembly(lines)
             stats = analyze_energy_distribution(program, 1000)
-            println("Mean energy: $(stats.mean) mJ")
+            @info "Mean energy" value=stats.mean unit="mJ"
             p = plot_program_energy_distribution(program, 1000)
             display(p)
         elseif choice == "4"

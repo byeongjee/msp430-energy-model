@@ -3,6 +3,7 @@
 using Plots
 using StatsPlots
 using Distributions
+using Logging
 
 """
 Visualize energy distribution for individual instructions
@@ -12,7 +13,7 @@ function plot_instruction_energy_distributions(n_samples::Int=10000)
 
     for (opcode, (alpha, beta)) in ENERGY_PARAMS
         samples = rand(Gamma(alpha, beta), n_samples)
-        println("Generating visualizations for $opcode")
+        @debug "Generating visualization" opcode
 
         p = histogram(samples,
             bins=50,

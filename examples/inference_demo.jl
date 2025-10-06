@@ -3,6 +3,7 @@
 using ARMEnergyModel
 using Distributions
 using Plots
+using Logging
 
 # Create some example training programs
 function create_training_data()
@@ -43,7 +44,7 @@ function create_training_data()
 
     # Simulate "observed" energy consumption for these programs
     # In a real scenario, these would come from actual measurements
-    println("Generating simulated training data...")
+    @info "Generating simulated training data"
 
     observed_energies = Float64[]
     for program in programs
@@ -58,22 +59,21 @@ function create_training_data()
 end
 
 function demo_parameter_learning()
-    println("=== Parameter Inference Demo ===\n")
+    @info "=== Parameter Inference Demo ==="
 
     # Create training data
     training_data = create_training_data()
 
-    println("Training Programs:")
+    @info "Training Programs:"
     for (i, (program, energy)) in enumerate(zip(training_data.programs, training_data.energies))
-        println("Program $i (observed energy: $(round(energy, digits=3))):")
+        @info "Program $i" observed_energy=round(energy, digits=3)
         for inst in program
-            println("  $(inst.opcode) $(inst.operands)")
+            @debug "  Instruction" opcode=inst.opcode operands=inst.operands
         end
-        println()
     end
 
     # Show original parameters
-    println("Original (fixed) parameters:")
+    @info "Original (fixed) parameters:"
     all_opcodes = Set{Symbol}()
     for program in training_data.programs
         for inst in program
@@ -83,23 +83,21 @@ function demo_parameter_learning()
 
     for opcode in sort(collect(all_opcodes))
         alpha, beta = get_energy_params(opcode)
-        println("  $opcode: α=$alpha, β=$beta (mean=$(round(alpha*beta, digits=3)))")
+        @info "Parameter" opcode alpha beta mean=round(alpha*beta, digits=3)
     end
-    println()
 
     # Learn parameters using MLE approach (faster for demo)
-    println("Learning parameters from training data...")
+    @info "Learning parameters from training data"
     learned_params = learn_parameters_mle(training_data)
 
-    println("Learned parameters:")
+    @info "Learned parameters:"
     for opcode in sort(collect(keys(learned_params)))
         alpha, beta = learned_params[opcode]
-        println("  $opcode: α=$(round(alpha, digits=3)), β=$(round(beta, digits=3)) (mean=$(round(alpha*beta, digits=3)))")
+        @info "Learned parameter" opcode alpha=round(alpha, digits=3) beta=round(beta, digits=3) mean=round(alpha*beta, digits=3)
     end
-    println()
 
     # Test prediction on new programs
-    println("Testing prediction on new programs...")
+    @info "Testing prediction on new programs"
 
     # New test program
     test_program = [
@@ -111,9 +109,9 @@ function demo_parameter_learning()
         ARMInstruction(:str, [:r3, :r6]),
     ]
 
-    println("Test program:")
+    @info "Test program:"
     for inst in test_program
-        println("  $(inst.opcode) $(inst.operands)")
+        @debug "Instruction" opcode=inst.opcode operands=inst.operands
     end
 
     # Predict with original parameters
@@ -122,34 +120,32 @@ function demo_parameter_learning()
     # Predict with learned parameters
     learned_stats = predict_energy(test_program, learned_params, n_samples=1000)
 
-    println("\nPrediction Results:")
-    println("Original model: mean=$(round(original_stats.mean, digits=3)), std=$(round(original_stats.std, digits=3))")
-    println("Learned model:  mean=$(round(learned_stats.mean, digits=3)), std=$(round(learned_stats.std, digits=3))")
+    @info "Prediction Results:"
+    @info "Original model" mean=round(original_stats.mean, digits=3) std=round(original_stats.std, digits=3)
+    @info "Learned model" mean=round(learned_stats.mean, digits=3) std=round(learned_stats.std, digits=3)
 
     # Evaluate on training data
-    println("\nEvaluation on training data:")
+    @info "Evaluation on training data:"
     evaluation = evaluate_parameters(learned_params, training_data)
-    println("MSE: $(round(evaluation.mse, digits=4))")
-    println("MAE: $(round(evaluation.mae, digits=4))")
-    println("Correlation: $(round(evaluation.correlation, digits=4))")
+    @info "Evaluation metrics" mse=round(evaluation.mse, digits=4) mae=round(evaluation.mae, digits=4) correlation=round(evaluation.correlation, digits=4)
 
     # Create visualizations
-    println("\nGenerating visualizations...")
+    @info "Generating visualizations"
 
     # 1. Parameter comparison plot
-    println("Creating parameter comparison plot...")
+    @info "Creating parameter comparison plot"
     param_plot = plot_parameter_comparison(learned_params)
 
-    # 2. Training evaluation plot  
-    println("Creating training evaluation plot...")
+    # 2. Training evaluation plot
+    @info "Creating training evaluation plot"
     eval_plot = plot_training_evaluation(learned_params, training_data)
 
     # 3. Test program prediction comparison
-    println("Creating test program prediction comparison...")
+    @info "Creating test program prediction comparison"
     pred_plot = plot_prediction_comparison(test_program, learned_params)
 
     # 4. Show individual instruction distributions for learned parameters
-    println("Creating learned instruction distributions...")
+    @info "Creating learned instruction distributions"
     learned_instruction_plots = []
     for opcode in sort(collect(keys(learned_params)))
         alpha, beta = learned_params[opcode]
@@ -189,30 +185,30 @@ function demo_parameter_learning()
         layout=layout_dims,
         size=plot_size,
         plot_title="Learned Energy Distributions by Instruction Type")
-    
+
     # Save individual plots
-    println("Saving plots to files...")
+    @info "Saving plots to files"
     savefig(param_plot, "parameter_comparison.png")
-    savefig(eval_plot, "training_evaluation.png") 
+    savefig(eval_plot, "training_evaluation.png")
     savefig(pred_plot, "prediction_comparison.png")
     savefig(learned_dist_plot, "learned_distributions.png")
-    
+
     # Create comprehensive summary plot
-    println("Creating comprehensive summary...")
+    @info "Creating comprehensive summary"
     summary_plot = plot(param_plot, eval_plot, pred_plot, learned_dist_plot,
         layout=(2, 2),
         size=(1600, 1200),
         plot_title="Inference Demo - Complete Analysis")
-    
+
     savefig(summary_plot, "inference_summary.png")
     display(summary_plot)
-    
-    println("\nPlots saved:")
-    println("  - parameter_comparison.png: Original vs learned parameters")
-    println("  - training_evaluation.png: Training data fit quality") 
-    println("  - prediction_comparison.png: Test program predictions")
-    println("  - learned_distributions.png: Individual instruction distributions")
-    println("  - inference_summary.png: All plots combined")
+
+    @info "Plots saved:"
+    @info "  - parameter_comparison.png: Original vs learned parameters"
+    @info "  - training_evaluation.png: Training data fit quality"
+    @info "  - prediction_comparison.png: Test program predictions"
+    @info "  - learned_distributions.png: Individual instruction distributions"
+    @info "  - inference_summary.png: All plots combined"
 
     return learned_params
 end
