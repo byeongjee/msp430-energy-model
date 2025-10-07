@@ -5,24 +5,46 @@ include("../src/EnergyModel.jl")
 using .EnergyModel
 using Statistics
 using Gen
+using Printf
 using Logging
 
 """
-Print all register values in a formatted way for MSP430
+Format all register values in a formatted way for MSP430
 """
-function print_registers(state::MachineState)::Nothing
-    @info "--- MSP430 Register State ---"
-
-    # Print general registers R0-R15
+function format_registers(state)::String
+    io = IOBuffer()
+    println(io, "--- MSP430 Register State ---")
     for i in 0:15
         reg_name = Symbol("R$i")
         value = get(state.registers, reg_name, UInt16(0))
-        @info "R$i" value_hex = "0x" * string(value, base=16, pad=4) value_dec = Int(value)
+        @printf(io, "R%-2d value_hex=0x%04x value_dec=%d\n", i, value, Int(value))
     end
+    println(io, "flags = $(state.flags)")
+    println(io, "-----------------------------")
+    return String(take!(io))
+end
 
-    # Print flags
-    @info "flags" flags = state.flags
-    @info "-----------------------------"
+function _memory_op_debug_msg(state::MachineState, inst::Instruction, old_regs::Dict{Symbol,UInt16})::Union{String,Nothing}
+    # Only create a message if we can recognize a memory read/write
+    if length(inst.operands) >= 2
+        # Case 1: memory writes — indexed addressing on the destination
+        if isa(inst.operands[2], Tuple)
+            offset, reg = inst.operands[2]
+            base_addr = get(old_regs, reg, UInt16(0))
+            addr = UInt16((base_addr + offset) & 0xFFFF)
+            if inst.opcode == :mov
+                src_val = EnergyModel.get_operand_value(state, inst.operands[1])
+                return "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
+            end
+
+            # Case 2: memory reads — indirect addressing on the source (e.g., :@R5)
+        elseif isa(inst.operands[1], Symbol) && !isempty(string(inst.operands[1])) && string(inst.operands[1])[1] == '@'
+            reg_name = Symbol(string(inst.operands[1])[2:end])
+            addr = get(old_regs, reg_name, UInt16(0))
+            val = get(state.memory, addr, UInt16(0))
+            return "    Memory[0x$(string(addr, base=16, pad=4))] → $val"
+        end
+    end
     return nothing
 end
 
@@ -122,40 +144,43 @@ function parse_event_addresses(filename::String)::Tuple{Union{UInt16,Nothing},Un
     return (begin_event_addr, end_event_addr)
 end
 
+# Check for jmp $+0, which is the infinite loop placed at the end of the program
+function detect_termination(inst::Instruction)::Bool
+    if inst.opcode == :jmp
+        if length(inst.operands) > 0 && inst.operands[1] == -1  # jmp $+0 has offset -1
+            return true
+        end
+    end
+    return false
+end
+
 """
-Execute MSP430 program and show detailed results with PC-based execution
+Interpret MSP430 program
 """
-function execute_and_analyze(instructions::Vector{Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)::Tuple{MachineState,Vector{Any}}
+function interpret_program(instructions::Vector{Instruction}, addresses::Vector{UInt16})::MachineState
     @info "="^60
-    @info "MSP430 Program Execution & Analysis"
+    @info "Interpret Program"
     @info "="^60
 
     # Show the program
-    @info "MSP430 Program" instruction_count = length(instructions)
+    @info instruction_count = length(instructions)
     for (i, inst) in enumerate(instructions)
         size_str = inst.data_size == :byte ? ".b" : ""
         @debug "Instruction $i" opcode = "$(inst.opcode)$size_str" operands = inst.operands addressing_mode = inst.addressing_mode
     end
 
-    # Create PC to instruction mapping
+    # Create PC -> instruction mapping
     pc_to_instruction = Dict{UInt16,Tuple{Int,Instruction}}()
     for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
         pc_to_instruction[addr] = (i, inst)
     end
 
-    # Create initial machine state and set PC to first instruction address
     state = MachineState()
     state.pc = addresses[1]  # Start at the first instruction address
     state.registers[:R0] = state.pc
     state.registers[:PC] = state.pc
 
-    if verbose
-        @info "Initial machine state" pc = string(state.pc, base=16, pad=4) sp = string(state.sp, base=16, pad=4) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
-
-        # Execute instructions using PC-based execution
-        @info "Executing instructions (PC-based execution)"
-    end
-    execution_log = []
+    @debug "Initial machine state" pc = string(state.pc, base=16, pad=4) sp = string(state.sp, base=16, pad=4) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
     max_steps = 1000  # Prevent infinite loops
 
@@ -182,67 +207,18 @@ function execute_and_analyze(instructions::Vector{Instruction}, addresses::Vecto
             # Use the centralized PC management function
             EnergyModel.execute_instruction!(state, inst, addresses, current_addr_idx)
 
-            # Log execution details
-            step_info = (
-                step=step_count,
-                instruction_index=instruction_index,
-                address=old_pc,
-                instruction=inst,
-                old_pc=old_pc,
-                new_pc=state.pc,
-                register_changes=Dict()
-            )
-
-            # Track register changes
-            for (reg, new_val) in state.registers
-                old_val = get(old_regs, reg, UInt16(0))
-                if new_val != old_val
-                    step_info.register_changes[reg] = (old_val, new_val)
+            if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
+                if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
+                    @debug msg
                 end
-            end
-
-            # Track memory operations
-            memory_operation = ""
-            if length(inst.operands) >= 2
-                # Check for memory writes (indexed addressing destination)
-                if isa(inst.operands[2], Tuple)
-                    offset, reg = inst.operands[2]
-                    base_addr = get(old_regs, reg, UInt16(0))
-                    addr = UInt16((base_addr + offset) & 0xFFFF)
-                    if inst.opcode == :mov
-                        src_val = EnergyModel.get_operand_value(state, inst.operands[1])
-                        memory_operation = "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
-                    end
-                    # Check for memory reads (indirect addressing source)
-                elseif isa(inst.operands[1], Symbol) && string(inst.operands[1])[1] == '@'
-                    reg_name = Symbol(string(inst.operands[1])[2:end])
-                    addr = get(old_regs, reg_name, UInt16(0))
-                    val = get(state.memory, addr, UInt16(0))
-                    memory_operation = "    Memory[0x$(string(addr, base=16, pad=4))] → $val"
-                end
-            end
-
-            push!(execution_log, step_info)
-
-            if verbose
                 @debug "Step $step_count" address = string(old_pc, base=16, pad=4) opcode = inst.opcode operands = inst.operands
                 @debug "PC transition" old_pc = string(old_pc, base=16, pad=4) new_pc = string(state.pc, base=16, pad=4)
-
-                # Show memory operations
-                if !isempty(memory_operation)
-                    @debug memory_operation
-                end
-
-                # Print all register values after each step
-                print_registers(state)
+                @debug format_registers(state)
             end
 
-            # Check for jmp $+0 (program termination) or other infinite loops
-            if inst.opcode == :jmp
-                if length(inst.operands) > 0 && inst.operands[1] == -1  # jmp $+0 has offset -1
-                    @info "Program termination: jmp \$+0 instruction executed"
-                    break
-                end
+            if detect_termination(inst)
+                @info "Program terminated"
+                break
             end
 
         catch e
@@ -257,10 +233,10 @@ function execute_and_analyze(instructions::Vector{Instruction}, addresses::Vecto
 
     # Show final state
     @info "Final machine state" pc = string(state.pc, base=16, pad=4)
-    print_registers(state)
+    @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
 
-    return state, execution_log
+    return state
 end
 
 """
@@ -322,30 +298,20 @@ Main function
 """
 function main()::Nothing
     if length(ARGS) < 1
-        @info "Usage: julia msp430_executor.jl <assembly_file> [--verbose|-v]"
-        @info "Example: julia msp430_executor.jl build/asm/simple.asm"
-        @info "Options:"
-        @info "  --verbose, -v    Show detailed execution log"
+        @info "Usage: julia interpreter.jl <assembly_file>"
+        @info "Example: julia interpreter.jl build/asm/simple.asm"
         exit(1)
     end
 
     asm_file = ARGS[1]
-    verbose = length(ARGS) >= 2 && (ARGS[2] == "--verbose" || ARGS[2] == "-v")
 
-    # Set logging level based on verbose flag
-    if verbose
-        global_logger(ConsoleLogger(stderr, Logging.Debug))
-    else
-        global_logger(ConsoleLogger(stderr, Logging.Info))
-    end
-
-    @info "MSP430 Instruction Executor"
+    @info "Interpreter"
     @info "="^40
     @info "Assembly file" path = asm_file
 
     try
         # Parse instructions from assembly file
-        instructions, addresses, base_address = parse_asm_file(asm_file)
+        instructions, addresses, _base_address = parse_asm_file(asm_file)
         begin_event_addr, end_event_addr = parse_event_addresses(asm_file)
         if isnothing(begin_event_addr) || isnothing(end_event_addr)
             @info "begin_event or end_event not found in assembly file"
@@ -355,7 +321,7 @@ function main()::Nothing
                 "0x" * string(end_event_addr, base=16, pad=4)
         end
         # Execute and analyze
-        final_state, execution_log = execute_and_analyze(instructions, addresses, verbose)
+        final_state = interpret_program(instructions, addresses)
 
         # Estimate energy
         # energy_stats = estimate_energy(instructions)
