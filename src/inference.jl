@@ -48,10 +48,10 @@ Inference model that learns parameters from MSP430 data
     # Sample parameters for each instruction type
     for opcode in all_opcodes
         # Priors for gamma distribution parameters optimized for MSP430 (lower energy)
-        # Shape parameter α (must be > 0)
+        # Shape parameter alpha (must be > 0)
         alpha ~ gamma(1.5, 0.8)  # Prior: Gamma(1.5,0.8) gives mean=1.2, reasonable for low-power
 
-        # Scale parameter β (must be > 0)
+        # Scale parameter beta (must be > 0)
         beta ~ gamma(1.0, 0.25)  # Prior: Gamma(1,0.25) gives mean=0.25, smaller scale
 
         learned_params[opcode] = (alpha, beta)
@@ -167,8 +167,8 @@ function learn_parameters_mle(training_data::TrainingData)::Dict{Symbol,Tuple{Fl
             sample_var = var(energies)
 
             if sample_var > 0 && sample_mean > 0
-                # For gamma distribution: mean = α*β, variance = α*β²
-                # So: β = variance/mean, α = mean/β = mean²/variance
+                # For gamma distribution: mean = alpha*beta, variance = alpha*beta²
+                # So: beta = variance/mean, alpha = mean/beta = mean²/variance
                 beta_est = sample_var / sample_mean
                 alpha_est = sample_mean / beta_est
 
