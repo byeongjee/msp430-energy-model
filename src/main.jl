@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate(".")
-
 include("../src/EnergyModel.jl")
 include("../src/interpreter.jl")
 using .EnergyModel

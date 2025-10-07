@@ -83,7 +83,7 @@ disasm: compile | $(ASM_DIR)
 interpret: disasm
 	@echo "Running MSP430 interpreter..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	julia src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm
+	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm
 	@echo "✓ Interpret completed!"
 
 # Train mode: infer energy parameters from measurements
@@ -94,7 +94,7 @@ endif
 	@echo "Training energy model..."
 	@BASENAME=$$(basename $(FILE) .c); \
 	OUTPUT=$${OUTPUT:-energy_params.json}; \
-	julia src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT
+	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT
 	@echo "✓ Training completed!"
 
 # Estimate mode: predict energy consumption
@@ -104,7 +104,7 @@ ifndef PARAMS
 endif
 	@echo "Estimating energy consumption..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	julia src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS)
+	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS)
 	@echo "✓ Estimation completed!"
 
 # Test with example programs

@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate(".")
-
 include("../src/EnergyModel.jl")
 using .EnergyModel
 using Statistics
