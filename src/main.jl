@@ -58,7 +58,9 @@ function run_interpret(asm_file::String, max_steps::Int)
     end
 
     # Execute program
-    final_state = Interpreter.interpret_program(instructions, addresses, max_steps)
+    final_state, event_sequences = Interpreter.interpret_program(
+        instructions, addresses, begin_event_addr, end_event_addr, max_steps
+    )
 
     @info "="^60
     @info "EXECUTION SUMMARY"

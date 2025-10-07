@@ -167,8 +167,12 @@ end
 Interpret MSP430 program
 """
 function interpret_program(
-    instructions::Vector{Instruction}, addresses::Vector{UInt16}, max_steps::Int=1000
-)::MachineState
+    instructions::Vector{Instruction},
+    addresses::Vector{UInt16},
+    begin_event_addr::Union{UInt16,Nothing},
+    end_event_addr::Union{UInt16,Nothing},
+    max_steps::Int=1000,
+)::Tuple{MachineState,Vector{Vector{Instruction}}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
@@ -197,6 +201,11 @@ function interpret_program(
     ) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
 
+    # Track instruction sequences between begin_event and end_event
+    event_sequences = Vector{Vector{Instruction}}()
+    current_sequence = Vector{Instruction}()
+    in_event = false
+
     while step_count < max_steps
         step_count += 1
 
@@ -207,6 +216,18 @@ function interpret_program(
         end
 
         _instruction_index, inst = pc_to_instruction[state.pc]
+
+        # Track event boundaries
+        if !isnothing(begin_event_addr) && state.pc == begin_event_addr
+            in_event = true
+            current_sequence = Vector{Instruction}()
+        end
+
+        # Collect instructions during event
+        if in_event
+            push!(current_sequence, inst)
+        end
+
         try
             old_pc = state.pc
             old_regs = copy(state.registers)
@@ -234,6 +255,12 @@ function interpret_program(
                 @debug format_registers(state)
             end
 
+            # Check if we've exited the event
+            if !isnothing(end_event_addr) && state.pc == end_event_addr && in_event
+                push!(event_sequences, current_sequence)
+                in_event = false
+            end
+
             if detect_termination(inst)
                 @info "Program terminated"
                 break
@@ -254,8 +281,9 @@ function interpret_program(
     @info "Final machine state" pc = string(state.pc; base=16, pad=4)
     @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
+    @info "Event sequences collected" count = length(event_sequences)
 
-    return state
+    return (state, event_sequences)
 end
 
 """
