@@ -43,9 +43,6 @@ join_lines_based_on_source = false
 # Separate kwargs with semicolon
 separate_kwargs_with_semicolon = true
 
-# Format docstrings
-format_docstrings = true
-
 # Align assignments
 align_assignment = false
 
