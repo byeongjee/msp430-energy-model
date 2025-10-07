@@ -1,4 +1,6 @@
-include("../src/EnergyModel.jl")
+module Interpreter
+
+include("EnergyModel.jl")
 using .EnergyModel
 using Statistics
 using Gen
@@ -331,3 +333,5 @@ function estimate_energy(
         samples=energy_samples,
     )
 end
+
+end # module

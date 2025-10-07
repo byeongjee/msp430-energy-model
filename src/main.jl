@@ -1,6 +1,7 @@
 include("../src/EnergyModel.jl")
-include("../src/interpreter.jl")
+include("../src/Interpreter.jl")
 using .EnergyModel
+using .Interpreter
 using ArgParse
 
 """
@@ -44,20 +45,20 @@ function run_interpret(asm_file::String, max_steps::Int)
     @info "Assembly file" path = asm_file
 
     # Parse instructions from assembly file
-    instructions, addresses, _base_address = parse_asm_file(asm_file)
+    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
     # Parse event addresses
-    begin_event_addr, end_event_addr = parse_event_addresses(asm_file)
+    begin_event_addr, end_event_addr = Interpreter.parse_event_addresses(asm_file)
     if isnothing(begin_event_addr) || isnothing(end_event_addr)
         @info "begin_event or end_event not found in assembly file"
     else
         @info "begin_event and end_event found in assembly file" begin_event_addr =
-            "0x" * string(begin_event_addr, base=16, pad=4) end_event_addr =
-            "0x" * string(end_event_addr, base=16, pad=4)
+            "0x" * string(begin_event_addr; base=16, pad=4) end_event_addr =
+            "0x" * string(end_event_addr; base=16, pad=4)
     end
 
     # Execute program
-    final_state = interpret_program(instructions, addresses, max_steps)
+    final_state = Interpreter.interpret_program(instructions, addresses, max_steps)
 
     @info "="^60
     @info "EXECUTION SUMMARY"
