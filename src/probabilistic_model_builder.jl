@@ -23,8 +23,7 @@ Returns a generative function that models the program's energy distribution.
     # Execute each instruction and accumulate energy
     for (i, inst) in enumerate(instructions)
         # Sample energy for this instruction
-        inst_energy = @trace(sample_instruction_energy(inst.opcode),
-            :energy => i)
+        inst_energy = @trace(sample_instruction_energy(inst.opcode), :energy => i)
         total_energy += inst_energy
 
         # Execute instruction (modifies state)
@@ -37,8 +36,9 @@ end
 """
 Create a program-specific energy model with custom parameters for MSP430
 """
-@gen function custom_energy_model(instructions::Vector{Instruction},
-    custom_params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
+@gen function custom_energy_model(
+    instructions::Vector{Instruction}, custom_params::Dict{Symbol,Tuple{Float64,Float64}}
+)::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)

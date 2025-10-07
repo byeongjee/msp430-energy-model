@@ -3,3 +3,6 @@ ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Gen = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+
+[extras]
+JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"

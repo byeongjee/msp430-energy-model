@@ -3,7 +3,9 @@
 """
 Parse MSP430 assembly string into instruction objects
 """
-function parse_assembly(asm_lines::Vector{String}, start_addr::UInt16 = UInt16(0x4000))::Vector{Instruction}
+function parse_assembly(
+    asm_lines::Vector{String}, start_addr::UInt16=UInt16(0x4000)
+)::Vector{Instruction}
     instructions = Instruction[]
     current_addr = start_addr
 
@@ -21,7 +23,7 @@ end
 """
 Parse a single line of MSP430 assembly
 """
-function parse_line(line::String, current_addr::UInt16)::Union{Instruction, Nothing}
+function parse_line(line::String, current_addr::UInt16)::Union{Instruction,Nothing}
     # Remove comments and trim
     line = strip(split(line, ";")[1])
     isempty(line) && return nothing
@@ -65,7 +67,7 @@ end
 """
 Parse MSP430 operand string into structured operands with addressing modes
 """
-function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}, Symbol}
+function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any},Symbol}
     operands = []
     addressing_mode = :register
     op_parts = split(op_str, ",")
@@ -78,7 +80,7 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
             value_str = strip(op[2:end])
             if startswith(value_str, "0x") || startswith(value_str, "0X")
                 # Hexadecimal
-                push!(operands, parse(UInt16, value_str[3:end], base=16))
+                push!(operands, parse(UInt16, value_str[3:end]; base=16))
             else
                 # Decimal (may be negative)
                 int_val = parse(Int16, value_str)
@@ -97,12 +99,12 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
         elseif contains(op, "(") && contains(op, ")")
             # Indexed mode: offset(Rn)
             paren_idx = findfirst('(', op)
-            offset_str = strip(op[1:paren_idx-1])
-            reg_part = strip(op[paren_idx+1:end-1])
+            offset_str = strip(op[1:(paren_idx - 1)])
+            reg_part = strip(op[(paren_idx + 1):(end - 1)])
 
             # Parse offset
             if startswith(offset_str, "0x") || startswith(offset_str, "0X")
-                offset = parse(UInt16, offset_str[3:end], base=16)
+                offset = parse(UInt16, offset_str[3:end]; base=16)
             else
                 offset = parse(UInt16, offset_str)
             end
@@ -115,7 +117,7 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
             # Absolute addressing: &address
             addr_str = strip(op[2:end])
             if startswith(addr_str, "0x") || startswith(addr_str, "0X")
-                addr = parse(UInt16, addr_str[3:end], base=16)
+                addr = parse(UInt16, addr_str[3:end]; base=16)
             else
                 addr = parse(UInt16, addr_str)
             end
@@ -202,7 +204,9 @@ Identify MSP430 instruction format
 """
 function get_instruction_format(opcode::Symbol)::Symbol
     # Dual-operand instructions (Format I)
-    dual_operand = [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
+    dual_operand = [
+        :mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and
+    ]
 
     # Single-operand instructions (Format II)
     single_operand = [:rrc, :swpb, :rra, :sxt, :push, :call, :reti]

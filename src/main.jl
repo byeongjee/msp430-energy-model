@@ -11,26 +11,26 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "mode"
-            help = "Mode: interpret, train, or estimate"
-            required = true
-            arg_type = String
+        help = "Mode: interpret, train, or estimate"
+        required = true
+        arg_type = String
         "--asm"
-            help = "Path to assembly file"
-            required = true
-            arg_type = String
+        help = "Path to assembly file"
+        required = true
+        arg_type = String
         "--data"
-            help = "Path to energy measurement data (required for train mode)"
-            arg_type = String
+        help = "Path to energy measurement data (required for train mode)"
+        arg_type = String
         "--params"
-            help = "Path to energy parameter file (required for estimate mode)"
-            arg_type = String
+        help = "Path to energy parameter file (required for estimate mode)"
+        arg_type = String
         "--output"
-            help = "Output file path (for train mode)"
-            arg_type = String
+        help = "Output file path (for train mode)"
+        arg_type = String
         "--max-steps"
-            help = "Maximum number of execution steps"
-            arg_type = Int
-            default = 1000
+        help = "Maximum number of execution steps"
+        arg_type = Int
+        default = 1000
     end
 
     return parse_args(s)

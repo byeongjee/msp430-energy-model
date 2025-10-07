@@ -41,7 +41,6 @@ const ENERGY_PARAMS = Dict{Symbol,Tuple{Float64,Float64}}(
     :jmp => (1.0, 0.2),      # Unconditional jump
 )
 
-
 """
 Add a new instruction type with its energy parameters
 """

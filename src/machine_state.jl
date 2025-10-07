@@ -26,7 +26,24 @@ Get the appropriate executor for an instruction opcode
 function get_executor(opcode::Symbol)::InstructionExecutor
     if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
         return DualOperandExecutor()
-    elseif opcode in [:rrc, :swpb, :rra, :sxt, :push, :call, :reti, :clr, :ret, :inc, :dec, :dint, :nop, :pushm, :popm, :rla]
+    elseif opcode in [
+        :rrc,
+        :swpb,
+        :rra,
+        :sxt,
+        :push,
+        :call,
+        :reti,
+        :clr,
+        :ret,
+        :inc,
+        :dec,
+        :dint,
+        :nop,
+        :pushm,
+        :popm,
+        :rla,
+    ]
         return SingleOperandExecutor()
     elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
         return JumpExecutor()
@@ -38,7 +55,15 @@ end
 """
 Execute instruction using trait-based dispatch
 """
-function execute!(executor::InstructionExecutor, state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)::Nothing
+function execute!(
+    executor::InstructionExecutor,
+    state::MachineState,
+    opcode::Symbol,
+    ops::Vector{Any},
+    data_size::Symbol,
+    addresses::Vector{UInt16},
+    current_idx::Int,
+)::Nothing
     error("execute! not implemented for $(typeof(executor))")
 end
 
@@ -67,14 +92,16 @@ function MachineState()::MachineState
         UInt16(0),              # PC
         UInt16(0xFFFF),         # SP
         UInt16(0),              # SR
-        Dict(:V => false, :N => false, :Z => false, :C => false)  # Status flags
+        Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
     )
 end
 
 """
 Execute an MSP430 instruction with proper PC management using instruction addresses
 """
-function execute_instruction!(state::MachineState, inst::Instruction, addresses::Vector{UInt16}, current_idx::Int)::Nothing
+function execute_instruction!(
+    state::MachineState, inst::Instruction, addresses::Vector{UInt16}, current_idx::Int
+)::Nothing
     old_pc = state.pc
     opcode = inst.opcode
     ops = inst.operands
@@ -89,7 +116,15 @@ end
 """
 Execute dual-operand instructions using trait dispatch
 """
-function execute!(executor::DualOperandExecutor, state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)::Nothing
+function execute!(
+    executor::DualOperandExecutor,
+    state::MachineState,
+    opcode::Symbol,
+    ops::Vector{Any},
+    data_size::Symbol,
+    addresses::Vector{UInt16},
+    current_idx::Int,
+)::Nothing
     execute_dual_operand!(state, opcode, ops, data_size)
     # Advance PC to next instruction
     if current_idx < length(addresses)
@@ -103,10 +138,21 @@ end
 """
 Execute single-operand instructions using trait dispatch
 """
-function execute!(executor::SingleOperandExecutor, state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)::Nothing
+function execute!(
+    executor::SingleOperandExecutor,
+    state::MachineState,
+    opcode::Symbol,
+    ops::Vector{Any},
+    data_size::Symbol,
+    addresses::Vector{UInt16},
+    current_idx::Int,
+)::Nothing
     execute_single_operand!(state, opcode, ops, data_size, addresses, current_idx)
     # call, ret, reti manage their own PC, others need to advance
-    if opcode != :call && opcode != :ret && opcode != :reti && current_idx < length(addresses)
+    if opcode != :call &&
+        opcode != :ret &&
+        opcode != :reti &&
+        current_idx < length(addresses)
         state.pc = addresses[current_idx + 1]
         state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
@@ -117,7 +163,15 @@ end
 """
 Execute jump instructions using trait dispatch
 """
-function execute!(executor::JumpExecutor, state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)::Nothing
+function execute!(
+    executor::JumpExecutor,
+    state::MachineState,
+    opcode::Symbol,
+    ops::Vector{Any},
+    data_size::Symbol,
+    addresses::Vector{UInt16},
+    current_idx::Int,
+)::Nothing
     execute_jump!(state, opcode, ops, addresses, current_idx)
     return nothing
 end
@@ -125,7 +179,9 @@ end
 """
 Execute dual-operand instructions (src, dst)
 """
-function execute_dual_operand!(state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol=:word)::Nothing
+function execute_dual_operand!(
+    state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol=:word
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -181,7 +237,14 @@ end
 """
 Execute single-operand instructions
 """
-function execute_single_operand!(state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol, addresses::Vector{UInt16}, current_idx::Int)::Nothing
+function execute_single_operand!(
+    state::MachineState,
+    opcode::Symbol,
+    ops::Vector{Any},
+    data_size::Symbol,
+    addresses::Vector{UInt16},
+    current_idx::Int,
+)::Nothing
     # Handle instructions that don't need operands first
     if opcode == :ret
         # Return from subroutine (pop PC from stack)
@@ -256,7 +319,9 @@ function execute_single_operand!(state::MachineState, opcode::Symbol, ops::Vecto
     elseif opcode == :call
         # Call subroutine
         if current_idx >= length(addresses)
-            error("Call instruction at index $current_idx has no next instruction for return address")
+            error(
+                "Call instruction at index $current_idx has no next instruction for return address",
+            )
         end
         return_addr = addresses[current_idx + 1]
         state.sp -= 2
@@ -296,7 +361,7 @@ function execute_single_operand!(state::MachineState, opcode::Symbol, ops::Vecto
             dst_reg = ops[2]
             dst_num = reg_symbol_to_num(dst_reg)
 
-            for i in (dst_num-n+1):dst_num
+            for i in (dst_num - n + 1):dst_num
                 if i >= 0 && i <= 15
                     reg_sym = reg_num_to_symbol(i)
                     reg_val = get(state.registers, reg_sym, UInt16(0))
@@ -316,7 +381,7 @@ function execute_single_operand!(state::MachineState, opcode::Symbol, ops::Vecto
             dst_reg = ops[2]
             dst_num = reg_symbol_to_num(dst_reg)
 
-            for i in (dst_num-n+1):dst_num
+            for i in (dst_num - n + 1):dst_num
                 if i >= 0 && i <= 15
                     reg_sym = reg_num_to_symbol(i)
                     reg_val = get(state.memory, state.sp, UInt16(0))
@@ -335,7 +400,9 @@ function execute_single_operand!(state::MachineState, opcode::Symbol, ops::Vecto
     # - push, pushm, popm: stack operations
     # - call, ret, reti: control flow
     # - nop, dint: no side effects on operands
-    instructions_that_dont_store_result = [:push, :call, :reti, :ret, :nop, :dint, :pushm, :popm]
+    instructions_that_dont_store_result = [
+        :push, :call, :reti, :ret, :nop, :dint, :pushm, :popm
+    ]
     if opcode ∉ instructions_that_dont_store_result
         set_operand_value!(state, ops[1], result, data_size)
     end
@@ -345,7 +412,13 @@ end
 """
 Execute jump instructions
 """
-function execute_jump!(state::MachineState, opcode::Symbol, ops::Vector{Any}, addresses::Vector{UInt16}, current_idx::Int)::Nothing
+function execute_jump!(
+    state::MachineState,
+    opcode::Symbol,
+    ops::Vector{Any},
+    addresses::Vector{UInt16},
+    current_idx::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -393,7 +466,9 @@ end
 """
 Get value from operand (register, immediate, or memory)
 """
-function get_operand_value(state::MachineState, operand::Any, data_size::Symbol=:word)::UInt16
+function get_operand_value(
+    state::MachineState, operand::Any, data_size::Symbol=:word
+)::UInt16
     value = UInt16(0)
 
     if isa(operand, Symbol)
@@ -430,7 +505,9 @@ end
 """
 Set value to operand (register or memory)
 """
-function set_operand_value!(state::MachineState, operand::Any, value::UInt16, data_size::Symbol=:word)::Nothing
+function set_operand_value!(
+    state::MachineState, operand::Any, value::UInt16, data_size::Symbol=:word
+)::Nothing
     # Apply data size mask to value
     masked_value = if data_size == :byte
         UInt16(value & 0xFF)  # Keep only lower 8 bits
@@ -485,7 +562,9 @@ end
 """
 Update status flags after arithmetic operations
 """
-function update_flags!(state::MachineState, result::UInt16, dst::UInt16, src::UInt16, is_add::Bool)::Nothing
+function update_flags!(
+    state::MachineState, result::UInt16, dst::UInt16, src::UInt16, is_add::Bool
+)::Nothing
     # Zero flag
     state.flags[:Z] = (result == 0)
 
@@ -513,11 +592,10 @@ function update_flags!(state::MachineState, result::UInt16, dst::UInt16, src::UI
     end
 
     # Update status register
-    state.sr = (state.sr & 0xFFF0) |
-               (state.flags[:V] ? 0x0100 : 0x0000) |
-               (state.flags[:N] ? 0x0004 : 0x0000) |
-               (state.flags[:Z] ? 0x0002 : 0x0000) |
-               (state.flags[:C] ? 0x0001 : 0x0000)
+    state.sr =
+        (state.sr & 0xFFF0) | (state.flags[:V] ? 0x0100 : 0x0000) |
+        (state.flags[:N] ? 0x0004 : 0x0000) | (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
 
     state.registers[:R2] = state.sr
     state.registers[:SR] = state.sr
@@ -532,9 +610,9 @@ function update_flags_simple!(state::MachineState, result::UInt16)::Nothing
     state.flags[:N] = (result & 0x8000) != 0
 
     # Update status register
-    state.sr = (state.sr & 0xFEF9) |  # Clear N and Z bits
-               (state.flags[:N] ? 0x0004 : 0x0000) |
-               (state.flags[:Z] ? 0x0002 : 0x0000)
+    state.sr =
+        (state.sr & 0xFEF9) |  # Clear N and Z bits
+        (state.flags[:N] ? 0x0004 : 0x0000) | (state.flags[:Z] ? 0x0002 : 0x0000)
 
     state.registers[:R2] = state.sr
     state.registers[:SR] = state.sr

@@ -1,0 +1,62 @@
+# JuliaFormatter configuration
+# See https://domluna.github.io/JuliaFormatter.jl/stable/config/ for more options
+
+# Indentation
+indent = 4
+
+# Line width
+margin = 92
+
+# Style
+style = "blue"
+
+# Always use `for` over `=` in loop statements
+always_for_in = true
+
+# Whitespace around operators
+whitespace_ops_in_indices = true
+
+# Import formatting
+import_to_using = false
+
+# Pipe formatting
+pipe_to_function_call = false
+
+# Short to long form conversions
+short_to_long_function_def = false
+
+# Always use return keyword
+always_use_return = false
+
+# Conditional to if-else conversion
+conditional_to_if = false
+
+# Normalize line endings
+normalize_line_endings = "unix"
+
+# Trailing comma
+trailing_comma = true
+
+# Join lines based on source
+join_lines_based_on_source = false
+
+# Separate kwargs with semicolon
+separate_kwargs_with_semicolon = true
+
+# Format docstrings
+format_docstrings = true
+
+# Align assignments
+align_assignment = false
+
+# Align struct fields
+align_struct_field = false
+
+# Align conditional
+align_conditional = false
+
+# Align pair arrows
+align_pair_arrow = false
+
+# Align matrix
+align_matrix = false
