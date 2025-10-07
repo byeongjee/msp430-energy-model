@@ -14,11 +14,11 @@ struct TrainingData
 end
 
 """
-Generative model for parameter inference - MSP430 version
+Generative model for parameter inference
 Each instruction type has learnable gamma distribution parameters
 """
 @gen function instruction_energy_model(instructions::Vector{Instruction},
-                                             params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
+    params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)
@@ -72,8 +72,8 @@ end
 Learn MSP430 instruction energy parameters from training data using importance sampling
 """
 function learn_parameters(training_data::TrainingData;
-                                n_samples::Int=1000,
-                                n_particles::Int=100)::Dict{Symbol,Tuple{Float64,Float64}}
+    n_samples::Int=1000,
+    n_particles::Int=100)::Dict{Symbol,Tuple{Float64,Float64}}
 
     # Create constraints for observed energies
     constraints = choicemap()
@@ -192,8 +192,8 @@ end
 Predict energy consumption for a new MSP430 program using learned parameters
 """
 function predict_energy(program::Vector{Instruction},
-                              learned_params::Dict{Symbol,Tuple{Float64,Float64}};
-                              n_samples::Int=1000)::EnergyStats
+    learned_params::Dict{Symbol,Tuple{Float64,Float64}};
+    n_samples::Int=1000)::EnergyStats
 
     energies = Float64[]
 
@@ -220,8 +220,8 @@ end
 Evaluate learned parameters on MSP430 test data
 """
 function evaluate_parameters(learned_params::Dict{Symbol,Tuple{Float64,Float64}},
-                                   test_data::TrainingData;
-                                   n_samples::Int=1000)::NamedTuple{(:mse, :mae, :correlation, :predictions, :actual), Tuple{Float64, Float64, Float64, Vector{Float64}, Vector{Float64}}}
+    test_data::TrainingData;
+    n_samples::Int=1000)::NamedTuple{(:mse, :mae, :correlation, :predictions, :actual),Tuple{Float64,Float64,Float64,Vector{Float64},Vector{Float64}}}
 
     predictions = Float64[]
     actual_energies = test_data.energies
@@ -232,7 +232,7 @@ function evaluate_parameters(learned_params::Dict{Symbol,Tuple{Float64,Float64}}
     end
 
     # Calculate evaluation metrics
-    mse = mean((predictions .- actual_energies).^2)
+    mse = mean((predictions .- actual_energies) .^ 2)
     mae = mean(abs.(predictions .- actual_energies))
     correlation = cor(predictions, actual_energies)
 

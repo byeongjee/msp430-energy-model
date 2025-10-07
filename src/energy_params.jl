@@ -2,7 +2,6 @@
 
 """
 MSP430 energy parameters optimized for low-power operation
-Generally lower energy consumption than ARM due to 16-bit architecture
 """
 const ENERGY_PARAMS = Dict{Symbol,Tuple{Float64,Float64}}(
     # Dual-operand instructions
