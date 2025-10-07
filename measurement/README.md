@@ -142,6 +142,12 @@ python3 validate_and_plot.py run.csv --max-points 15000
 
 ### Example
 
+#### Physical setup
+
+![Physical setup](example/physical-setup.jpg)
+
+#### Result
+
 ![Example plot](example/plot.png)
 
 ## Wiring 
