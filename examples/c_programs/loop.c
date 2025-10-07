@@ -9,7 +9,7 @@ int main(void) {
 
   begin_measurement_window();
 
-  for (i = 1; i <= 100; i++) {
+  for (i = 1; i <= 10; i++) {
     begin_event();
     sum += i;
     end_event();
