@@ -24,7 +24,7 @@ void clockSetup() {
 }
 
 void toggle_gpio() { P1OUT ^= BIT3; }
-void gpio_pin13_up() { P1OUT |= BIT3; }
+void begin_event() { P1OUT |= BIT3; }
 void end_event() { P1OUT &= ~BIT3; }
 
 void begin_measurement_window() { P1OUT |= BIT2; }
