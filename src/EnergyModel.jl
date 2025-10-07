@@ -12,7 +12,7 @@ include("types.jl")
 include("energy_params.jl")
 include("machine_state.jl")
 include("parser.jl")
-include("interpreter.jl")
+include("probabilistic_model_builder.jl")
 include("inference.jl")
 
 # Export main types
