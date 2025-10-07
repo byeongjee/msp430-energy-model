@@ -13,25 +13,25 @@ using Logging
 Print all register values in a formatted way for MSP430
 """
 function print_msp430_registers(state::MSP430MachineState)::Nothing
-    @debug "--- MSP430 Register State ---"
+    @info "--- MSP430 Register State ---"
 
     # Print general registers R0-R15
     for i in 0:15
         reg_name = Symbol("R$i")
         value = get(state.registers, reg_name, UInt16(0))
-        @debug "R$i" value_hex=string(value, base=16, pad=4) value_dec=value
+        @info "R$i" value_hex = "0x" * string(value, base=16, pad=4) value_dec = Int(value)
     end
 
     # Print flags
-    @debug "flags" flags=state.flags
-    @debug "-----------------------------"
+    @info "flags" flags = state.flags
+    @info "-----------------------------"
     return nothing
 end
 
 """
 Parse MSP430 assembly file and extract instructions with their addresses
 """
-function parse_asm_file(filename::String)::Tuple{Vector{MSP430Instruction}, Vector{UInt16}, UInt16}
+function parse_asm_file(filename::String)::Tuple{Vector{MSP430Instruction},Vector{UInt16},UInt16}
     if !isfile(filename)
         error("Assembly file not found: $filename")
     end
@@ -82,7 +82,7 @@ function parse_asm_file(filename::String)::Tuple{Vector{MSP430Instruction}, Vect
         error("No parseable instructions found in assembly file")
     end
 
-    @info "Successfully parsed MSP430 instructions" count=length(instructions) base_address=string(base_address, base=16, pad=4)
+    @info "Successfully parsed MSP430 instructions" count = length(instructions) base_address = string(base_address, base=16, pad=4)
 
     return instructions, addresses, base_address
 end
@@ -90,16 +90,16 @@ end
 """
 Execute MSP430 program and show detailed results with PC-based execution
 """
-function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)::Tuple{MSP430MachineState, Vector{Any}}
+function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)::Tuple{MSP430MachineState,Vector{Any}}
     @info "="^60
     @info "MSP430 Program Execution & Analysis"
     @info "="^60
 
     # Show the program
-    @info "MSP430 Program" instruction_count=length(instructions)
+    @info "MSP430 Program" instruction_count = length(instructions)
     for (i, inst) in enumerate(instructions)
         size_str = inst.data_size == :byte ? ".b" : ""
-        @debug "Instruction $i" opcode="$(inst.opcode)$size_str" operands=inst.operands addressing_mode=inst.addressing_mode
+        @debug "Instruction $i" opcode = "$(inst.opcode)$size_str" operands = inst.operands addressing_mode = inst.addressing_mode
     end
 
     # Create PC to instruction mapping
@@ -115,7 +115,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
     state.registers[:PC] = state.pc
 
     if verbose
-        @info "Initial machine state" pc=string(state.pc, base=16, pad=4) sp=string(state.sp, base=16, pad=4) r0=state.registers[:R0] r1=state.registers[:R1] r2=state.registers[:R2] r3=state.registers[:R3] r4=state.registers[:R4] r5=state.registers[:R5]
+        @info "Initial machine state" pc = string(state.pc, base=16, pad=4) sp = string(state.sp, base=16, pad=4) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
 
         # Execute instructions using PC-based execution
         @info "Executing instructions (PC-based execution)"
@@ -129,7 +129,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
 
         # Get instruction at current PC
         if !haskey(pc_to_instruction, state.pc)
-            @info "Execution finished" pc=string(state.pc, base=16, pad=4) reason="PC not in program"
+            @info "Execution finished" pc = string(state.pc, base=16, pad=4) reason = "PC not in program"
             break
         end
 
@@ -190,8 +190,8 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
             push!(execution_log, step_info)
 
             if verbose
-                @debug "Step $step_count" address=string(old_pc, base=16, pad=4) opcode=inst.opcode operands=inst.operands
-                @debug "PC transition" old_pc=string(old_pc, base=16, pad=4) new_pc=string(state.pc, base=16, pad=4)
+                @debug "Step $step_count" address = string(old_pc, base=16, pad=4) opcode = inst.opcode operands = inst.operands
+                @debug "PC transition" old_pc = string(old_pc, base=16, pad=4) new_pc = string(state.pc, base=16, pad=4)
 
                 # Show memory operations
                 if !isempty(memory_operation)
@@ -211,7 +211,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
             end
 
         catch e
-            @error "Error executing instruction" pc=string(state.pc, base=16, pad=4) opcode=inst.opcode error=e
+            @error "Error executing instruction" pc = string(state.pc, base=16, pad=4) opcode = inst.opcode error = e
             break
         end
     end
@@ -221,9 +221,9 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
     end
 
     # Show final state
-    @info "Final machine state" pc=string(state.pc, base=16, pad=4)
+    @info "Final machine state" pc = string(state.pc, base=16, pad=4)
     print_msp430_registers(state)
-    @info "Flags" V=state.flags[:V] N=state.flags[:N] Z=state.flags[:Z] C=state.flags[:C]
+    @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
 
     return state, execution_log
 end
@@ -231,7 +231,7 @@ end
 """
 Estimate energy consumption using probabilistic model
 """
-function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTuple{(:mean, :std, :min, :max, :samples), Tuple{Float64, Float64, Float64, Float64, Vector{Float64}}}, Nothing}
+function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTuple{(:mean, :std, :min, :max, :samples),Tuple{Float64,Float64,Float64,Float64,Vector{Float64}}},Nothing}
     @info "Energy Consumption Analysis"
 
     # Run probabilistic energy simulation
@@ -245,7 +245,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTu
             trace = simulate(interpret_msp430_program, (instructions,))
             push!(energy_samples, get_retval(trace))
         catch e
-            @warn "Energy simulation failed" error=e
+            @warn "Energy simulation failed" error = e
             # Continue with other samples
         end
     end
@@ -260,7 +260,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTu
     min_energy = minimum(energy_samples)
     max_energy = maximum(energy_samples)
 
-    @info "Energy statistics" samples=length(energy_samples) mean=round(mean_energy, digits=3) std=round(std_energy, digits=3) min=round(min_energy, digits=3) max=round(max_energy, digits=3)
+    @info "Energy statistics" samples = length(energy_samples) mean = round(mean_energy, digits=3) std = round(std_energy, digits=3) min = round(min_energy, digits=3) max = round(max_energy, digits=3)
 
     # Show energy per instruction type
     instruction_counts = Dict{Symbol,Int}()
@@ -276,7 +276,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTu
         mean_inst_energy = alpha * beta
         total_inst_energy = mean_inst_energy * count
         percentage = (total_inst_energy / mean_energy) * 100
-        @info "Instruction energy" opcode count mean_inst=round(mean_inst_energy, digits=2) total=round(total_inst_energy, digits=2) percentage=round(percentage, digits=1)
+        @info "Instruction energy" opcode count mean_inst = round(mean_inst_energy, digits=2) total = round(total_inst_energy, digits=2) percentage = round(percentage, digits=1)
     end
 
     return (mean=mean_energy, std=std_energy, min=min_energy, max=max_energy, samples=energy_samples)
@@ -306,7 +306,7 @@ function main()::Nothing
 
     @info "MSP430 Instruction Executor"
     @info "="^40
-    @info "Assembly file" path=asm_file
+    @info "Assembly file" path = asm_file
 
     try
         # Parse instructions from assembly file
@@ -322,13 +322,13 @@ function main()::Nothing
         @info "="^60
         @info "EXECUTION SUMMARY"
         @info "="^60
-        @info "Successfully executed MSP430 instructions" count=length(instructions)
+        @info "Successfully executed MSP430 instructions" count = length(instructions)
         # if energy_stats !== nothing
         #     @info "Estimated energy" mean=round(energy_stats.mean, digits=3) std=round(energy_stats.std, digits=3)
         # end
 
     catch e
-        @error "Execution failed" error=e
+        @error "Execution failed" error = e
         exit(1)
     end
     return nothing
