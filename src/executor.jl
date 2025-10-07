@@ -3,8 +3,8 @@
 using Pkg
 Pkg.activate(".")
 
-include("../src/MSP430EnergyModel.jl")
-using .MSP430EnergyModel
+include("../src/EnergyModel.jl")
+using .EnergyModel
 using Statistics
 using Gen
 using Logging
@@ -12,7 +12,7 @@ using Logging
 """
 Print all register values in a formatted way for MSP430
 """
-function print_msp430_registers(state::MSP430MachineState)::Nothing
+function print_registers(state::MachineState)::Nothing
     @info "--- MSP430 Register State ---"
 
     # Print general registers R0-R15
@@ -31,13 +31,13 @@ end
 """
 Parse MSP430 assembly file and extract instructions with their addresses
 """
-function parse_asm_file(filename::String)::Tuple{Vector{MSP430Instruction},Vector{UInt16},UInt16}
+function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt16},UInt16}
     if !isfile(filename)
         error("Assembly file not found: $filename")
     end
 
     lines = readlines(filename)
-    instructions = MSP430Instruction[]
+    instructions = Instruction[]
     addresses = UInt16[]
     base_address = nothing
 
@@ -70,7 +70,7 @@ function parse_asm_file(filename::String)::Tuple{Vector{MSP430Instruction},Vecto
             end
 
             # Parse the instruction string with current address for relative jump resolution
-            parsed_instr = MSP430EnergyModel.parse_msp430_line(String(instr_str), addr)
+            parsed_instr = EnergyModel.parse_line(String(instr_str), addr)
             if !isnothing(parsed_instr)
                 push!(instructions, parsed_instr)
                 push!(addresses, addr)
@@ -90,7 +90,7 @@ end
 """
 Execute MSP430 program and show detailed results with PC-based execution
 """
-function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)::Tuple{MSP430MachineState,Vector{Any}}
+function execute_and_analyze(instructions::Vector{Instruction}, addresses::Vector{UInt16}, verbose::Bool=false)::Tuple{MachineState,Vector{Any}}
     @info "="^60
     @info "MSP430 Program Execution & Analysis"
     @info "="^60
@@ -103,13 +103,13 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
     end
 
     # Create PC to instruction mapping
-    pc_to_instruction = Dict{UInt16,Tuple{Int,MSP430Instruction}}()
+    pc_to_instruction = Dict{UInt16,Tuple{Int,Instruction}}()
     for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
         pc_to_instruction[addr] = (i, inst)
     end
 
     # Create initial machine state and set PC to first instruction address
-    state = MSP430MachineState()
+    state = MachineState()
     state.pc = addresses[1]  # Start at the first instruction address
     state.registers[:R0] = state.pc
     state.registers[:PC] = state.pc
@@ -144,8 +144,8 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                 error("Cannot find current PC 0x$(string(old_pc, base=16, pad=4)) in addresses array. This indicates a serious bug in PC management.")
             end
 
-            # Use the new centralized PC management function
-            execute_msp430_instruction!(state, inst, addresses, current_addr_idx)
+            # Use the centralized PC management function
+            EnergyModel.execute_instruction!(state, inst, addresses, current_addr_idx)
 
             # Log execution details
             step_info = (
@@ -175,7 +175,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                     base_addr = get(old_regs, reg, UInt16(0))
                     addr = UInt16((base_addr + offset) & 0xFFFF)
                     if inst.opcode == :mov
-                        src_val = MSP430EnergyModel.get_operand_value(state, inst.operands[1])
+                        src_val = EnergyModel.get_operand_value(state, inst.operands[1])
                         memory_operation = "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
                     end
                     # Check for memory reads (indirect addressing source)
@@ -199,7 +199,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
                 end
 
                 # Print all register values after each step
-                print_msp430_registers(state)
+                print_registers(state)
             end
 
             # Check for jmp $+0 (program termination) or other infinite loops
@@ -222,7 +222,7 @@ function execute_and_analyze(instructions::Vector{MSP430Instruction}, addresses:
 
     # Show final state
     @info "Final machine state" pc = string(state.pc, base=16, pad=4)
-    print_msp430_registers(state)
+    print_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
 
     return state, execution_log
@@ -231,7 +231,7 @@ end
 """
 Estimate energy consumption using probabilistic model
 """
-function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTuple{(:mean, :std, :min, :max, :samples),Tuple{Float64,Float64,Float64,Float64,Vector{Float64}}},Nothing}
+function estimate_energy(instructions::Vector{Instruction})::Union{NamedTuple{(:mean, :std, :min, :max, :samples),Tuple{Float64,Float64,Float64,Float64,Vector{Float64}}},Nothing}
     @info "Energy Consumption Analysis"
 
     # Run probabilistic energy simulation
@@ -242,7 +242,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTu
 
     for _ in 1:n_samples
         try
-            trace = simulate(interpret_msp430_program, (instructions,))
+            trace = simulate(interpret_program, (instructions,))
             push!(energy_samples, get_retval(trace))
         catch e
             @warn "Energy simulation failed" error = e
@@ -272,7 +272,7 @@ function estimate_energy(instructions::Vector{MSP430Instruction})::Union{NamedTu
     unique_opcodes = unique([inst.opcode for inst in instructions])
     for opcode in sort(unique_opcodes)
         count = instruction_counts[opcode]
-        alpha, beta = get_msp430_energy_params(opcode)
+        alpha, beta = get_energy_params(opcode)
         mean_inst_energy = alpha * beta
         total_inst_energy = mean_inst_energy * count
         percentage = (total_inst_energy / mean_energy) * 100

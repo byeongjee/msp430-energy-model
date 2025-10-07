@@ -79,7 +79,7 @@ disasm: compile | $(ASM_DIR)
 pipeline: disasm
 	@echo "Running MSP430 execution and energy analysis..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	julia examples/msp430_executor.jl $(ASM_DIR)/$$BASENAME.asm
+	julia src/executor.jl $(ASM_DIR)/$$BASENAME.asm
 	@echo "✓ Pipeline completed!"
 
 # Test with example programs

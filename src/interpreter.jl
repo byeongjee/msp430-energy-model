@@ -6,24 +6,24 @@ using Distributions
 """
 Sample energy consumption for a given instruction using stateless Gamma distribution
 """
-@gen function sample_instruction_energy(opcode::Symbol, architecture::Symbol=:ARM)::Float64
-    alpha, beta = get_energy_params_for_architecture(opcode, architecture)
+@gen function sample_instruction_energy(opcode::Symbol)::Float64
+    alpha, beta = get_energy_params(opcode)
     energy ~ gamma(alpha, beta)
     return energy
 end
 
 """
-Probabilistic interpreter for ARM assembly programs.
+Probabilistic interpreter for MSP430 assembly programs.
 Returns a generative function that models the program's energy distribution.
 """
-@gen function interpret_arm_program(instructions::Vector{ARMInstruction})::Float64
+@gen function interpret_program(instructions::Vector{Instruction})::Float64
     state = MachineState()
     total_energy = 0.0
 
     # Execute each instruction and accumulate energy
     for (i, inst) in enumerate(instructions)
         # Sample energy for this instruction
-        inst_energy = @trace(sample_instruction_energy(inst.opcode, :ARM),
+        inst_energy = @trace(sample_instruction_energy(inst.opcode),
             :energy => i)
         total_energy += inst_energy
 
@@ -35,67 +35,14 @@ Returns a generative function that models the program's energy distribution.
 end
 
 """
-Probabilistic interpreter for MSP430 assembly programs.
-Returns a generative function that models the program's energy distribution.
-"""
-@gen function interpret_msp430_program(instructions::Vector{MSP430Instruction})::Float64
-    state = MSP430MachineState()
-    total_energy = 0.0
-
-    # Execute each instruction and accumulate energy
-    for (i, inst) in enumerate(instructions)
-        # Sample energy for this instruction
-        inst_energy = @trace(sample_instruction_energy(inst.opcode, :MSP430),
-            :energy => i)
-        total_energy += inst_energy
-
-        # Execute instruction (modifies state)
-        execute_msp430_instruction!(state, inst)
-    end
-
-    return total_energy
-end
-
-"""
-Unified probabilistic interpreter for ARM programs
-"""
-@gen function interpret_program(instructions::Vector{ARMInstruction})::Float64
-    return @trace(interpret_arm_program(instructions), :arm_program)
-end
-
-"""
-Unified probabilistic interpreter for MSP430 programs
-"""
-@gen function interpret_program(instructions::Vector{MSP430Instruction})::Float64
-    return @trace(interpret_msp430_program(instructions), :msp430_program)
-end
-
-"""
-Create a program-specific energy model with custom parameters for ARM
-"""
-@gen function custom_arm_energy_model(instructions::Vector{ARMInstruction},
-    custom_params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
-    total_energy = 0.0
-
-    for (i, inst) in enumerate(instructions)
-        params = get(custom_params, inst.opcode, get_arm_energy_params(inst.opcode))
-        alpha, beta = params
-        inst_energy ~ gamma(alpha, beta)
-        total_energy += inst_energy
-    end
-
-    return total_energy
-end
-
-"""
 Create a program-specific energy model with custom parameters for MSP430
 """
-@gen function custom_msp430_energy_model(instructions::Vector{MSP430Instruction},
+@gen function custom_energy_model(instructions::Vector{Instruction},
     custom_params::Dict{Symbol,Tuple{Float64,Float64}})::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)
-        params = get(custom_params, inst.opcode, get_msp430_energy_params(inst.opcode))
+        params = get(custom_params, inst.opcode, get_energy_params(inst.opcode))
         alpha, beta = params
         inst_energy ~ gamma(alpha, beta)
         total_energy += inst_energy
