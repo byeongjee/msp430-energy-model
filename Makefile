@@ -28,7 +28,7 @@ BUILD_DIR := build
 ASM_DIR := $(BUILD_DIR)/asm
 
 # Default target
-.PHONY: all clean help pipeline test flash
+.PHONY: all clean help interpret train estimate test flash
 
 all: help
 
@@ -37,16 +37,20 @@ help:
 	@echo "============================="
 	@echo ""
 	@echo "Available targets:"
-	@echo "  compile FILE=<file.c>     - Compile C file to MSP430 binary"
-	@echo "  disasm FILE=<file.c>      - Compile and disassemble"
-	@echo "  pipeline FILE=<file.c>    - Run full pipeline (compile -> disasm -> execute)"
-	@echo "  flash FILE=<file.c>       - Flash binary to microcontroller"
-	@echo "  test                      - Run pipeline on all example programs"
-	@echo "  clean                     - Clean build artifacts"
+	@echo "  compile FILE=<file.c>       - Compile C file to MSP430 binary"
+	@echo "  disasm FILE=<file.c>        - Compile and disassemble"
+	@echo "  interpret FILE=<file.c>     - Interpret assembly program"
+	@echo "  train FILE=<file.c> DATA=<data.csv> - Train energy model"
+	@echo "  estimate FILE=<file.c> PARAMS=<params> - Estimate energy consumption"
+	@echo "  flash FILE=<file.c>         - Flash binary to microcontroller"
+	@echo "  test                        - Run interpreter on all example programs"
+	@echo "  clean                       - Clean build artifacts"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make compile FILE=examples/c_programs/simple.c"
-	@echo "  make pipeline FILE=examples/c_programs/simple.c"
+	@echo "  make interpret FILE=examples/c_programs/simple.c"
+	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv"
+	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=params.json"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make test"
 
@@ -75,21 +79,42 @@ disasm: compile | $(ASM_DIR)
 	@echo "✓ Disassembly saved to: $(ASM_DIR)/$$(basename $(FILE) .c).asm"
 
 
-# Run full pipeline
-pipeline: disasm
-	@echo "Running MSP430 execution and energy analysis..."
+# Interpret mode: run interpreter on assembly
+interpret: disasm
+	@echo "Running MSP430 interpreter..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	julia src/interpreter.jl $(ASM_DIR)/$$BASENAME.asm
-	@echo "✓ Pipeline completed!"
+	julia src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm
+	@echo "✓ Interpret completed!"
+
+# Train mode: infer energy parameters from measurements
+train: disasm
+ifndef DATA
+	$(error Please specify DATA=<measurement_file.csv>)
+endif
+	@echo "Training energy model..."
+	@BASENAME=$$(basename $(FILE) .c); \
+	OUTPUT=$${OUTPUT:-energy_params.json}; \
+	julia src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT
+	@echo "✓ Training completed!"
+
+# Estimate mode: predict energy consumption
+estimate: disasm
+ifndef PARAMS
+	$(error Please specify PARAMS=<parameter_file>)
+endif
+	@echo "Estimating energy consumption..."
+	@BASENAME=$$(basename $(FILE) .c); \
+	julia src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS)
+	@echo "✓ Estimation completed!"
 
 # Test with example programs
 test: $(SRC_DIR)
-	@echo "Running pipeline on all example programs..."
+	@echo "Running interpreter on all example programs..."
 	@for file in $(SRC_DIR)/*.c; do \
 		echo ""; \
 		echo "🔄 Processing $$file..."; \
 		echo "=========================================="; \
-		make pipeline FILE=$$file || echo "❌ Failed: $$file"; \
+		make interpret FILE=$$file || echo "❌ Failed: $$file"; \
 		echo ""; \
 	done
 	@echo "✅ All tests completed!"
