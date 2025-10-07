@@ -106,7 +106,7 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
     end
 
     @info "Successfully parsed MSP430 instructions" count = length(instructions) base_address = string(
-        base_address, base=16, pad=4
+        base_address; base=16, pad=4
     )
 
     return instructions, addresses, base_address
@@ -190,8 +190,8 @@ function interpret_program(
     state.registers[:R0] = state.pc
     state.registers[:PC] = state.pc
 
-    @debug "Initial machine state" pc = string(state.pc, base=16, pad=4) sp = string(
-        state.sp, base=16, pad=4
+    @debug "Initial machine state" pc = string(state.pc; base=16, pad=4) sp = string(
+        state.sp; base=16, pad=4
     ) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
 
@@ -200,16 +200,17 @@ function interpret_program(
 
         # Get instruction at current PC
         if !haskey(pc_to_instruction, state.pc)
-            @info "Execution finished" pc = string(state.pc, base=16, pad=4) reason = "PC not in program"
+            @info "Execution finished" pc = string(state.pc; base=16, pad=4) reason = "PC not in program"
             break
         end
 
-        instruction_index, inst = pc_to_instruction[state.pc]
+        _instruction_index, inst = pc_to_instruction[state.pc]
         try
             old_pc = state.pc
             old_regs = copy(state.registers)
 
-            # Find current instruction index for address-based PC management
+            # Find current instruction index from the instruction list
+            # This is used for relative jump resolution
             current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
             if current_addr_idx === nothing
                 error(
@@ -217,17 +218,16 @@ function interpret_program(
                 )
             end
 
-            # Use the centralized PC management function
             EnergyModel.execute_instruction!(state, inst, addresses, current_addr_idx)
 
             if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
                 if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
                     @debug msg
                 end
-                @debug "Step $step_count" address = string(old_pc, base=16, pad=4) opcode =
+                @debug "Step $step_count" address = string(old_pc; base=16, pad=4) opcode =
                     inst.opcode operands = inst.operands
-                @debug "PC transition" old_pc = string(old_pc, base=16, pad=4) new_pc = string(
-                    state.pc, base=16, pad=4
+                @debug "PC transition" old_pc = string(old_pc; base=16, pad=4) new_pc = string(
+                    state.pc; base=16, pad=4
                 )
                 @debug format_registers(state)
             end
@@ -238,7 +238,7 @@ function interpret_program(
             end
 
         catch e
-            @error "Error executing instruction" pc = string(state.pc, base=16, pad=4) opcode =
+            @error "Error executing instruction" pc = string(state.pc; base=16, pad=4) opcode =
                 inst.opcode error = e
             break
         end
@@ -249,7 +249,7 @@ function interpret_program(
     end
 
     # Show final state
-    @info "Final machine state" pc = string(state.pc, base=16, pad=4)
+    @info "Final machine state" pc = string(state.pc; base=16, pad=4)
     @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
 
@@ -297,9 +297,9 @@ function estimate_energy(
     max_energy = maximum(energy_samples)
 
     @info "Energy statistics" samples = length(energy_samples) mean = round(
-        mean_energy, digits=3
-    ) std = round(std_energy, digits=3) min = round(min_energy, digits=3) max = round(
-        max_energy, digits=3
+        mean_energy; digits=3
+    ) std = round(std_energy; digits=3) min = round(min_energy; digits=3) max = round(
+        max_energy; digits=3
     )
 
     # Show energy per instruction type
@@ -317,9 +317,9 @@ function estimate_energy(
         total_inst_energy = mean_inst_energy * count
         percentage = (total_inst_energy / mean_energy) * 100
         @info "Instruction energy" opcode count mean_inst = round(
-            mean_inst_energy, digits=2
-        ) total = round(total_inst_energy, digits=2) percentage = round(
-            percentage, digits=1
+            mean_inst_energy; digits=2
+        ) total = round(total_inst_energy; digits=2) percentage = round(
+            percentage; digits=1
         )
     end
 
