@@ -157,7 +157,7 @@ end
 """
 Interpret MSP430 program
 """
-function interpret_program(instructions::Vector{Instruction}, addresses::Vector{UInt16})::MachineState
+function interpret_program(instructions::Vector{Instruction}, addresses::Vector{UInt16}, max_steps::Int=1000)::MachineState
     @info "="^60
     @info "Interpret Program"
     @info "="^60
@@ -182,7 +182,6 @@ function interpret_program(instructions::Vector{Instruction}, addresses::Vector{
 
     @debug "Initial machine state" pc = string(state.pc, base=16, pad=4) sp = string(state.sp, base=16, pad=4) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
-    max_steps = 1000  # Prevent infinite loops
 
     while step_count < max_steps
         step_count += 1
