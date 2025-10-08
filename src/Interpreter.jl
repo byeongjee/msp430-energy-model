@@ -1,11 +1,12 @@
 module Interpreter
 
-include("EnergyModel.jl")
-using .EnergyModel
 using Statistics
 using Gen
 using Printf
 using Logging
+
+# Use Main.EnergyModel to avoid type conflicts
+using Main.EnergyModel
 
 """
 Format all register values in a formatted way for MSP430
@@ -34,7 +35,7 @@ function _memory_op_debug_msg(
             base_addr = get(old_regs, reg, UInt16(0))
             addr = UInt16((base_addr + offset) & 0xFFFF)
             if inst.opcode == :mov
-                src_val = EnergyModel.get_operand_value(state, inst.operands[1])
+                src_val = Main.EnergyModel.get_operand_value(state, inst.operands[1])
                 return "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
             end
 
@@ -95,7 +96,7 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
             end
 
             # Parse the instruction string with current address for relative jump resolution
-            parsed_instr = EnergyModel.parse_line(String(instr_str), addr)
+            parsed_instr = parse_line(String(instr_str), addr)
             if !isnothing(parsed_instr)
                 push!(instructions, parsed_instr)
                 push!(addresses, addr)
@@ -241,7 +242,7 @@ function interpret_program(
                 )
             end
 
-            EnergyModel.execute_instruction!(state, inst, addresses, current_addr_idx)
+            execute_instruction!(state, inst, addresses, current_addr_idx)
 
             if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
                 if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
