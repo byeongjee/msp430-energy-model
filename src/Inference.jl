@@ -78,7 +78,8 @@ Inference model that learns parameters from MSP430 data
     for (i, (program, observed_energy)) in
         enumerate(zip(training_data.programs, training_data.energies))
         # Use unique addresses for each program observation
-        predicted_energy = {(:predicted_energy, i)} ~ instruction_energy_model(program, learned_params)
+        predicted_energy =
+            {(:predicted_energy, i)} ~ instruction_energy_model(program, learned_params)
 
         # Observation noise model (smaller noise for MSP430 measurements)
         {(:observed_energy, i)} ~ normal(predicted_energy, 0.05)
@@ -102,8 +103,9 @@ function learn_parameters(
     end
 
     @info "Starting parameter inference using importance sampling"
-    @info "Training data" num_programs = length(training_data.programs) num_opcodes =
-        length(all_opcodes) n_samples
+    @info "Training data" num_programs = length(training_data.programs) num_opcodes = length(
+        all_opcodes
+    ) n_samples
 
     # Create constraints for observed energies
     constraints = choicemap()
@@ -158,84 +160,6 @@ function learn_parameters(
             # Fallback to default parameters
             learned_params[opcode] = get_energy_params(opcode)
             @warn "Using default parameters for opcode (no samples)" opcode
-        end
-    end
-
-    return learned_params
-end
-
-"""
-Alternative maximum likelihood estimation approach for MSP430
-"""
-function learn_parameters_mle(
-    training_data::TrainingData
-)::Dict{Symbol,Tuple{Float64,Float64}}
-    @info "Starting parameter inference using MLE (method of moments)"
-    @info "Training data" num_programs = length(training_data.programs)
-
-    # Collect instruction counts and total energies per instruction type
-    instruction_energies = Dict{Symbol,Vector{Float64}}()
-
-    @info "Distributing energy proportionally among instructions..."
-    # For each program, distribute total energy proportionally among instructions
-    for (program, total_energy) in zip(training_data.programs, training_data.energies)
-        # Simple heuristic: distribute energy based on current parameter means
-        instruction_weights = Float64[]
-        for inst in program
-            alpha, beta = get_energy_params(inst.opcode)
-            push!(instruction_weights, alpha * beta)  # Expected value of gamma dist
-        end
-
-        total_weight = sum(instruction_weights)
-        if total_weight > 0
-            for (inst, weight) in zip(program, instruction_weights)
-                estimated_energy = total_energy * (weight / total_weight)
-                if !haskey(instruction_energies, inst.opcode)
-                    instruction_energies[inst.opcode] = Float64[]
-                end
-                push!(instruction_energies[inst.opcode], estimated_energy)
-            end
-        end
-    end
-
-    @info "Collected energy samples for $(length(instruction_energies)) instruction types"
-
-    # Fit gamma distributions to each instruction's energy samples
-    learned_params = Dict{Symbol,Tuple{Float64,Float64}}()
-
-    @info "Fitting gamma distributions using method of moments..."
-    for (opcode, energies) in instruction_energies
-        if length(energies) >= 2
-            # Method of moments estimation for gamma distribution
-            sample_mean = mean(energies)
-            sample_var = var(energies)
-
-            if sample_var > 0 && sample_mean > 0
-                # For gamma distribution: mean = alpha*beta, variance = alpha*beta²
-                # So: beta = variance/mean, alpha = mean/beta = mean²/variance
-                beta_est = sample_var / sample_mean
-                alpha_est = sample_mean / beta_est
-
-                # Ensure parameters are positive and reasonable for MSP430
-                alpha_est = max(alpha_est, 0.1)
-                beta_est = max(beta_est, 0.01)
-
-                learned_params[opcode] = (alpha_est, beta_est)
-
-                @info "Learned parameters (MLE)" opcode alpha = round(
-                    alpha_est; digits=4
-                ) beta = round(beta_est; digits=4) mean_energy = round(
-                    sample_mean; digits=6
-                ) num_samples = length(energies)
-            else
-                learned_params[opcode] = get_energy_params(opcode)
-                @warn "Using default parameters (zero variance or negative mean)" opcode
-            end
-        else
-            learned_params[opcode] = get_energy_params(opcode)
-            @warn "Using default parameters (insufficient samples)" opcode num_samples = length(
-                energies
-            )
         end
     end
 
