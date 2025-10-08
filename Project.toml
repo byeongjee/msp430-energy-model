@@ -4,6 +4,7 @@ CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Gen = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 
 [extras]
