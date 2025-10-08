@@ -13,13 +13,11 @@ include("energy_params.jl")
 include("machine_state.jl")
 include("parser.jl")
 include("probabilistic_model_builder.jl")
-include("inference.jl")
 
 # Export main types
 export Instruction
 export MachineState
 export EnergyStats
-export TrainingData
 
 # Export energy parameter functions
 export get_energy_params
@@ -37,10 +35,6 @@ export validate_instruction, get_instruction_format
 export sample_instruction_energy
 export interpret_program
 export custom_energy_model
-
-# Export inference functions
-export learn_parameters, learn_parameters_mle
-export predict_energy, evaluate_parameters
 
 # Export utility functions
 export reg_num_to_symbol, reg_symbol_to_num

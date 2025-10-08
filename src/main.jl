@@ -1,7 +1,9 @@
 include("../src/EnergyModel.jl")
 include("../src/Interpreter.jl")
+include("../src/Inference.jl")
 using .EnergyModel
 using .Interpreter
+using .Inference
 using ArgParse
 using CSV
 using DataFrames

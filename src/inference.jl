@@ -1,9 +1,20 @@
-# inference.jl - Parameter inference for instruction energy distributions
+# Inference.jl - Parameter inference for instruction energy distributions
+
+module Inference
 
 using Gen
 using Distributions
 using Optim
 using Statistics
+
+# Import types and functions from EnergyModel
+using Main.EnergyModel: Instruction, EnergyStats, get_energy_params
+
+# Export public interface
+export TrainingData
+export instruction_energy_model, parameter_inference_model
+export learn_parameters, learn_parameters_mle
+export predict_energy, evaluate_parameters
 
 """
 Data structure to hold MSP430 training data
@@ -248,3 +259,5 @@ function evaluate_parameters(
         actual=actual_energies,
     )
 end
+
+end # module
