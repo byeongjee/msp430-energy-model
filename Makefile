@@ -39,8 +39,8 @@ help:
 	@echo "Available targets:"
 	@echo "  compile FILE=<file.c>       - Compile C file to MSP430 binary"
 	@echo "  disasm FILE=<file.c>        - Compile and disassemble"
-	@echo "  interpret FILE=<file.c>     - Interpret assembly program"
-	@echo "  train FILE=<file.c> DATA=<data.csv> - Train energy model"
+	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
+	@echo "  train FILE=<file.c> DATA=<data.csv> [MAX_STEPS=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> - Estimate energy consumption"
 	@echo "  flash FILE=<file.c>         - Flash binary to microcontroller"
 	@echo "  test                        - Run interpreter on all example programs"
@@ -49,7 +49,9 @@ help:
 	@echo "Examples:"
 	@echo "  make compile FILE=examples/c_programs/simple.c"
 	@echo "  make interpret FILE=examples/c_programs/simple.c"
+	@echo "  make interpret FILE=examples/c_programs/simple.c MAX_STEPS=1000"
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv"
+	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv MAX_STEPS=500"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=params.json"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make test"
@@ -83,7 +85,9 @@ disasm: compile | $(ASM_DIR)
 interpret: disasm
 	@echo "Running MSP430 interpreter..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm
+	MAX_STEPS_FLAG=""; \
+	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
+	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG
 	@echo "✓ Interpret completed!"
 
 # Train mode: infer energy parameters from measurements
@@ -94,7 +98,9 @@ endif
 	@echo "Training energy model..."
 	@BASENAME=$$(basename $(FILE) .c); \
 	OUTPUT=$${OUTPUT:-energy_params.json}; \
-	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT
+	MAX_STEPS_FLAG=""; \
+	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
+	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT $$MAX_STEPS_FLAG
 	@echo "✓ Training completed!"
 
 # Estimate mode: predict energy consumption
