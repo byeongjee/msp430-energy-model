@@ -24,11 +24,24 @@ void clockSetup() {
 }
 
 void toggle_gpio() { P1OUT ^= BIT3; }
-void begin_event() { P1OUT |= BIT3; }
-void end_event() { P1OUT &= ~BIT3; }
 
-void begin_measurement_window() { P1OUT |= BIT2; }
-void end_measurement_window() { P1OUT &= ~BIT2; }
+void begin_event() {
+  __delay_cycles(10000);
+  P1OUT |= BIT3;
+}
+void end_event() {
+  P1OUT &= ~BIT3;
+  __delay_cycles(10000);
+}
+
+void begin_measurement_window() {
+  __delay_cycles(10000);
+  P1OUT |= BIT2;
+}
+void end_measurement_window() {
+  P1OUT &= ~BIT2;
+  __delay_cycles(10000);
+}
 
 void initialize() {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
