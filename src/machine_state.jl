@@ -606,8 +606,10 @@ function update_flags!(
 
     # Update status register
     state.sr =
-        (state.sr & 0xFFF0) | (state.flags[:V] ? 0x0100 : 0x0000) |
-        (state.flags[:N] ? 0x0004 : 0x0000) | (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.sr & 0xFFF0) |
+        (state.flags[:V] ? 0x0100 : 0x0000) |
+        (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
     state.registers[:R2] = state.sr
@@ -625,7 +627,8 @@ function update_flags_simple!(state::MachineState, result::UInt16)::Nothing
     # Update status register
     state.sr =
         (state.sr & 0xFEF9) |  # Clear N and Z bits
-        (state.flags[:N] ? 0x0004 : 0x0000) | (state.flags[:Z] ? 0x0002 : 0x0000)
+        (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000)
 
     state.registers[:R2] = state.sr
     state.registers[:SR] = state.sr
