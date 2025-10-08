@@ -35,7 +35,8 @@ Each instruction type has learnable gamma distribution parameters
 
     for (i, inst) in enumerate(instructions)
         alpha, beta = get(params, inst.opcode, (1.2, 0.2))  # Lower energy defaults for MSP430
-        inst_energy ~ gamma(alpha, beta)
+        # Use unique address for each instruction in the sequence
+        inst_energy = {(:inst_energy, i)} ~ gamma(alpha, beta)
         total_energy += inst_energy
     end
 
@@ -63,10 +64,11 @@ Inference model that learns parameters from MSP430 data
     for opcode in all_opcodes
         # Priors for gamma distribution parameters optimized for MSP430 (lower energy)
         # Shape parameter alpha (must be > 0)
-        alpha ~ gamma(1.5, 0.8)  # Prior: Gamma(1.5,0.8) gives mean=1.2, reasonable for low-power
+        # Use unique addresses for each opcode to avoid Gen trace conflicts
+        alpha = {(opcode, :alpha)} ~ gamma(1.5, 0.8)  # Prior: Gamma(1.5,0.8) gives mean=1.2, reasonable for low-power
 
         # Scale parameter beta (must be > 0)
-        beta ~ gamma(1.0, 0.25)  # Prior: Gamma(1,0.25) gives mean=0.25, smaller scale
+        beta = {(opcode, :beta)} ~ gamma(1.0, 0.25)  # Prior: Gamma(1,0.25) gives mean=0.25, smaller scale
 
         learned_params[opcode] = (alpha, beta)
     end
@@ -74,10 +76,11 @@ Inference model that learns parameters from MSP430 data
     # Generate energy observations for each program
     for (i, (program, observed_energy)) in
         enumerate(zip(training_data.programs, training_data.energies))
-        predicted_energy ~ instruction_energy_model(program, learned_params)
+        # Use unique addresses for each program observation
+        predicted_energy = {(:predicted_energy, i)} ~ instruction_energy_model(program, learned_params)
 
         # Observation noise model (smaller noise for MSP430 measurements)
-        observed_energy ~ normal(predicted_energy, 0.05)
+        {(:observed_energy, i)} ~ normal(predicted_energy, 0.05)
     end
 
     return learned_params
