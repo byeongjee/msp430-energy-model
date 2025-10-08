@@ -43,6 +43,7 @@ function get_executor(opcode::Symbol)::InstructionExecutor
         :pushm,
         :popm,
         :rla,
+        :rlam,
     ]
         return SingleOperandExecutor()
     elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
@@ -353,6 +354,25 @@ function execute_single_operand!(
         result = UInt16((operand_val << 1) & 0xFFFF)
         state.flags[:C] = new_carry
         update_flags_simple!(state, result)
+    elseif opcode == :rlam
+        # Rotate left arithmetic multiple times
+        # Format: rlam #n, Rdst where n is 1-4
+        if length(ops) >= 2
+            shift_count = get_operand_value(state, ops[1])
+            dst_val = get_operand_value(state, ops[2])
+
+            # Perform the rotation shift_count times
+            result = dst_val
+            for i in 1:shift_count
+                new_carry = (result & 0x8000) != 0
+                result = UInt16((result << 1) & 0xFFFF)
+                state.flags[:C] = new_carry
+            end
+
+            update_flags_simple!(state, result)
+            set_operand_value!(state, ops[2], result, data_size)
+            return nothing
+        end
     elseif opcode == :pushm
         # Push multiple registers: pushm #n, Rdst
         # Pushes n registers from Rdst-n+1 to Rdst
