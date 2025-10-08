@@ -73,7 +73,9 @@ end
 """
 Train mode: Infer energy parameters from assembly and measurement data
 """
-function run_train(asm_file::String, data_file::String, output_file::Union{String,Nothing})
+function run_train(
+    asm_file::String, data_file::String, output_file::Union{String,Nothing}, max_steps::Int
+)
     @info "Running in TRAIN mode"
     @info "Assembly file" path = asm_file
     @info "Measurement data" path = data_file
@@ -82,11 +84,29 @@ function run_train(asm_file::String, data_file::String, output_file::Union{Strin
         @info "Output file" path = output_file
     end
 
-    # TODO: Implement training logic
-    # 1. Parse assembly file
-    # 2. Load measurement data
-    # 3. Infer energy parameters for each instruction type
-    # 4. Export parameters to file
+    # Parse instructions from assembly file
+    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
+
+    # Parse event addresses
+    begin_event_addr, end_event_addr = Interpreter.parse_event_addresses(asm_file)
+    if isnothing(begin_event_addr) || isnothing(end_event_addr)
+        @info "begin_event or end_event not found in assembly file"
+    else
+        @info "begin_event and end_event found in assembly file" begin_event_addr =
+            "0x" * string(begin_event_addr; base=16, pad=4) end_event_addr =
+            "0x" * string(end_event_addr; base=16, pad=4)
+    end
+
+    # Execute program
+    _, event_sequences = Interpreter.interpret_program(
+        instructions, addresses, begin_event_addr, end_event_addr, max_steps
+    )
+
+    # TODO
+    # 1. parse measurement data
+    # 2. create training data
+    # 3. perform training
+    # 4. export parameters to file
 
     error("TRAIN mode not yet implemented")
 end
@@ -128,7 +148,7 @@ function main()
                 error("--data is required for train mode")
             end
             output_file = args["output"]
-            run_train(asm_file, data_file, output_file)
+            run_train(asm_file, data_file, output_file, max_steps)
 
         elseif mode == "estimate"
             params_file = args["params"]
