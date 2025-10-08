@@ -3,6 +3,8 @@ include("../src/Interpreter.jl")
 using .EnergyModel
 using .Interpreter
 using ArgParse
+using CSV
+using DataFrames
 
 """
 Parse command line arguments
@@ -102,11 +104,21 @@ function run_train(
         instructions, addresses, begin_event_addr, end_event_addr, max_steps
     )
 
-    # TODO
-    # 1. parse measurement data
-    # 2. create training data
-    # 3. perform training
-    # 4. export parameters to file
+    @info "Reading measurement data from CSV"
+    df = CSV.read(data_file, DataFrame)
+
+    energies = df.energy_J
+
+    if length(event_sequences) != length(energies)
+        error(
+            "Mismatch between event sequences ($(length(event_sequences))) and energy measurements ($(length(energies)))",
+        )
+    end
+
+    @info "Creating training data" num_samples = length(energies)
+    training_data = TrainingData(event_sequences, energies)
+
+    @info "Training data created successfully"
 
     error("TRAIN mode not yet implemented")
 end
