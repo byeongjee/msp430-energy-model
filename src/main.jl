@@ -7,6 +7,7 @@ using .Inference
 using ArgParse
 using CSV
 using DataFrames
+using JSON
 
 """
 Parse command line arguments
@@ -79,7 +80,7 @@ Train mode: Infer energy parameters from assembly and measurement data
 """
 function run_train(
     asm_file::String, data_file::String, output_file::Union{String,Nothing}, max_steps::Int
-)
+)::Nothing
     @info "Running in TRAIN mode"
     @info "Assembly file" path = asm_file
     @info "Measurement data" path = data_file
@@ -122,7 +123,31 @@ function run_train(
 
     @info "Training data created successfully"
 
-    error("TRAIN mode not yet implemented")
+    # Learn parameters from training data
+    @info "Learning energy parameters from training data"
+    learned_params = Inference.learn_parameters(training_data)
+
+    @info "Parameter learning complete" num_instruction_types = length(learned_params)
+
+    # Convert parameters to JSON-friendly format
+    params_dict = Dict{String,Dict{String,Float64}}()
+    for (opcode, (alpha, beta)) in learned_params
+        params_dict[string(opcode)] = Dict("alpha" => alpha, "beta" => beta)
+    end
+
+    # Export parameters to file if output path is provided
+    if !isnothing(output_file)
+        @info "Exporting parameters to file" path = output_file
+        open(output_file, "w") do f
+            JSON.print(f, params_dict, 4)  # 4 spaces for indentation
+        end
+        @info "Parameters exported successfully"
+    else
+        @info "No output file specified, printing parameters to console"
+        println(JSON.json(params_dict, 4))
+    end
+
+    return nothing
 end
 
 """
