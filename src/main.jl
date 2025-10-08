@@ -35,7 +35,7 @@ function parse_commandline()
         "--max-steps"
         help = "Maximum number of execution steps"
         arg_type = Int
-        default = 1000
+        default = 100000000
     end
 
     return parse_args(s)

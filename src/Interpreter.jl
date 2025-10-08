@@ -171,7 +171,7 @@ function interpret_program(
     addresses::Vector{UInt16},
     begin_event_addr::Union{UInt16,Nothing},
     end_event_addr::Union{UInt16,Nothing},
-    max_steps::Int=1000,
+    max_steps::Int,
 )::Tuple{MachineState,Vector{Vector{Instruction}}}
     @info "="^60
     @info "Interpret Program"
