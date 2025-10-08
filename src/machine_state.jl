@@ -537,14 +537,7 @@ function set_operand_value!(
 
     if isa(operand, Symbol)
         # Register
-        if data_size == :byte
-            # For byte operations on registers, only modify lower 8 bits
-            old_value = get(state.registers, operand, UInt16(0))
-            new_value = UInt16((old_value & 0xFF00) | masked_value)
-            state.registers[operand] = new_value
-        else
-            state.registers[operand] = masked_value
-        end
+        state.registers[operand] = masked_value
 
         # Update special register aliases
         final_value = state.registers[operand]
