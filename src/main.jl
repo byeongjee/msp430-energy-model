@@ -56,10 +56,8 @@ function run_interpret(asm_file::String, max_steps::Int)
     @info "Running in INTERPRET mode"
     @info "Assembly file" path = asm_file
 
-    # Parse instructions from assembly file
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    # Parse event addresses
     begin_event_addr, end_event_addr = Interpreter.parse_event_addresses(asm_file)
     if isnothing(begin_event_addr) || isnothing(end_event_addr)
         @info "begin_event or end_event not found in assembly file"
@@ -96,10 +94,8 @@ function run_train(
         @info "Output file" path = output_file
     end
 
-    # Parse instructions from assembly file
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    # Parse event addresses
     begin_event_addr, end_event_addr = Interpreter.parse_event_addresses(asm_file)
     if isnothing(begin_event_addr) || isnothing(end_event_addr)
         @info "begin_event or end_event not found in assembly file"
@@ -109,7 +105,6 @@ function run_train(
             "0x" * string(end_event_addr; base=16, pad=4)
     end
 
-    # Execute program
     _, _, event_sequences = Interpreter.interpret_program(
         instructions, addresses, begin_event_addr, end_event_addr, max_steps
     )
@@ -130,13 +125,11 @@ function run_train(
 
     @info "Training data created successfully"
 
-    # Learn parameters from training data
     @info "Learning energy parameters from training data"
     learned_params = Inference.learn_parameters(training_data)
 
     @info "Parameter learning complete" num_instruction_types = length(learned_params)
 
-    # Convert parameters to JSON-friendly format
     params_dict = Dict{String,Dict{String,Float64}}()
     for (opcode, (alpha, beta)) in learned_params
         params_dict[string(opcode)] = Dict("alpha" => alpha, "beta" => beta)
@@ -174,13 +167,10 @@ function run_estimate(
         @info "Plot output file" path = plot_file
     end
 
-    # 1. Load energy parameters from JSON
     params = load_energy_params(params_file)
 
-    # 2. Parse assembly file
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    # 3. Execute program to get instruction trace
     @info "Executing program to get instruction trace"
     _, all_instructions, _ = Interpreter.interpret_program(
         instructions, addresses, nothing, nothing, max_steps
@@ -188,10 +178,8 @@ function run_estimate(
 
     @info "Instruction trace collected" trace_length = length(all_instructions)
 
-    # 4. Estimate cost distribution
     stats = estimate_cost_distribution(all_instructions, params)
 
-    # 5. Plot cost distribution (separated from business logic)
     try
         plot_cost_distribution(stats, plot_file)
     catch e
@@ -248,7 +236,6 @@ function main()
     return nothing
 end
 
-# Run main function if called directly
 if abspath(PROGRAM_FILE) == @__FILE__
     main()
 end
