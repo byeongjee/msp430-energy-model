@@ -173,10 +173,20 @@ function interpret_program(
     begin_event_addr::Union{UInt16,Nothing},
     end_event_addr::Union{UInt16,Nothing},
     max_steps::Int,
-)::Tuple{MachineState,Vector{Vector{Instruction}}}
+)::Tuple{MachineState,Vector{Instruction},Vector{Vector{Instruction}}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
+
+    # Track all instructions
+    # Assuming that the program does not take inputs and is deterministic,
+    # we can track all instructions in the program trace
+    all_instructions = Vector{Instruction}()
+
+    # Track instruction sequences between begin_event and end_event
+    event_sequences = Vector{Vector{Instruction}}()
+    current_sequence = Vector{Instruction}()
+    in_event = false
 
     # Show the program
     @info instruction_count = length(instructions)
@@ -201,11 +211,6 @@ function interpret_program(
         state.sp; base=16, pad=4
     ) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
-
-    # Track instruction sequences between begin_event and end_event
-    event_sequences = Vector{Vector{Instruction}}()
-    current_sequence = Vector{Instruction}()
-    in_event = false
 
     while step_count < max_steps
         step_count += 1
@@ -243,6 +248,7 @@ function interpret_program(
             end
 
             execute_instruction!(state, inst, addresses, current_addr_idx)
+            push!(all_instructions, inst)
 
             if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
                 if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
@@ -284,7 +290,7 @@ function interpret_program(
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
     @info "Event sequences collected" count = length(event_sequences)
 
-    return (state, event_sequences)
+    return (state, all_instructions, event_sequences)
 end
 
 """

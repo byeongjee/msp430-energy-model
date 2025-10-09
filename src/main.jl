@@ -63,7 +63,7 @@ function run_interpret(asm_file::String, max_steps::Int)
     end
 
     # Execute program
-    final_state, event_sequences = Interpreter.interpret_program(
+    final_state, _, _ = Interpreter.interpret_program(
         instructions, addresses, begin_event_addr, end_event_addr, max_steps
     )
 
@@ -103,7 +103,7 @@ function run_train(
     end
 
     # Execute program
-    _, event_sequences = Interpreter.interpret_program(
+    _, _, event_sequences = Interpreter.interpret_program(
         instructions, addresses, begin_event_addr, end_event_addr, max_steps
     )
 
