@@ -8,18 +8,13 @@ using Optim
 using Statistics
 using Logging
 
-# Import types and functions from EnergyModel
 using Main.EnergyModel: Instruction, EnergyStats, get_energy_params
 
-# Export public interface
 export TrainingData
-export instruction_energy_model, parameter_inference_model
-export learn_parameters, learn_parameters_mle
+export single_program_energy_model, parameter_inference_model
+export learn_parameters
 export predict_energy, evaluate_parameters
 
-"""
-Data structure to hold MSP430 training data
-"""
 struct TrainingData
     programs::Vector{Vector{Instruction}}
     energies::Vector{Float64}
@@ -29,13 +24,13 @@ end
 Generative model for parameter inference
 Each instruction type has learnable gamma distribution parameters
 """
-@gen function instruction_energy_model(
+@gen function single_program_energy_model(
     instructions::Vector{Instruction}, params::Dict{Symbol,Tuple{Float64,Float64}}
 )::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)
-        alpha, beta = get(params, inst.opcode, (1.2, 0.2))  # Lower energy defaults for MSP430
+        alpha, beta = params[inst.opcode]
         # Use unique address for each instruction in the sequence
         inst_energy = {(:inst_energy, i)} ~ gamma(alpha, beta)
         total_energy += inst_energy
@@ -43,6 +38,8 @@ Each instruction type has learnable gamma distribution parameters
 
     return total_energy
 end
+
+epsilon = 1e-12
 
 """
 Inference model that learns parameters from MSP430 data
@@ -61,28 +58,51 @@ Inference model that learns parameters from MSP430 data
         end
     end
 
-    # Sample parameters for each instruction type
+    # For now we are using a stateless model.
+    # Assuming that there is a single gamma distribution for each type of instruction.
     for opcode in all_opcodes
-        # Priors for gamma distribution parameters optimized for MSP430 (lower energy)
-        # Shape parameter alpha (must be > 0)
-        # Use unique addresses for each opcode to avoid Gen trace conflicts
-        alpha = {(opcode, :alpha)} ~ gamma(1.5, 0.8)  # Prior: Gamma(1.5,0.8) gives mean=1.2, reasonable for low-power
+        # Current ≈ 118 µA/MHz (https://www.ti.com/lit/ds/symlink/msp430fr5994.pdf)
+        # Voltage: 3.3V
+        # -> 0.389mW per MHz
+        # -> 3.89 * 10e-10 J per CPU cycle
 
-        # Scale parameter beta (must be > 0)
-        beta = {(opcode, :beta)} ~ gamma(1.0, 0.25)  # Prior: Gamma(1,0.25) gives mean=0.25, smaller scale
+        # roughly 3 cycle per instuction
+        # (https://www.ti.com/sc/docs/products/micro/msp430/userguid/as_5.pdf)
+
+        # -> roughly 1e-9 J per instruction
+
+        # TODO: Are these priors reasonable?
+        log_mu = {(opcode, :logμ)} ~ normal(log(1e-9), 0.7)
+        log_kappa = {(opcode, :logκ)} ~ normal(log(3.0), 0.5)
+
+        mu = exp(log_mu)
+        kappa = exp(log_kappa)
+
+        alpha = kappa
+        beta = mu / kappa
 
         learned_params[opcode] = (alpha, beta)
     end
 
-    # Generate energy observations for each program
-    for (i, (program, observed_energy)) in
-        enumerate(zip(training_data.programs, training_data.energies))
-        # Use unique addresses for each program observation
-        predicted_energy =
-            {(:predicted_energy, i)} ~ instruction_energy_model(program, learned_params)
+    # Compute median observed energy (in the same units as y)
+    m = median(training_data.energies)
+    rho = 0.05  # start with 5% of median total as typical noise
+    tau = 0.7   # FIXME: Arbitrary value suggested by ChatGPT
 
-        # Observation noise model (smaller noise for MSP430 measurements)
-        {(:observed_energy, i)} ~ normal(predicted_energy, 0.05)
+    # Learn sigma with a scale-aware, weakly-informative prior
+    log_sigma = {:log_obs_sigma} ~ normal(log(rho * m + epsilon), tau)
+    sigma = exp(log_sigma)
+
+    # Generate energy observations for each program
+    for (i, program) in enumerate(training_data.programs)
+        actual_energy_consumption =
+            {(:actual_energy_consumption, i)} ~ single_program_energy_model(
+                # TODO: What should be the priors?
+                program,
+                learned_params,
+            )
+
+        {(:observed_energy_consumption, i)} ~ normal(actual_energy_consumption, sigma)
     end
 
     return learned_params
@@ -92,7 +112,7 @@ end
 Learn MSP430 instruction energy parameters from training data using importance sampling
 """
 function learn_parameters(
-    training_data::TrainingData; n_samples::Int=1000, n_particles::Int=100
+    training_data::TrainingData; n_samples::Int=1000
 )::Dict{Symbol,Tuple{Float64,Float64}}
     # Get all unique instruction types from training data
     all_opcodes = Set{Symbol}()
@@ -107,13 +127,11 @@ function learn_parameters(
         all_opcodes
     ) n_samples
 
-    # Create constraints for observed energies
     constraints = choicemap()
     for (i, energy) in enumerate(training_data.energies)
-        constraints[(:observed_energy, i)] = energy
+        constraints[(:observed_energy_consumption, i)] = energy
     end
 
-    # Run importance sampling
     @info "Running importance sampling..."
     (traces, log_weights) = importance_sampling(
         parameter_inference_model, (training_data,), constraints, n_samples
