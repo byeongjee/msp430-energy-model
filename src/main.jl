@@ -36,6 +36,9 @@ function parse_commandline()
         "--output"
         help = "Output file path (for train mode)"
         arg_type = String
+        "--plot"
+        help = "Plot output file path (for estimate mode)"
+        arg_type = String
         "--max-steps"
         help = "Maximum number of execution steps"
         arg_type = Int
@@ -300,10 +303,19 @@ end
 """
 Estimate mode: Predict energy consumption using learned parameters
 """
-function run_estimate(asm_file::String, params_file::String, max_steps::Int)::Nothing
+function run_estimate(
+    asm_file::String,
+    params_file::String,
+    max_steps::Int,
+    plot_file::Union{String,Nothing}=nothing,
+)::Nothing
     @info "Running in ESTIMATE mode"
     @info "Assembly file" path = asm_file
     @info "Energy parameters" path = params_file
+
+    if !isnothing(plot_file)
+        @info "Plot output file" path = plot_file
+    end
 
     # 1. Load energy parameters from JSON
     params = load_energy_params(params_file)
@@ -324,7 +336,7 @@ function run_estimate(asm_file::String, params_file::String, max_steps::Int)::No
 
     # 5. Plot cost distribution (separated from business logic)
     try
-        plot_cost_distribution(stats)
+        plot_cost_distribution(stats, plot_file)
     catch e
         @warn "Failed to plot cost distribution" error = e
         @info "Continuing without plot"
@@ -364,7 +376,8 @@ function main()
             if isnothing(params_file)
                 error("--params is required for estimate mode")
             end
-            run_estimate(asm_file, params_file, max_steps)
+            plot_file = args["plot"]
+            run_estimate(asm_file, params_file, max_steps, plot_file)
 
         else
             error("Invalid mode: $mode. Must be one of: interpret, train, estimate")

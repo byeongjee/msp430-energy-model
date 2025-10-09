@@ -40,8 +40,8 @@ help:
 	@echo "  compile FILE=<file.c>       - Compile C file to MSP430 binary"
 	@echo "  disasm FILE=<file.c>        - Compile and disassemble"
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
-	@echo "  train FILE=<file.c> DATA=<data.csv> [MAX_STEPS=<n>] - Train energy model"
-	@echo "  estimate FILE=<file.c> PARAMS=<params> - Estimate energy consumption"
+	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] - Train energy model"
+	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
 	@echo "  flash FILE=<file.c>         - Flash binary to microcontroller"
 	@echo "  test                        - Run interpreter on all example programs"
 	@echo "  clean                       - Clean build artifacts"
@@ -51,8 +51,9 @@ help:
 	@echo "  make interpret FILE=examples/c_programs/simple.c"
 	@echo "  make interpret FILE=examples/c_programs/simple.c MAX_STEPS=1000"
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv"
-	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv MAX_STEPS=500"
-	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=params.json"
+	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500"
+	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json"
+	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make test"
 
@@ -110,7 +111,11 @@ ifndef PARAMS
 endif
 	@echo "Estimating energy consumption..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS)
+	PLOT_FLAG=""; \
+	if [ -n "$(PLOT)" ]; then PLOT_FLAG="--plot $(PLOT)"; fi; \
+	MAX_STEPS_FLAG=""; \
+	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
+	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
 	@echo "✓ Estimation completed!"
 
 # Test with example programs
