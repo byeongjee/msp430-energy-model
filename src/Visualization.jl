@@ -19,37 +19,67 @@ function plot_cost_distribution(
 )::Nothing
     @info "Plotting cost distribution"
 
-    # Create histogram
+    # Calculate optimal number of bins using Sturges' rule or sqrt rule
+    n_samples = length(stats.samples)
+    n_bins = min(100, max(30, Int(ceil(sqrt(n_samples)))))
+
+    # Create histogram with improved styling
     p = histogram(
         stats.samples;
-        bins=50,
+        bins=n_bins,
+        normalize=:probability,  # Show probability density instead of raw counts
         xlabel="Cost (nanojoules)",
-        ylabel="Frequency",
-        title="Cost Distribution",
-        legend=false,
+        ylabel="Probability Density",
+        title="Energy Cost Distribution",
+        legend=:topright,
         color=:steelblue,
-        alpha=0.7,
+        alpha=0.6,
+        linecolor=:steelblue,
+        linewidth=1,
+        label="Samples",
+        size=(800, 500),
+        dpi=150,
+        margins=5Plots.mm,
     )
 
-    # Add vertical lines for mean and std
-    vline!([stats.mean]; color=:red, linewidth=2, label="Mean")
+    # Add vertical line for mean
     vline!(
-        [stats.mean - stats.std, stats.mean + stats.std];
-        color=:orange,
-        linewidth=1.5,
-        linestyle=:dash,
-        label="±1 Std",
+        [stats.mean];
+        color=:red,
+        linewidth=2.5,
+        linestyle=:solid,
+        label="Mean: $(round(stats.mean, digits=2)) nJ",
     )
 
-    # Add text annotation with statistics
+    # Add vertical lines for ±1 std
+    vline!(
+        [stats.mean - stats.std];
+        color=:orange,
+        linewidth=2,
+        linestyle=:dash,
+        label="-1σ: $(round(stats.mean - stats.std, digits=2)) nJ",
+    )
+    vline!(
+        [stats.mean + stats.std];
+        color=:orange,
+        linewidth=2,
+        linestyle=:dash,
+        label="+1σ: $(round(stats.mean + stats.std, digits=2)) nJ",
+    )
+
+    # Add text box with statistics in corner
+    stats_text = """
+    Statistics:
+    Mean: $(round(stats.mean, digits=2)) nJ
+    Std:  $(round(stats.std, digits=2)) nJ
+    Min:  $(round(stats.min, digits=2)) nJ
+    Max:  $(round(stats.max, digits=2)) nJ
+    """
+
     annotate!(
-        stats.mean,
-        maximum(p.series_list[1][:y]) * 0.9,
-        text(
-            "Mean: $(round(stats.mean, digits=2))\nStd: $(round(stats.std, digits=2))",
-            :left,
-            8,
-        ),
+        stats.min + (stats.max - stats.min) * 0.02,
+        maximum(p.series_list[1][:y]) * 0.95,
+        text(stats_text, :left, 7, :gray20),
     )
 
     # Save or display
