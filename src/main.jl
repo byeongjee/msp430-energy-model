@@ -110,7 +110,7 @@ function run_train(
     @info "Reading measurement data from CSV"
     df = CSV.read(data_file, DataFrame)
 
-    energies = df.energy_J
+    energies = df.energy_nJ
 
     if length(event_sequences) != length(energies)
         error(

@@ -69,10 +69,10 @@ Inference model that learns parameters from MSP430 data
         # roughly 3 cycle per instuction
         # (https://www.ti.com/sc/docs/products/micro/msp430/userguid/as_5.pdf)
 
-        # -> roughly 1e-9 J per instruction
+        # -> roughly 1e-9 J per instruction = 1.0 nJ per instruction
 
         # TODO: Are these priors reasonable?
-        log_mu = {(opcode, :logμ)} ~ normal(log(1e-9), 0.7)
+        log_mu = {(opcode, :logμ)} ~ normal(log(1.0), 0.7)
         log_kappa = {(opcode, :logκ)} ~ normal(log(3.0), 0.5)
 
         mu = exp(log_mu)

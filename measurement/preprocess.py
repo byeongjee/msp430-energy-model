@@ -38,12 +38,14 @@ def preprocess_csv(input, output):
         timestamps = group["timestamp_s"].values
         power = group["power_W"].values
         energy_J = integrate.trapezoid(power, timestamps)
+        # Convert to nanoJoules for better numerical stability
+        energy_nJ = energy_J * 1e9
         results.append(
             {
                 "t_start_s": t_start_s,
                 "t_end_s": t_end_s,
                 "duration_s": duration_s,
-                "energy_J": energy_J,
+                "energy_nJ": energy_nJ,
             }
         )
     # Create output DataFrame
