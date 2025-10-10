@@ -3,8 +3,9 @@
 module Visualization
 
 using Plots
+using Distributions
 
-export plot_cost_distribution
+export plot_cost_distribution, visualize_instruction_params
 
 """
 Plot cost distribution (separated from business logic)
@@ -88,6 +89,96 @@ function plot_cost_distribution(
         @info "Plot saved" path = output_file
     else
         display(p)
+    end
+
+    return nothing
+end
+
+"""
+Visualize instruction parameter distributions in a grid
+Creates subplots showing the Gamma distribution for each instruction type
+"""
+function visualize_instruction_params(
+    params::Dict{Symbol,Tuple{Float64,Float64}}, output_file::Union{String,Nothing}=nothing
+)::Nothing
+    @info "Visualizing instruction parameters" num_instructions = length(params)
+
+    # Sort instructions by name for consistent ordering
+    sorted_opcodes = sort(collect(keys(params)))
+    n_instructions = length(sorted_opcodes)
+
+    # Calculate grid dimensions (try to make it roughly square)
+    n_cols = Int(ceil(sqrt(n_instructions)))
+    n_rows = Int(ceil(n_instructions / n_cols))
+
+    # Create subplots
+    plots_array = []
+
+    for opcode in sorted_opcodes
+        @info "Visualizing instruction" opcode = opcode
+        alpha, beta = params[opcode]
+
+        # Create Gamma distribution
+        dist = Gamma(alpha, beta)
+
+        # Generate x values (0 to 99.5th percentile)
+        x_max = quantile(dist, 0.995)
+        x = range(0, x_max; length=200)
+        y = pdf.(dist, x)
+
+        # Calculate mean for annotation
+        mean_val = alpha * beta
+
+        # Create subplot
+        p = plot(
+            x,
+            y;
+            xlabel="Cost (nJ)",
+            ylabel="Density",
+            title="$(opcode)",
+            legend=false,
+            color=:steelblue,
+            linewidth=2,
+            fillrange=0,
+            fillalpha=0.3,
+            fillcolor=:steelblue,
+            titlefontsize=10,
+            guidefontsize=8,
+            tickfontsize=7,
+        )
+
+        # Add mean line
+        vline!([mean_val]; color=:red, linewidth=1.5, linestyle=:dash)
+
+        # Add mean annotation
+        annotate!(
+            x_max * 0.6,
+            maximum(y) * 0.9,
+            text("μ=$(round(mean_val, digits=2))", 7, :gray20),
+        )
+
+        push!(plots_array, p)
+    end
+
+    @info "Visualizing $(length(plots_array)) instructions"
+
+    # Combine into grid
+    combined_plot = plot(
+        plots_array...;
+        layout=(n_rows, n_cols),
+        size=(n_cols * 300, n_rows * 250),
+        dpi=150,
+        margins=3Plots.mm,
+        plot_title="Instruction Energy Cost Distributions",
+        plot_titlefontsize=14,
+    )
+
+    # Save or display
+    if !isnothing(output_file)
+        savefig(combined_plot, output_file)
+        @info "Visualization saved" path = output_file
+    else
+        display(combined_plot)
     end
 
     return nothing

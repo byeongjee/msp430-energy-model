@@ -1,6 +1,5 @@
 #include "gpio.h"
 #include <msp430.h>
-#include <stdio.h>
 
 int main(void) {
   initialize();

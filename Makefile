@@ -28,7 +28,7 @@ BUILD_DIR := build
 ASM_DIR := $(BUILD_DIR)/asm
 
 # Default target
-.PHONY: all clean help interpret train estimate test flash
+.PHONY: all clean help interpret train estimate visualize test flash
 
 all: help
 
@@ -42,6 +42,7 @@ help:
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
 	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
+	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c>         - Flash binary to microcontroller"
 	@echo "  test                        - Run interpreter on all example programs"
 	@echo "  clean                       - Clean build artifacts"
@@ -54,6 +55,8 @@ help:
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
+	@echo "  make visualize PARAMS=energy_params.json"
+	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make test"
 
@@ -117,6 +120,17 @@ endif
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
 	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
 	@echo "✓ Estimation completed!"
+
+# Visualize mode: visualize instruction energy distributions
+visualize:
+ifndef PARAMS
+	$(error Please specify PARAMS=<parameter_file>)
+endif
+	@echo "Visualizing instruction energy distributions..."
+	@OUTPUT_FLAG=""; \
+	if [ -n "$(OUTPUT)" ]; then OUTPUT_FLAG="--output $(OUTPUT)"; fi; \
+	julia --project=. src/main.jl visualize --params $(PARAMS) $$OUTPUT_FLAG
+	@echo "✓ Visualization completed!"
 
 # Test with example programs
 test: $(SRC_DIR)
