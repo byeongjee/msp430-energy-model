@@ -243,15 +243,17 @@ def main():
         # ---- Detect GPI1 falling edge from events (close the window) ----
         logger.info("Waiting for GPI1 falling edge (to close window)")
         t_fall = None
+        last = None
         while True:
             n = rec.get_channel_data_count(device_id, "i1")
             if n > 0:
                 ev = rec.get_channel_data(device_id, "i1", n - 1, 1)["values"][0]
                 v = bool(ev["value"])
-                if v is False:
+                if v is False and last is True:
                     t_fall = ev["timestamp"]
                     logger.info("Detected GPI1 falling edge at t=%.9f", t_fall)
                     break
+                last = v
             time.sleep(0.001)
 
         project.stop_recording()
