@@ -29,7 +29,7 @@ export execute_instruction!
 export parse_assembly, parse_line, parse_file
 export parse_operands
 export validate_instruction, get_instruction_format
-export parse_event_addresses
+export find_functions
 
 # Export interpreter functions
 export sample_instruction_energy
