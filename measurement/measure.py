@@ -158,7 +158,7 @@ def main():
         description="Measure current/power with Otii Ace Pro; export single CSV with per-sample GPI1 and GPI2 edges aligned to nearest sample."
     )
     ap.add_argument("--voltage", type=float, default=3.3)
-    ap.add_argument("--max_current", type=float, default=0.5, help="A")
+    ap.add_argument("--max_current", type=float, default=0.01, help="A")
     ap.add_argument("--sample_rate", type=int, default=4000, help="Hz for 'mc'")
     ap.add_argument("--outfile", default="measurement.csv")
     ap.add_argument("--skip_reset", action="store_true")
