@@ -44,6 +44,7 @@ function get_executor(opcode::Symbol)::InstructionExecutor
         :popm,
         :rla,
         :rlam,
+        :sbc,
     ]
         return SingleOperandExecutor()
     elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
@@ -347,6 +348,12 @@ function execute_single_operand!(
         operand_val = get_operand_value(state, ops[1])
         result = UInt16((operand_val - 1) & 0xFFFF)
         update_flags_simple!(state, result)
+    elseif opcode == :sbc
+        # SBC is an emulated instruction: sbc dst == subc #0, dst
+        # It subtracts the carry flag from the destination
+        carry = state.flags[:C] ? UInt16(0) : UInt16(1)  # Inverted for subtraction
+        result = UInt16((operand_val - carry) & 0xFFFF)
+        update_flags!(state, result, operand_val, UInt16(0), false)
     elseif opcode == :rla
         # Rotate left arithmetic (shift left, carry gets MSB, LSB gets 0)
         operand_val = get_operand_value(state, ops[1])
