@@ -241,3 +241,42 @@ function validate_instruction(inst::Instruction)::Bool
         return false
     end
 end
+
+"""
+Get addresses of `begin_event` and `end_event` functions from assembly file
+Returns a tuple (begin_event_addr, end_event_addr) or (nothing, nothing) if not found
+"""
+function parse_event_addresses(
+    filename::String
+)::Tuple{Union{UInt16,Nothing},Union{UInt16,Nothing}}
+    if !isfile(filename)
+        error("Assembly file not found: $filename")
+    end
+
+    lines = readlines(filename)
+    begin_event_addr = nothing
+    end_event_addr = nothing
+
+    for line in lines
+        line = strip(line)
+
+        # Look for function labels like "00004400 <begin_event>:"
+        match_result = match(r"^([0-9a-fA-F]{8})\s+<(begin_event|end_event)>:", line)
+
+        if match_result !== nothing
+            addr_str = match_result.captures[1]
+            func_name = match_result.captures[2]
+
+            # Parse address (take lower 16 bits for MSP430)
+            addr = parse(UInt16, addr_str[5:8]; base=16)
+
+            if func_name == "begin_event"
+                begin_event_addr = addr
+            elseif func_name == "end_event"
+                end_event_addr = addr
+            end
+        end
+    end
+
+    return (begin_event_addr, end_event_addr)
+end

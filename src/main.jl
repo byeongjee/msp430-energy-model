@@ -58,7 +58,7 @@ function run_interpret(asm_file::String, max_steps::Int)
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    begin_event_addr, end_event_addr = Interpreter.parse_event_addresses(asm_file)
+    begin_event_addr, end_event_addr = EnergyModel.parse_event_addresses(asm_file)
     if isnothing(begin_event_addr) || isnothing(end_event_addr)
         @info "begin_event or end_event not found in assembly file"
     else
@@ -96,7 +96,7 @@ function run_train(
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    begin_event_addr, end_event_addr = Interpreter.parse_event_addresses(asm_file)
+    begin_event_addr, end_event_addr = EnergyModel.parse_event_addresses(asm_file)
     if isnothing(begin_event_addr) || isnothing(end_event_addr)
         @info "begin_event or end_event not found in assembly file"
     else
