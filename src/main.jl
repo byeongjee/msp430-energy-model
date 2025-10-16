@@ -62,17 +62,9 @@ function run_interpret(asm_file::String, max_steps::Int)
     begin_event_addr = get(func_addrs, "begin_event", nothing)
     end_event_addr = get(func_addrs, "end_event", nothing)
 
-    if isnothing(begin_event_addr) || isnothing(end_event_addr)
-        @info "begin_event or end_event not found in assembly file"
-    else
-        @info "begin_event and end_event found in assembly file" begin_event_addr =
-            "0x" * string(begin_event_addr; base=16, pad=4) end_event_addr =
-            "0x" * string(end_event_addr; base=16, pad=4)
-    end
-
     # Execute program
     final_state, _, _ = Interpreter.interpret_program(
-        instructions, addresses, begin_event_addr, end_event_addr, max_steps
+        instructions, addresses, func_addrs, max_steps
     )
 
     @info "="^60
@@ -112,7 +104,7 @@ function run_train(
     end
 
     _, _, event_sequences = Interpreter.interpret_program(
-        instructions, addresses, begin_event_addr, end_event_addr, max_steps
+        instructions, addresses, func_addrs, max_steps
     )
 
     @info "Reading measurement data from CSV"
@@ -177,9 +169,11 @@ function run_estimate(
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
+    func_addrs = EnergyModel.find_functions(asm_file)
+
     @info "Executing program to get instruction trace"
     _, all_instructions, _ = Interpreter.interpret_program(
-        instructions, addresses, nothing, nothing, max_steps
+        instructions, addresses, func_addrs, max_steps
     )
 
     @info "Instruction trace collected" trace_length = length(all_instructions)
@@ -203,7 +197,9 @@ end
 """
 Visualize mode: Visualize energy parameter distributions
 """
-function run_visualize(params_file::String, output_file::Union{String,Nothing}=nothing)::Nothing
+function run_visualize(
+    params_file::String, output_file::Union{String,Nothing}=nothing
+)::Nothing
     @info "Running in VISUALIZE mode"
     @info "Energy parameters" path = params_file
 
@@ -277,7 +273,9 @@ function main()
             run_visualize(params_file, output_file)
 
         else
-            error("Invalid mode: $mode. Must be one of: interpret, train, estimate, visualize")
+            error(
+                "Invalid mode: $mode. Must be one of: interpret, train, estimate, visualize"
+            )
         end
 
     catch e

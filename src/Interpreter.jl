@@ -125,19 +125,48 @@ function detect_termination(inst::Instruction)::Bool
     return false
 end
 
+FUNCTIONS_TO_SKIP = [
+    "begin_event",
+    "end_event",
+    "initialize",
+    "toggle_gpio",
+    "begin_measurement_window",
+    "end_measurement_window",
+]
+
+function is_call_to_function(
+    state::MachineState,
+    inst::Instruction,
+    func_name::String,
+    func_addrs::Dict{String,UInt16},
+)::Bool
+    return inst.opcode == :call &&
+           length(inst.operands) > 0 &&
+           Main.EnergyModel.get_operand_value(state, inst.operands[1]) ==
+           func_addrs[func_name]
+end
+
 """
 Interpret MSP430 program
 """
 function interpret_program(
     instructions::Vector{Instruction},
     addresses::Vector{UInt16},
-    begin_event_addr::Union{UInt16,Nothing},
-    end_event_addr::Union{UInt16,Nothing},
+    func_addrs::Dict{String,UInt16},
     max_steps::Int,
 )::Tuple{MachineState,Vector{Instruction},Vector{Vector{Instruction}}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
+
+    # Extract function addresses from the dictionary
+    for func_name in FUNCTIONS_TO_SKIP
+        func_addr = get(func_addrs, func_name, nothing)
+        if !isnothing(func_addr)
+            @info "$func_name found in assembly file" address =
+                "0x" * string(func_addr; base=16, pad=4)
+        end
+    end
 
     # Track all instructions
     # Assuming that the program does not take inputs and is deterministic,
@@ -147,7 +176,6 @@ function interpret_program(
     # Track instruction sequences between begin_event and end_event
     event_sequences = Vector{Vector{Instruction}}()
     current_sequence = Vector{Instruction}()
-    in_event = false
 
     # Show the program
     @info instruction_count = length(instructions)
@@ -184,17 +212,6 @@ function interpret_program(
 
         _instruction_index, inst = pc_to_instruction[state.pc]
 
-        # Track event boundaries
-        if !isnothing(begin_event_addr) && state.pc == begin_event_addr
-            in_event = true
-            current_sequence = Vector{Instruction}()
-        end
-
-        # Collect instructions during event
-        if in_event
-            push!(current_sequence, inst)
-        end
-
         try
             old_pc = state.pc
             old_regs = copy(state.registers)
@@ -208,8 +225,31 @@ function interpret_program(
                 )
             end
 
-            execute_instruction!(state, inst, addresses, current_addr_idx)
-            push!(all_instructions, inst)
+            # Check if this is a call to begin_event and skip it
+            if is_call_to_function(state, inst, "begin_event", func_addrs)
+                @info "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
+                current_sequence = Vector{Instruction}()
+            end
+
+            if is_call_to_function(state, inst, "end_event", func_addrs)
+                @info "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
+                push!(event_sequences, current_sequence)
+            end
+
+            # Skip calls to functions in FUNCTIONS_TO_SKIP
+            if any(
+                is_call_to_function(state, inst, func_name, func_addrs) for
+                func_name in FUNCTIONS_TO_SKIP
+            )
+                @info "Skipping call to function at 0x$(string(old_pc, base=16, pad=4))"
+                state.pc = addresses[current_addr_idx + 1]
+                state.registers[:R0] = state.pc
+                state.registers[:PC] = state.pc
+            else
+                execute_instruction!(state, inst, addresses, current_addr_idx)
+                push!(all_instructions, inst)
+                push!(current_sequence, inst)
+            end
 
             if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
                 if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
@@ -221,12 +261,6 @@ function interpret_program(
                     state.pc; base=16, pad=4
                 )
                 @debug format_registers(state)
-            end
-
-            # Check if we've exited the event
-            if !isnothing(end_event_addr) && state.pc == end_event_addr && in_event
-                push!(event_sequences, current_sequence)
-                in_event = false
             end
 
             if detect_termination(inst)
