@@ -115,14 +115,10 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
     return instructions, addresses, base_address
 end
 
-# Check for jmp $+0, which is the infinite loop placed at the end of the program
-function detect_termination(inst::Instruction)::Bool
-    if inst.opcode == :jmp
-        if length(inst.operands) > 0 && inst.operands[1] == -1  # jmp $+0 has offset -1
-            return true
-        end
-    end
-    return false
+function detect_termination(
+    state::MachineState, inst::Instruction, func_addrs::Dict{String,UInt16}
+)::Bool
+    return is_call_to_function(state, inst, "_exit", func_addrs)
 end
 
 FUNCTIONS_TO_SKIP = [
@@ -263,7 +259,7 @@ function interpret_program(
                 @debug format_registers(state)
             end
 
-            if detect_termination(inst)
+            if detect_termination(state, inst, func_addrs)
                 @info "Program terminated"
                 break
             end
