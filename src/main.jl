@@ -59,8 +59,6 @@ function run_interpret(asm_file::String, max_steps::Int)
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
     func_addrs = EnergyModel.find_functions(asm_file)
-    begin_event_addr = get(func_addrs, "begin_event", nothing)
-    end_event_addr = get(func_addrs, "end_event", nothing)
 
     # Execute program
     final_state, _, _ = Interpreter.interpret_program(
