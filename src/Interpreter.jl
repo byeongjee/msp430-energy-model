@@ -14,7 +14,13 @@ Format all register values in a formatted way for MSP430
 function format_registers(state)::String
     io = IOBuffer()
     println(io, "--- MSP430 Register State ---")
-    for i in 0:15
+    # Format special registers first
+    for (name, label) in [(:PC, "PC "), (:SP, "SP "), (:SR, "SR ")]
+        value = get(state.registers, name, UInt16(0))
+        @printf(io, "%-3s value_hex=0x%04x value_dec=%d\n", label, value, Int(value))
+    end
+    # Format general purpose registers
+    for i in 3:15
         reg_name = Symbol("R$i")
         value = get(state.registers, reg_name, UInt16(0))
         @printf(io, "R%-2d value_hex=0x%04x value_dec=%d\n", i, value, Int(value))
@@ -136,6 +142,9 @@ function is_call_to_function(
     func_name::String,
     func_addrs::Dict{String,UInt16},
 )::Bool
+    if isnothing(get(func_addrs, func_name, nothing))
+        return false
+    end
     return inst.opcode == :call &&
            length(inst.operands) > 0 &&
            Main.EnergyModel.get_operand_value(state, inst.operands[1]) ==
@@ -189,12 +198,11 @@ function interpret_program(
 
     state = MachineState()
     state.pc = addresses[1]  # Start at the first instruction address
-    state.registers[:R0] = state.pc
     state.registers[:PC] = state.pc
 
     @debug "Initial machine state" pc = string(state.pc; base=16, pad=4) sp = string(
         state.sp; base=16, pad=4
-    ) r0 = state.registers[:R0] r1 = state.registers[:R1] r2 = state.registers[:R2] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
+    ) PC = state.registers[:PC] SP = state.registers[:SP] SR = state.registers[:SR] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
 
     while step_count < max_steps
@@ -239,7 +247,6 @@ function interpret_program(
             )
                 @debug "Skipping call to function at 0x$(string(old_pc, base=16, pad=4))"
                 state.pc = addresses[current_addr_idx + 1]
-                state.registers[:R0] = state.pc
                 state.registers[:PC] = state.pc
             else
                 execute_instruction!(state, inst, addresses, current_addr_idx)

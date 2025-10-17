@@ -33,9 +33,9 @@ GDB_OUTPUT=$("$GDB" "$ELF_FILE" -batch \
     -ex "break _exit" \
     -ex "run" \
     -ex 'printf "REGISTERS_START\n"' \
-    -ex 'printf "R0:0x%04x\n", $r0' \
-    -ex 'printf "R1:0x%04x\n", $r1' \
-    -ex 'printf "R2:0x%04x\n", $r2' \
+    -ex 'printf "PC:0x%04x\n", $pc' \
+    -ex 'printf "SP:0x%04x\n", $sp' \
+    -ex 'printf "SR:0x%04x\n", $r2' \
     -ex 'printf "R3:0x%04x\n", $r3' \
     -ex 'printf "R4:0x%04x\n", $r4' \
     -ex 'printf "R5:0x%04x\n", $r5' \
@@ -49,9 +49,6 @@ GDB_OUTPUT=$("$GDB" "$ELF_FILE" -batch \
     -ex 'printf "R13:0x%04x\n", $r13' \
     -ex 'printf "R14:0x%04x\n", $r14' \
     -ex 'printf "R15:0x%04x\n", $r15' \
-    -ex 'printf "PC:0x%04x\n", $pc' \
-    -ex 'printf "SP:0x%04x\n", $sp' \
-    -ex 'printf "SR:0x%04x\n", $r2' \
     -ex 'printf "REGISTERS_END\n"' \
     2>&1)
 
@@ -64,9 +61,9 @@ get_reg_value() {
     echo "$REGISTERS_SECTION" | grep "^$reg_name:" | cut -d: -f2 | xargs printf "%d" 2>/dev/null || echo "0"
 }
 
-R0=$(get_reg_value "R0")
-R1=$(get_reg_value "R1")
-R2=$(get_reg_value "R2")
+PC=$(get_reg_value "PC")
+SP=$(get_reg_value "SP")
+SR=$(get_reg_value "SR")
 R3=$(get_reg_value "R3")
 R4=$(get_reg_value "R4")
 R5=$(get_reg_value "R5")
@@ -80,14 +77,6 @@ R12=$(get_reg_value "R12")
 R13=$(get_reg_value "R13")
 R14=$(get_reg_value "R14")
 R15=$(get_reg_value "R15")
-PC=$(get_reg_value "PC")
-SP=$(get_reg_value "SP")
-SR=$(get_reg_value "SR")
-
-# Use R2 as status register if SR not found
-if [ "$SR" -eq 0 ]; then
-    SR=$R2
-fi
 
 # MSP430 Status Register bit positions:
 # Bit 0: C (Carry)
@@ -108,9 +97,9 @@ to_json_bool() {
 cat > "$OUTPUT_JSON" << EOF
 {
   "registers": {
-    "R0": $R0,
-    "R1": $R1,
-    "R2": $R2,
+    "PC": $PC,
+    "SP": $SP,
+    "SR": $SR,
     "R3": $R3,
     "R4": $R4,
     "R5": $R5,
@@ -123,9 +112,7 @@ cat > "$OUTPUT_JSON" << EOF
     "R12": $R12,
     "R13": $R13,
     "R14": $R14,
-    "R15": $R15,
-    "PC": $PC,
-    "SP": $SP
+    "R15": $R15
   },
   "flags": {
     "C": $(to_json_bool $C_FLAG),

@@ -91,8 +91,8 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
 
         elseif startswith(op, "@")
             # Indirect register mode: @Rn
-            reg_name = uppercase(strip(op[2:end]))
-            indirect_symbol = Symbol("@" * reg_name)
+            reg_name = normalize_register_name(Symbol(uppercase(strip(op[2:end]))))
+            indirect_symbol = Symbol("@" * string(reg_name))
             push!(operands, indirect_symbol)
             addressing_mode = :indirect
 
@@ -109,7 +109,7 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
                 offset = parse(UInt16, offset_str)
             end
 
-            reg_name = Symbol(uppercase(reg_part))
+            reg_name = normalize_register_name(Symbol(uppercase(reg_part)))
             push!(operands, (offset, reg_name))  # Store as tuple
             addressing_mode = :indexed
 
@@ -143,7 +143,7 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
 
         else
             # Register mode: Rn or register name
-            reg_name = Symbol(uppercase(op))
+            reg_name = normalize_register_name(Symbol(uppercase(op)))
             push!(operands, reg_name)
             addressing_mode = :register
         end
@@ -161,10 +161,32 @@ function parse_file(filename::String)::Vector{Instruction}
 end
 
 """
-Convert register number to register symbol (R0-R15)
+Normalize register name: convert R0/R1/R2 to PC/SP/SR
+"""
+function normalize_register_name(reg_sym::Symbol)::Symbol
+    if reg_sym == :R0
+        return :PC
+    elseif reg_sym == :R1
+        return :SP
+    elseif reg_sym == :R2
+        return :SR
+    else
+        return reg_sym
+    end
+end
+
+"""
+Convert register number to register symbol
+R0 -> PC, R1 -> SP, R2 -> SR, R3-R15 -> R3-R15
 """
 function reg_num_to_symbol(reg_num::Int)::Symbol
-    if 0 <= reg_num <= 15
+    if reg_num == 0
+        return :PC
+    elseif reg_num == 1
+        return :SP
+    elseif reg_num == 2
+        return :SR
+    elseif 3 <= reg_num <= 15
         return Symbol("R$reg_num")
     else
         throw(ArgumentError("Invalid register number: $reg_num"))

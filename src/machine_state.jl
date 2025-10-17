@@ -73,20 +73,26 @@ end
 Initialize a new MSP430 machine state
 """
 function MachineState()::MachineState
-    # Initialize 16 registers R0-R15
-    registers = Dict(Symbol("R$i") => UInt16(0) for i in 0:15)
-
-    # Special register initialization
-    registers[:R0] = 0x0000  # Program Counter (PC)
-    registers[:R1] = 0xFFFF  # Stack Pointer (SP) - start at top of RAM
-    registers[:R2] = 0x0000  # Status Register (SR)
-    registers[:R3] = 0x0000  # Constant Generator (CG2)
-
-    # Alternative names for convenience
-    registers[:PC] = registers[:R0]
-    registers[:SP] = registers[:R1]
-    registers[:SR] = registers[:R2]
-    registers[:CG2] = registers[:R3]
+    # Initialize registers using proper MSP430 names
+    # PC (Program Counter), SP (Stack Pointer), SR (Status Register), R3-R15
+    registers = Dict{Symbol,UInt16}(
+        :PC => 0x0000,   # Program Counter (R0)
+        :SP => 0xFFFF,   # Stack Pointer (R1) - start at top of RAM
+        :SR => 0x0000,   # Status Register (R2)
+        :R3 => 0x0000,   # Constant Generator
+        :R4 => 0x0000,
+        :R5 => 0x0000,
+        :R6 => 0x0000,
+        :R7 => 0x0000,
+        :R8 => 0x0000,
+        :R9 => 0x0000,
+        :R10 => 0x0000,
+        :R11 => 0x0000,
+        :R12 => 0x0000,
+        :R13 => 0x0000,
+        :R14 => 0x0000,
+        :R15 => 0x0000
+    )
 
     MachineState(
         registers,
@@ -131,7 +137,6 @@ function execute!(
     # Advance PC to next instruction
     if current_idx < length(addresses)
         state.pc = addresses[current_idx + 1]
-        state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
     end
     return nothing
@@ -156,7 +161,6 @@ function execute!(
         opcode != :reti &&
         current_idx < length(addresses)
         state.pc = addresses[current_idx + 1]
-        state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
     end
     return nothing
@@ -253,9 +257,7 @@ function execute_single_operand!(
         return_addr = get(state.memory, state.sp, UInt16(0))
         state.pc = return_addr
         state.sp += 2
-        state.registers[:R1] = state.sp
         state.registers[:SP] = state.sp
-        state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
         return nothing
     elseif opcode == :nop
@@ -264,7 +266,6 @@ function execute_single_operand!(
     elseif opcode == :dint
         # Disable interrupt - clear Global Interrupt Enable bit in SR
         state.sr &= ~0x0008  # Clear GIE bit (bit 3)
-        state.registers[:R2] = state.sr
         state.registers[:SR] = state.sr
         return nothing
     elseif opcode == :reti
@@ -273,11 +274,8 @@ function execute_single_operand!(
         state.sp += 2
         state.pc = state.memory[state.sp]
         state.sp += 2
-        state.registers[:R1] = state.sp
         state.registers[:SP] = state.sp
-        state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
-        state.registers[:R2] = state.sr
         state.registers[:SR] = state.sr
         return nothing
     end
@@ -314,7 +312,6 @@ function execute_single_operand!(
     elseif opcode == :push
         # Push to stack
         state.sp -= 2
-        state.registers[:R1] = state.sp
         state.registers[:SP] = state.sp
         state.memory[state.sp] = operand_val
         return nothing  # Don't store result for push
@@ -327,11 +324,9 @@ function execute_single_operand!(
         end
         return_addr = addresses[current_idx + 1]
         state.sp -= 2
-        state.registers[:R1] = state.sp
         state.registers[:SP] = state.sp
         state.memory[state.sp] = return_addr  # Return address
         state.pc = operand_val
-        state.registers[:R0] = state.pc
         state.registers[:PC] = state.pc
         return nothing
     elseif opcode == :clr
@@ -396,7 +391,6 @@ function execute_single_operand!(
                     state.memory[state.sp] = reg_val
                 end
             end
-            state.registers[:R1] = state.sp
             state.registers[:SP] = state.sp
         end
         return nothing
@@ -416,7 +410,6 @@ function execute_single_operand!(
                     state.sp += 2
                 end
             end
-            state.registers[:R1] = state.sp
             state.registers[:SP] = state.sp
         end
         return nothing
@@ -485,7 +478,6 @@ function execute_jump!(
             state.pc = addresses[current_idx + 1]
         end
     end
-    state.registers[:R0] = state.pc
     state.registers[:PC] = state.pc
     return nothing
 end
@@ -546,20 +538,13 @@ function set_operand_value!(
         # Register
         state.registers[operand] = masked_value
 
-        # Update special register aliases
-        final_value = state.registers[operand]
-        if operand == :R0 || operand == :PC
-            state.pc = final_value
-            state.registers[:R0] = final_value
-            state.registers[:PC] = final_value
-        elseif operand == :R1 || operand == :SP
-            state.sp = final_value
-            state.registers[:R1] = final_value
-            state.registers[:SP] = final_value
-        elseif operand == :R2 || operand == :SR
-            state.sr = final_value
-            state.registers[:R2] = final_value
-            state.registers[:SR] = final_value
+        # Update special register fields
+        if operand == :PC
+            state.pc = masked_value
+        elseif operand == :SP
+            state.sp = masked_value
+        elseif operand == :SR
+            state.sr = masked_value
         end
     elseif isa(operand, Tuple) && length(operand) == 2
         # Indexed addressing: (offset, register) -> offset(register)
@@ -619,7 +604,6 @@ function update_flags!(
         (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
-    state.registers[:R2] = state.sr
     state.registers[:SR] = state.sr
     return nothing
 end
@@ -637,7 +621,6 @@ function update_flags_simple!(state::MachineState, result::UInt16)::Nothing
         (state.flags[:N] ? 0x0004 : 0x0000) |
         (state.flags[:Z] ? 0x0002 : 0x0000)
 
-    state.registers[:R2] = state.sr
     state.registers[:SR] = state.sr
     return nothing
 end

@@ -48,9 +48,9 @@ Convert MachineState to a comparable dictionary format
 function state_to_dict(state::MachineState)
     return Dict(
         "registers" => Dict(
-            "R0" => Int(state.registers[:R0]),
-            "R1" => Int(state.registers[:R1]),
-            "R2" => Int(state.registers[:R2]),
+            "PC" => Int(state.registers[:PC]),
+            "SP" => Int(state.registers[:SP]),
+            "SR" => Int(state.registers[:SR]),
             "R3" => Int(state.registers[:R3]),
             "R4" => Int(state.registers[:R4]),
             "R5" => Int(state.registers[:R5]),
@@ -63,9 +63,7 @@ function state_to_dict(state::MachineState)
             "R12" => Int(state.registers[:R12]),
             "R13" => Int(state.registers[:R13]),
             "R14" => Int(state.registers[:R14]),
-            "R15" => Int(state.registers[:R15]),
-            "PC" => Int(state.pc),
-            "SP" => Int(state.sp)
+            "R15" => Int(state.registers[:R15])
         ),
         "flags" => Dict(
             "C" => state.flags[:C],
@@ -84,8 +82,8 @@ function compare_states(interpreter_state::Dict, gdb_state::Dict)
     differences = Dict()
 
     # Compare registers
-    for reg in ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
-                "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "PC", "SP"]
+    for reg in ["PC", "SP", "SR", "R3", "R4", "R5", "R6", "R7",
+                "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"]
         interp_val = interpreter_state["registers"][reg]
         gdb_val = gdb_state["registers"][reg]
 
@@ -144,8 +142,8 @@ function test_fixture(fixture_path::String)
         end
 
         # Test each register
-        for reg in ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
-                    "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "PC", "SP"]
+        for reg in ["PC", "SP", "SR", "R3", "R4", "R5", "R6", "R7",
+                    "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"]
             @test interpreter_result["registers"][reg] == gdb_result["registers"][reg]
         end
 
