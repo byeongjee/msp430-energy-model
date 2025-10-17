@@ -28,7 +28,7 @@ BUILD_DIR := build
 ASM_DIR := $(BUILD_DIR)/asm
 
 # Default target
-.PHONY: all clean help interpret train estimate visualize test flash
+.PHONY: all clean help interpret train estimate visualize test flash create_fixture
 
 all: help
 
@@ -44,7 +44,8 @@ help:
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c>         - Flash binary to microcontroller"
-	@echo "  test                        - Run interpreter on all example programs"
+	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
+	@echo "  test                        - Run Julia test suite (compare interpreter vs GDB)"
 	@echo "  clean                       - Clean build artifacts"
 	@echo ""
 	@echo "Examples:"
@@ -58,6 +59,7 @@ help:
 	@echo "  make visualize PARAMS=energy_params.json"
 	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
+	@echo "  make create_fixture FILE=examples/c_programs/simple.c NAME=simple"
 	@echo "  make test"
 
 # Create directories
@@ -132,17 +134,21 @@ endif
 	julia --project=. src/main.jl visualize --params $(PARAMS) $$OUTPUT_FLAG
 	@echo "✓ Visualization completed!"
 
-# Test with example programs
-test: $(SRC_DIR)
-	@echo "Running interpreter on all example programs..."
-	@for file in $(SRC_DIR)/*.c; do \
-		echo ""; \
-		echo "🔄 Processing $$file..."; \
-		echo "=========================================="; \
-		make interpret FILE=$$file || echo "❌ Failed: $$file"; \
-		echo ""; \
-	done
-	@echo "✅ All tests completed!"
+# Create test fixture
+create_fixture:
+ifndef FILE
+	$(error Please specify FILE=<filename.c>)
+endif
+ifndef NAME
+	$(error Please specify NAME=<test_name>)
+endif
+	@echo "Creating test fixture..."
+	@./test/scripts/create_fixture.sh $(FILE) $(NAME)
+
+# Run Julia test suite
+test:
+	@echo "Running Julia test suite..."
+	@julia --project=. test/runtests.jl
 
 # Flash binary to microcontroller
 flash: compile
