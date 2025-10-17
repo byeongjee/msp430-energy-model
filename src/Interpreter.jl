@@ -227,12 +227,12 @@ function interpret_program(
 
             # Check if this is a call to begin_event and skip it
             if is_call_to_function(state, inst, "begin_event", func_addrs)
-                @info "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
+                @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
                 current_sequence = Vector{Instruction}()
             end
 
             if is_call_to_function(state, inst, "end_event", func_addrs)
-                @info "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
+                @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
                 push!(event_sequences, current_sequence)
             end
 
@@ -241,7 +241,7 @@ function interpret_program(
                 is_call_to_function(state, inst, func_name, func_addrs) for
                 func_name in FUNCTIONS_TO_SKIP
             )
-                @info "Skipping call to function at 0x$(string(old_pc, base=16, pad=4))"
+                @debug "Skipping call to function at 0x$(string(old_pc, base=16, pad=4))"
                 state.pc = addresses[current_addr_idx + 1]
                 state.registers[:R0] = state.pc
                 state.registers[:PC] = state.pc
