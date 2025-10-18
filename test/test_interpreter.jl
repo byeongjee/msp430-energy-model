@@ -148,8 +148,9 @@ end
 
 """
 Run all test fixtures in the fixtures directory
+Optional filter_pattern: only run tests whose names match the regex pattern
 """
-function run_all_fixtures()
+function run_all_fixtures(filter_pattern::Union{Regex,Nothing}=nothing)
     fixtures_dir = joinpath(@__DIR__, "fixtures")
 
     if !isdir(fixtures_dir)
@@ -164,6 +165,20 @@ function run_all_fixtures()
         @warn "No fixture files found in: $fixtures_dir"
         @warn "Please create fixtures using: test/scripts/create_fixture.sh"
         return
+    end
+
+    # Apply filter pattern if provided
+    if !isnothing(filter_pattern)
+        fixture_files = filter(fixture_files) do f
+            # Remove .json extension for matching
+            test_name = replace(f, r"\.json$" => "")
+            occursin(filter_pattern, test_name)
+        end
+
+        if isempty(fixture_files)
+            @warn "No fixture files matched the pattern: $filter_pattern"
+            return
+        end
     end
 
     @testset "All Interpreter Tests" begin

@@ -45,7 +45,7 @@ help:
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c>         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
-	@echo "  test                        - Run Julia test suite (compare interpreter vs GDB)"
+	@echo "  test [PATTERN=<regex>]      - Run Julia test suite (compare interpreter vs GDB)"
 	@echo "  clean                       - Clean build artifacts"
 	@echo ""
 	@echo "Examples:"
@@ -61,6 +61,8 @@ help:
 	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make create_fixture FILE=examples/c_programs/simple.c NAME=simple"
 	@echo "  make test"
+	@echo "  make test PATTERN=simple"
+	@echo "  make test PATTERN='arith.*'"
 
 # Create directories
 $(BUILD_DIR):
@@ -146,9 +148,14 @@ endif
 	@./test/scripts/create_fixture.sh $(FILE) $(NAME)
 
 # Run Julia test suite
+# Optional: make test PATTERN=<regex> to filter tests
 test:
 	@echo "Running Julia test suite..."
-	@julia --project=. test/runtests.jl
+	@if [ -n "$(PATTERN)" ]; then \
+		julia --project=. test/runtests.jl "$(PATTERN)"; \
+	else \
+		julia --project=. test/runtests.jl; \
+	fi
 
 # Flash binary to microcontroller
 flash: compile
