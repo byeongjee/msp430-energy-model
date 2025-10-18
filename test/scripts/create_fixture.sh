@@ -63,6 +63,7 @@ LDFLAGS="-L$MSP430_LD_PATH"
 # Output files
 ELF_FILE="$BUILD_DIR/${TEST_NAME}.elf"
 ASM_FILE="$ASM_DIR/${TEST_NAME}.asm"
+FIXTURE_ASM_FILE="$FIXTURE_DIR/${TEST_NAME}.asm"
 GDB_RESULT_FILE="$BUILD_DIR/${TEST_NAME}_gdb.json"
 FIXTURE_FILE="$FIXTURE_DIR/${TEST_NAME}.json"
 
@@ -81,10 +82,15 @@ echo "Step 3: Running in GDB simulator..."
 echo "✓ GDB execution complete: $GDB_RESULT_FILE"
 echo ""
 
-echo "Step 4: Creating test fixture..."
+echo "Step 4: Copying assembly to fixtures directory..."
+cp "$ASM_FILE" "$FIXTURE_ASM_FILE"
+echo "✓ Copied: $FIXTURE_ASM_FILE"
+echo ""
+
+echo "Step 5: Creating test fixture JSON..."
 # Create the fixture JSON by combining assembly path and GDB results
-# Use relative paths from project root for portability
-ASM_FILE_REL="build/asm/${TEST_NAME}.asm"
+# Use relative path from project root for portability
+ASM_FILE_REL="test/fixtures/${TEST_NAME}.asm"
 
 # Read GDB result JSON and embed it in fixture
 GDB_RESULT=$(cat "$GDB_RESULT_FILE")
@@ -100,6 +106,9 @@ EOF
 echo "✓ Fixture created: $FIXTURE_FILE"
 echo ""
 echo "Test fixture created successfully!"
+echo "  Assembly: $FIXTURE_ASM_FILE"
+echo "  Fixture:  $FIXTURE_FILE"
 echo ""
 echo "To run tests:"
-echo "  julia --project=. test/runtests.jl"
+echo "  make test"
+echo "  make test PATTERN=${TEST_NAME}"
