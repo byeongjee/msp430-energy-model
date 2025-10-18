@@ -1,0 +1,31 @@
+{
+  "test_name": "simple",
+  "asm_file": "test/fixtures/simple.asm",
+  "gdb_result": {
+  "registers": {
+    "PC": 16436,
+    "SP": 11262,
+    "SR": 0,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 30,
+    "R13": 0,
+    "R14": 0,
+    "R15": 0
+  },
+  "flags": {
+    "C": false,
+    "Z": false,
+    "N": false,
+    "V": false
+  },
+  "pc": 16436
+}
+}

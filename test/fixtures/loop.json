@@ -1,0 +1,31 @@
+{
+  "test_name": "loop",
+  "asm_file": "test/fixtures/loop.asm",
+  "gdb_result": {
+  "registers": {
+    "PC": 16860,
+    "SP": 11262,
+    "SR": 0,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 4181,
+    "R13": 4181,
+    "R14": 11262,
+    "R15": 0
+  },
+  "flags": {
+    "C": false,
+    "Z": false,
+    "N": false,
+    "V": false
+  },
+  "pc": 16860
+}
+}
