@@ -130,8 +130,9 @@ function test_fixture(fixture_path::String)
         # Compare results
         differences = compare_states(interpreter_result, gdb_result)
 
+        # Single test: states must match exactly
         if !isempty(differences)
-            println("\n⚠️  Differences found in test: $test_name")
+            println("\n⚠️  Test FAILED: $test_name")
             println("Differences:")
             for (key, diff) in differences
                 println("  $key:")
@@ -141,19 +142,7 @@ function test_fixture(fixture_path::String)
             println()
         end
 
-        # Test each register
-        for reg in ["PC", "SP", "SR", "R3", "R4", "R5", "R6", "R7",
-                    "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"]
-            @test interpreter_result["registers"][reg] == gdb_result["registers"][reg]
-        end
-
-        # Test each flag
-        for flag in ["C", "Z", "N", "V"]
-            @test interpreter_result["flags"][flag] == gdb_result["flags"][flag]
-        end
-
-        # Test PC
-        @test interpreter_result["pc"] == gdb_result["pc"]
+        @test isempty(differences)
     end
 end
 
