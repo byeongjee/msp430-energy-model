@@ -1,7 +1,5 @@
 // ===== file: bench_plateau.c =====
-#include "gpio.h"
-#include <msp430.h>
-#include <stdint.h>
+#include "setup.h"
 
 // ---------------------------
 // User tuning knobs

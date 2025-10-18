@@ -1,8 +1,6 @@
-#include "gpio.h" // expects initialize(), gpio_pin13_up(), end_event()
-#include <msp430.h>
-#include <stdint.h>
+#include "setup.h" // expects initialize(), gpio_pin13_up(), end_event()
 
-// ------- If you don't have gpio.h, uncomment and use this minimal version
+// ------- If you don't have setup.h, uncomment and use this minimal version
 // ------- static inline void gpio_setup_marker(void) {
 //   P1DIR |= BIT3;      // P1.3 as output marker
 //   P1OUT &= ~BIT3;

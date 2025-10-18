@@ -1,5 +1,4 @@
-#include "gpio.h"
-#include <msp430.h>
+#include "setup.h"
 
 int main(void) {
   initialize();
