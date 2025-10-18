@@ -19,6 +19,9 @@ MEASUREMENT_INCLUDE_PATH := $(MKFILE_DIR)/include
 
 # Compiler flags
 CFLAGS := -mmcu=$(DEVICE) -O0 -g -Wall
+ifdef DEBUG
+CFLAGS += -DDEBUG
+endif
 INCLUDES := -I$(MSP430_INC_PATH) -I$(MEASUREMENT_INCLUDE_PATH)
 LDFLAGS := -L$(MSP430_LD_PATH)
 
@@ -37,19 +40,20 @@ help:
 	@echo "============================="
 	@echo ""
 	@echo "Available targets:"
-	@echo "  compile FILE=<file.c>       - Compile C file to MSP430 binary"
+	@echo "  compile FILE=<file.c> [DEBUG=1]       - Compile C file to MSP430 binary"
 	@echo "  disasm FILE=<file.c>        - Compile and disassemble"
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
 	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
-	@echo "  flash FILE=<file.c>         - Flash binary to microcontroller"
+	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
 	@echo "  test [PATTERN=<regex>]      - Run Julia test suite (compare interpreter vs GDB)"
 	@echo "  clean                       - Clean build artifacts"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make compile FILE=examples/c_programs/simple.c"
+	@echo "  make compile FILE=examples/c_programs/simple.c DEBUG=1"
 	@echo "  make interpret FILE=examples/c_programs/simple.c"
 	@echo "  make interpret FILE=examples/c_programs/simple.c MAX_STEPS=1000"
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv"
@@ -59,6 +63,7 @@ help:
 	@echo "  make visualize PARAMS=energy_params.json"
 	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
+	@echo "  make flash FILE=examples/c_programs/simple.c DEBUG=1"
 	@echo "  make create_fixture FILE=examples/c_programs/simple.c NAME=simple"
 	@echo "  make test"
 	@echo "  make test PATTERN=simple"
