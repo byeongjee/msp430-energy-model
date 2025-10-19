@@ -159,7 +159,6 @@ def main():
     )
     ap.add_argument("--voltage", type=float, default=3.3)
     ap.add_argument("--max_current", type=float, default=0.01, help="A")
-    ap.add_argument("--sample_rate", type=int, default=4000, help="Hz for 'mc'")
     ap.add_argument("--outfile", default="measurement.csv")
     ap.add_argument("--skip_reset", action="store_true")
     ap.add_argument(
@@ -191,10 +190,9 @@ def main():
     logger = setup_logger(args.log_level, args.log_file)
     logger.info("Starting measurement")
     logger.info(
-        "Config: V=%.3f V, Imax=%.3f A, fs=%d Hz, outfile=%s, chunk=%d",
+        "Config: V=%.3f V, Imax=%.3f A, outfile=%s, chunk=%d",
         args.voltage,
         args.max_current,
-        args.sample_rate,
         args.outfile,
         args.chunk,
     )
@@ -218,8 +216,6 @@ def main():
         arc.enable_exp_port(True)  # enable GPI pins
         for ch in ("mc", "mp", "i1", "i2"):  # current, power, GPI1, GPI2
             arc.enable_channel(ch, True)
-        # Optionally set samplerate:
-        # arc.set_channel_samplerate("mc", args.sample_rate)
         arc.set_main_voltage(args.voltage)
         arc.set_max_current(args.max_current)
 
