@@ -136,6 +136,8 @@ void initialize(void) {
   end_event();
   end_measurement_window();
 
+  __delay_cycles(CLOCK_HZ * 10);
+
 #ifdef DEBUG
   uart_init_uca0_16mhz();
   // Unbuffer stdout so prints appear immediately

@@ -219,10 +219,6 @@ def main():
         arc.set_main_voltage(args.voltage)
         arc.set_max_current(args.max_current)
 
-        # ---- Start recording BEFORE reset so we don't miss the first GPI1 edge ----
-        project.start_recording()
-        logger.info("Recording started")
-
         # Power on and reset
         arc.set_main(True)
         logger.info("MAIN enabled; voltage set")
@@ -232,6 +228,11 @@ def main():
             logger.info("Target reset issued")
         else:
             logger.info("Target reset skipped")
+
+        # We assume that the program has enough delay at the beginning
+        # so that we don't miss the first GPI1 edge
+        project.start_recording()
+        logger.info("Recording started")
 
         # Live recording handle for event polling
         rec = project.get_last_recording()
