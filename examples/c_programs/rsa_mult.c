@@ -152,7 +152,8 @@ int main(void) {
     end_event();
 
     // Prevent DCE: fold result into a volatile sink outside the event window
-    energy_bench_sink ^= checksum_product();
+    // We don't need this as we use -O0 optimization
+    // energy_bench_sink ^= checksum_product();
   }
 
   end_measurement_window();
