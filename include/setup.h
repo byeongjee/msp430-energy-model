@@ -133,8 +133,6 @@ void initialize(void) {
 
   // Measurement pins
   P1DIR |= BIT2 | BIT3;
-  end_event();
-  end_measurement_window();
 
   __delay_cycles(CLOCK_HZ * 10);
 
