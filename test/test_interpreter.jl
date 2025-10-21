@@ -35,7 +35,7 @@ function run_interpreter(asm_file::String, max_steps::Int=100000)
     func_addrs = EnergyModel.find_functions(asm_file)
 
     # Execute program
-    final_state, _, _ = Interpreter.interpret_program(
+    final_state, _ = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
 
@@ -63,15 +63,15 @@ function state_to_dict(state::MachineState)
             "R12" => Int(state.registers[:R12]),
             "R13" => Int(state.registers[:R13]),
             "R14" => Int(state.registers[:R14]),
-            "R15" => Int(state.registers[:R15])
+            "R15" => Int(state.registers[:R15]),
         ),
         "flags" => Dict(
             "C" => state.flags[:C],
             "Z" => state.flags[:Z],
             "N" => state.flags[:N],
-            "V" => state.flags[:V]
+            "V" => state.flags[:V],
         ),
-        "pc" => Int(state.pc)
+        "pc" => Int(state.pc),
     )
 end
 
@@ -82,15 +82,31 @@ function compare_states(interpreter_state::Dict, gdb_state::Dict)
     differences = Dict()
 
     # Compare registers
-    for reg in ["PC", "SP", "SR", "R3", "R4", "R5", "R6", "R7",
-                "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"]
+    for reg in [
+        "PC",
+        "SP",
+        "SR",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+    ]
         interp_val = interpreter_state["registers"][reg]
         gdb_val = gdb_state["registers"][reg]
 
         if interp_val != gdb_val
             differences[reg] = Dict(
-                "interpreter" => "0x" * string(interp_val, base=16, pad=4),
-                "gdb" => "0x" * string(gdb_val, base=16, pad=4)
+                "interpreter" => "0x" * string(interp_val; base=16, pad=4),
+                "gdb" => "0x" * string(gdb_val; base=16, pad=4),
             )
         end
     end
@@ -101,10 +117,7 @@ function compare_states(interpreter_state::Dict, gdb_state::Dict)
         gdb_val = gdb_state["flags"][flag]
 
         if interp_val != gdb_val
-            differences["flag_$flag"] = Dict(
-                "interpreter" => interp_val,
-                "gdb" => gdb_val
-            )
+            differences["flag_$flag"] = Dict("interpreter" => interp_val, "gdb" => gdb_val)
         end
     end
 
@@ -156,7 +169,7 @@ function run_all_fixtures(filter_pattern::Union{Regex,Nothing}=nothing)
     if !isdir(fixtures_dir)
         @warn "Fixtures directory not found: $fixtures_dir"
         @warn "Please create fixtures using: test/scripts/create_fixture.sh"
-        return
+        return nothing
     end
 
     fixture_files = filter(f -> endswith(f, ".json"), readdir(fixtures_dir))
@@ -164,7 +177,7 @@ function run_all_fixtures(filter_pattern::Union{Regex,Nothing}=nothing)
     if isempty(fixture_files)
         @warn "No fixture files found in: $fixtures_dir"
         @warn "Please create fixtures using: test/scripts/create_fixture.sh"
-        return
+        return nothing
     end
 
     # Apply filter pattern if provided
@@ -177,7 +190,7 @@ function run_all_fixtures(filter_pattern::Union{Regex,Nothing}=nothing)
 
         if isempty(fixture_files)
             @warn "No fixture files matched the pattern: $filter_pattern"
-            return
+            return nothing
         end
     end
 
