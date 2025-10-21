@@ -13,7 +13,6 @@ using Main.EnergyModel: Instruction, EnergyStats, get_energy_params
 export TrainingData
 export single_program_energy_model, parameter_inference_model
 export learn_parameters
-export predict_energy, evaluate_parameters
 
 struct TrainingData
     programs::Vector{Vector{Instruction}}
@@ -182,64 +181,6 @@ function learn_parameters(
     end
 
     return learned_params
-end
-
-"""
-Predict energy consumption for a new MSP430 program using learned parameters
-"""
-function predict_energy(
-    program::Vector{Instruction},
-    learned_params::Dict{Symbol,Tuple{Float64,Float64}};
-    n_samples::Int=1000,
-)::EnergyStats
-    energies = Float64[]
-
-    for _ in 1:n_samples
-        total_energy = 0.0
-        for inst in program
-            alpha, beta = get(learned_params, inst.opcode, get_energy_params(inst.opcode))
-            inst_energy = rand(Gamma(alpha, beta))
-            total_energy += inst_energy
-        end
-        push!(energies, total_energy)
-    end
-
-    return EnergyStats(
-        mean(energies), std(energies), minimum(energies), maximum(energies), energies
-    )
-end
-
-"""
-Evaluate learned parameters on MSP430 test data
-"""
-function evaluate_parameters(
-    learned_params::Dict{Symbol,Tuple{Float64,Float64}},
-    test_data::TrainingData;
-    n_samples::Int=1000,
-)::NamedTuple{
-    (:mse, :mae, :correlation, :predictions, :actual),
-    Tuple{Float64,Float64,Float64,Vector{Float64},Vector{Float64}},
-}
-    predictions = Float64[]
-    actual_energies = test_data.energies
-
-    for program in test_data.programs
-        predicted_stats = predict_energy(program, learned_params; n_samples=n_samples)
-        push!(predictions, predicted_stats.mean)
-    end
-
-    # Calculate evaluation metrics
-    mse = mean((predictions .- actual_energies) .^ 2)
-    mae = mean(abs.(predictions .- actual_energies))
-    correlation = cor(predictions, actual_energies)
-
-    return (
-        mse=mse,
-        mae=mae,
-        correlation=correlation,
-        predictions=predictions,
-        actual=actual_energies,
-    )
 end
 
 end # module
