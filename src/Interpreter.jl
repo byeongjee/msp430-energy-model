@@ -178,6 +178,9 @@ function interpret_program(
     ) PC = state.registers[:PC] SP = state.registers[:SP] SR = state.registers[:SR] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
 
+    # Start timing execution
+    start_time = time()
+
     while step_count < max_steps
         step_count += 1
 
@@ -273,6 +276,10 @@ function interpret_program(
     if step_count >= max_steps
         @warn "Execution stopped: Maximum steps reached" max_steps
     end
+
+    # Calculate and log execution time
+    execution_time = time() - start_time
+    @info "Execution completed" time = execution_time steps = step_count
 
     # Show final state
     @info "Final machine state" pc = string(state.registers[:PC]; base=16, pad=4)

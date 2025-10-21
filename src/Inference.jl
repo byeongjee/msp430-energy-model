@@ -126,6 +126,9 @@ function learn_parameters(
         all_opcodes
     ) n_samples
 
+    # Start timing
+    start_time = time()
+
     constraints = choicemap()
     for (i, energy) in enumerate(training_data.energies)
         constraints[(:observed_energy_consumption, i)] = energy
@@ -179,6 +182,12 @@ function learn_parameters(
             @warn "Using default parameters for opcode (no samples)" opcode
         end
     end
+
+    # Calculate and log execution time
+    learning_time = time() - start_time
+    @info "Parameter learning completed" time = learning_time num_learned_opcodes = length(
+        learned_params
+    )
 
     return learned_params
 end
