@@ -178,7 +178,7 @@ function interpret_program(
     current_sequence = Vector{Instruction}()
 
     # Show the program
-    @info instruction_count = length(instructions)
+    @info "instruction_count" count = length(instructions)
     for (i, inst) in enumerate(instructions)
         size_str = inst.data_size == :byte ? ".b" : ""
         @debug "Instruction $i" opcode = "$(inst.opcode)$size_str" operands = inst.operands addressing_mode =
@@ -227,11 +227,13 @@ function interpret_program(
             # Check if this is a call to begin_event and skip it
             if is_call_to_function(state, inst, "begin_event", func_addrs)
                 @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
+                @info "starting new event sequence"
                 current_sequence = Vector{Instruction}()
             end
 
             if is_call_to_function(state, inst, "end_event", func_addrs)
                 @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
+                @info "ending event sequence"
                 push!(event_sequences, current_sequence)
             end
 
