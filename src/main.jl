@@ -170,9 +170,12 @@ function run_estimate(
     func_addrs = EnergyModel.find_functions(asm_file)
 
     @info "Executing program to get event sequences"
+    start_time = time()
     _, event_sequences = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
+    inference_time = time() - start_time
+
     for event_sequence in event_sequences
         @info "Event sequence" length = length(event_sequence)
         stats = estimate_cost_distribution(event_sequence, params)
@@ -188,6 +191,7 @@ function run_estimate(
     @info "="^60
     @info "ESTIMATION COMPLETE"
     @info "="^60
+    @info "Inference time" time_seconds = round(inference_time; digits=3)
 
     return nothing
 end

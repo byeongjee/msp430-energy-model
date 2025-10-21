@@ -72,7 +72,10 @@ function estimate_cost_distribution(
     # For each sample, draw energy for each instruction from Gamma(alpha, beta) and sum
     cost_samples = Float64[]
 
-    for _ in 1:n_samples
+    # Progress logging interval
+    progress_interval = max(1, div(n_samples, 10))  # Log at 10%, 20%, ..., 100%
+
+    for i in 1:n_samples
         total_cost = 0.0
         for inst in instructions
             alpha, beta = get(params, inst.opcode, (default_alpha, default_beta))
@@ -81,6 +84,12 @@ function estimate_cost_distribution(
             total_cost += cost
         end
         push!(cost_samples, total_cost)
+
+        # Log progress at intervals
+        if i % progress_interval == 0 || i == n_samples
+            progress_pct = round(100 * i / n_samples; digits=1)
+            @info "Sampling progress" samples_completed = i total_samples = n_samples progress = "$(progress_pct)%"
+        end
     end
 
     # Compute statistics
