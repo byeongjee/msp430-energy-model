@@ -159,7 +159,7 @@ function interpret_program(
     addresses::Vector{UInt16},
     func_addrs::Dict{String,UInt16},
     max_steps::Int,
-)::Tuple{MachineState,Vector{Instruction},Vector{Vector{Instruction}}}
+)::Tuple{MachineState,Vector{Vector{Instruction}}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
@@ -172,11 +172,6 @@ function interpret_program(
                 "0x" * string(func_addr; base=16, pad=4)
         end
     end
-
-    # Track all instructions
-    # Assuming that the program does not take inputs and is deterministic,
-    # we can track all instructions in the program trace
-    all_instructions = Vector{Instruction}()
 
     # Track instruction sequences between begin_event and end_event
     event_sequences = Vector{Vector{Instruction}}()
@@ -250,7 +245,6 @@ function interpret_program(
                 state.registers[:PC] = state.pc
             else
                 execute_instruction!(state, inst, addresses, current_addr_idx)
-                push!(all_instructions, inst)
                 push!(current_sequence, inst)
             end
 
@@ -288,7 +282,7 @@ function interpret_program(
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
     @info "Event sequences collected" count = length(event_sequences)
 
-    return (state, all_instructions, event_sequences)
+    return (state, event_sequences)
 end
 
 end # module

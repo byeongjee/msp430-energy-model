@@ -61,7 +61,7 @@ function run_interpret(asm_file::String, max_steps::Int)
     func_addrs = EnergyModel.find_functions(asm_file)
 
     # Execute program
-    final_state, _, _ = Interpreter.interpret_program(
+    final_state, _ = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
 
@@ -101,7 +101,7 @@ function run_train(
             "0x" * string(end_event_addr; base=16, pad=4)
     end
 
-    _, _, event_sequences = Interpreter.interpret_program(
+    _, event_sequences = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
 
@@ -169,20 +169,20 @@ function run_estimate(
 
     func_addrs = EnergyModel.find_functions(asm_file)
 
-    @info "Executing program to get instruction trace"
-    _, all_instructions, _ = Interpreter.interpret_program(
+    @info "Executing program to get event sequences"
+    _, event_sequences = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
+    for event_sequence in event_sequences
+        @info "Event sequence" length = length(event_sequence)
+        stats = estimate_cost_distribution(event_sequence, params)
 
-    @info "Instruction trace collected" trace_length = length(all_instructions)
-
-    stats = estimate_cost_distribution(all_instructions, params)
-
-    try
-        plot_cost_distribution(stats, plot_file)
-    catch e
-        @warn "Failed to plot cost distribution" error = e
-        @info "Continuing without plot"
+        try
+            plot_cost_distribution(stats, plot_file)
+        catch e
+            @warn "Failed to plot cost distribution" error = e
+            @info "Continuing without plot"
+        end
     end
 
     @info "="^60
