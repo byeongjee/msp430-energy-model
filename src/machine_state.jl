@@ -1,100 +1,6 @@
 # msp430_machine_state.jl - MSP430 machine state management and instruction execution
 
 """
-Abstract type for MSP430 instruction execution
-"""
-abstract type InstructionExecutor end
-
-"""
-Dual-operand instruction executor
-"""
-struct DualOperandExecutor <: InstructionExecutor end
-
-"""
-Single-operand instruction executor
-"""
-struct SingleOperandExecutor <: InstructionExecutor end
-
-"""
-Jump instruction executor
-"""
-struct JumpExecutor <: InstructionExecutor end
-
-# Cache executor instances
-const DUAL_EXECUTOR = DualOperandExecutor()
-const SINGLE_EXECUTOR = SingleOperandExecutor()
-const JUMP_EXECUTOR = JumpExecutor()
-
-# Pre-build executor lookup table for O(1) access
-const EXECUTOR_MAP = Dict{Symbol,InstructionExecutor}(
-    # Dual operand instructions
-    :mov => DUAL_EXECUTOR,
-    :add => DUAL_EXECUTOR,
-    :addc => DUAL_EXECUTOR,
-    :sub => DUAL_EXECUTOR,
-    :subc => DUAL_EXECUTOR,
-    :cmp => DUAL_EXECUTOR,
-    :dadd => DUAL_EXECUTOR,
-    :bit => DUAL_EXECUTOR,
-    :bic => DUAL_EXECUTOR,
-    :bis => DUAL_EXECUTOR,
-    :xor => DUAL_EXECUTOR,
-    :and => DUAL_EXECUTOR,
-    # Single operand instructions
-    :rrc => SINGLE_EXECUTOR,
-    :swpb => SINGLE_EXECUTOR,
-    :rra => SINGLE_EXECUTOR,
-    :sxt => SINGLE_EXECUTOR,
-    :push => SINGLE_EXECUTOR,
-    :call => SINGLE_EXECUTOR,
-    :reti => SINGLE_EXECUTOR,
-    :clr => SINGLE_EXECUTOR,
-    :ret => SINGLE_EXECUTOR,
-    :inc => SINGLE_EXECUTOR,
-    :dec => SINGLE_EXECUTOR,
-    :dint => SINGLE_EXECUTOR,
-    :nop => SINGLE_EXECUTOR,
-    :pushm => SINGLE_EXECUTOR,
-    :popm => SINGLE_EXECUTOR,
-    :rla => SINGLE_EXECUTOR,
-    :rlam => SINGLE_EXECUTOR,
-    :sbc => SINGLE_EXECUTOR,
-    # Jump instructions
-    :jnz => JUMP_EXECUTOR,
-    :jz => JUMP_EXECUTOR,
-    :jnc => JUMP_EXECUTOR,
-    :jc => JUMP_EXECUTOR,
-    :jn => JUMP_EXECUTOR,
-    :jge => JUMP_EXECUTOR,
-    :jl => JUMP_EXECUTOR,
-    :jmp => JUMP_EXECUTOR,
-)
-
-"""
-Get the appropriate executor for an instruction opcode
-"""
-function get_executor(opcode::Symbol)::InstructionExecutor
-    return get(EXECUTOR_MAP, opcode) do
-        error("Unknown instruction opcode: $opcode")
-    end
-end
-
-"""
-Execute instruction using trait-based dispatch
-"""
-function execute!(
-    executor::InstructionExecutor,
-    state::MachineState,
-    opcode::Symbol,
-    ops::Vector{Any},
-    data_size::Symbol,
-    addresses::Vector{UInt16},
-    current_idx::Int,
-)::Nothing
-    error("execute! not implemented for $(typeof(executor))")
-end
-
-"""
 Initialize a new MSP430 machine state
 """
 function MachineState()::MachineState
@@ -127,26 +33,9 @@ function MachineState()::MachineState
 end
 
 """
-Execute an MSP430 instruction with proper PC management using instruction addresses
+Executor wrapper for dual-operand instructions (with PC advance)
 """
-function execute_instruction!(
-    state::MachineState, inst::Instruction, addresses::Vector{UInt16}, current_idx::Int
-)::Nothing
-    opcode = inst.opcode
-    ops = inst.operands
-    data_size = inst.data_size
-
-    # Get appropriate executor and execute instruction
-    executor = get_executor(opcode)
-    execute!(executor, state, opcode, ops, data_size, addresses, current_idx)
-    return nothing
-end
-
-"""
-Execute dual-operand instructions using trait dispatch
-"""
-function execute!(
-    executor::DualOperandExecutor,
+function dual_operand_executor!(
     state::MachineState,
     opcode::Symbol,
     ops::Vector{Any},
@@ -163,10 +52,9 @@ function execute!(
 end
 
 """
-Execute single-operand instructions using trait dispatch
+Executor wrapper for single-operand instructions (with conditional PC advance)
 """
-function execute!(
-    executor::SingleOperandExecutor,
+function single_operand_executor!(
     state::MachineState,
     opcode::Symbol,
     ops::Vector{Any},
@@ -186,10 +74,9 @@ function execute!(
 end
 
 """
-Execute jump instructions using trait dispatch
+Executor wrapper for jump instructions (PC managed by jump logic)
 """
-function execute!(
-    executor::JumpExecutor,
+function jump_executor!(
     state::MachineState,
     opcode::Symbol,
     ops::Vector{Any},
@@ -198,6 +85,69 @@ function execute!(
     current_idx::Int,
 )::Nothing
     execute_jump!(state, opcode, ops, addresses, current_idx)
+    return nothing
+end
+
+# Direct opcode-to-executor function mapping for O(1) dispatch
+const EXECUTORS = Dict{Symbol,Function}(
+    # Dual operand instructions
+    :mov => dual_operand_executor!,
+    :add => dual_operand_executor!,
+    :addc => dual_operand_executor!,
+    :sub => dual_operand_executor!,
+    :subc => dual_operand_executor!,
+    :cmp => dual_operand_executor!,
+    :dadd => dual_operand_executor!,
+    :bit => dual_operand_executor!,
+    :bic => dual_operand_executor!,
+    :bis => dual_operand_executor!,
+    :xor => dual_operand_executor!,
+    :and => dual_operand_executor!,
+    # Single operand instructions
+    :rrc => single_operand_executor!,
+    :swpb => single_operand_executor!,
+    :rra => single_operand_executor!,
+    :sxt => single_operand_executor!,
+    :push => single_operand_executor!,
+    :call => single_operand_executor!,
+    :reti => single_operand_executor!,
+    :clr => single_operand_executor!,
+    :ret => single_operand_executor!,
+    :inc => single_operand_executor!,
+    :dec => single_operand_executor!,
+    :dint => single_operand_executor!,
+    :nop => single_operand_executor!,
+    :pushm => single_operand_executor!,
+    :popm => single_operand_executor!,
+    :rla => single_operand_executor!,
+    :rlam => single_operand_executor!,
+    :sbc => single_operand_executor!,
+    # Jump instructions
+    :jnz => jump_executor!,
+    :jz => jump_executor!,
+    :jnc => jump_executor!,
+    :jc => jump_executor!,
+    :jn => jump_executor!,
+    :jge => jump_executor!,
+    :jl => jump_executor!,
+    :jmp => jump_executor!,
+)
+
+"""
+Execute an MSP430 instruction with proper PC management using instruction addresses
+"""
+function execute_instruction!(
+    state::MachineState, inst::Instruction, addresses::Vector{UInt16}, current_idx::Int
+)::Nothing
+    opcode = inst.opcode
+    ops = inst.operands
+    data_size = inst.data_size
+
+    # Look up and call the appropriate executor function
+    executor = get(EXECUTORS, opcode) do
+        error("Unknown instruction opcode: $opcode")
+    end
+    executor(state, opcode, ops, data_size, addresses, current_idx)
     return nothing
 end
 
