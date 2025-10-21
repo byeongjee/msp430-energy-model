@@ -9,7 +9,6 @@ using Statistics
 
 # Include all source files
 include("types.jl")
-include("energy_params.jl")
 include("machine_state.jl")
 include("parser.jl")
 
