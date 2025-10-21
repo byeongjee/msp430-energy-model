@@ -71,7 +71,7 @@ function state_to_dict(state::MachineState)
             "N" => state.flags[:N],
             "V" => state.flags[:V],
         ),
-        "pc" => Int(state.pc),
+        "pc" => Int(state.registers[:PC]),
     )
 end
 

@@ -171,11 +171,10 @@ function interpret_program(
     end
 
     state = MachineState()
-    state.pc = addresses[1]  # Start at the first instruction address
-    state.registers[:PC] = state.pc
+    state.registers[:PC] = addresses[1]  # Start at the first instruction address
 
-    @debug "Initial machine state" pc = string(state.pc; base=16, pad=4) sp = string(
-        state.sp; base=16, pad=4
+    @debug "Initial machine state" pc = string(state.registers[:PC]; base=16, pad=4) sp = string(
+        state.registers[:SP]; base=16, pad=4
     ) PC = state.registers[:PC] SP = state.registers[:SP] SR = state.registers[:SR] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
     step_count = 0
 
@@ -183,15 +182,15 @@ function interpret_program(
         step_count += 1
 
         # Get instruction at current PC
-        if !haskey(pc_to_instruction, state.pc)
-            @info "Execution finished" pc = string(state.pc; base=16, pad=4) reason = "PC not in program"
+        if !haskey(pc_to_instruction, state.registers[:PC])
+            @info "Execution finished" pc = string(state.registers[:PC]; base=16, pad=4) reason = "PC not in program"
             break
         end
 
-        current_addr_idx, inst = pc_to_instruction[state.pc]
+        current_addr_idx, inst = pc_to_instruction[state.registers[:PC]]
 
         try
-            old_pc = state.pc
+            old_pc = state.registers[:PC]
 
             # Pre-check if this is a call instruction to avoid multiple function checks
             is_call = inst.opcode == :call && length(inst.operands) > 0
@@ -205,8 +204,7 @@ function interpret_program(
                     @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
                     @info "starting new event sequence"
                     current_sequence = Vector{Instruction}()
-                    state.pc = addresses[current_addr_idx + 1]
-                    state.registers[:PC] = state.pc
+                    state.registers[:PC] = addresses[current_addr_idx + 1]
                     continue
                 end
 
@@ -215,8 +213,7 @@ function interpret_program(
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
                     @info "ending event sequence"
                     push!(event_sequences, current_sequence)
-                    state.pc = addresses[current_addr_idx + 1]
-                    state.registers[:PC] = state.pc
+                    state.registers[:PC] = addresses[current_addr_idx + 1]
                     continue
                 end
 
@@ -225,8 +222,7 @@ function interpret_program(
                 for (func_name, func_addr) in skip_func_addrs
                     if func_addr == call_target
                         @debug "Skipping call to $func_name at 0x$(string(old_pc, base=16, pad=4))"
-                        state.pc = addresses[current_addr_idx + 1]
-                        state.registers[:PC] = state.pc
+                        state.registers[:PC] = addresses[current_addr_idx + 1]
                         skip_function = true
                         break
                     end
@@ -262,13 +258,13 @@ function interpret_program(
                 @debug "Step $step_count" address = string(old_pc; base=16, pad=4) opcode =
                     inst.opcode operands = inst.operands
                 @debug "PC transition" old_pc = string(old_pc; base=16, pad=4) new_pc = string(
-                    state.pc; base=16, pad=4
+                    state.registers[:PC]; base=16, pad=4
                 )
                 @debug format_registers(state)
             end
 
         catch e
-            @error "Error executing instruction" pc = string(state.pc; base=16, pad=4) opcode =
+            @error "Error executing instruction" pc = string(state.registers[:PC]; base=16, pad=4) opcode =
                 inst.opcode error = e
             break
         end
@@ -279,7 +275,7 @@ function interpret_program(
     end
 
     # Show final state
-    @info "Final machine state" pc = string(state.pc; base=16, pad=4)
+    @info "Final machine state" pc = string(state.registers[:PC]; base=16, pad=4)
     @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
     @info "Event sequences collected" count = length(event_sequences)

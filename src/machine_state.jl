@@ -122,9 +122,6 @@ function MachineState()::MachineState
     MachineState(
         registers,
         Dict{UInt16,UInt16}(),  # Empty memory
-        UInt16(0),              # PC
-        UInt16(0xFFFF),         # SP
-        UInt16(0),              # SR
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
     )
 end
@@ -135,7 +132,7 @@ Execute an MSP430 instruction with proper PC management using instruction addres
 function execute_instruction!(
     state::MachineState, inst::Instruction, addresses::Vector{UInt16}, current_idx::Int
 )::Nothing
-    old_pc = state.pc
+    old_pc = state.registers[:PC]
     opcode = inst.opcode
     ops = inst.operands
     data_size = inst.data_size
@@ -161,8 +158,7 @@ function execute!(
     execute_dual_operand!(state, opcode, ops, data_size)
     # Advance PC to next instruction
     if current_idx < length(addresses)
-        state.pc = addresses[current_idx + 1]
-        state.registers[:PC] = state.pc
+        state.registers[:PC] = addresses[current_idx + 1]
     end
     return nothing
 end
@@ -185,8 +181,7 @@ function execute!(
         opcode != :ret &&
         opcode != :reti &&
         current_idx < length(addresses)
-        state.pc = addresses[current_idx + 1]
-        state.registers[:PC] = state.pc
+        state.registers[:PC] = addresses[current_idx + 1]
     end
     return nothing
 end
@@ -279,29 +274,23 @@ function execute_single_operand!(
     # Handle instructions that don't need operands first
     if opcode == :ret
         # Return from subroutine (pop PC from stack)
-        return_addr = get(state.memory, state.sp, UInt16(0))
-        state.pc = return_addr
-        state.sp += 2
-        state.registers[:SP] = state.sp
-        state.registers[:PC] = state.pc
+        return_addr = get(state.memory, state.registers[:SP], UInt16(0))
+        state.registers[:PC] = return_addr
+        state.registers[:SP] = state.registers[:SP] + 2
         return nothing
     elseif opcode == :nop
         # No operation - do nothing
         return nothing
     elseif opcode == :dint
         # Disable interrupt - clear Global Interrupt Enable bit in SR
-        state.sr &= ~0x0008  # Clear GIE bit (bit 3)
-        state.registers[:SR] = state.sr
+        state.registers[:SR] = state.registers[:SR] & ~0x0008  # Clear GIE bit (bit 3)
         return nothing
     elseif opcode == :reti
         # Return from interrupt
-        state.sr = state.memory[state.sp]
-        state.sp += 2
-        state.pc = state.memory[state.sp]
-        state.sp += 2
-        state.registers[:SP] = state.sp
-        state.registers[:PC] = state.pc
-        state.registers[:SR] = state.sr
+        state.registers[:SR] = state.memory[state.registers[:SP]]
+        state.registers[:SP] = state.registers[:SP] + 2
+        state.registers[:PC] = state.memory[state.registers[:SP]]
+        state.registers[:SP] = state.registers[:SP] + 2
         return nothing
     end
 
@@ -336,9 +325,8 @@ function execute_single_operand!(
         update_flags_simple!(state, result)
     elseif opcode == :push
         # Push to stack
-        state.sp -= 2
-        state.registers[:SP] = state.sp
-        state.memory[state.sp] = operand_val
+        state.registers[:SP] = state.registers[:SP] - 2
+        state.memory[state.registers[:SP]] = operand_val
         return nothing  # Don't store result for push
     elseif opcode == :call
         # Call subroutine
@@ -348,11 +336,9 @@ function execute_single_operand!(
             )
         end
         return_addr = addresses[current_idx + 1]
-        state.sp -= 2
-        state.registers[:SP] = state.sp
-        state.memory[state.sp] = return_addr  # Return address
-        state.pc = operand_val
-        state.registers[:PC] = state.pc
+        state.registers[:SP] = state.registers[:SP] - 2
+        state.memory[state.registers[:SP]] = return_addr  # Return address
+        state.registers[:PC] = operand_val
         return nothing
     elseif opcode == :clr
         # Clear (set to zero)
@@ -412,11 +398,10 @@ function execute_single_operand!(
                 if i >= 0 && i <= 15
                     reg_sym = reg_num_to_symbol(i)
                     reg_val = get(state.registers, reg_sym, UInt16(0))
-                    state.sp -= 2
-                    state.memory[state.sp] = reg_val
+                    state.registers[:SP] = state.registers[:SP] - 2
+                    state.memory[state.registers[:SP]] = reg_val
                 end
             end
-            state.registers[:SP] = state.sp
         end
         return nothing
     elseif opcode == :popm
@@ -430,12 +415,11 @@ function execute_single_operand!(
             for i in (dst_num - n + 1):dst_num
                 if i >= 0 && i <= 15
                     reg_sym = reg_num_to_symbol(i)
-                    reg_val = get(state.memory, state.sp, UInt16(0))
+                    reg_val = get(state.memory, state.registers[:SP], UInt16(0))
                     state.registers[reg_sym] = reg_val
-                    state.sp += 2
+                    state.registers[:SP] = state.registers[:SP] + 2
                 end
             end
-            state.registers[:SP] = state.sp
         end
         return nothing
     end
@@ -496,14 +480,13 @@ function execute_jump!(
 
     if should_jump
         # Jump is relative to PC + 2
-        state.pc = UInt16((Int32(state.pc) + 2 + (Int32(offset) * 2)) & 0xFFFF)
+        state.registers[:PC] = UInt16((Int32(state.registers[:PC]) + 2 + (Int32(offset) * 2)) & 0xFFFF)
     else
         # Advance to next instruction
         if current_idx < length(addresses)
-            state.pc = addresses[current_idx + 1]
+            state.registers[:PC] = addresses[current_idx + 1]
         end
     end
-    state.registers[:PC] = state.pc
     return nothing
 end
 
@@ -558,15 +541,6 @@ function set_operand_value!(
     if isa(operand, Symbol)
         # Register
         state.registers[operand] = masked_value
-
-        # Update special register fields
-        if operand == :PC
-            state.pc = masked_value
-        elseif operand == :SP
-            state.sp = masked_value
-        elseif operand == :SR
-            state.sr = masked_value
-        end
     elseif isa(operand, Tuple) && length(operand) == 2
         # Indexed addressing: (offset, register) -> offset(register)
         offset, reg = operand
@@ -618,14 +592,13 @@ function update_flags!(
     end
 
     # Update status register
-    state.sr =
-        (state.sr & 0xFFF0) |
+    state.registers[:SR] =
+        (state.registers[:SR] & 0xFFF0) |
         (state.flags[:V] ? 0x0100 : 0x0000) |
         (state.flags[:N] ? 0x0004 : 0x0000) |
         (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
-    state.registers[:SR] = state.sr
     return nothing
 end
 
@@ -637,11 +610,10 @@ function update_flags_simple!(state::MachineState, result::UInt16)::Nothing
     state.flags[:N] = (result & 0x8000) != 0
 
     # Update status register
-    state.sr =
-        (state.sr & 0xFEF9) |  # Clear N and Z bits
+    state.registers[:SR] =
+        (state.registers[:SR] & 0xFEF9) |  # Clear N and Z bits
         (state.flags[:N] ? 0x0004 : 0x0000) |
         (state.flags[:Z] ? 0x0002 : 0x0000)
 
-    state.registers[:SR] = state.sr
     return nothing
 end
