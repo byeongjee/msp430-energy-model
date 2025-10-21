@@ -102,11 +102,13 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
             offset_str = strip(op[1:(paren_idx - 1)])
             reg_part = strip(op[(paren_idx + 1):(end - 1)])
 
-            # Parse offset
+            # Parse offset (may be negative)
             if startswith(offset_str, "0x") || startswith(offset_str, "0X")
                 offset = parse(UInt16, offset_str[3:end]; base=16)
             else
-                offset = parse(UInt16, offset_str)
+                # Parse as signed integer first, then convert to UInt16 representation
+                int_offset = parse(Int16, offset_str)
+                offset = reinterpret(UInt16, int_offset)
             end
 
             reg_name = normalize_register_name(Symbol(uppercase(reg_part)))
