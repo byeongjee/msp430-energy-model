@@ -209,20 +209,11 @@ function interpret_program(
             break
         end
 
-        _instruction_index, inst = pc_to_instruction[state.pc]
+        current_addr_idx, inst = pc_to_instruction[state.pc]
 
         try
             old_pc = state.pc
             old_regs = copy(state.registers)
-
-            # Find current instruction index from the instruction list
-            # This is used for relative jump resolution
-            current_addr_idx = findfirst(addr -> addr == old_pc, addresses)
-            if current_addr_idx === nothing
-                error(
-                    "Cannot find current PC 0x$(string(old_pc, base=16, pad=4)) in addresses array. This indicates a serious bug in PC management.",
-                )
-            end
 
             # Check if this is a call to begin_event and skip it
             if is_call_to_function(state, inst, "begin_event", func_addrs)
