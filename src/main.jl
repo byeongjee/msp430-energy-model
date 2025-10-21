@@ -176,8 +176,21 @@ function run_estimate(
     )
     inference_time = time() - start_time
 
+    # Track all instructions and unknown instructions across all event sequences
+    all_instructions = Set{Symbol}()
+    all_unknown_instructions = Set{Symbol}()
+
     for event_sequence in event_sequences
         @info "Event sequence" length = length(event_sequence)
+
+        # Check for unknown instructions in this sequence
+        for inst in event_sequence
+            push!(all_instructions, inst.opcode)
+            if !haskey(params, inst.opcode)
+                push!(all_unknown_instructions, inst.opcode)
+            end
+        end
+
         stats = estimate_cost_distribution(event_sequence, params)
 
         try
@@ -192,6 +205,20 @@ function run_estimate(
     @info "ESTIMATION COMPLETE"
     @info "="^60
     @info "Inference time" time_seconds = round(inference_time; digits=3)
+
+    # Show all instruction types used
+    @info "Instruction types used" count = length(all_instructions) instructions = join(
+        sort(collect(all_instructions)), ", "
+    )
+
+    # Emit warning for unknown instructions if any were found
+    if !isempty(all_unknown_instructions)
+        @warn "Unknown instructions encountered (not in energy parameters file)" count = length(
+            all_unknown_instructions
+        ) instructions = join(
+            sort(collect(all_unknown_instructions)), ", "
+        ) default_params = "Using Gamma(alpha=1.0, beta=3.0) for these instructions"
+    end
 
     return nothing
 end
