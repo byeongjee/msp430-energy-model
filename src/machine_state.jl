@@ -116,7 +116,7 @@ function MachineState()::MachineState
         :R12 => 0x0000,
         :R13 => 0x0000,
         :R14 => 0x0000,
-        :R15 => 0x0000
+        :R15 => 0x0000,
     )
 
     MachineState(
@@ -132,7 +132,6 @@ Execute an MSP430 instruction with proper PC management using instruction addres
 function execute_instruction!(
     state::MachineState, inst::Instruction, addresses::Vector{UInt16}, current_idx::Int
 )::Nothing
-    old_pc = state.registers[:PC]
     opcode = inst.opcode
     ops = inst.operands
     data_size = inst.data_size
@@ -480,7 +479,9 @@ function execute_jump!(
 
     if should_jump
         # Jump is relative to PC + 2
-        state.registers[:PC] = UInt16((Int32(state.registers[:PC]) + 2 + (Int32(offset) * 2)) & 0xFFFF)
+        state.registers[:PC] = UInt16(
+            (Int32(state.registers[:PC]) + 2 + (Int32(offset) * 2)) & 0xFFFF
+        )
     else
         # Advance to next instruction
         if current_idx < length(addresses)
