@@ -121,35 +121,12 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
     return instructions, addresses, base_address
 end
 
-function detect_termination(
-    state::MachineState, inst::Instruction, func_addrs::Dict{String,UInt16}
-)::Bool
-    return is_call_to_function(state, inst, "_exit", func_addrs)
-end
-
 FUNCTIONS_TO_SKIP = [
-    "begin_event",
-    "end_event",
     "initialize",
     "toggle_gpio",
     "begin_measurement_window",
     "end_measurement_window",
 ]
-
-function is_call_to_function(
-    state::MachineState,
-    inst::Instruction,
-    func_name::String,
-    func_addrs::Dict{String,UInt16},
-)::Bool
-    if isnothing(get(func_addrs, func_name, nothing))
-        return false
-    end
-    return inst.opcode == :call &&
-           length(inst.operands) > 0 &&
-           Main.EnergyModel.get_operand_value(state, inst.operands[1]) ==
-           func_addrs[func_name]
-end
 
 """
 Interpret MSP430 program
@@ -165,9 +142,11 @@ function interpret_program(
     @info "="^60
 
     # Extract function addresses from the dictionary
+    skip_func_addrs = Dict{String,UInt16}()
     for func_name in FUNCTIONS_TO_SKIP
         func_addr = get(func_addrs, func_name, nothing)
         if !isnothing(func_addr)
+            skip_func_addrs[func_name] = func_addr
             @info "$func_name found in assembly file" address =
                 "0x" * string(func_addr; base=16, pad=4)
         end
@@ -213,35 +192,70 @@ function interpret_program(
 
         try
             old_pc = state.pc
-            old_regs = copy(state.registers)
 
-            # Check if this is a call to begin_event and skip it
-            if is_call_to_function(state, inst, "begin_event", func_addrs)
-                @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
-                @info "starting new event sequence"
-                current_sequence = Vector{Instruction}()
+            # Pre-check if this is a call instruction to avoid multiple function checks
+            is_call = inst.opcode == :call && length(inst.operands) > 0
+            should_terminate = false
+
+            if is_call
+                call_target = Main.EnergyModel.get_operand_value(state, inst.operands[1])
+
+                # Check for begin_event
+                if get(func_addrs, "begin_event", nothing) == call_target
+                    @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
+                    @info "starting new event sequence"
+                    current_sequence = Vector{Instruction}()
+                    state.pc = addresses[current_addr_idx + 1]
+                    state.registers[:PC] = state.pc
+                    continue
+                end
+
+                # Check for end_event
+                if get(func_addrs, "end_event", nothing) == call_target
+                    @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
+                    @info "ending event sequence"
+                    push!(event_sequences, current_sequence)
+                    state.pc = addresses[current_addr_idx + 1]
+                    state.registers[:PC] = state.pc
+                    continue
+                end
+
+                # Check for other functions to skip
+                skip_function = false
+                for (func_name, func_addr) in skip_func_addrs
+                    if func_addr == call_target
+                        @debug "Skipping call to $func_name at 0x$(string(old_pc, base=16, pad=4))"
+                        state.pc = addresses[current_addr_idx + 1]
+                        state.registers[:PC] = state.pc
+                        skip_function = true
+                        break
+                    end
+                end
+
+                if skip_function
+                    continue
+                end
+
+                # Check for termination (_exit) - set flag but still execute
+                if get(func_addrs, "_exit", nothing) == call_target
+                    should_terminate = true
+                end
             end
 
-            if is_call_to_function(state, inst, "end_event", func_addrs)
-                @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
-                @info "ending event sequence"
-                push!(event_sequences, current_sequence)
+            # Execute the instruction
+            execute_instruction!(state, inst, addresses, current_addr_idx)
+            push!(current_sequence, inst)
+
+            # Check termination after execution
+            if should_terminate
+                @info "Program terminated"
+                break
             end
 
-            # Skip calls to functions in FUNCTIONS_TO_SKIP
-            if any(
-                is_call_to_function(state, inst, func_name, func_addrs) for
-                func_name in FUNCTIONS_TO_SKIP
-            )
-                @debug "Skipping call to function at 0x$(string(old_pc, base=16, pad=4))"
-                state.pc = addresses[current_addr_idx + 1]
-                state.registers[:PC] = state.pc
-            else
-                execute_instruction!(state, inst, addresses, current_addr_idx)
-                push!(current_sequence, inst)
-            end
-
+            # Debug logging only when needed
             if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
+                # Only copy registers when debug logging is active
+                old_regs = copy(state.registers)
                 if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
                     @debug msg
                 end
@@ -251,11 +265,6 @@ function interpret_program(
                     state.pc; base=16, pad=4
                 )
                 @debug format_registers(state)
-            end
-
-            if detect_termination(state, inst, func_addrs)
-                @info "Program terminated"
-                break
             end
 
         catch e

@@ -20,36 +20,61 @@ Jump instruction executor
 """
 struct JumpExecutor <: InstructionExecutor end
 
+# Cache executor instances
+const DUAL_EXECUTOR = DualOperandExecutor()
+const SINGLE_EXECUTOR = SingleOperandExecutor()
+const JUMP_EXECUTOR = JumpExecutor()
+
+# Pre-build executor lookup table for O(1) access
+const EXECUTOR_MAP = Dict{Symbol,InstructionExecutor}(
+    # Dual operand instructions
+    :mov => DUAL_EXECUTOR,
+    :add => DUAL_EXECUTOR,
+    :addc => DUAL_EXECUTOR,
+    :sub => DUAL_EXECUTOR,
+    :subc => DUAL_EXECUTOR,
+    :cmp => DUAL_EXECUTOR,
+    :dadd => DUAL_EXECUTOR,
+    :bit => DUAL_EXECUTOR,
+    :bic => DUAL_EXECUTOR,
+    :bis => DUAL_EXECUTOR,
+    :xor => DUAL_EXECUTOR,
+    :and => DUAL_EXECUTOR,
+    # Single operand instructions
+    :rrc => SINGLE_EXECUTOR,
+    :swpb => SINGLE_EXECUTOR,
+    :rra => SINGLE_EXECUTOR,
+    :sxt => SINGLE_EXECUTOR,
+    :push => SINGLE_EXECUTOR,
+    :call => SINGLE_EXECUTOR,
+    :reti => SINGLE_EXECUTOR,
+    :clr => SINGLE_EXECUTOR,
+    :ret => SINGLE_EXECUTOR,
+    :inc => SINGLE_EXECUTOR,
+    :dec => SINGLE_EXECUTOR,
+    :dint => SINGLE_EXECUTOR,
+    :nop => SINGLE_EXECUTOR,
+    :pushm => SINGLE_EXECUTOR,
+    :popm => SINGLE_EXECUTOR,
+    :rla => SINGLE_EXECUTOR,
+    :rlam => SINGLE_EXECUTOR,
+    :sbc => SINGLE_EXECUTOR,
+    # Jump instructions
+    :jnz => JUMP_EXECUTOR,
+    :jz => JUMP_EXECUTOR,
+    :jnc => JUMP_EXECUTOR,
+    :jc => JUMP_EXECUTOR,
+    :jn => JUMP_EXECUTOR,
+    :jge => JUMP_EXECUTOR,
+    :jl => JUMP_EXECUTOR,
+    :jmp => JUMP_EXECUTOR,
+)
+
 """
 Get the appropriate executor for an instruction opcode
 """
 function get_executor(opcode::Symbol)::InstructionExecutor
-    if opcode in [:mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and]
-        return DualOperandExecutor()
-    elseif opcode in [
-        :rrc,
-        :swpb,
-        :rra,
-        :sxt,
-        :push,
-        :call,
-        :reti,
-        :clr,
-        :ret,
-        :inc,
-        :dec,
-        :dint,
-        :nop,
-        :pushm,
-        :popm,
-        :rla,
-        :rlam,
-        :sbc,
-    ]
-        return SingleOperandExecutor()
-    elseif opcode in [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
-        return JumpExecutor()
-    else
+    return get(EXECUTOR_MAP, opcode) do
         error("Unknown instruction opcode: $opcode")
     end
 end
@@ -488,12 +513,13 @@ Get value from operand (register, immediate, or memory)
 function get_operand_value(
     state::MachineState, operand::Any, data_size::Symbol=:word
 )::UInt16
-    value = UInt16(0)
-
-    if isa(operand, Symbol)
+    if isa(operand, Integer)
+        # Immediate value - most common case first
+        value = UInt16(operand & 0xFFFF)
+    elseif isa(operand, Symbol)
         # Check if it's indirect addressing (@register)
         operand_str = string(operand)
-        if startswith(operand_str, "@")
+        if !isempty(operand_str) && operand_str[1] == '@'
             # Indirect addressing: @R1 means "value at address contained in R1"
             reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
             addr = get(state.registers, reg_name, UInt16(0))
@@ -502,23 +528,18 @@ function get_operand_value(
             # Regular register
             value = get(state.registers, operand, UInt16(0))
         end
-    elseif isa(operand, Integer)
-        # Immediate value
-        value = UInt16(operand & 0xFFFF)
-    elseif isa(operand, Tuple) && length(operand) == 2
+    elseif isa(operand, Tuple)
         # Indexed addressing: (offset, register) -> offset(register)
         offset, reg = operand
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
         value = get(state.memory, addr, UInt16(0))
+    else
+        value = UInt16(0)
     end
 
     # Apply data size mask
-    if data_size == :byte
-        return UInt16(value & 0xFF)  # Keep only lower 8 bits
-    else
-        return value  # Full 16-bit word
-    end
+    return data_size == :byte ? UInt16(value & 0xFF) : value
 end
 
 """
