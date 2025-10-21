@@ -215,9 +215,7 @@ function run_estimate(
     if !isempty(all_unknown_instructions)
         @warn "Unknown instructions encountered (not in energy parameters file)" count = length(
             all_unknown_instructions
-        ) instructions = join(
-            sort(collect(all_unknown_instructions)), ", "
-        ) default_params = "Using Gamma(alpha=1.0, beta=3.0) for these instructions"
+        ) instructions = join(sort(collect(all_unknown_instructions)), ", ") default_params = "Using Gamma(alpha=1.0, beta=3.0) for these instructions"
     end
 
     return nothing
