@@ -18,7 +18,6 @@ export MachineState
 export EnergyStats
 
 # Export energy parameter functions
-export get_energy_params
 export register_instruction!
 
 # Export machine state functions

@@ -8,7 +8,7 @@ using Optim
 using Statistics
 using Logging
 
-using Main.EnergyModel: Instruction, EnergyStats, get_energy_params
+using Main.EnergyModel: Instruction, EnergyStats
 
 export TrainingData
 export single_program_energy_model, parameter_inference_model
@@ -178,7 +178,7 @@ function learn_parameters(
             ) mean_energy = round(mean_energy; digits=6)
         else
             # Fallback to default parameters
-            learned_params[opcode] = get_energy_params(opcode)
+            learned_params[opcode] = (1.0, 3.0)
             @warn "Using default parameters for opcode (no samples)" opcode
         end
     end
