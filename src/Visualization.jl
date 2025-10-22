@@ -5,7 +5,7 @@ module Visualization
 using Plots
 using Distributions
 
-export plot_cost_distribution, visualize_instruction_params
+export plot_cost_distribution, plot_cost_distributions_grid, visualize_instruction_params
 
 """
 Plot cost distribution (separated from business logic)
@@ -89,6 +89,98 @@ function plot_cost_distribution(
         @info "Plot saved" path = output_file
     else
         display(p)
+    end
+
+    return nothing
+end
+
+"""
+Plot multiple cost distributions in a grid layout
+Accepts a vector of stats and plots each as a subplot in a grid
+"""
+function plot_cost_distributions_grid(
+    all_stats::Vector{
+        NamedTuple{
+            (:mean, :std, :min, :max, :samples),
+            Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
+        },
+    },
+    output_file::Union{String,Nothing}=nothing,
+)::Nothing
+    @info "Plotting cost distributions in grid" num_distributions = length(all_stats)
+
+    n_distributions = length(all_stats)
+
+    # Calculate grid dimensions (try to make it roughly square)
+    n_cols = Int(ceil(sqrt(n_distributions)))
+    n_rows = Int(ceil(n_distributions / n_cols))
+
+    # Create subplots
+    plots_array = []
+
+    for (idx, stats) in enumerate(all_stats)
+        # Calculate optimal number of bins
+        n_samples = length(stats.samples)
+        n_bins = min(100, max(30, Int(ceil(sqrt(n_samples)))))
+
+        # Create histogram
+        p = histogram(
+            stats.samples;
+            bins=n_bins,
+            normalize=:probability,
+            xlabel="Cost (nJ)",
+            ylabel="Probability",
+            title="Event Sequence $idx",
+            legend=:topright,
+            color=:steelblue,
+            alpha=0.6,
+            linecolor=:steelblue,
+            linewidth=1,
+            titlefontsize=10,
+            guidefontsize=8,
+            tickfontsize=7,
+        )
+
+        # Add vertical line for mean
+        vline!(
+            [stats.mean];
+            color=:red,
+            linewidth=2,
+            linestyle=:solid,
+            label="Mean: $(round(stats.mean, digits=2))",
+        )
+
+        # Add vertical lines for ±1 std
+        vline!(
+            [stats.mean - stats.std, stats.mean + stats.std];
+            color=:orange,
+            linewidth=1.5,
+            linestyle=:dash,
+            label="±1σ",
+        )
+
+        push!(plots_array, p)
+    end
+
+    @info "Creating grid with $(length(plots_array)) plots"
+
+    # Combine into grid
+    combined_plot = plot(
+        plots_array...;
+        layout=(n_rows, n_cols),
+        size=(n_cols * 400, n_rows * 300),
+        dpi=150,
+        margins=3Plots.mm,
+        plot_title="Energy Cost Distributions",
+        plot_titlefontsize=14,
+    )
+
+    # Save or display
+    if !isnothing(output_file)
+        savefig(combined_plot, output_file)
+        @info "Plot saved" path = output_file
+    else
+        display(combined_plot)
     end
 
     return nothing

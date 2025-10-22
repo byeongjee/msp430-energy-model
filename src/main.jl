@@ -179,6 +179,10 @@ function run_estimate(
     # Track all instructions and unknown instructions across all event sequences
     all_instructions = Set{Symbol}()
     all_unknown_instructions = Set{Symbol}()
+    all_stats = NamedTuple{
+        (:mean, :std, :min, :max, :samples),
+        Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
+    }[]
 
     for event_sequence in event_sequences
         @info "Event sequence" length = length(event_sequence)
@@ -192,9 +196,19 @@ function run_estimate(
         end
 
         stats = estimate_cost_distribution(event_sequence, params)
+        push!(all_stats, stats)
+    end
 
+    # Plot all distributions in a grid
+    if !isempty(all_stats)
         try
-            plot_cost_distribution(stats, plot_file)
+            if length(all_stats) == 1
+                # If only one event sequence, use the single plot
+                plot_cost_distribution(all_stats[1], plot_file)
+            else
+                # If multiple event sequences, use grid layout
+                plot_cost_distributions_grid(all_stats, plot_file)
+            end
         catch e
             @warn "Failed to plot cost distribution" error = e
             @info "Continuing without plot"
