@@ -126,6 +126,8 @@ FUNCTIONS_TO_SKIP = [
     "toggle_gpio",
     "begin_measurement_window",
     "end_measurement_window",
+    "begin_event",
+    "end_event",
 ]
 
 """
@@ -196,7 +198,7 @@ function interpret_program(
             old_pc = state.registers[:PC]
 
             # Pre-check if this is a call instruction to avoid multiple function checks
-            is_call = inst.opcode == :call && length(inst.operands) > 0
+            is_call = inst.opcode == :call
             should_terminate = false
 
             if is_call
@@ -267,8 +269,9 @@ function interpret_program(
             end
 
         catch e
-            @error "Error executing instruction" pc = string(state.registers[:PC]; base=16, pad=4) opcode =
-                inst.opcode error = e
+            @error "Error executing instruction" pc = string(
+                state.registers[:PC]; base=16, pad=4
+            ) opcode = inst.opcode error = e
             break
         end
     end
