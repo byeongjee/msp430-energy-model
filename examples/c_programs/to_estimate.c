@@ -1,12 +1,16 @@
 #include "setup.h"
 
+// if we are measuring, we should repeat multiple times
+// if we are estimating, set repeat to 1
+#define REPEAT 1
+
 int main(void) {
   initialize();
 
   int buffer[100];
 
   begin_measurement_window();
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < REPEAT; i++) {
     begin_event();
 
     for (int j = 0; j < 100; j++) {
