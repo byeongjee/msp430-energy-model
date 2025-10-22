@@ -23,7 +23,7 @@ end
 """
 Run the interpreter on an assembly file and return the final machine state
 """
-function run_interpreter(asm_file::String, max_steps::Int=100000)
+function run_interpreter(asm_file::String, max_steps::Int=100000000)
     if !isfile(asm_file)
         error("Assembly file not found: $asm_file")
     end
