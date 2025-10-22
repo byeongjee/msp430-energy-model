@@ -291,19 +291,18 @@ function execute_single_operand!(
         state.registers[:PC] = operand_val
         return nothing
     elseif opcode == :clr
-        # Clear (set to zero)
+        # Clear (set to zero) - emulated as MOV #0, dst
         result = UInt16(0)
-        update_flags_simple!(state, result)
     elseif opcode == :inc
         # Increment operand by 1
         operand_val = get_operand_value(state, ops[1])
         result = UInt16((operand_val + 1) & 0xFFFF)
-        update_flags_simple!(state, result)
+        update_flags!(state, result, operand_val, UInt16(1), true)
     elseif opcode == :dec
         # Decrement operand by 1
         operand_val = get_operand_value(state, ops[1])
         result = UInt16((operand_val - 1) & 0xFFFF)
-        update_flags_simple!(state, result)
+        update_flags!(state, result, operand_val, UInt16(1), false)
     elseif opcode == :sbc
         # SBC is an emulated instruction: sbc dst == subc #0, dst
         # It subtracts the carry flag from the destination
