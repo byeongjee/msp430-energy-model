@@ -6,18 +6,20 @@ int main(void) {
   int buffer[100];
 
   begin_measurement_window();
-  begin_event();
+  for (int i = 0; i < 10; i++) {
+    begin_event();
 
-  for (int i = 0; i < 100; i++) {
+    for (int j = 0; j < 100; j++) {
 
-    // some random computation
-    buffer[0] = 0;
-    buffer[1] = 1;
-    for (int j = 2; j < 100; j++) {
-      buffer[j] = buffer[j - 1] + buffer[j - 2];
+      // some random computation
+      buffer[0] = 0;
+      buffer[1] = 1;
+      for (int k = 2; k < 100; k++) {
+        buffer[k] = buffer[k - 1] + buffer[k - 2];
+      }
     }
+    end_event();
   }
-  end_event();
 
   end_measurement_window();
 

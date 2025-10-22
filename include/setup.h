@@ -33,12 +33,12 @@ void clockSetup(void) {
 void toggle_gpio() { P1OUT ^= BIT3; }
 
 void begin_event() {
-  __delay_cycles(CLOCK_HZ);
+  __delay_cycles(0.5 * CLOCK_HZ);
   P1OUT |= BIT3;
 }
 void end_event() {
   P1OUT &= ~BIT3;
-  __delay_cycles(CLOCK_HZ);
+  __delay_cycles(0.5 * CLOCK_HZ);
 }
 
 void begin_measurement_window() {
@@ -133,6 +133,8 @@ void initialize(void) {
 
   // Measurement pins
   P1DIR |= BIT2 | BIT3;
+  P1OUT &= ~BIT3;
+  P1OUT &= ~BIT2;
 
   __delay_cycles(CLOCK_HZ * 10);
 
