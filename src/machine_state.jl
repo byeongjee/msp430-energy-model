@@ -122,6 +122,7 @@ const EXECUTORS = Dict{Symbol,Function}(
     :rla => single_operand_executor!,
     :rlam => single_operand_executor!,
     :sbc => single_operand_executor!,
+    :adc => single_operand_executor!,
     # Jump instructions
     :jnz => jump_executor!,
     :jz => jump_executor!,
@@ -309,6 +310,12 @@ function execute_single_operand!(
         carry = state.flags[:C] ? UInt16(0) : UInt16(1)  # Inverted for subtraction
         result = UInt16((operand_val - carry) & 0xFFFF)
         update_flags!(state, result, operand_val, UInt16(0), false)
+    elseif opcode == :adc
+        # ADC is an emulated instruction: adc dst == addc #0, dst
+        # It adds the carry flag to the destination
+        carry = state.flags[:C] ? UInt16(1) : UInt16(0)
+        result = UInt16((operand_val + carry) & 0xFFFF)
+        update_flags!(state, result, operand_val, UInt16(0), true)
     elseif opcode == :rla
         # Rotate left arithmetic (shift left, carry gets MSB, LSB gets 0)
         operand_val = get_operand_value(state, ops[1])
