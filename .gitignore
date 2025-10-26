@@ -9,6 +9,10 @@ build/
 *.out
 *.exe
 
+# Temporary files
+.tmp
+tmp/
+
 # macOS
 .DS_Store
 .AppleDouble

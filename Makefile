@@ -29,9 +29,10 @@ LDFLAGS := -L$(MSP430_LD_PATH)
 SRC_DIR := examples/c_programs
 BUILD_DIR := build
 ASM_DIR := $(BUILD_DIR)/asm
+TEMP_DIR := ./tmp
 
 # Default target
-.PHONY: all clean help interpret train estimate visualize test flash create_fixture
+.PHONY: all clean help interpret train estimate visualize test flash create_fixture pipeline
 
 all: help
 
@@ -45,6 +46,8 @@ help:
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
 	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
+	@echo "  pipeline TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> PLOT=<file> [options] - Full pipeline: measure → train → estimate"
+	@echo "           Optional: RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file> VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> SKIP_RESET=1"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
@@ -60,6 +63,8 @@ help:
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
+	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PLOT=result.png"
+	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PLOT=result.png PARAMS=my_params.json RAW_CSV=measurement.csv"
 	@echo "  make visualize PARAMS=energy_params.json"
 	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
@@ -129,6 +134,27 @@ endif
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
 	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
 	@echo "✓ Estimation completed!"
+
+# Pipeline mode: measure → preprocess → train → estimate (full hardware-in-the-loop)
+pipeline:
+ifndef TRAIN_FILE
+	$(error Please specify TRAIN_FILE=<file.c> for training)
+endif
+ifndef ESTIMATE_FILE
+	$(error Please specify ESTIMATE_FILE=<file.c> for estimation)
+endif
+ifndef PLOT
+	$(error Please specify PLOT=<output_plot_file>)
+endif
+	@ARGS="--train-file $(TRAIN_FILE) --estimate-file $(ESTIMATE_FILE) --plot $(PLOT)"; \
+	if [ -n "$(RAW_CSV)" ]; then ARGS="$$ARGS --raw-csv $(RAW_CSV)"; fi; \
+	if [ -n "$(SEGMENTS_CSV)" ]; then ARGS="$$ARGS --segments-csv $(SEGMENTS_CSV)"; fi; \
+	if [ -n "$(PARAMS)" ]; then ARGS="$$ARGS --params $(PARAMS)"; fi; \
+	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
+	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
+	if [ -n "$(MAX_STEPS)" ]; then ARGS="$$ARGS --max-steps $(MAX_STEPS)"; fi; \
+	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
+	./scripts/pipeline.sh $$ARGS
 
 # Visualize mode: visualize instruction energy distributions
 visualize:
