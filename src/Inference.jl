@@ -111,7 +111,7 @@ end
 Learn MSP430 instruction energy parameters from training data using importance sampling
 """
 function learn_parameters(
-    training_data::TrainingData; n_samples::Int=1000
+    training_data::TrainingData; n_samples::Int=100
 )::Dict{Symbol,Tuple{Float64,Float64}}
     # Get all unique instruction types from training data
     all_opcodes = Set{Symbol}()
