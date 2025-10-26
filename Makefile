@@ -88,7 +88,10 @@ ifndef FILE
 endif
 	@echo "Compiling $(FILE) for MSP430..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
+	MODE_FLAG=""; \
+	if [ "$(MODE)" = "TRAIN" ]; then MODE_FLAG="-DTRAIN_MODE"; echo "  Mode: TRAIN"; fi; \
+	if [ "$(MODE)" = "ESTIMATE" ]; then MODE_FLAG="-DESTIMATE_MODE"; echo "  Mode: ESTIMATE"; fi; \
+	$(CC) $(CFLAGS) $$MODE_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
 	@echo "✓ Compilation successful: $(BUILD_DIR)/$$(basename $(FILE) .c).elf"
 
 # Disassemble binary
@@ -109,6 +112,7 @@ interpret: disasm
 	@echo "✓ Interpret completed!"
 
 # Train mode: infer energy parameters from measurements
+train: MODE=TRAIN
 train: disasm
 ifndef DATA
 	$(error Please specify DATA=<measurement_file.csv>)
@@ -124,6 +128,7 @@ endif
 	@echo "✓ Training completed!"
 
 # Estimate mode: predict energy consumption
+estimate: MODE=ESTIMATE
 estimate: disasm
 ifndef PARAMS
 	$(error Please specify PARAMS=<parameter_file>)

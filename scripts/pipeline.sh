@@ -275,7 +275,8 @@ log_info "Plot output: $PLOT_FILE"
 log_step "Step 1/7: Compiling training file"
 mkdir -p "$BUILD_DIR" "$ASM_DIR"
 cd "$PROJECT_ROOT"
-$CC $CFLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
+log_info "Compiling with TRAIN_MODE flag"
+$CC $CFLAGS -DTRAIN_MODE $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
 log_success "Compiled: $BUILD_DIR/${TRAIN_BASENAME}.elf"
 
 # Step 2: Flash training file to device
@@ -315,7 +316,8 @@ log_success "Model trained: $PARAMS_FILE"
 
 # Step 6: Compile and disassemble estimation file
 log_step "Step 6/7: Compiling estimation file"
-$CC $CFLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+log_info "Compiling with ESTIMATE_MODE flag"
+$CC $CFLAGS -DESTIMATE_MODE $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
 log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 $OBJDUMP -d "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" > "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"
