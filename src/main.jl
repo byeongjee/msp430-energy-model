@@ -44,6 +44,10 @@ function parse_commandline()
         help = "Maximum number of execution steps"
         arg_type = Int
         default = 100000000
+        "--n-samples"
+        help = "Number of samples for importance sampling inference (train mode)"
+        arg_type = Int
+        default = 100
     end
 
     return parse_args(s)
@@ -77,7 +81,11 @@ end
 Train mode: Infer energy parameters from assembly and measurement data
 """
 function run_train(
-    asm_file::String, data_file::String, output_file::Union{String,Nothing}, max_steps::Int
+    asm_file::String,
+    data_file::String,
+    output_file::Union{String,Nothing},
+    max_steps::Int,
+    n_samples::Int,
 )::Nothing
     @info "Running in TRAIN mode"
     @info "Assembly file" path = asm_file
@@ -121,8 +129,8 @@ function run_train(
 
     @info "Training data created successfully"
 
-    @info "Learning energy parameters from training data"
-    learned_params = Inference.learn_parameters(training_data)
+    @info "Learning energy parameters from training data" n_samples
+    learned_params = Inference.learn_parameters(training_data; n_samples=n_samples)
 
     @info "Parameter learning complete" num_instruction_types = length(learned_params)
 
@@ -292,7 +300,8 @@ function main()
                 error("--data is required for train mode")
             end
             output_file = args["output"]
-            run_train(asm_file, data_file, output_file, max_steps)
+            n_samples = args["n-samples"]
+            run_train(asm_file, data_file, output_file, max_steps, n_samples)
 
         elseif mode == "estimate"
             if isnothing(asm_file)

@@ -44,10 +44,10 @@ help:
 	@echo "  compile FILE=<file.c> [DEBUG=1]       - Compile C file to MSP430 binary"
 	@echo "  disasm FILE=<file.c>        - Compile and disassemble"
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
-	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] - Train energy model"
+	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
 	@echo "  pipeline TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> PLOT=<file> [options] - Full pipeline: measure → train → estimate"
-	@echo "           Optional: RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file> VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> SKIP_RESET=1"
+	@echo "           Optional: RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file> VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> SKIP_RESET=1"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
@@ -60,7 +60,7 @@ help:
 	@echo "  make interpret FILE=examples/c_programs/simple.c"
 	@echo "  make interpret FILE=examples/c_programs/simple.c MAX_STEPS=1000"
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv"
-	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500"
+	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500 N_SAMPLES=200"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
 	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PLOT=result.png"
@@ -118,7 +118,9 @@ endif
 	OUTPUT=$${OUTPUT:-energy_params.json}; \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
-	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT $$MAX_STEPS_FLAG
+	N_SAMPLES_FLAG=""; \
+	if [ -n "$(N_SAMPLES)" ]; then N_SAMPLES_FLAG="--n-samples $(N_SAMPLES)"; fi; \
+	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG
 	@echo "✓ Training completed!"
 
 # Estimate mode: predict energy consumption
@@ -153,6 +155,7 @@ endif
 	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
 	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
 	if [ -n "$(MAX_STEPS)" ]; then ARGS="$$ARGS --max-steps $(MAX_STEPS)"; fi; \
+	if [ -n "$(N_SAMPLES)" ]; then ARGS="$$ARGS --n-samples $(N_SAMPLES)"; fi; \
 	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
 	./scripts/pipeline.sh $$ARGS
 

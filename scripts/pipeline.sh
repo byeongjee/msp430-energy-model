@@ -16,6 +16,7 @@ VOLTAGE=3.3
 MAX_CURRENT=0.01
 SKIP_RESET=""
 MAX_STEPS=""
+N_SAMPLES=""
 TEMP_DIR="./tmp"
 
 # Required parameters (to be set via command line)
@@ -88,6 +89,7 @@ Optional arguments:
   --voltage V               Voltage for measurement (default: 3.3)
   --max-current A           Max current for measurement (default: 0.01)
   --max-steps N             Maximum execution steps for train/estimate
+  --n-samples N             Number of samples for importance sampling (default: 100)
   --skip-reset              Skip device reset during measurement
   --help                    Show this help message
 
@@ -152,6 +154,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --max-steps)
             MAX_STEPS="$2"
+            shift 2
+            ;;
+        --n-samples)
+            N_SAMPLES="$2"
             shift 2
             ;;
         --skip-reset)
@@ -231,6 +237,12 @@ if [[ -n "$MAX_STEPS" ]]; then
     MAX_STEPS_FLAG="--max-steps $MAX_STEPS"
 fi
 
+# Build N_SAMPLES_FLAG
+N_SAMPLES_FLAG=""
+if [[ -n "$N_SAMPLES" ]]; then
+    N_SAMPLES_FLAG="--n-samples $N_SAMPLES"
+fi
+
 # Cleanup function
 cleanup() {
     if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
@@ -297,7 +309,8 @@ julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" train \
     --asm "$ASM_DIR/${TRAIN_BASENAME}.asm" \
     --data "$SEGMENTS_CSV" \
     --output "$PARAMS_FILE" \
-    $MAX_STEPS_FLAG
+    $MAX_STEPS_FLAG \
+    $N_SAMPLES_FLAG
 log_success "Model trained: $PARAMS_FILE"
 
 # Step 6: Compile and disassemble estimation file
