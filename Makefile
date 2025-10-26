@@ -46,8 +46,8 @@ help:
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
 	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
-	@echo "  pipeline TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> PLOT=<file> [options] - Full pipeline: measure → train → estimate"
-	@echo "           Optional: RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file> VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> SKIP_RESET=1"
+	@echo "  pipeline TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> [options] - Full pipeline: measure → train → estimate → compare"
+	@echo "           Optional: REPORT_DIR=<dir> RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file> VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> SKIP_RESET=1"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
@@ -63,8 +63,8 @@ help:
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500 N_SAMPLES=200"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
-	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PLOT=result.png"
-	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PLOT=result.png PARAMS=my_params.json RAW_CSV=measurement.csv"
+	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c"
+	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PARAMS=my_params.json RAW_CSV=measurement.csv REPORT_DIR=./my_reports"
 	@echo "  make visualize PARAMS=energy_params.json"
 	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
@@ -152,10 +152,7 @@ endif
 ifndef ESTIMATE_FILE
 	$(error Please specify ESTIMATE_FILE=<file.c> for estimation)
 endif
-ifndef PLOT
-	$(error Please specify PLOT=<output_plot_file>)
-endif
-	@ARGS="--train-file $(TRAIN_FILE) --estimate-file $(ESTIMATE_FILE) --plot $(PLOT)"; \
+	@ARGS="--train-file $(TRAIN_FILE) --estimate-file $(ESTIMATE_FILE)"; \
 	if [ -n "$(RAW_CSV)" ]; then ARGS="$$ARGS --raw-csv $(RAW_CSV)"; fi; \
 	if [ -n "$(SEGMENTS_CSV)" ]; then ARGS="$$ARGS --segments-csv $(SEGMENTS_CSV)"; fi; \
 	if [ -n "$(PARAMS)" ]; then ARGS="$$ARGS --params $(PARAMS)"; fi; \

@@ -35,10 +35,7 @@ function parse_commandline()
         help = "Path to energy parameter file (required for estimate mode)"
         arg_type = String
         "--output"
-        help = "Output file path (for train mode)"
-        arg_type = String
-        "--plot"
-        help = "Plot output file path (for estimate mode)"
+        help = "Output file path (for train/estimate mode)"
         arg_type = String
         "--max-steps"
         help = "Maximum number of execution steps"
@@ -161,14 +158,14 @@ function run_estimate(
     asm_file::String,
     params_file::String,
     max_steps::Int,
-    plot_file::Union{String,Nothing}=nothing,
+    output_file::Union{String,Nothing}=nothing,
 )::Nothing
     @info "Running in ESTIMATE mode"
     @info "Assembly file" path = asm_file
     @info "Energy parameters" path = params_file
 
-    if !isnothing(plot_file)
-        @info "Plot output file" path = plot_file
+    if !isnothing(output_file)
+        @info "Statistics output file" path = output_file
     end
 
     params = load_energy_params(params_file)
@@ -207,22 +204,6 @@ function run_estimate(
         push!(all_stats, stats)
     end
 
-    # Plot all distributions in a grid
-    if !isempty(all_stats)
-        try
-            if length(all_stats) == 1
-                # If only one event sequence, use the single plot
-                plot_cost_distribution(all_stats[1], plot_file)
-            else
-                # If multiple event sequences, use grid layout
-                plot_cost_distributions_grid(all_stats, plot_file)
-            end
-        catch e
-            @warn "Failed to plot cost distribution" error = e
-            @info "Continuing without plot"
-        end
-    end
-
     @info "="^60
     @info "ESTIMATION COMPLETE"
     @info "="^60
@@ -238,6 +219,30 @@ function run_estimate(
         @warn "Unknown instructions encountered (not in energy parameters file)" count = length(
             all_unknown_instructions
         ) instructions = join(sort(collect(all_unknown_instructions)), ", ") default_params = "Using Gamma(alpha=1.0, beta=3.0) for these instructions"
+    end
+
+    # Save stats to JSON if requested
+    if !isnothing(output_file) && !isempty(all_stats)
+        @info "Saving estimation statistics" path = output_file num_events = length(all_stats)
+        # Save all event sequences' stats as an array
+        events_array = []
+        for stats in all_stats
+            push!(
+                events_array,
+                Dict(
+                    "mean" => stats.mean,
+                    "std" => stats.std,
+                    "min" => stats.min,
+                    "max" => stats.max,
+                    "samples" => stats.samples,
+                ),
+            )
+        end
+        stats_dict = Dict("events" => events_array)
+        open(output_file, "w") do f
+            JSON.print(f, stats_dict, 4)
+        end
+        @info "Statistics saved successfully"
     end
 
     return nothing
@@ -311,8 +316,8 @@ function main()
             if isnothing(params_file)
                 error("--params is required for estimate mode")
             end
-            plot_file = args["plot"]
-            run_estimate(asm_file, params_file, max_steps, plot_file)
+            output_file = args["output"]
+            run_estimate(asm_file, params_file, max_steps, output_file)
 
         elseif mode == "visualize"
             params_file = args["params"]
