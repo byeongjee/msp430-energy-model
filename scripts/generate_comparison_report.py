@@ -122,70 +122,6 @@ def plot_comparison(estimated_data, measured_data, estimated_stats, measured_sta
     print(f"  - Saved: {output_path}")
 
 
-def generate_text_report(estimated_stats, measured_stats, report_path):
-    """Generate text comparison report."""
-    # Calculate comparison metrics
-    mean_diff = estimated_stats['mean'] - measured_stats['mean']
-    mean_diff_pct = (mean_diff / measured_stats['mean']) * 100
-    std_diff = estimated_stats['std'] - measured_stats['std']
-    std_diff_pct = (std_diff / measured_stats['std']) * 100
-
-    # Determine assessment
-    if abs(mean_diff_pct) < 5:
-        assessment = "Excellent agreement (< 5% error)"
-    elif abs(mean_diff_pct) < 10:
-        assessment = "Good agreement (< 10% error)"
-    elif abs(mean_diff_pct) < 20:
-        assessment = "Moderate agreement (< 20% error)"
-    else:
-        assessment = "Significant deviation (≥ 20% error)"
-
-    # Write report
-    with open(report_path, 'w') as f:
-        f.write("=" * 80 + "\n")
-        f.write("Energy Consumption Comparison Report\n")
-        f.write("=" * 80 + "\n\n")
-        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-
-        f.write("-" * 80 + "\n")
-        f.write("ESTIMATED DISTRIBUTION (from probabilistic model)\n")
-        f.write("-" * 80 + "\n")
-        f.write(f"  Mean:             {estimated_stats['mean']:.4f} nJ\n")
-        f.write(f"  Std Deviation:    {estimated_stats['std']:.4f} nJ\n")
-        f.write(f"  Min:              {estimated_stats['min']:.4f} nJ\n")
-        f.write(f"  Max:              {estimated_stats['max']:.4f} nJ\n")
-        f.write(f"  Samples:          {estimated_stats['count']}\n\n")
-
-        f.write("-" * 80 + "\n")
-        f.write("MEASURED DISTRIBUTION (from hardware)\n")
-        f.write("-" * 80 + "\n")
-        f.write(f"  Mean:             {measured_stats['mean']:.4f} nJ\n")
-        f.write(f"  Std Deviation:    {measured_stats['std']:.4f} nJ\n")
-        f.write(f"  Min:              {measured_stats['min']:.4f} nJ\n")
-        f.write(f"  Max:              {measured_stats['max']:.4f} nJ\n")
-        f.write(f"  Samples:          {measured_stats['count']}\n\n")
-
-        f.write("-" * 80 + "\n")
-        f.write("COMPARISON\n")
-        f.write("-" * 80 + "\n")
-        f.write(f"  Mean Difference:       {mean_diff:.4f} nJ\n")
-        f.write(f"  Mean Error:            {mean_diff_pct:.2f}%\n")
-        f.write(f"  Std Dev Difference:    {std_diff:.4f} nJ\n")
-        f.write(f"  Std Dev Error:         {std_diff_pct:.2f}%\n\n")
-        f.write(f"  Assessment: {assessment}\n\n")
-
-        f.write("=" * 80 + "\n")
-        f.write("Output Files:\n")
-        f.write("  - estimated_distribution.png\n")
-        f.write("  - measured_distribution.png\n")
-        f.write("  - comparison_plot.png\n")
-        f.write("  - comparison.txt (this file)\n")
-        f.write("=" * 80 + "\n")
-
-    print(f"  - Saved: {report_path}")
-    return mean_diff_pct
-
-
 def main():
     parser = argparse.ArgumentParser(
         description='Generate comparison report between estimated and measured energy distributions'
@@ -235,15 +171,14 @@ def main():
     print("Processing events...")
     all_errors = []
 
-    # Create combined text report
-    report_path = report_dir / 'comparison.txt'
+    # Create combined markdown report
+    report_path = report_dir / 'comparison.md'
     with open(report_path, 'w') as f:
-        f.write("=" * 80 + "\n")
-        f.write("Energy Consumption Comparison Report\n")
-        f.write("=" * 80 + "\n\n")
-        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"Number of events: {num_events}\n")
-        f.write(f"NUM_REPEAT: {num_repeat}\n\n")
+        f.write("# Energy Consumption Comparison Report\n\n")
+        f.write(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n")
+        f.write(f"**Number of events:** {num_events}  \n")
+        f.write(f"**NUM_REPEAT:** {num_repeat}\n\n")
+        f.write("---\n\n")
 
         for event_idx, event_stats_dict in enumerate(events):
             print(f"\n  Event {event_idx + 1}/{num_events}")
@@ -275,35 +210,30 @@ def main():
             all_errors.append(mean_diff_pct)
 
             # Write to report
-            f.write("=" * 80 + "\n")
-            f.write(f"EVENT {event_idx + 1}\n")
-            f.write("=" * 80 + "\n\n")
+            f.write(f"## Event {event_idx + 1}\n\n")
 
-            f.write("-" * 80 + "\n")
-            f.write("ESTIMATED DISTRIBUTION (from probabilistic model)\n")
-            f.write("-" * 80 + "\n")
-            f.write(f"  Mean:             {estimated_stats['mean']:.4f} nJ\n")
-            f.write(f"  Std Deviation:    {estimated_stats['std']:.4f} nJ\n")
-            f.write(f"  Min:              {estimated_stats['min']:.4f} nJ\n")
-            f.write(f"  Max:              {estimated_stats['max']:.4f} nJ\n")
-            f.write(f"  Samples:          {estimated_stats['count']}\n\n")
+            # Statistics table
+            f.write("### Statistics\n\n")
+            f.write("| Metric | Estimated (Model) | Measured (Hardware) | Difference | Error |\n")
+            f.write("|--------|------------------|--------------------|-----------:|------:|\n")
+            f.write(f"| **Mean** | {estimated_stats['mean']:.4f} nJ | {measured_stats['mean']:.4f} nJ | {mean_diff:.4f} nJ | {mean_diff_pct:.2f}% |\n")
+            f.write(f"| **Std Dev** | {estimated_stats['std']:.4f} nJ | {measured_stats['std']:.4f} nJ | {std_diff:.4f} nJ | {std_diff_pct:.2f}% |\n")
+            f.write(f"| **Min** | {estimated_stats['min']:.4f} nJ | {measured_stats['min']:.4f} nJ | - | - |\n")
+            f.write(f"| **Max** | {estimated_stats['max']:.4f} nJ | {measured_stats['max']:.4f} nJ | - | - |\n")
+            f.write(f"| **Samples** | {estimated_stats['count']} | {measured_stats['count']} | - | - |\n\n")
 
-            f.write("-" * 80 + "\n")
-            f.write("MEASURED DISTRIBUTION (from hardware)\n")
-            f.write("-" * 80 + "\n")
-            f.write(f"  Mean:             {measured_stats['mean']:.4f} nJ\n")
-            f.write(f"  Std Deviation:    {measured_stats['std']:.4f} nJ\n")
-            f.write(f"  Min:              {measured_stats['min']:.4f} nJ\n")
-            f.write(f"  Max:              {measured_stats['max']:.4f} nJ\n")
-            f.write(f"  Samples:          {measured_stats['count']}\n\n")
+            # Plots
+            f.write("### Distributions\n\n")
+            f.write("#### Comparison\n\n")
+            f.write(f"![Event {event_idx + 1} Comparison](event_{event_idx + 1}_comparison.png)\n\n")
 
-            f.write("-" * 80 + "\n")
-            f.write("COMPARISON\n")
-            f.write("-" * 80 + "\n")
-            f.write(f"  Mean Difference:       {mean_diff:.4f} nJ\n")
-            f.write(f"  Mean Error:            {mean_diff_pct:.2f}%\n")
-            f.write(f"  Std Dev Difference:    {std_diff:.4f} nJ\n")
-            f.write(f"  Std Dev Error:         {std_diff_pct:.2f}%\n\n")
+            f.write("#### Estimated Distribution\n\n")
+            f.write(f"![Event {event_idx + 1} Estimated](event_{event_idx + 1}_estimated.png)\n\n")
+
+            f.write("#### Measured Distribution\n\n")
+            f.write(f"![Event {event_idx + 1} Measured](event_{event_idx + 1}_measured.png)\n\n")
+
+            f.write("---\n\n")
 
             # Generate plots for this event
             plot_distribution(
@@ -325,21 +255,22 @@ def main():
             )
 
         # Write summary
-        f.write("=" * 80 + "\n")
-        f.write("SUMMARY\n")
-        f.write("=" * 80 + "\n")
-        f.write(f"Average absolute error: {np.mean(np.abs(all_errors)):.2f}%\n")
-        f.write(f"Max absolute error: {np.max(np.abs(all_errors)):.2f}%\n\n")
+        f.write("## Summary\n\n")
+        f.write("| Metric | Value |\n")
+        f.write("|--------|------:|\n")
+        f.write(f"| **Average Absolute Error** | {np.mean(np.abs(all_errors)):.2f}% |\n")
+        f.write(f"| **Max Absolute Error** | {np.max(np.abs(all_errors)):.2f}% |\n")
+        f.write(f"| **Number of Events** | {num_events} |\n\n")
 
-        f.write("=" * 80 + "\n")
-        f.write("Output Files:\n")
+        f.write("### Output Files\n\n")
+        f.write("```\n")
         for event_idx in range(num_events):
-            f.write(f"  Event {event_idx + 1}:\n")
-            f.write(f"    - event_{event_idx + 1}_estimated.png\n")
-            f.write(f"    - event_{event_idx + 1}_measured.png\n")
-            f.write(f"    - event_{event_idx + 1}_comparison.png\n")
-        f.write("  - comparison.txt (this file)\n")
-        f.write("=" * 80 + "\n")
+            f.write(f"Event {event_idx + 1}:\n")
+            f.write(f"  - event_{event_idx + 1}_estimated.png\n")
+            f.write(f"  - event_{event_idx + 1}_measured.png\n")
+            f.write(f"  - event_{event_idx + 1}_comparison.png\n")
+        f.write("comparison.md (this file)\n")
+        f.write("```\n")
 
     print(f"  - Saved: {report_path}")
     print()
