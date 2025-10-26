@@ -44,10 +44,10 @@ help:
 	@echo "  compile FILE=<file.c> [DEBUG=1]       - Compile C file to MSP430 binary"
 	@echo "  disasm FILE=<file.c>        - Compile and disassemble"
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
-	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] - Train energy model"
+	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
 	@echo "  pipeline TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> PLOT=<file> [options] - Full pipeline: measure → train → estimate"
-	@echo "           Optional: RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file> VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> SKIP_RESET=1"
+	@echo "           Optional: RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file> VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> SKIP_RESET=1"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
@@ -88,10 +88,12 @@ ifndef FILE
 endif
 	@echo "Compiling $(FILE) for MSP430..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	MODE_FLAG=""; \
-	if [ "$(MODE)" = "TRAIN" ]; then MODE_FLAG="-DTRAIN_MODE"; echo "  Mode: TRAIN"; fi; \
-	if [ "$(MODE)" = "ESTIMATE" ]; then MODE_FLAG="-DESTIMATE_MODE"; echo "  Mode: ESTIMATE"; fi; \
-	$(CC) $(CFLAGS) $$MODE_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
+	NUM_REPEAT_FLAG=""; \
+	if [ -n "$(NUM_REPEAT)" ]; then \
+		NUM_REPEAT_FLAG="-DNUM_REPEAT=$(NUM_REPEAT)"; \
+		echo "  NUM_REPEAT=$(NUM_REPEAT)"; \
+	fi; \
+	$(CC) $(CFLAGS) $$NUM_REPEAT_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
 	@echo "✓ Compilation successful: $(BUILD_DIR)/$$(basename $(FILE) .c).elf"
 
 # Disassemble binary
@@ -112,7 +114,7 @@ interpret: disasm
 	@echo "✓ Interpret completed!"
 
 # Train mode: infer energy parameters from measurements
-train: MODE=TRAIN
+train: NUM_REPEAT?=10
 train: disasm
 ifndef DATA
 	$(error Please specify DATA=<measurement_file.csv>)
@@ -128,7 +130,7 @@ endif
 	@echo "✓ Training completed!"
 
 # Estimate mode: predict energy consumption
-estimate: MODE=ESTIMATE
+estimate: NUM_REPEAT=1
 estimate: disasm
 ifndef PARAMS
 	$(error Please specify PARAMS=<parameter_file>)
@@ -161,6 +163,7 @@ endif
 	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
 	if [ -n "$(MAX_STEPS)" ]; then ARGS="$$ARGS --max-steps $(MAX_STEPS)"; fi; \
 	if [ -n "$(N_SAMPLES)" ]; then ARGS="$$ARGS --n-samples $(N_SAMPLES)"; fi; \
+	if [ -n "$(NUM_REPEAT)" ]; then ARGS="$$ARGS --num-repeat $(NUM_REPEAT)"; fi; \
 	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
 	./scripts/pipeline.sh $$ARGS
 

@@ -1,13 +1,5 @@
 #include "setup.h"
 
-#ifdef TRAIN_MODE
-#define OUTER_ITERS 10
-#endif
-
-#ifdef ESTIMATE_MODE
-#define OUTER_ITERS 1
-#endif
-
 #define INNER_ITERS 20
 
 /* ---------- helpers ---------- */
@@ -155,31 +147,31 @@ int main(void) {
 
   begin_measurement_window();
 
-  for (int i = 0; i < OUTER_ITERS; i++) {
+  for (int i = 0; i < NUM_REPEAT; i++) {
     begin_event();
     bench_mov_alt();
     end_event();
   }
 
-  for (int i = 0; i < OUTER_ITERS; i++) {
+  for (int i = 0; i < NUM_REPEAT; i++) {
     begin_event();
     bench_add();
     end_event();
   }
 
-  for (int i = 0; i < OUTER_ITERS; i++) {
+  for (int i = 0; i < NUM_REPEAT; i++) {
     begin_event();
     bench_rlam();
     end_event();
   }
 
-  for (int i = 0; i < OUTER_ITERS; i++) {
+  for (int i = 0; i < NUM_REPEAT; i++) {
     begin_event();
     bench_jge();
     end_event();
   }
 
-  for (int i = 0; i < OUTER_ITERS; i++) {
+  for (int i = 0; i < NUM_REPEAT; i++) {
     begin_event();
     bench_jmp();
     end_event();

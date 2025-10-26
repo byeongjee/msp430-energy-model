@@ -17,6 +17,7 @@ MAX_CURRENT=0.01
 SKIP_RESET=""
 MAX_STEPS=""
 N_SAMPLES=""
+NUM_REPEAT=10
 TEMP_DIR="./tmp"
 
 # Required parameters (to be set via command line)
@@ -90,6 +91,7 @@ Optional arguments:
   --max-current A           Max current for measurement (default: 0.01)
   --max-steps N             Maximum execution steps for train/estimate
   --n-samples N             Number of samples for importance sampling (default: 100)
+  --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
   --skip-reset              Skip device reset during measurement
   --help                    Show this help message
 
@@ -158,6 +160,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --n-samples)
             N_SAMPLES="$2"
+            shift 2
+            ;;
+        --num-repeat)
+            NUM_REPEAT="$2"
             shift 2
             ;;
         --skip-reset)
@@ -275,8 +281,8 @@ log_info "Plot output: $PLOT_FILE"
 log_step "Step 1/7: Compiling training file"
 mkdir -p "$BUILD_DIR" "$ASM_DIR"
 cd "$PROJECT_ROOT"
-log_info "Compiling with TRAIN_MODE flag"
-$CC $CFLAGS -DTRAIN_MODE $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
+log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
+$CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
 log_success "Compiled: $BUILD_DIR/${TRAIN_BASENAME}.elf"
 
 # Step 2: Flash training file to device
@@ -316,8 +322,8 @@ log_success "Model trained: $PARAMS_FILE"
 
 # Step 6: Compile and disassemble estimation file
 log_step "Step 6/7: Compiling estimation file"
-log_info "Compiling with ESTIMATE_MODE flag"
-$CC $CFLAGS -DESTIMATE_MODE $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+log_info "Compiling with NUM_REPEAT=1 (estimation mode)"
+$CC $CFLAGS -DNUM_REPEAT=1 $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
 log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 $OBJDUMP -d "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" > "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"
