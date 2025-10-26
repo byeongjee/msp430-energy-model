@@ -1,8 +1,12 @@
 #include "setup.h"
 
-// if we are measuring, we should repeat multiple times
-// if we are estimating, set repeat to 1
+#ifdef TRAIN_MODE
+#define REPEAT 10
+#endif
+
+#ifdef ESTIMATE_MODE
 #define REPEAT 1
+#endif
 
 int main(void) {
   initialize();

@@ -1,5 +1,15 @@
 #include "setup.h"
 
+#ifdef TRAIN_MODE
+#define OUTER_ITERS 10
+#endif
+
+#ifdef ESTIMATE_MODE
+#define OUTER_ITERS 1
+#endif
+
+#define INNER_ITERS 20
+
 /* ---------- helpers ---------- */
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -27,15 +37,6 @@
 #endif
 #ifndef REPS_MOV_PAIRS
 #define REPS_MOV_PAIRS 128 /* (reg MOV + indirect MOV) pairs per outer iter */
-#endif
-
-/* ---------- knobs: outer loop count per bench ---------- */
-#ifndef OUTER_ITERS
-#define OUTER_ITERS 10
-#endif
-
-#ifndef INNER_ITERS
-#define INNER_ITERS 20
 #endif
 
 NOINLINE void bench_add() {
