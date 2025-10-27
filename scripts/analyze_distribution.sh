@@ -216,8 +216,9 @@ log_success "Segments saved: $SEGMENTS_CSV"
 log_step "Step 5/5: Analyzing distribution"
 python3 "$ANALYZE_PY" \
     --input "$SEGMENTS_CSV" \
-    --output "$PLOT_PNG"
-log_success "Distribution plot saved: $PLOT_PNG"
+    --output "$PLOT_PNG" \
+    --num-repeat "$NUM_REPEAT"
+log_success "Distribution analysis completed"
 
 # Cleanup temporary raw CSV
 rm -f "$RAW_CSV"
@@ -229,5 +230,6 @@ log_success "All steps completed successfully!"
 echo ""
 log_info "Output files:"
 echo "  - Segments CSV: $SEGMENTS_CSV"
-echo "  - Distribution plot: $PLOT_PNG"
+echo "  - Summary CSV: ${REPORT_DIR_FULL}/distribution_summary.csv"
+echo "  - Distribution plots: ${REPORT_DIR_FULL}/distribution_event_*.png"
 echo "  - Report directory: $REPORT_DIR_FULL"
