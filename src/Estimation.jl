@@ -5,6 +5,7 @@ module Estimation
 using JSON
 using Statistics
 using Distributions
+using Base.Threads
 using Main.EnergyModel: Instruction
 
 export load_energy_params, estimate_cost_distribution
@@ -70,12 +71,11 @@ function estimate_cost_distribution(
 
     # Generate samples of total cost
     # For each sample, draw energy for each instruction from Gamma(alpha, beta) and sum
-    cost_samples = Float64[]
+    cost_samples = Vector{Float64}(undef, n_samples)
 
-    # Progress logging interval
-    progress_interval = max(1, div(n_samples, 10))  # Log at 10%, 20%, ..., 100%
+    @info "Starting parallel sampling with $(Threads.nthreads()) threads..."
 
-    for i in 1:n_samples
+    @threads for i in 1:n_samples
         total_cost = 0.0
         for inst in instructions
             alpha, beta = get(params, inst.opcode, (default_alpha, default_beta))
@@ -83,14 +83,10 @@ function estimate_cost_distribution(
             cost = rand(Distributions.Gamma(alpha, beta))
             total_cost += cost
         end
-        push!(cost_samples, total_cost)
-
-        # Log progress at intervals
-        if i % progress_interval == 0 || i == n_samples
-            progress_pct = round(100 * i / n_samples; digits=1)
-            @info "Sampling progress $(progress_pct)%"
-        end
+        cost_samples[i] = total_cost
     end
+
+    @info "Sampling completed"
 
     # Compute statistics
     mean_cost = Statistics.mean(cost_samples)

@@ -31,6 +31,12 @@ BUILD_DIR := build
 ASM_DIR := $(BUILD_DIR)/asm
 TEMP_DIR := ./tmp
 
+# Julia thread configuration
+# Default: 'auto' uses all available cores (Julia 1.5+)
+# Override with: make <target> JULIA_NUM_THREADS=4
+JULIA_NUM_THREADS ?= auto
+export JULIA_NUM_THREADS
+
 # Default target
 .PHONY: all clean help interpret train estimate visualize test flash create_fixture pipeline
 
@@ -39,6 +45,9 @@ all: help
 help:
 	@echo "MSP430 C to Assembly Pipeline"
 	@echo "============================="
+	@echo ""
+	@echo "Configuration:"
+	@echo "  JULIA_NUM_THREADS=$(JULIA_NUM_THREADS) (override with JULIA_NUM_THREADS=N)"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  compile FILE=<file.c> [DEBUG=1]       - Compile C file to MSP430 binary"
@@ -68,6 +77,7 @@ help:
 	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TAG=experiment1 KEEP_INTERMEDIATES=1"
 	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PARAMS=my_params.json RAW_CSV=measurement.csv REPORT_DIR=./my_reports"
 	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c RAW_CSV=train.csv MEASURED_RAW_CSV=estimate.csv  # Resume without hardware"
+	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json JULIA_NUM_THREADS=4  # Use 4 threads"
 	@echo "  make visualize PARAMS=energy_params.json"
 	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
