@@ -89,7 +89,8 @@ Required arguments:
   --estimate-file FILE      C file to estimate energy for
 
 Optional arguments:
-  --raw-csv FILE            Raw measurement CSV file (default: temp file)
+  --raw-csv FILE            Raw measurement CSV file for training (default: temp file)
+  --measured-raw-csv FILE   Raw measurement CSV file for estimation (default: temp file)
   --segments-csv FILE       Preprocessed segments CSV file (default: temp file)
   --params FILE             Model parameters JSON file (default: temp file)
   --voltage V               Voltage for measurement (default: 3.3)
@@ -136,6 +137,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --raw-csv)
             RAW_CSV="$2"
+            shift 2
+            ;;
+        --measured-raw-csv)
+            MEASURED_RAW_CSV="$2"
             shift 2
             ;;
         --segments-csv)
@@ -235,11 +240,18 @@ if [[ -z "$PARAMS_FILE" ]]; then
     log_info "Using temporary params file: $PARAMS_FILE"
 fi
 
-# Setup temporary files for measured data and estimated stats (always temp)
+# Setup temporary file for estimated stats (always temp)
 ESTIMATED_STATS_JSON="$TEMP_DIR/estimated_stats_$$.json"
-MEASURED_RAW_CSV="$TEMP_DIR/measured_$$.csv"
+
+# Setup temporary file for measured raw CSV if not provided
+if [[ -z "$MEASURED_RAW_CSV" ]]; then
+    MEASURED_RAW_CSV="$TEMP_DIR/measured_$$.csv"
+    USE_TEMP_MEASURED_RAW=1
+    log_info "Using temporary measured raw CSV: $MEASURED_RAW_CSV"
+fi
+
+# Setup temporary file for measured segments (always temp)
 MEASURED_SEGMENTS_CSV="$TEMP_DIR/measured_segments_$$.csv"
-USE_TEMP_MEASURED_RAW=1
 USE_TEMP_MEASURED_SEGMENTS=1
 
 # Create timestamped report directory
@@ -265,24 +277,39 @@ fi
 
 # Determine which steps to skip based on provided intermediate files
 SKIP_MEASUREMENT=0
+SKIP_ESTIMATION_MEASUREMENT=0
 SKIP_PREPROCESSING=0
 SKIP_TRAINING=0
 
 # If PARAMS provided and exists, skip everything up to training
 if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]] && [[ $USE_TEMP_PARAMS -eq 0 ]]; then
     SKIP_MEASUREMENT=1
+    SKIP_ESTIMATION_MEASUREMENT=1
     SKIP_PREPROCESSING=1
     SKIP_TRAINING=1
     log_info "Resuming from existing params: $PARAMS_FILE"
 # Else if SEGMENTS_CSV provided and exists, skip measurement and preprocessing
 elif [[ -n "$SEGMENTS_CSV" ]] && [[ -f "$SEGMENTS_CSV" ]] && [[ $USE_TEMP_SEGMENTS -eq 0 ]]; then
     SKIP_MEASUREMENT=1
+    SKIP_ESTIMATION_MEASUREMENT=1
     SKIP_PREPROCESSING=1
     log_info "Resuming from existing segments: $SEGMENTS_CSV"
-# Else if RAW_CSV provided and exists, skip measurement
+# Else if both RAW_CSV and MEASURED_RAW_CSV provided and exist, skip both measurements
+elif [[ -n "$RAW_CSV" ]] && [[ -f "$RAW_CSV" ]] && [[ $USE_TEMP_RAW -eq 0 ]] && \
+     [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]] && [[ $USE_TEMP_MEASURED_RAW -eq 0 ]]; then
+    SKIP_MEASUREMENT=1
+    SKIP_ESTIMATION_MEASUREMENT=1
+    log_info "Resuming from existing raw CSVs: $RAW_CSV and $MEASURED_RAW_CSV"
+# Else if only RAW_CSV provided and exists, skip training measurement only
 elif [[ -n "$RAW_CSV" ]] && [[ -f "$RAW_CSV" ]] && [[ $USE_TEMP_RAW -eq 0 ]]; then
     SKIP_MEASUREMENT=1
-    log_info "Resuming from existing raw CSV: $RAW_CSV"
+    log_info "Resuming from existing training raw CSV: $RAW_CSV"
+fi
+
+# Check if MEASURED_RAW_CSV is provided separately
+if [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]] && [[ $USE_TEMP_MEASURED_RAW -eq 0 ]]; then
+    SKIP_ESTIMATION_MEASUREMENT=1
+    log_info "Using existing estimation raw CSV: $MEASURED_RAW_CSV"
 fi
 
 # Cleanup function
@@ -328,47 +355,78 @@ log_info "Report directory: $REPORT_DIR_FULL"
 mkdir -p "$BUILD_DIR" "$ASM_DIR"
 cd "$PROJECT_ROOT"
 
-# Steps 1-3: Measurement (compile training file, flash, measure)
+# Steps 1-3: Training measurement (compile training file, flash, measure)
 if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
     # Step 1: Compile training file
-    log_step "Step 1/10: Compiling training file"
+    log_step "Step 1/12: Compiling training file"
     log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
     $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
     log_success "Compiled: $BUILD_DIR/${TRAIN_BASENAME}.elf"
 
     # Step 2: Flash training file to device
-    log_step "Step 2/10: Flashing training file to device"
+    log_step "Step 2/12: Flashing training file to device"
     log_info "Flashing $BUILD_DIR/${TRAIN_BASENAME}.elf..."
     mspdebug tilib "prog $BUILD_DIR/${TRAIN_BASENAME}.elf" "exit"
     log_success "Flashed to device"
 
-    # Step 3: Measure energy
-    log_step "Step 3/10: Measuring energy consumption"
+    # Step 3: Measure training file energy
+    log_step "Step 3/12: Measuring training file energy consumption"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
         --max_current "$MAX_CURRENT" \
         --outfile "$RAW_CSV" \
         $SKIP_RESET
-    log_success "Raw measurement saved: $RAW_CSV"
+    log_success "Training raw measurement saved: $RAW_CSV"
 else
-    log_step "Steps 1-3: SKIPPED (using existing raw CSV: $RAW_CSV)"
+    log_step "Steps 1-3: SKIPPED (using existing training raw CSV: $RAW_CSV)"
 fi
 
-# Step 4: Preprocess measurements
+# Steps 4-6: Estimation measurement (compile estimation file, flash, measure)
+if [[ $SKIP_ESTIMATION_MEASUREMENT -eq 0 ]]; then
+    # Step 4: Compile estimation file for measurement
+    log_step "Step 4/12: Compiling estimation file for measurement"
+    log_info "Compiling with NUM_REPEAT=$NUM_REPEAT (for measurement)"
+    $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+    log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
+
+    # Step 5: Flash estimation file to device
+    log_step "Step 5/12: Flashing estimation file to device"
+    log_info "Flashing $BUILD_DIR/${ESTIMATE_BASENAME}.elf..."
+    mspdebug tilib "prog $BUILD_DIR/${ESTIMATE_BASENAME}.elf" "exit"
+    log_success "Flashed to device"
+
+    # Step 6: Measure estimation file energy
+    log_step "Step 6/12: Measuring estimation file energy consumption"
+    log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
+    python3 "$MEASURE_PY" \
+        --voltage "$VOLTAGE" \
+        --max_current "$MAX_CURRENT" \
+        --outfile "$MEASURED_RAW_CSV" \
+        $SKIP_RESET
+    log_success "Estimation raw measurement saved: $MEASURED_RAW_CSV"
+else
+    log_step "Steps 4-6: SKIPPED (using existing estimation raw CSV: $MEASURED_RAW_CSV)"
+fi
+
+echo ""
+log_info "==> Hardware no longer required - remaining steps can run offline"
+echo ""
+
+# Step 7: Preprocess training measurements
 if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
-    log_step "Step 4/10: Preprocessing measurements"
+    log_step "Step 7/12: Preprocessing training measurements"
     python3 "$PREPROCESS_PY" \
         --input "$RAW_CSV" \
         --output "$SEGMENTS_CSV"
-    log_success "Segments saved: $SEGMENTS_CSV"
+    log_success "Training segments saved: $SEGMENTS_CSV"
 else
-    log_step "Step 4: SKIPPED (using existing segments CSV: $SEGMENTS_CSV)"
+    log_step "Step 7: SKIPPED (using existing training segments CSV: $SEGMENTS_CSV)"
 fi
 
-# Step 5: Disassemble training file and train model
+# Step 8: Train energy model
 if [[ $SKIP_TRAINING -eq 0 ]]; then
-    log_step "Step 5/10: Training energy model"
+    log_step "Step 8/12: Training energy model"
     # Need to compile if we skipped measurement
     if [[ $SKIP_MEASUREMENT -eq 1 ]]; then
         log_info "Compiling training file with NUM_REPEAT=$NUM_REPEAT"
@@ -384,19 +442,19 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
         $N_SAMPLES_FLAG
     log_success "Model trained: $PARAMS_FILE"
 else
-    log_step "Step 5: SKIPPED (using existing params: $PARAMS_FILE)"
+    log_step "Step 8: SKIPPED (using existing params: $PARAMS_FILE)"
 fi
 
-# Step 6: Compile and disassemble estimation file
-log_step "Step 6/10: Compiling estimation file"
+# Step 9: Compile estimation file for estimation (NUM_REPEAT=1)
+log_step "Step 9/12: Compiling estimation file for estimation"
 log_info "Compiling with NUM_REPEAT=1 (estimation mode)"
 $CC $CFLAGS -DNUM_REPEAT=1 $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
 log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 $OBJDUMP -d "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" > "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"
 
-# Step 7: Estimate energy consumption
-log_step "Step 7/10: Estimating energy consumption"
+# Step 10: Estimate energy consumption
+log_step "Step 10/12: Estimating energy consumption"
 julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" estimate \
     --asm "$ASM_DIR/${ESTIMATE_BASENAME}.asm" \
     --params "$PARAMS_FILE" \
@@ -404,34 +462,15 @@ julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" estimate \
     $MAX_STEPS_FLAG
 log_success "Estimation complete: $ESTIMATED_STATS_JSON"
 
-# Step 8: Recompile estimation file for measurement with NUM_REPEAT
-log_step "Step 8/10: Recompiling estimation file for measurement"
-log_info "Compiling with NUM_REPEAT=$NUM_REPEAT (for measurement)"
-$CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
-log_success "Recompiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
-
-# Step 9: Flash and measure estimation file
-log_step "Step 9/10: Measuring estimation file energy consumption"
-log_info "Flashing $BUILD_DIR/${ESTIMATE_BASENAME}.elf..."
-mspdebug tilib "prog $BUILD_DIR/${ESTIMATE_BASENAME}.elf" "exit"
-log_success "Flashed to device"
-
-log_info "Measuring energy (Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A)"
-python3 "$MEASURE_PY" \
-    --voltage "$VOLTAGE" \
-    --max_current "$MAX_CURRENT" \
-    --outfile "$MEASURED_RAW_CSV" \
-    $SKIP_RESET
-log_success "Measured raw data saved: $MEASURED_RAW_CSV"
-
-log_info "Preprocessing measured data"
+# Step 11: Preprocess measured estimation data
+log_step "Step 11/12: Preprocessing measured estimation data"
 python3 "$PREPROCESS_PY" \
     --input "$MEASURED_RAW_CSV" \
     --output "$MEASURED_SEGMENTS_CSV"
-log_success "Measured segments saved: $MEASURED_SEGMENTS_CSV"
+log_success "Measured estimation segments saved: $MEASURED_SEGMENTS_CSV"
 
-# Step 10: Generate comparison report
-log_step "Step 10/10: Generating comparison report"
+# Step 12: Generate comparison report
+log_step "Step 12/12: Generating comparison report"
 python3 "$PROJECT_ROOT/scripts/generate_comparison_report.py" \
     --estimated-stats "$ESTIMATED_STATS_JSON" \
     --measured-data "$MEASURED_SEGMENTS_CSV" \
@@ -469,9 +508,19 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
     log_info "You can resume the pipeline from intermediate files using these commands:"
     echo ""
 
-    # If we have RAW_CSV, suggest resuming from preprocessing
-    if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
-        echo "Resume from preprocessing (skip measurement):"
+    # If we have both measurements, suggest resuming without hardware
+    if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]] && \
+       [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
+        echo "Resume without hardware (skip all measurements - steps 1-6):"
+        echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE \\"
+        echo "    RAW_CSV=$RAW_CSV MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+        echo ""
+    fi
+
+    # If we have training measurement, suggest resuming from estimation measurement
+    if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]] && \
+       [[ $USE_TEMP_MEASURED_RAW -eq 0 || ! -f "$MEASURED_RAW_CSV" ]]; then
+        echo "Resume from estimation measurement (skip training measurement - steps 1-3):"
         echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE \\"
         echo "    RAW_CSV=$RAW_CSV"
         echo ""
@@ -479,17 +528,23 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
 
     # If we have SEGMENTS_CSV, suggest resuming from training
     if [[ $USE_TEMP_SEGMENTS -eq 1 ]] && [[ -f "$SEGMENTS_CSV" ]]; then
-        echo "Resume from training (skip measurement and preprocessing):"
+        echo "Resume from training (skip measurements and preprocessing - steps 1-7):"
         echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE \\"
         echo "    SEGMENTS_CSV=$SEGMENTS_CSV"
+        if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
+            echo "    MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+        fi
         echo ""
     fi
 
     # If we have PARAMS_FILE, suggest resuming from estimation
     if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
-        echo "Resume from estimation (skip measurement, preprocessing, and training):"
+        echo "Resume from estimation (skip measurements, preprocessing, and training - steps 1-8):"
         echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE \\"
         echo "    PARAMS=$PARAMS_FILE"
+        if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
+            echo "    MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+        fi
         echo ""
     fi
 
@@ -497,14 +552,14 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
     if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
         echo "  - Training Raw CSV: $RAW_CSV"
     fi
+    if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
+        echo "  - Estimation Raw CSV: $MEASURED_RAW_CSV"
+    fi
     if [[ $USE_TEMP_SEGMENTS -eq 1 ]] && [[ -f "$SEGMENTS_CSV" ]]; then
         echo "  - Training Segments CSV: $SEGMENTS_CSV"
     fi
     if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
         echo "  - Parameters: $PARAMS_FILE"
-    fi
-    if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-        echo "  - Measured Raw CSV: $MEASURED_RAW_CSV"
     fi
     if [[ $USE_TEMP_MEASURED_SEGMENTS -eq 1 ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
         echo "  - Measured Segments CSV: $MEASURED_SEGMENTS_CSV"
