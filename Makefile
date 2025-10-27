@@ -38,7 +38,7 @@ JULIA_NUM_THREADS ?= auto
 export JULIA_NUM_THREADS
 
 # Default target
-.PHONY: all clean help interpret train estimate visualize test flash create_fixture train_and_estimate
+.PHONY: all clean help interpret train estimate visualize test flash create_fixture train_and_estimate analyze_distribution
 
 all: help
 
@@ -58,6 +58,7 @@ help:
 	@echo "  train_and_estimate TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> [options] - Full pipeline: measure → train → estimate → compare"
 	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> RAW_CSV=<file> MEASURED_RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file>"
 	@echo "                     VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> SKIP_RESET=1 KEEP_INTERMEDIATES=1"
+	@echo "  analyze_distribution FILE=<file.c> [TAG=<tag>] [REPORT_DIR=<dir>] [VOLTAGE=<v>] [MAX_CURRENT=<a>] [SKIP_RESET=1] - Flash, measure, and analyze energy distribution"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
@@ -77,6 +78,8 @@ help:
 	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TAG=experiment1 KEEP_INTERMEDIATES=1"
 	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PARAMS=my_params.json RAW_CSV=measurement.csv REPORT_DIR=./my_reports"
 	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c RAW_CSV=train.csv MEASURED_RAW_CSV=estimate.csv  # Resume without hardware"
+	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c"
+	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c TAG=experiment1"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json JULIA_NUM_THREADS=4  # Use 4 threads"
 	@echo "  make visualize PARAMS=energy_params.json"
 	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
@@ -179,6 +182,20 @@ endif
 	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
 	if [ "$(KEEP_INTERMEDIATES)" = "1" ]; then ARGS="$$ARGS --keep-intermediates"; fi; \
 	./scripts/train_and_estimate.sh $$ARGS
+
+# Analyze distribution mode: flash → measure → preprocess → analyze
+analyze_distribution:
+ifndef FILE
+	$(error Please specify FILE=<file.c>)
+endif
+	@ARGS="--file $(FILE)"; \
+	if [ -n "$(TAG)" ]; then ARGS="$$ARGS --tag $(TAG)"; fi; \
+	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
+	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
+	if [ -n "$(NUM_REPEAT)" ]; then ARGS="$$ARGS --num-repeat $(NUM_REPEAT)"; fi; \
+	if [ -n "$(REPORT_DIR)" ]; then ARGS="$$ARGS --report-dir $(REPORT_DIR)"; fi; \
+	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
+	./scripts/analyze_distribution.sh $$ARGS
 
 # Visualize mode: visualize instruction energy distributions
 visualize:
