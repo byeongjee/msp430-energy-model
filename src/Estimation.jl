@@ -88,7 +88,7 @@ function estimate_cost_distribution(
         # Log progress at intervals
         if i % progress_interval == 0 || i == n_samples
             progress_pct = round(100 * i / n_samples; digits=1)
-            @info "Sampling progress" samples_completed = i total_samples = n_samples progress = "$(progress_pct)%"
+            @info "Sampling progress $(progress_pct)%"
         end
     end
 

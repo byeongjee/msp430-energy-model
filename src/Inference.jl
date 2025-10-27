@@ -173,7 +173,7 @@ function learn_parameters(
 
             # Calculate statistics
             mean_energy = avg_alpha * avg_beta
-            @info "Learned parameters" opcode alpha = round(avg_alpha; digits=4) beta = round(
+            @debug "Learned parameters" opcode alpha = round(avg_alpha; digits=4) beta = round(
                 avg_beta; digits=4
             ) mean_energy = round(mean_energy; digits=6)
         else

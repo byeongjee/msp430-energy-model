@@ -207,7 +207,6 @@ function interpret_program(
                 # Check for begin_event
                 if get(func_addrs, "begin_event", nothing) == call_target
                     @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
-                    @info "starting new event sequence"
                     current_sequence = Vector{Instruction}()
                     state.registers[:PC] = addresses[current_addr_idx + 1]
                     continue
@@ -216,7 +215,6 @@ function interpret_program(
                 # Check for end_event
                 if get(func_addrs, "end_event", nothing) == call_target
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
-                    @info "ending event sequence"
                     push!(event_sequences, current_sequence)
                     state.registers[:PC] = addresses[current_addr_idx + 1]
                     continue

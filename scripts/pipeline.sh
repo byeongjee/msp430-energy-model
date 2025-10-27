@@ -21,6 +21,7 @@ NUM_REPEAT=10
 REPORT_DIR="./report"
 TEMP_DIR="./tmp"
 KEEP_INTERMEDIATES=0
+TAG=""
 
 # Required parameters (to be set via command line)
 TRAIN_FILE=""
@@ -93,6 +94,7 @@ Optional arguments:
   --measured-raw-csv FILE   Raw measurement CSV file for estimation (default: temp file)
   --segments-csv FILE       Preprocessed segments CSV file (default: temp file)
   --params FILE             Model parameters JSON file (default: temp file)
+  --tag TAG                 Tag for naming output files (default: process ID)
   --voltage V               Voltage for measurement (default: 3.3)
   --max-current A           Max current for measurement (default: 0.01)
   --max-steps N             Maximum execution steps for train/estimate
@@ -108,7 +110,13 @@ Examples:
   $0 --train-file examples/c_programs/simple.c \\
      --estimate-file examples/c_programs/test.c
 
-  # Keep intermediate files
+  # Use a tag for organized output files
+  $0 --train-file examples/c_programs/simple.c \\
+     --estimate-file examples/c_programs/test.c \\
+     --tag experiment1 \\
+     --keep-intermediates
+
+  # Keep intermediate files with explicit names
   $0 --train-file examples/c_programs/simple.c \\
      --estimate-file examples/c_programs/test.c \\
      --raw-csv measurement.csv \\
@@ -149,6 +157,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --params)
             PARAMS_FILE="$2"
+            shift 2
+            ;;
+        --tag)
+            TAG="$2"
             shift 2
             ;;
         --voltage)
@@ -222,41 +234,50 @@ fi
 # Setup temporary files if not provided
 mkdir -p "$TEMP_DIR"
 
+# Create timestamp
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+# Determine file suffix (TAG_TIMESTAMP if TAG provided, otherwise just TIMESTAMP)
+if [[ -n "$TAG" ]]; then
+    FILE_SUFFIX="${TAG}_${TIMESTAMP}"
+    REPORT_DIR_FULL="${REPORT_DIR}/${TAG}"
+else
+    FILE_SUFFIX="${TIMESTAMP}"
+    REPORT_DIR_FULL="${REPORT_DIR}/${TIMESTAMP}"
+fi
+
 if [[ -z "$RAW_CSV" ]]; then
-    RAW_CSV="$TEMP_DIR/measurement_$$.csv"
+    RAW_CSV="$TEMP_DIR/measurement_${FILE_SUFFIX}.csv"
     USE_TEMP_RAW=1
     log_info "Using temporary raw CSV: $RAW_CSV"
 fi
 
 if [[ -z "$SEGMENTS_CSV" ]]; then
-    SEGMENTS_CSV="$TEMP_DIR/segments_$$.csv"
+    SEGMENTS_CSV="$TEMP_DIR/segments_${FILE_SUFFIX}.csv"
     USE_TEMP_SEGMENTS=1
     log_info "Using temporary segments CSV: $SEGMENTS_CSV"
 fi
 
 if [[ -z "$PARAMS_FILE" ]]; then
-    PARAMS_FILE="$TEMP_DIR/params_$$.json"
+    PARAMS_FILE="$TEMP_DIR/params_${FILE_SUFFIX}.json"
     USE_TEMP_PARAMS=1
     log_info "Using temporary params file: $PARAMS_FILE"
 fi
 
 # Setup temporary file for estimated stats (always temp)
-ESTIMATED_STATS_JSON="$TEMP_DIR/estimated_stats_$$.json"
+ESTIMATED_STATS_JSON="$TEMP_DIR/estimated_stats_${FILE_SUFFIX}.json"
 
 # Setup temporary file for measured raw CSV if not provided
 if [[ -z "$MEASURED_RAW_CSV" ]]; then
-    MEASURED_RAW_CSV="$TEMP_DIR/measured_$$.csv"
+    MEASURED_RAW_CSV="$TEMP_DIR/measured_${FILE_SUFFIX}.csv"
     USE_TEMP_MEASURED_RAW=1
     log_info "Using temporary measured raw CSV: $MEASURED_RAW_CSV"
 fi
 
 # Setup temporary file for measured segments (always temp)
-MEASURED_SEGMENTS_CSV="$TEMP_DIR/measured_segments_$$.csv"
+MEASURED_SEGMENTS_CSV="$TEMP_DIR/measured_segments_${FILE_SUFFIX}.csv"
 USE_TEMP_MEASURED_SEGMENTS=1
 
-# Create timestamped report directory
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-REPORT_DIR_FULL="${REPORT_DIR}/${TIMESTAMP}"
 log_info "Report will be saved to: $REPORT_DIR_FULL"
 
 # Extract basenames
