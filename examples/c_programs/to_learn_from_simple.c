@@ -1,6 +1,6 @@
 #include "setup.h"
 
-#define INNER_ITERS 20
+#define INNER_ITERS 30
 
 /* ---------- helpers ---------- */
 #define STR_HELPER(x) #x
