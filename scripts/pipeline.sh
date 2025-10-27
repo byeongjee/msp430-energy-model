@@ -263,6 +263,28 @@ if [[ -n "$N_SAMPLES" ]]; then
     N_SAMPLES_FLAG="--n-samples $N_SAMPLES"
 fi
 
+# Determine which steps to skip based on provided intermediate files
+SKIP_MEASUREMENT=0
+SKIP_PREPROCESSING=0
+SKIP_TRAINING=0
+
+# If PARAMS provided and exists, skip everything up to training
+if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]] && [[ $USE_TEMP_PARAMS -eq 0 ]]; then
+    SKIP_MEASUREMENT=1
+    SKIP_PREPROCESSING=1
+    SKIP_TRAINING=1
+    log_info "Resuming from existing params: $PARAMS_FILE"
+# Else if SEGMENTS_CSV provided and exists, skip measurement and preprocessing
+elif [[ -n "$SEGMENTS_CSV" ]] && [[ -f "$SEGMENTS_CSV" ]] && [[ $USE_TEMP_SEGMENTS -eq 0 ]]; then
+    SKIP_MEASUREMENT=1
+    SKIP_PREPROCESSING=1
+    log_info "Resuming from existing segments: $SEGMENTS_CSV"
+# Else if RAW_CSV provided and exists, skip measurement
+elif [[ -n "$RAW_CSV" ]] && [[ -f "$RAW_CSV" ]] && [[ $USE_TEMP_RAW -eq 0 ]]; then
+    SKIP_MEASUREMENT=1
+    log_info "Resuming from existing raw CSV: $RAW_CSV"
+fi
+
 # Cleanup function
 cleanup() {
     if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
@@ -303,48 +325,67 @@ log_info "Train file: $TRAIN_FILE"
 log_info "Estimate file: $ESTIMATE_FILE"
 log_info "Report directory: $REPORT_DIR_FULL"
 
-# Step 1: Compile training file
-log_step "Step 1/10: Compiling training file"
 mkdir -p "$BUILD_DIR" "$ASM_DIR"
 cd "$PROJECT_ROOT"
-log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
-$CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
-log_success "Compiled: $BUILD_DIR/${TRAIN_BASENAME}.elf"
 
-# Step 2: Flash training file to device
-log_step "Step 2/10: Flashing training file to device"
-log_info "Flashing $BUILD_DIR/${TRAIN_BASENAME}.elf..."
-mspdebug tilib "prog $BUILD_DIR/${TRAIN_BASENAME}.elf" "exit"
-log_success "Flashed to device"
+# Steps 1-3: Measurement (compile training file, flash, measure)
+if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
+    # Step 1: Compile training file
+    log_step "Step 1/10: Compiling training file"
+    log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
+    $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
+    log_success "Compiled: $BUILD_DIR/${TRAIN_BASENAME}.elf"
 
-# Step 3: Measure energy
-log_step "Step 3/10: Measuring energy consumption"
-log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-python3 "$MEASURE_PY" \
-    --voltage "$VOLTAGE" \
-    --max_current "$MAX_CURRENT" \
-    --outfile "$RAW_CSV" \
-    $SKIP_RESET
-log_success "Raw measurement saved: $RAW_CSV"
+    # Step 2: Flash training file to device
+    log_step "Step 2/10: Flashing training file to device"
+    log_info "Flashing $BUILD_DIR/${TRAIN_BASENAME}.elf..."
+    mspdebug tilib "prog $BUILD_DIR/${TRAIN_BASENAME}.elf" "exit"
+    log_success "Flashed to device"
+
+    # Step 3: Measure energy
+    log_step "Step 3/10: Measuring energy consumption"
+    log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
+    python3 "$MEASURE_PY" \
+        --voltage "$VOLTAGE" \
+        --max_current "$MAX_CURRENT" \
+        --outfile "$RAW_CSV" \
+        $SKIP_RESET
+    log_success "Raw measurement saved: $RAW_CSV"
+else
+    log_step "Steps 1-3: SKIPPED (using existing raw CSV: $RAW_CSV)"
+fi
 
 # Step 4: Preprocess measurements
-log_step "Step 4/10: Preprocessing measurements"
-python3 "$PREPROCESS_PY" \
-    --input "$RAW_CSV" \
-    --output "$SEGMENTS_CSV"
-log_success "Segments saved: $SEGMENTS_CSV"
+if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
+    log_step "Step 4/10: Preprocessing measurements"
+    python3 "$PREPROCESS_PY" \
+        --input "$RAW_CSV" \
+        --output "$SEGMENTS_CSV"
+    log_success "Segments saved: $SEGMENTS_CSV"
+else
+    log_step "Step 4: SKIPPED (using existing segments CSV: $SEGMENTS_CSV)"
+fi
 
 # Step 5: Disassemble training file and train model
-log_step "Step 5/10: Training energy model"
-$OBJDUMP -d "$BUILD_DIR/${TRAIN_BASENAME}.elf" > "$ASM_DIR/${TRAIN_BASENAME}.asm"
-log_info "Disassembled: $ASM_DIR/${TRAIN_BASENAME}.asm"
-julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" train \
-    --asm "$ASM_DIR/${TRAIN_BASENAME}.asm" \
-    --data "$SEGMENTS_CSV" \
-    --output "$PARAMS_FILE" \
-    $MAX_STEPS_FLAG \
-    $N_SAMPLES_FLAG
-log_success "Model trained: $PARAMS_FILE"
+if [[ $SKIP_TRAINING -eq 0 ]]; then
+    log_step "Step 5/10: Training energy model"
+    # Need to compile if we skipped measurement
+    if [[ $SKIP_MEASUREMENT -eq 1 ]]; then
+        log_info "Compiling training file with NUM_REPEAT=$NUM_REPEAT"
+        $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${TRAIN_BASENAME}.elf" "$TRAIN_FILE"
+    fi
+    $OBJDUMP -d "$BUILD_DIR/${TRAIN_BASENAME}.elf" > "$ASM_DIR/${TRAIN_BASENAME}.asm"
+    log_info "Disassembled: $ASM_DIR/${TRAIN_BASENAME}.asm"
+    julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" train \
+        --asm "$ASM_DIR/${TRAIN_BASENAME}.asm" \
+        --data "$SEGMENTS_CSV" \
+        --output "$PARAMS_FILE" \
+        $MAX_STEPS_FLAG \
+        $N_SAMPLES_FLAG
+    log_success "Model trained: $PARAMS_FILE"
+else
+    log_step "Step 5: SKIPPED (using existing params: $PARAMS_FILE)"
+fi
 
 # Step 6: Compile and disassemble estimation file
 log_step "Step 6/10: Compiling estimation file"
