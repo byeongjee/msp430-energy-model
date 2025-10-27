@@ -43,8 +43,21 @@ def plot_distribution(data, title, output_path, color='steelblue', stats=None):
     """Plot a histogram distribution."""
     fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
 
-    # Calculate optimal number of bins
-    n_bins = min(100, max(30, int(np.ceil(np.sqrt(len(data))))))
+    # Calculate optimal number of bins using Freedman-Diaconis rule
+    # This works better for varying sample sizes
+    if len(data) > 2:
+        q75, q25 = np.percentile(data, [75, 25])
+        iqr = q75 - q25
+        if iqr > 0:
+            bin_width = 2 * iqr / (len(data) ** (1/3))
+            n_bins = int(np.ceil((data.max() - data.min()) / bin_width))
+            # Constrain to reasonable range
+            n_bins = min(100, max(10, n_bins))
+        else:
+            # Fallback if IQR is 0
+            n_bins = min(30, max(10, len(data) // 2))
+    else:
+        n_bins = 10
 
     # Create histogram
     n, bins, patches = ax.hist(
@@ -81,9 +94,21 @@ def plot_comparison(estimated_data, measured_data, estimated_stats, measured_sta
     """Plot side-by-side comparison of estimated and measured distributions."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), dpi=150)
 
-    # Calculate optimal number of bins
-    n_bins_est = min(100, max(30, int(np.ceil(np.sqrt(len(estimated_data))))))
-    n_bins_meas = min(100, max(30, int(np.ceil(np.sqrt(len(measured_data))))))
+    # Calculate optimal number of bins using Freedman-Diaconis rule
+    def calculate_bins(data):
+        if len(data) > 2:
+            q75, q25 = np.percentile(data, [75, 25])
+            iqr = q75 - q25
+            if iqr > 0:
+                bin_width = 2 * iqr / (len(data) ** (1/3))
+                n_bins = int(np.ceil((data.max() - data.min()) / bin_width))
+                return min(100, max(10, n_bins))
+            else:
+                return min(30, max(10, len(data) // 2))
+        return 10
+
+    n_bins_est = calculate_bins(estimated_data)
+    n_bins_meas = calculate_bins(measured_data)
 
     # Estimated distribution
     n1, bins1, _ = ax1.hist(
