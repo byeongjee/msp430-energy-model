@@ -38,7 +38,7 @@ JULIA_NUM_THREADS ?= auto
 export JULIA_NUM_THREADS
 
 # Default target
-.PHONY: all clean help interpret train estimate visualize test flash create_fixture pipeline
+.PHONY: all clean help interpret train estimate visualize test flash create_fixture train_and_estimate
 
 all: help
 
@@ -55,7 +55,7 @@ help:
 	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
 	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
-	@echo "  pipeline TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> [options] - Full pipeline: measure → train → estimate → compare"
+	@echo "  train_and_estimate TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> [options] - Full pipeline: measure → train → estimate → compare"
 	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> RAW_CSV=<file> MEASURED_RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file>"
 	@echo "                     VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> SKIP_RESET=1 KEEP_INTERMEDIATES=1"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
@@ -73,10 +73,10 @@ help:
 	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500 N_SAMPLES=200"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
-	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c"
-	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TAG=experiment1 KEEP_INTERMEDIATES=1"
-	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PARAMS=my_params.json RAW_CSV=measurement.csv REPORT_DIR=./my_reports"
-	@echo "  make pipeline TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c RAW_CSV=train.csv MEASURED_RAW_CSV=estimate.csv  # Resume without hardware"
+	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c"
+	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TAG=experiment1 KEEP_INTERMEDIATES=1"
+	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PARAMS=my_params.json RAW_CSV=measurement.csv REPORT_DIR=./my_reports"
+	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c RAW_CSV=train.csv MEASURED_RAW_CSV=estimate.csv  # Resume without hardware"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json JULIA_NUM_THREADS=4  # Use 4 threads"
 	@echo "  make visualize PARAMS=energy_params.json"
 	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
@@ -158,7 +158,7 @@ endif
 	@echo "✓ Estimation completed!"
 
 # Pipeline mode: measure → preprocess → train → estimate (full hardware-in-the-loop)
-pipeline:
+train_and_estimate:
 ifndef TRAIN_FILE
 	$(error Please specify TRAIN_FILE=<file.c> for training)
 endif
@@ -178,7 +178,7 @@ endif
 	if [ -n "$(NUM_REPEAT)" ]; then ARGS="$$ARGS --num-repeat $(NUM_REPEAT)"; fi; \
 	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
 	if [ "$(KEEP_INTERMEDIATES)" = "1" ]; then ARGS="$$ARGS --keep-intermediates"; fi; \
-	./scripts/pipeline.sh $$ARGS
+	./scripts/train_and_estimate.sh $$ARGS
 
 # Visualize mode: visualize instruction energy distributions
 visualize:

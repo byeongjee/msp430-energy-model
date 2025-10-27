@@ -1,6 +1,6 @@
 #!/bin/bash
 # Full pipeline: measure → preprocess → train → estimate
-# Usage: ./scripts/pipeline.sh [options]
+# Usage: ./scripts/train_and_estimate.sh [options]
 
 set -euo pipefail
 
@@ -533,7 +533,7 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
     if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]] && \
        [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
         echo "Resume without hardware (skip all measurements - steps 1-6):"
-        echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE RAW_CSV=$RAW_CSV MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE RAW_CSV=$RAW_CSV MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
         echo ""
     fi
 
@@ -541,7 +541,7 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
     if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]] && \
        [[ $USE_TEMP_MEASURED_RAW -eq 0 || ! -f "$MEASURED_RAW_CSV" ]]; then
         echo "Resume from estimation measurement (skip training measurement - steps 1-3):"
-        echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE RAW_CSV=$RAW_CSV"
+        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE RAW_CSV=$RAW_CSV"
         echo ""
     fi
 
@@ -549,9 +549,9 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
     if [[ $USE_TEMP_SEGMENTS -eq 1 ]] && [[ -f "$SEGMENTS_CSV" ]]; then
         echo "Resume from training (skip measurements and preprocessing - steps 1-7):"
         if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-            echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE SEGMENTS_CSV=$SEGMENTS_CSV MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE SEGMENTS_CSV=$SEGMENTS_CSV MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
         else
-            echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE SEGMENTS_CSV=$SEGMENTS_CSV"
+            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE SEGMENTS_CSV=$SEGMENTS_CSV"
         fi
         echo ""
     fi
@@ -560,9 +560,9 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
     if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
         echo "Resume from estimation (skip measurements, preprocessing, and training - steps 1-8):"
         if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-            echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
         else
-            echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE"
+            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE"
         fi
         echo ""
     fi
