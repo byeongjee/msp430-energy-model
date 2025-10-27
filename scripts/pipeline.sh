@@ -20,6 +20,7 @@ N_SAMPLES=""
 NUM_REPEAT=10
 REPORT_DIR="./report"
 TEMP_DIR="./tmp"
+KEEP_INTERMEDIATES=0
 
 # Required parameters (to be set via command line)
 TRAIN_FILE=""
@@ -98,6 +99,7 @@ Optional arguments:
   --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
   --report-dir DIR          Directory for comparison report (default: ./report)
   --skip-reset              Skip device reset during measurement
+  --keep-intermediates      Keep intermediate files and suggest resume commands
   --help                    Show this help message
 
 Examples:
@@ -170,6 +172,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-reset)
             SKIP_RESET="--skip_reset"
+            shift
+            ;;
+        --keep-intermediates)
+            KEEP_INTERMEDIATES=1
             shift
             ;;
         --help)
@@ -259,6 +265,10 @@ fi
 
 # Cleanup function
 cleanup() {
+    if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
+        return
+    fi
+
     if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
         log_info "Cleaning up temporary raw CSV: $RAW_CSV"
         rm -f "$RAW_CSV"
@@ -409,4 +419,53 @@ if [[ $USE_TEMP_SEGMENTS -eq 0 ]]; then
 fi
 if [[ $USE_TEMP_PARAMS -eq 0 ]]; then
     echo "  - Parameters: $PARAMS_FILE"
+fi
+
+# Suggest resume commands if keeping intermediates
+if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
+    echo ""
+    log_step "RESUME COMMANDS"
+    log_info "You can resume the pipeline from intermediate files using these commands:"
+    echo ""
+
+    # If we have RAW_CSV, suggest resuming from preprocessing
+    if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
+        echo "Resume from preprocessing (skip measurement):"
+        echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE \\"
+        echo "    RAW_CSV=$RAW_CSV"
+        echo ""
+    fi
+
+    # If we have SEGMENTS_CSV, suggest resuming from training
+    if [[ $USE_TEMP_SEGMENTS -eq 1 ]] && [[ -f "$SEGMENTS_CSV" ]]; then
+        echo "Resume from training (skip measurement and preprocessing):"
+        echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE \\"
+        echo "    SEGMENTS_CSV=$SEGMENTS_CSV"
+        echo ""
+    fi
+
+    # If we have PARAMS_FILE, suggest resuming from estimation
+    if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
+        echo "Resume from estimation (skip measurement, preprocessing, and training):"
+        echo "  make pipeline TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE \\"
+        echo "    PARAMS=$PARAMS_FILE"
+        echo ""
+    fi
+
+    log_info "Intermediate files kept:"
+    if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
+        echo "  - Training Raw CSV: $RAW_CSV"
+    fi
+    if [[ $USE_TEMP_SEGMENTS -eq 1 ]] && [[ -f "$SEGMENTS_CSV" ]]; then
+        echo "  - Training Segments CSV: $SEGMENTS_CSV"
+    fi
+    if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
+        echo "  - Parameters: $PARAMS_FILE"
+    fi
+    if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
+        echo "  - Measured Raw CSV: $MEASURED_RAW_CSV"
+    fi
+    if [[ $USE_TEMP_MEASURED_SEGMENTS -eq 1 ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
+        echo "  - Measured Segments CSV: $MEASURED_SEGMENTS_CSV"
+    fi
 fi
