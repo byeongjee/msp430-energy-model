@@ -28,7 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 MEASURE_PY="$PROJECT_ROOT/measurement/measure.py"
 PREPROCESS_PY="$PROJECT_ROOT/measurement/preprocess.py"
-ANALYZE_PY="$PROJECT_ROOT/measurement/analyze_distribution.py"
+GENERATE_REPORT_PY="$SCRIPT_DIR/generate_distribution_report.py"
 
 # Load Makefile variables
 MSPGCC_PATH="$PROJECT_ROOT/../msp430-gcc/bin"
@@ -171,7 +171,6 @@ mkdir -p "$REPORT_DIR_FULL"
 # Setup file paths
 RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
 SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
-PLOT_PNG="$REPORT_DIR_FULL/distribution.png"
 
 # ============================================================
 # MAIN PIPELINE
@@ -212,13 +211,14 @@ python3 "$PREPROCESS_PY" \
     --output "$SEGMENTS_CSV"
 log_success "Segments saved: $SEGMENTS_CSV"
 
-# Step 5: Analyze distribution
-log_step "Step 5/5: Analyzing distribution"
-python3 "$ANALYZE_PY" \
-    --input "$SEGMENTS_CSV" \
-    --output "$PLOT_PNG" \
-    --num-repeat "$NUM_REPEAT"
-log_success "Distribution analysis completed"
+# Step 5: Generate distribution analysis report
+log_step "Step 5/5: Generating distribution analysis report"
+python3 "$GENERATE_REPORT_PY" \
+    --segments-csv "$SEGMENTS_CSV" \
+    --num-repeat "$NUM_REPEAT" \
+    --report-dir "$REPORT_DIR_FULL" \
+    --file-name "$FILE"
+log_success "Distribution analysis report generated"
 
 # Cleanup temporary raw CSV
 rm -f "$RAW_CSV"
@@ -229,7 +229,8 @@ log_step "ANALYSIS COMPLETE"
 log_success "All steps completed successfully!"
 echo ""
 log_info "Output files:"
+echo "  - Markdown Report: ${REPORT_DIR_FULL}/distribution_analysis.md"
 echo "  - Segments CSV: $SEGMENTS_CSV"
 echo "  - Summary CSV: ${REPORT_DIR_FULL}/distribution_summary.csv"
-echo "  - Distribution plots: ${REPORT_DIR_FULL}/distribution_event_*.png"
+echo "  - Distribution plots: ${REPORT_DIR_FULL}/event_*_distribution.png"
 echo "  - Report directory: $REPORT_DIR_FULL"
