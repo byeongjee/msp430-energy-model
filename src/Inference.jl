@@ -32,7 +32,7 @@ end
 Check if an (opcode, addressing_mode) combination is meaningful for energy modeling.
 Some combinations are meaningless because:
 - No-operand instructions (ret, nop) don't use addressing modes
-- Jump instructions only use relative addressing
+- Jump instructions only use symbolic (PC-relative) addressing
 """
 function is_meaningful_combination(opcode::Symbol, mode::Symbol)::Bool
     # No-operand instructions - addressing mode is meaningless
@@ -41,10 +41,10 @@ function is_meaningful_combination(opcode::Symbol, mode::Symbol)::Bool
         return false
     end
 
-    # Jump instructions only use relative addressing
+    # Jump instructions only use symbolic (PC-relative) addressing
     jump_instructions = [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
     if opcode in jump_instructions
-        return mode == :relative
+        return mode == :symbolic
     end
 
     # All other combinations are valid

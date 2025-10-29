@@ -89,12 +89,13 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
 
         elseif startswith(op, "@")
             # Indirect register mode: @Rn
+            # TODO: Handle indirect autoincrement mode (@Rn+)
             reg_name = normalize_register_name(Symbol(uppercase(strip(op[2:end]))))
             indirect_symbol = Symbol("@" * string(reg_name))
             push!(operands, Operand(indirect_symbol, :indirect))
 
         elseif contains(op, "(") && contains(op, ")")
-            # Indexed mode: offset(Rn)
+            # Indexed mode: offset(Rn) or Symbolic mode: offset(PC)
             paren_idx = findfirst('(', op)
             offset_str = strip(op[1:(paren_idx - 1)])
             reg_part = strip(op[(paren_idx + 1):(end - 1)])
@@ -109,7 +110,10 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             end
 
             reg_name = normalize_register_name(Symbol(uppercase(reg_part)))
-            push!(operands, Operand((offset, reg_name), :indexed))
+
+            # Symbolic mode is indexed mode with PC as base register: X(PC)
+            addressing_mode = (reg_name == :PC) ? :symbolic : :indexed
+            push!(operands, Operand((offset, reg_name), addressing_mode))
 
         elseif startswith(op, "&")
             # Absolute addressing: &address
@@ -123,7 +127,8 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
 
         elseif startswith(op, "\$")
             # Jump offset: $+0, $-2, etc.
-            # MSP430 relative jumps: target = PC + 2 + (offset * 2)
+            # MSP430 jumps use symbolic (PC-relative) addressing
+            # Target = PC + 2 + (offset * 2)
             # So for $+N: we want current_addr + N = PC + 2 + (offset * 2)
             # Therefore: offset = (current_addr + N - PC - 2) / 2
             # Since PC will be current_addr when executing: offset = (N - 2) / 2
@@ -135,7 +140,8 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             end
             # Convert to MSP430 word offset
             word_offset = div(byte_offset - 2, 2)
-            push!(operands, Operand(word_offset, :relative))
+            # Store as tuple (offset, PC) for consistency with X(PC) symbolic mode
+            push!(operands, Operand((word_offset, :PC), :symbolic))
 
         else
             # Register mode: Rn or register name

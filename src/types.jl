@@ -2,10 +2,21 @@
 
 """
 Operand representation with its addressing mode
+
+MSP430 Addressing Modes:
+- :register    - Register mode (Rn): Register contents are operand
+- :indexed     - Indexed mode (X(Rn)): (Rn + X) points to operand, X in next word
+- :symbolic    - Symbolic mode (X(PC)): (PC + X) points to operand, X in next word
+- :absolute    - Absolute mode (&addr): Next word contains absolute address
+- :indirect    - Indirect register mode (@Rn): Rn is pointer to operand
+- :immediate   - Immediate mode (#N): Next word contains immediate constant
+
+TODO: Not yet implemented:
+- :autoincrement - Indirect autoincrement (@Rn+): Rn is pointer, incremented after
 """
 struct Operand
     value::Any               # Register symbol, immediate value, address, or tuple for indexed
-    mode::Symbol            # :register, :immediate, :indirect, :indexed, :absolute, :relative
+    mode::Symbol            # See addressing modes above
 end
 
 """

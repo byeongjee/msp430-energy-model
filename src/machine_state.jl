@@ -407,9 +407,11 @@ function execute_jump!(
         return nothing
     end
 
-    # Get jump offset (keep as signed for relative jumps)
-    # Use reinterpret to convert UInt16 to Int16 (two's complement)
-    offset = reinterpret(Int16, get_operand_value(state, ops[1]))
+    # Get jump offset from symbolic addressing mode operand
+    # Jumps use symbolic (PC-relative) addressing: operand.value is (offset, :PC)
+    # Extract offset directly (don't read from memory like data instructions do)
+    jump_offset, _ = ops[1].value
+    offset = reinterpret(Int16, UInt16(jump_offset & 0xFFFF))
     should_jump = false
 
     if opcode == :jmp
@@ -462,8 +464,10 @@ function get_operand_value(
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get(state.registers, reg_name, UInt16(0))
         get(state.memory, addr, UInt16(0))
-    elseif operand.mode == :indexed
-        # Indexed addressing: (offset, register) -> offset(register)
+    elseif operand.mode == :indexed || operand.mode == :symbolic
+        # Indexed addressing: X(Rn) -> (Rn + X) points to operand
+        # Symbolic addressing: X(PC) -> (PC + X) points to operand
+        # Both use same mechanism: (base_register + offset)
         offset, reg = operand.value
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
@@ -471,9 +475,6 @@ function get_operand_value(
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         get(state.memory, operand.value, UInt16(0))
-    elseif operand.mode == :relative
-        # Relative addressing (used for jumps) - return offset as-is
-        UInt16(operand.value & 0xFFFF)
     else
         UInt16(0)
     end
@@ -498,8 +499,9 @@ function set_operand_value!(
     if operand.mode == :register
         # Register
         state.registers[operand.value] = masked_value
-    elseif operand.mode == :indexed
-        # Indexed addressing: (offset, register) -> offset(register)
+    elseif operand.mode == :indexed || operand.mode == :symbolic
+        # Indexed addressing: X(Rn) -> (Rn + X) points to operand
+        # Symbolic addressing: X(PC) -> (PC + X) points to operand
         offset, reg = operand.value
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
