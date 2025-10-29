@@ -18,6 +18,7 @@ SKIP_RESET=""
 MAX_STEPS=""
 N_SAMPLES=""
 NUM_REPEAT=10
+GRANULARITY="opcode"
 REPORT_DIR="./report"
 TEMP_DIR="./tmp"
 KEEP_INTERMEDIATES=0
@@ -100,6 +101,7 @@ Optional arguments:
   --max-steps N             Maximum execution steps for train/estimate
   --n-samples N             Number of samples for importance sampling (default: 100)
   --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
+  --granularity MODE        Model granularity: opcode or addressing_mode (default: opcode)
   --report-dir DIR          Directory for comparison report (default: ./report)
   --skip-reset              Skip device reset during measurement
   --keep-intermediates      Keep intermediate files and suggest resume commands
@@ -181,6 +183,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --num-repeat)
             NUM_REPEAT="$2"
+            shift 2
+            ;;
+        --granularity)
+            GRANULARITY="$2"
             shift 2
             ;;
         --report-dir)
@@ -295,6 +301,9 @@ N_SAMPLES_FLAG=""
 if [[ -n "$N_SAMPLES" ]]; then
     N_SAMPLES_FLAG="--n-samples $N_SAMPLES"
 fi
+
+# Build GRANULARITY_FLAG
+GRANULARITY_FLAG="--granularity $GRANULARITY"
 
 # Determine which steps to skip based on provided intermediate files
 SKIP_MEASUREMENT=0
@@ -460,7 +469,8 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
         --data "$SEGMENTS_CSV" \
         --output "$PARAMS_FILE" \
         $MAX_STEPS_FLAG \
-        $N_SAMPLES_FLAG
+        $N_SAMPLES_FLAG \
+        $GRANULARITY_FLAG
     log_success "Model trained: $PARAMS_FILE"
 else
     log_step "Step 8: SKIPPED (using existing params: $PARAMS_FILE)"

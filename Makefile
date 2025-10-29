@@ -131,6 +131,7 @@ interpret: disasm
 
 # Train mode: infer energy parameters from measurements
 train: NUM_REPEAT?=10
+train: GRANULARITY?=opcode
 train: disasm
 ifndef DATA
 	$(error Please specify DATA=<measurement_file.csv>)
@@ -142,7 +143,8 @@ endif
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
 	N_SAMPLES_FLAG=""; \
 	if [ -n "$(N_SAMPLES)" ]; then N_SAMPLES_FLAG="--n-samples $(N_SAMPLES)"; fi; \
-	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG
+	GRANULARITY_FLAG="--granularity $(GRANULARITY)"; \
+	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG $$GRANULARITY_FLAG
 	@echo "✓ Training completed!"
 
 # Estimate mode: predict energy consumption
@@ -161,6 +163,7 @@ endif
 	@echo "✓ Estimation completed!"
 
 # Pipeline mode: measure → preprocess → train → estimate (full hardware-in-the-loop)
+train_and_estimate: GRANULARITY?=opcode
 train_and_estimate:
 ifndef TRAIN_FILE
 	$(error Please specify TRAIN_FILE=<file.c> for training)
@@ -179,6 +182,7 @@ endif
 	if [ -n "$(MAX_STEPS)" ]; then ARGS="$$ARGS --max-steps $(MAX_STEPS)"; fi; \
 	if [ -n "$(N_SAMPLES)" ]; then ARGS="$$ARGS --n-samples $(N_SAMPLES)"; fi; \
 	if [ -n "$(NUM_REPEAT)" ]; then ARGS="$$ARGS --num-repeat $(NUM_REPEAT)"; fi; \
+	if [ -n "$(GRANULARITY)" ]; then ARGS="$$ARGS --granularity $(GRANULARITY)"; fi; \
 	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
 	if [ "$(KEEP_INTERMEDIATES)" = "1" ]; then ARGS="$$ARGS --keep-intermediates"; fi; \
 	./scripts/train_and_estimate.sh $$ARGS

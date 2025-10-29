@@ -4,6 +4,7 @@ module Visualization
 
 using Plots
 using Distributions
+using Main.Inference: ModelGranularity
 
 export plot_cost_distribution, plot_cost_distributions_grid, visualize_instruction_params
 
@@ -191,24 +192,28 @@ Visualize instruction parameter distributions in a grid
 Creates subplots showing the Gamma distribution for each instruction type
 """
 function visualize_instruction_params(
-    params::Dict{Symbol,Tuple{Float64,Float64}}, output_file::Union{String,Nothing}=nothing
+    params::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}},
+    granularity::ModelGranularity,
+    output_file::Union{String,Nothing}=nothing,
 )::Nothing
-    @info "Visualizing instruction parameters" num_instructions = length(params)
+    @info "Visualizing instruction parameters" num_parameters = length(params) granularity
 
-    # Sort instructions by name for consistent ordering
-    sorted_opcodes = sort(collect(keys(params)))
-    n_instructions = length(sorted_opcodes)
+    # Sort parameter keys by string representation for consistent ordering
+    sorted_param_keys = sort(collect(keys(params)); by=k -> join(string.(k), "_"))
+    n_parameters = length(sorted_param_keys)
 
     # Calculate grid dimensions (try to make it roughly square)
-    n_cols = Int(ceil(sqrt(n_instructions)))
-    n_rows = Int(ceil(n_instructions / n_cols))
+    n_cols = Int(ceil(sqrt(n_parameters)))
+    n_rows = Int(ceil(n_parameters / n_cols))
 
     # Create subplots
     plots_array = []
 
-    for opcode in sorted_opcodes
-        @info "Visualizing instruction" opcode = opcode
-        alpha, beta = params[opcode]
+    for param_key in sorted_param_keys
+        # Convert parameter key tuple to readable string
+        param_key_str = join(string.(param_key), "_")
+        @info "Visualizing parameter" key = param_key_str
+        alpha, beta = params[param_key]
 
         # Create Gamma distribution
         dist = Gamma(alpha, beta)
@@ -227,7 +232,7 @@ function visualize_instruction_params(
             y;
             xlabel="Cost (nJ)",
             ylabel="Density",
-            title="$(opcode)",
+            title="$(param_key_str)",
             legend=false,
             color=:steelblue,
             linewidth=2,
@@ -252,7 +257,7 @@ function visualize_instruction_params(
         push!(plots_array, p)
     end
 
-    @info "Visualizing $(length(plots_array)) instructions"
+    @info "Visualizing $(length(plots_array)) parameters"
 
     # Combine into grid
     combined_plot = plot(
@@ -261,7 +266,7 @@ function visualize_instruction_params(
         size=(n_cols * 300, n_rows * 250),
         dpi=150,
         margins=3Plots.mm,
-        plot_title="Instruction Energy Cost Distributions",
+        plot_title="Instruction Energy Cost Distributions ($(granularity))",
         plot_titlefontsize=14,
     )
 
