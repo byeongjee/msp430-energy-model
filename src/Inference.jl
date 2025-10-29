@@ -8,9 +8,10 @@ using Optim
 using Statistics
 using Logging
 
-using Main.EnergyModel: Instruction, EnergyStats
+using Main.EnergyModel: Instruction, Operand, EnergyStats
 
-export TrainingData
+export TrainingData, ModelGranularity
+export PerOpcode, PerAddressingMode
 export single_program_energy_model, parameter_inference_model
 export learn_parameters
 
@@ -19,13 +20,116 @@ struct TrainingData
     energies::Vector{Float64}
 end
 
+"""
+Granularity level for energy model parameters
+"""
+@enum ModelGranularity begin
+    PerOpcode = 1              # One parameter per opcode (e.g., mov, add, sub)
+    PerAddressingMode = 2      # One parameter per (opcode, addressing_mode) combination
+end
+
+"""
+Check if an (opcode, addressing_mode) combination is meaningful for energy modeling.
+Some combinations are meaningless because:
+- No-operand instructions (ret, nop) don't use addressing modes
+- Jump instructions only use relative addressing
+"""
+function is_meaningful_combination(opcode::Symbol, mode::Symbol)::Bool
+    # No-operand instructions - addressing mode is meaningless
+    no_operand_instructions = [:ret, :nop, :reti, :dint]
+    if opcode in no_operand_instructions
+        return false
+    end
+
+    # Jump instructions only use relative addressing
+    jump_instructions = [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]
+    if opcode in jump_instructions
+        return mode == :relative
+    end
+
+    # All other combinations are valid
+    return true
+end
+
+"""
+Get instruction key for parameter lookup based on granularity level.
+For dual-operand instructions with PerAddressingMode, uses source and destination modes.
+"""
+function get_instruction_key(
+    inst::Instruction, granularity::ModelGranularity
+)::Tuple{Vararg{Symbol}}
+    if granularity == PerOpcode
+        # Simple: just the opcode
+        return (inst.opcode,)
+    else  # PerAddressingMode
+        if length(inst.operands) == 0
+            # No operands (e.g., ret, nop)
+            return (inst.opcode,)
+        elseif length(inst.operands) == 1
+            # Single operand (e.g., push R5, call, jmp)
+            return (inst.opcode, inst.operands[1].mode)
+        else
+            # Dual operand (e.g., mov, add) - use src and dst modes
+            src_mode = inst.operands[1].mode
+            dst_mode = inst.operands[2].mode
+            return (inst.opcode, src_mode, dst_mode)
+        end
+    end
+end
+
+"""
+Extract all valid parameter keys from training data based on granularity level.
+Only includes meaningful combinations.
+"""
+function get_valid_param_keys(
+    training_data::TrainingData, granularity::ModelGranularity
+)::Set{Tuple{Vararg{Symbol}}}
+    valid_keys = Set{Tuple{Vararg{Symbol}}}()
+
+    for program in training_data.programs
+        for inst in program
+            key = get_instruction_key(inst, granularity)
+
+            # For PerAddressingMode, filter out meaningless combinations
+            if granularity == PerAddressingMode && length(key) >= 2
+                # key is (opcode, mode) or (opcode, src_mode, dst_mode)
+                if length(key) == 2
+                    # Single operand: check if meaningful
+                    if is_meaningful_combination(key[1], key[2])
+                        push!(valid_keys, key)
+                    end
+                else
+                    # Dual operand: both modes should be meaningful separately
+                    # (we don't filter dual-op combos, just make sure they're valid)
+                    push!(valid_keys, key)
+                end
+            else
+                # PerOpcode or already validated
+                push!(valid_keys, key)
+            end
+        end
+    end
+
+    return valid_keys
+end
+
 @gen function single_program_energy_model(
-    instructions::Vector{Instruction}, params::Dict{Symbol,Tuple{Float64,Float64}}
+    instructions::Vector{Instruction},
+    params::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}},
+    granularity::ModelGranularity,
 )::Float64
     total_energy = 0.0
 
     for (i, inst) in enumerate(instructions)
-        alpha, beta = params[inst.opcode]
+        # Get parameter key based on granularity
+        param_key = get_instruction_key(inst, granularity)
+
+        # Look up parameters - error if not found
+        if !haskey(params, param_key)
+            error("No parameters found for instruction key $param_key")
+        end
+        alpha, beta = params[param_key]
+
         inst_energy = {(:inst_energy, i)} ~ gamma(alpha, beta)
         total_energy += inst_energy
     end
@@ -36,22 +140,17 @@ end
 epsilon = 1e-12
 
 @gen function all_programs_energy_model(
-    training_data::TrainingData
-)::Dict{Symbol,Tuple{Float64,Float64}}
+    training_data::TrainingData, granularity::ModelGranularity
+)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
     # Prior distributions for gamma parameters
-    learned_params = Dict{Symbol,Tuple{Float64,Float64}}()
+    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
 
-    # Get all unique instruction types from training data
-    all_opcodes = Set{Symbol}()
-    for program in training_data.programs
-        for inst in program
-            push!(all_opcodes, inst.opcode)
-        end
-    end
+    # Get all valid parameter keys from training data based on granularity
+    valid_keys = get_valid_param_keys(training_data, granularity)
 
     # For now we are using a stateless model.
-    # Assuming that there is a single gamma distribution for each type of instruction.
-    for opcode in all_opcodes
+    # Assuming that there is a single gamma distribution for each parameter key.
+    for param_key in valid_keys
         # Current ≈ 118 µA/MHz (https://www.ti.com/lit/ds/symlink/msp430fr5994.pdf)
         # Voltage: 3.3V
         # -> 0.389mW per MHz
@@ -63,8 +162,8 @@ epsilon = 1e-12
         # -> roughly 1e-9 J per instruction = 1.0 nJ per instruction
 
         # TODO: Are these priors reasonable?
-        log_mu = {(opcode, :logμ)} ~ normal(log(1.0), 0.7)
-        log_kappa = {(opcode, :logκ)} ~ normal(log(3.0), 0.5)
+        log_mu = {(param_key..., :logμ)} ~ normal(log(1.0), 0.7)
+        log_kappa = {(param_key..., :logκ)} ~ normal(log(3.0), 0.5)
 
         mu = exp(log_mu)
         kappa = exp(log_kappa)
@@ -72,7 +171,7 @@ epsilon = 1e-12
         alpha = kappa
         beta = mu / kappa
 
-        learned_params[opcode] = (alpha, beta)
+        learned_params[param_key] = (alpha, beta)
     end
 
     # Compute median observed energy (in the same units as y)
@@ -88,9 +187,7 @@ epsilon = 1e-12
     for (i, program) in enumerate(training_data.programs)
         actual_energy_consumption =
             {(:actual_energy_consumption, i)} ~ single_program_energy_model(
-                # TODO: What should be the priors?
-                program,
-                learned_params,
+                program, learned_params, granularity
             )
 
         {(:observed_energy_consumption, i)} ~ normal(actual_energy_consumption, sigma)
@@ -103,20 +200,14 @@ end
 Learn MSP430 instruction energy parameters from training data using importance sampling
 """
 function learn_parameters(
-    training_data::TrainingData; n_samples::Int=1000
-)::Dict{Symbol,Tuple{Float64,Float64}}
-    # Get all unique instruction types from training data
-    all_opcodes = Set{Symbol}()
-    for program in training_data.programs
-        for inst in program
-            push!(all_opcodes, inst.opcode)
-        end
-    end
+    training_data::TrainingData, granularity::ModelGranularity; n_samples::Int=1000
+)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+    # Get all valid parameter keys based on granularity
+    valid_keys = get_valid_param_keys(training_data, granularity)
 
     @info "Starting parameter inference using importance sampling"
-    @info "Training data" num_programs = length(training_data.programs) num_opcodes = length(
-        all_opcodes
-    ) n_samples
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
+        length(valid_keys) n_samples
 
     # Start timing
     start_time = time()
@@ -128,7 +219,7 @@ function learn_parameters(
 
     @info "Running importance sampling..."
     (traces, log_weights) = importance_sampling(
-        all_programs_energy_model, (training_data,), constraints, n_samples
+        all_programs_energy_model, (training_data, granularity), constraints, n_samples
     )
 
     # Compute effective sample size
@@ -138,18 +229,18 @@ function learn_parameters(
 
     @info "Importance sampling complete" effective_sample_size = round(ess; digits=2)
 
-    learned_params = Dict{Symbol,Tuple{Float64,Float64}}()
+    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
 
     @info "Computing weighted parameter averages..."
-    for opcode in all_opcodes
+    for param_key in valid_keys
         alphas = Float64[]
         betas = Float64[]
         weights = Float64[]
 
         for (trace, log_weight) in zip(traces, log_weights)
             params = get_retval(trace)
-            if haskey(params, opcode)
-                alpha, beta = params[opcode]
+            if haskey(params, param_key)
+                alpha, beta = params[param_key]
                 push!(alphas, alpha)
                 push!(betas, beta)
                 push!(weights, exp(log_weight))
@@ -161,23 +252,23 @@ function learn_parameters(
         if total_weight > 0
             avg_alpha = sum(alphas .* weights) / total_weight
             avg_beta = sum(betas .* weights) / total_weight
-            learned_params[opcode] = (avg_alpha, avg_beta)
+            learned_params[param_key] = (avg_alpha, avg_beta)
 
             # Calculate statistics
             mean_energy = avg_alpha * avg_beta
-            @info "Learned parameters" opcode alpha = round(avg_alpha; digits=4) beta = round(
+            @info "Learned parameters" param_key alpha = round(avg_alpha; digits=4) beta = round(
                 avg_beta; digits=4
             ) mean_energy = round(mean_energy; digits=6)
         else
             # Fallback to default parameters
-            learned_params[opcode] = (1.0, 3.0)
-            @warn "Using default parameters for opcode (no samples)" opcode
+            learned_params[param_key] = (1.0, 3.0)
+            @warn "Using default parameters (no samples)" param_key
         end
     end
 
     # Calculate and log execution time
     learning_time = time() - start_time
-    @info "Parameter learning completed" time = learning_time num_learned_opcodes = length(
+    @info "Parameter learning completed" time = learning_time num_learned_params = length(
         learned_params
     )
 
