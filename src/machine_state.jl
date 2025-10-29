@@ -410,7 +410,12 @@ function execute_jump!(
     # Get jump offset from symbolic addressing mode operand
     # Jumps use symbolic (PC-relative) addressing: operand.value is (offset, :PC)
     # Extract offset directly (don't read from memory like data instructions do)
-    jump_offset, _ = ops[1].value
+    @assert ops[1].mode == :symbolic "Jump instructions must use symbolic addressing mode, got $(ops[1].mode)"
+    @assert isa(ops[1].value, Tuple) "Jump operand value must be Tuple, got $(typeof(ops[1].value))"
+    @assert length(ops[1].value) == 2 "Jump operand value must be (offset, :PC), got tuple of length $(length(ops[1].value))"
+    jump_offset, reg = ops[1].value
+    @assert reg == :PC "Jump operand register must be :PC, got $reg"
+    @assert isa(jump_offset, Integer) "Jump offset must be Integer, got $(typeof(jump_offset))"
     offset = reinterpret(Int16, UInt16(jump_offset & 0xFFFF))
     should_jump = false
 
@@ -454,12 +459,15 @@ function get_operand_value(
 )::UInt16
     value = if operand.mode == :immediate
         # Immediate value
+        @assert isa(operand.value, Integer) "Immediate mode: operand.value must be Integer, got $(typeof(operand.value))"
         UInt16(operand.value & 0xFFFF)
     elseif operand.mode == :register
         # Register
+        @assert isa(operand.value, Symbol) "Register mode: operand.value must be Symbol, got $(typeof(operand.value))"
         get(state.registers, operand.value, UInt16(0))
     elseif operand.mode == :indirect
         # Indirect addressing: @R1 means "value at address contained in R1"
+        @assert isa(operand.value, Symbol) "Indirect mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get(state.registers, reg_name, UInt16(0))
@@ -468,15 +476,23 @@ function get_operand_value(
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
         # Symbolic addressing: X(PC) -> (PC + X) points to operand
         # Both use same mechanism: (base_register + offset)
+        @assert isa(operand.value, Tuple) "Indexed/Symbolic mode: operand.value must be Tuple, got $(typeof(operand.value))"
+        @assert length(operand.value) == 2 "Indexed/Symbolic mode: operand.value must be (offset, register), got tuple of length $(length(operand.value))"
         offset, reg = operand.value
+        @assert isa(offset, Integer) "Indexed/Symbolic mode: offset must be Integer, got $(typeof(offset))"
+        @assert isa(reg, Symbol) "Indexed/Symbolic mode: register must be Symbol, got $(typeof(reg))"
+        if operand.mode == :symbolic
+            @assert reg == :PC "Symbolic mode: register must be :PC, got $reg"
+        end
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
         get(state.memory, addr, UInt16(0))
     elseif operand.mode == :absolute
         # Absolute addressing: &address
+        @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
         get(state.memory, operand.value, UInt16(0))
     else
-        UInt16(0)
+        error("Unknown addressing mode: $(operand.mode)")
     end
 
     # Apply data size mask
@@ -498,11 +514,19 @@ function set_operand_value!(
 
     if operand.mode == :register
         # Register
+        @assert isa(operand.value, Symbol) "Register mode: operand.value must be Symbol, got $(typeof(operand.value))"
         state.registers[operand.value] = masked_value
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
         # Symbolic addressing: X(PC) -> (PC + X) points to operand
+        @assert isa(operand.value, Tuple) "Indexed/Symbolic mode: operand.value must be Tuple, got $(typeof(operand.value))"
+        @assert length(operand.value) == 2 "Indexed/Symbolic mode: operand.value must be (offset, register), got tuple of length $(length(operand.value))"
         offset, reg = operand.value
+        @assert isa(offset, Integer) "Indexed/Symbolic mode: offset must be Integer, got $(typeof(offset))"
+        @assert isa(reg, Symbol) "Indexed/Symbolic mode: register must be Symbol, got $(typeof(reg))"
+        if operand.mode == :symbolic
+            @assert reg == :PC "Symbolic mode: register must be :PC, got $reg"
+        end
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
 
@@ -516,6 +540,7 @@ function set_operand_value!(
         end
     elseif operand.mode == :absolute
         # Absolute addressing: &address
+        @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
         if data_size == :byte
             # For byte operations to memory, only modify lower 8 bits
             old_value = get(state.memory, operand.value, UInt16(0))
@@ -524,6 +549,8 @@ function set_operand_value!(
         else
             state.memory[operand.value] = masked_value
         end
+    else
+        error("Cannot set value for addressing mode: $(operand.mode)")
     end
     return nothing
 end
