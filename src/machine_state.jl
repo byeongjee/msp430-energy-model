@@ -38,7 +38,7 @@ Executor wrapper for dual-operand instructions (with PC advance)
 function dual_operand_executor!(
     state::MachineState,
     opcode::Symbol,
-    ops::Vector{Any},
+    ops::Vector{Operand},
     data_size::Symbol,
     addresses::Vector{UInt16},
     current_idx::Int,
@@ -57,7 +57,7 @@ Executor wrapper for single-operand instructions (with conditional PC advance)
 function single_operand_executor!(
     state::MachineState,
     opcode::Symbol,
-    ops::Vector{Any},
+    ops::Vector{Operand},
     data_size::Symbol,
     addresses::Vector{UInt16},
     current_idx::Int,
@@ -79,7 +79,7 @@ Executor wrapper for jump instructions (PC managed by jump logic)
 function jump_executor!(
     state::MachineState,
     opcode::Symbol,
-    ops::Vector{Any},
+    ops::Vector{Operand},
     data_size::Symbol,
     addresses::Vector{UInt16},
     current_idx::Int,
@@ -156,7 +156,7 @@ end
 Execute dual-operand instructions (src, dst)
 """
 function execute_dual_operand!(
-    state::MachineState, opcode::Symbol, ops::Vector{Any}, data_size::Symbol=:word
+    state::MachineState, opcode::Symbol, ops::Vector{Operand}, data_size::Symbol=:word
 )::Nothing
     if length(ops) < 2
         return nothing
@@ -216,7 +216,7 @@ Execute single-operand instructions
 function execute_single_operand!(
     state::MachineState,
     opcode::Symbol,
-    ops::Vector{Any},
+    ops::Vector{Operand},
     data_size::Symbol,
     addresses::Vector{UInt16},
     current_idx::Int,
@@ -346,7 +346,7 @@ function execute_single_operand!(
         # Pushes n registers from Rdst-n+1 to Rdst
         if length(ops) >= 2
             n = get_operand_value(state, ops[1])
-            dst_reg = ops[2]
+            dst_reg = ops[2].value  # Extract register symbol from Operand
             dst_num = reg_symbol_to_num(dst_reg)
 
             for i in (dst_num - n + 1):dst_num
@@ -364,7 +364,7 @@ function execute_single_operand!(
         # Pops n registers from Rdst-n+1 to Rdst
         if length(ops) >= 2
             n = get_operand_value(state, ops[1])
-            dst_reg = ops[2]
+            dst_reg = ops[2].value  # Extract register symbol from Operand
             dst_num = reg_symbol_to_num(dst_reg)
 
             for i in (dst_num - n + 1):dst_num
@@ -399,7 +399,7 @@ Execute jump instructions
 function execute_jump!(
     state::MachineState,
     opcode::Symbol,
-    ops::Vector{Any},
+    ops::Vector{Operand},
     addresses::Vector{UInt16},
     current_idx::Int,
 )::Nothing
@@ -408,11 +408,8 @@ function execute_jump!(
     end
 
     # Get jump offset (keep as signed for relative jumps)
-    offset = if isa(ops[1], Integer)
-        Int16(ops[1])  # Keep as signed integer
-    else
-        Int16(get_operand_value(state, ops[1]))  # Convert from other types
-    end
+    # Use reinterpret to convert UInt16 to Int16 (two's complement)
+    offset = reinterpret(Int16, get_operand_value(state, ops[1]))
     should_jump = false
 
     if opcode == :jmp
@@ -451,31 +448,34 @@ end
 Get value from operand (register, immediate, or memory)
 """
 function get_operand_value(
-    state::MachineState, operand::Any, data_size::Symbol=:word
+    state::MachineState, operand::Operand, data_size::Symbol=:word
 )::UInt16
-    if isa(operand, Integer)
-        # Immediate value - most common case first
-        value = UInt16(operand & 0xFFFF)
-    elseif isa(operand, Symbol)
-        # Check if it's indirect addressing (@register)
-        operand_str = string(operand)
-        if !isempty(operand_str) && operand_str[1] == '@'
-            # Indirect addressing: @R1 means "value at address contained in R1"
-            reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
-            addr = get(state.registers, reg_name, UInt16(0))
-            value = get(state.memory, addr, UInt16(0))
-        else
-            # Regular register
-            value = get(state.registers, operand, UInt16(0))
-        end
-    elseif isa(operand, Tuple)
+    value = if operand.mode == :immediate
+        # Immediate value
+        UInt16(operand.value & 0xFFFF)
+    elseif operand.mode == :register
+        # Register
+        get(state.registers, operand.value, UInt16(0))
+    elseif operand.mode == :indirect
+        # Indirect addressing: @R1 means "value at address contained in R1"
+        operand_str = string(operand.value)
+        reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
+        addr = get(state.registers, reg_name, UInt16(0))
+        get(state.memory, addr, UInt16(0))
+    elseif operand.mode == :indexed
         # Indexed addressing: (offset, register) -> offset(register)
-        offset, reg = operand
+        offset, reg = operand.value
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
-        value = get(state.memory, addr, UInt16(0))
+        get(state.memory, addr, UInt16(0))
+    elseif operand.mode == :absolute
+        # Absolute addressing: &address
+        get(state.memory, operand.value, UInt16(0))
+    elseif operand.mode == :relative
+        # Relative addressing (used for jumps) - return offset as-is
+        UInt16(operand.value & 0xFFFF)
     else
-        value = UInt16(0)
+        UInt16(0)
     end
 
     # Apply data size mask
@@ -486,7 +486,7 @@ end
 Set value to operand (register or memory)
 """
 function set_operand_value!(
-    state::MachineState, operand::Any, value::UInt16, data_size::Symbol=:word
+    state::MachineState, operand::Operand, value::UInt16, data_size::Symbol=:word
 )::Nothing
     # Apply data size mask to value
     masked_value = if data_size == :byte
@@ -495,12 +495,12 @@ function set_operand_value!(
         value  # Full 16-bit word
     end
 
-    if isa(operand, Symbol)
+    if operand.mode == :register
         # Register
-        state.registers[operand] = masked_value
-    elseif isa(operand, Tuple) && length(operand) == 2
+        state.registers[operand.value] = masked_value
+    elseif operand.mode == :indexed
         # Indexed addressing: (offset, register) -> offset(register)
-        offset, reg = operand
+        offset, reg = operand.value
         base_addr = get(state.registers, reg, UInt16(0))
         addr = UInt16((base_addr + offset) & 0xFFFF)
 
@@ -511,6 +511,16 @@ function set_operand_value!(
             state.memory[addr] = new_value
         else
             state.memory[addr] = masked_value
+        end
+    elseif operand.mode == :absolute
+        # Absolute addressing: &address
+        if data_size == :byte
+            # For byte operations to memory, only modify lower 8 bits
+            old_value = get(state.memory, operand.value, UInt16(0))
+            new_value = UInt16((old_value & 0xFF00) | masked_value)
+            state.memory[operand.value] = new_value
+        else
+            state.memory[operand.value] = masked_value
         end
     end
     return nothing

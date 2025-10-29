@@ -19,10 +19,6 @@ struct TrainingData
     energies::Vector{Float64}
 end
 
-"""
-Generative model for parameter inference
-Each instruction type has learnable gamma distribution parameters
-"""
 @gen function single_program_energy_model(
     instructions::Vector{Instruction}, params::Dict{Symbol,Tuple{Float64,Float64}}
 )::Float64
@@ -30,7 +26,6 @@ Each instruction type has learnable gamma distribution parameters
 
     for (i, inst) in enumerate(instructions)
         alpha, beta = params[inst.opcode]
-        # Use unique address for each instruction in the sequence
         inst_energy = {(:inst_energy, i)} ~ gamma(alpha, beta)
         total_energy += inst_energy
     end
@@ -40,10 +35,7 @@ end
 
 epsilon = 1e-12
 
-"""
-Inference model that learns parameters from MSP430 data
-"""
-@gen function parameter_inference_model(
+@gen function all_programs_energy_model(
     training_data::TrainingData
 )::Dict{Symbol,Tuple{Float64,Float64}}
     # Prior distributions for gamma parameters
@@ -111,7 +103,7 @@ end
 Learn MSP430 instruction energy parameters from training data using importance sampling
 """
 function learn_parameters(
-    training_data::TrainingData; n_samples::Int=100
+    training_data::TrainingData; n_samples::Int=1000
 )::Dict{Symbol,Tuple{Float64,Float64}}
     # Get all unique instruction types from training data
     all_opcodes = Set{Symbol}()
@@ -136,7 +128,7 @@ function learn_parameters(
 
     @info "Running importance sampling..."
     (traces, log_weights) = importance_sampling(
-        parameter_inference_model, (training_data,), constraints, n_samples
+        all_programs_energy_model, (training_data,), constraints, n_samples
     )
 
     # Compute effective sample size
@@ -173,7 +165,7 @@ function learn_parameters(
 
             # Calculate statistics
             mean_energy = avg_alpha * avg_beta
-            @debug "Learned parameters" opcode alpha = round(avg_alpha; digits=4) beta = round(
+            @info "Learned parameters" opcode alpha = round(avg_alpha; digits=4) beta = round(
                 avg_beta; digits=4
             ) mean_energy = round(mean_energy; digits=6)
         else

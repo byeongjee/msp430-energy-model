@@ -36,20 +36,22 @@ function _memory_op_debug_msg(
     # Only create a message if we can recognize a memory read/write
     if length(inst.operands) >= 2
         # Case 1: memory writes — indexed addressing on the destination
-        if isa(inst.operands[2], Tuple)
-            offset, reg = inst.operands[2]
+        dst_operand = inst.operands[2]
+        if dst_operand.mode == :indexed
+            offset, reg = dst_operand.value
             base_addr = get(old_regs, reg, UInt16(0))
             addr = UInt16((base_addr + offset) & 0xFFFF)
             if inst.opcode == :mov
                 src_val = Main.EnergyModel.get_operand_value(state, inst.operands[1])
                 return "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
             end
+        end
 
-            # Case 2: memory reads — indirect addressing on the source (e.g., :@R5)
-        elseif isa(inst.operands[1], Symbol) &&
-            !isempty(string(inst.operands[1])) &&
-            string(inst.operands[1])[1] == '@'
-            reg_name = Symbol(string(inst.operands[1])[2:end])
+        # Case 2: memory reads — indirect addressing on the source
+        src_operand = inst.operands[1]
+        if src_operand.mode == :indirect
+            operand_str = string(src_operand.value)
+            reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt16(0))
             val = get(state.memory, addr, UInt16(0))
             return "    Memory[0x$(string(addr, base=16, pad=4))] → $val"
@@ -162,8 +164,10 @@ function interpret_program(
     @info "instruction_count" count = length(instructions)
     for (i, inst) in enumerate(instructions)
         size_str = inst.data_size == :byte ? ".b" : ""
-        @debug "Instruction $i" opcode = "$(inst.opcode)$size_str" operands = inst.operands addressing_mode =
-            inst.addressing_mode
+        operand_info = ["$(op.value) [$(op.mode)]" for op in inst.operands]
+        @debug "Instruction $i" opcode = "$(inst.opcode)$size_str" operands = join(
+            operand_info, ", "
+        )
     end
 
     # Create PC -> instruction mapping

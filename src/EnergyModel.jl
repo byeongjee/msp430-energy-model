@@ -13,6 +13,7 @@ include("machine_state.jl")
 include("parser.jl")
 
 # Export main types
+export Operand
 export Instruction
 export MachineState
 export EnergyStats

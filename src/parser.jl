@@ -53,23 +53,21 @@ function parse_line(line::String, current_addr::UInt16)::Union{Instruction,Nothi
     opcode = Symbol(opcode_str)
 
     # Parse operands
-    operands = []
-    addressing_mode = :register  # Default addressing mode
+    operands = Operand[]
 
     if length(parts) > 1
         op_str = join(parts[2:end], " ")
-        operands, addressing_mode = parse_operands(op_str, current_addr)
+        operands = parse_operands(op_str, current_addr)
     end
 
-    return Instruction(opcode, operands, addressing_mode, data_size)
+    return Instruction(opcode, operands, data_size)
 end
 
 """
 Parse MSP430 operand string into structured operands with addressing modes
 """
-function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any},Symbol}
-    operands = []
-    addressing_mode = :register
+function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
+    operands = Operand[]
     op_parts = split(op_str, ",")
 
     for op in op_parts
@@ -78,23 +76,22 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
         if startswith(op, "#")
             # Immediate addressing mode: #value
             value_str = strip(op[2:end])
-            if startswith(value_str, "0x") || startswith(value_str, "0X")
+            value = if startswith(value_str, "0x") || startswith(value_str, "0X")
                 # Hexadecimal
-                push!(operands, parse(UInt16, value_str[3:end]; base=16))
+                parse(UInt16, value_str[3:end]; base=16)
             else
                 # Decimal (may be negative)
                 int_val = parse(Int16, value_str)
                 # Convert to UInt16 representation (two's complement)
-                push!(operands, reinterpret(UInt16, int_val))
+                reinterpret(UInt16, int_val)
             end
-            addressing_mode = :immediate
+            push!(operands, Operand(value, :immediate))
 
         elseif startswith(op, "@")
             # Indirect register mode: @Rn
             reg_name = normalize_register_name(Symbol(uppercase(strip(op[2:end]))))
             indirect_symbol = Symbol("@" * string(reg_name))
-            push!(operands, indirect_symbol)
-            addressing_mode = :indirect
+            push!(operands, Operand(indirect_symbol, :indirect))
 
         elseif contains(op, "(") && contains(op, ")")
             # Indexed mode: offset(Rn)
@@ -103,28 +100,26 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
             reg_part = strip(op[(paren_idx + 1):(end - 1)])
 
             # Parse offset (may be negative)
-            if startswith(offset_str, "0x") || startswith(offset_str, "0X")
-                offset = parse(UInt16, offset_str[3:end]; base=16)
+            offset = if startswith(offset_str, "0x") || startswith(offset_str, "0X")
+                parse(UInt16, offset_str[3:end]; base=16)
             else
                 # Parse as signed integer first, then convert to UInt16 representation
                 int_offset = parse(Int16, offset_str)
-                offset = reinterpret(UInt16, int_offset)
+                reinterpret(UInt16, int_offset)
             end
 
             reg_name = normalize_register_name(Symbol(uppercase(reg_part)))
-            push!(operands, (offset, reg_name))  # Store as tuple
-            addressing_mode = :indexed
+            push!(operands, Operand((offset, reg_name), :indexed))
 
         elseif startswith(op, "&")
             # Absolute addressing: &address
             addr_str = strip(op[2:end])
-            if startswith(addr_str, "0x") || startswith(addr_str, "0X")
-                addr = parse(UInt16, addr_str[3:end]; base=16)
+            addr = if startswith(addr_str, "0x") || startswith(addr_str, "0X")
+                parse(UInt16, addr_str[3:end]; base=16)
             else
-                addr = parse(UInt16, addr_str)
+                parse(UInt16, addr_str)
             end
-            push!(operands, addr)
-            addressing_mode = :absolute
+            push!(operands, Operand(addr, :absolute))
 
         elseif startswith(op, "\$")
             # Jump offset: $+0, $-2, etc.
@@ -133,25 +128,23 @@ function parse_operands(op_str::String, current_addr::UInt16)::Tuple{Vector{Any}
             # Therefore: offset = (current_addr + N - PC - 2) / 2
             # Since PC will be current_addr when executing: offset = (N - 2) / 2
             offset_str = strip(op[2:end])  # Remove $ prefix
-            if startswith(offset_str, "+")
-                byte_offset = parse(Int16, offset_str[2:end])  # Remove + and parse
+            byte_offset = if startswith(offset_str, "+")
+                parse(Int16, offset_str[2:end])  # Remove + and parse
             else
-                byte_offset = parse(Int16, offset_str)  # Parse number directly
+                parse(Int16, offset_str)  # Parse number directly
             end
             # Convert to MSP430 word offset
             word_offset = div(byte_offset - 2, 2)
-            push!(operands, word_offset)
-            addressing_mode = :relative
+            push!(operands, Operand(word_offset, :relative))
 
         else
             # Register mode: Rn or register name
             reg_name = normalize_register_name(Symbol(uppercase(op)))
-            push!(operands, reg_name)
-            addressing_mode = :register
+            push!(operands, Operand(reg_name, :register))
         end
     end
 
-    return operands, addressing_mode
+    return operands
 end
 
 """

@@ -1,12 +1,19 @@
 # types.jl - Type definitions
 
 """
+Operand representation with its addressing mode
+"""
+struct Operand
+    value::Any               # Register symbol, immediate value, address, or tuple for indexed
+    mode::Symbol            # :register, :immediate, :indirect, :indexed, :absolute, :relative
+end
+
+"""
 Instruction representation
 """
 struct Instruction
     opcode::Symbol
-    operands::Vector{Any}
-    addressing_mode::Symbol  # src_mode, dst_mode
+    operands::Vector{Operand}
     data_size::Symbol        # :byte or :word
 end
 
