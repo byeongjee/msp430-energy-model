@@ -104,7 +104,7 @@ Optional arguments:
   --n-samples N             Number of samples for inference (default: 100)
   --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
   --granularity MODE        Model granularity: opcode or addressing_mode (default: opcode)
-  --inference ALG           Inference algorithm: importance-sampling, mcmc-mh, mcmc-hmc, or mcmc-blocked (default: importance-sampling)
+  --inference ALG           Inference algorithm: importance-sampling, mcmc-hmc, or mcmc-blocked (default: importance-sampling)
   --report-dir DIR          Directory for comparison report (default: ./report)
   --skip-reset              Skip device reset during measurement
   --keep-intermediates      Keep intermediate files and suggest resume commands

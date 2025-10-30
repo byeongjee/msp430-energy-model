@@ -50,7 +50,7 @@ function parse_commandline()
         arg_type = String
         default = "opcode"
         "--inference"
-        help = "Inference algorithm: importance-sampling, mcmc, mcmc-mh, mcmc-hmc, or mcmc-blocked (default: importance-sampling)"
+        help = "Inference algorithm: importance-sampling, mcmc-hmc, or mcmc-blocked (default: importance-sampling)"
         arg_type = String
         default = "importance-sampling"
     end
@@ -109,13 +109,7 @@ function run_train(
     @info "Model granularity" granularity
 
     # Validate inference algorithm
-    valid_inference_algorithms = [
-        "importance-sampling",
-        "mcmc",
-        "mcmc-mh",
-        "mcmc-hmc",
-        "mcmc-blocked",
-    ]
+    valid_inference_algorithms = ["importance-sampling", "mcmc-hmc", "mcmc-blocked"]
     if !(inference_str in valid_inference_algorithms)
         error(
             "Invalid inference algorithm: $inference_str. Must be one of: " *
