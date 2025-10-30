@@ -10,8 +10,9 @@ using Logging
 
 using Main.EnergyModel: Instruction, Operand, EnergyStats
 
-export TrainingData, ModelGranularity
+export TrainingData, ModelGranularity, InferenceAlgorithm
 export PerOpcode, PerAddressingMode
+export ImportanceSampling, MCMC
 export single_program_energy_model, parameter_inference_model
 export learn_parameters
 
@@ -26,6 +27,14 @@ Granularity level for energy model parameters
 @enum ModelGranularity begin
     PerOpcode = 1              # One parameter per opcode (e.g., mov, add, sub)
     PerAddressingMode = 2      # One parameter per (opcode, addressing_mode) combination
+end
+
+"""
+Inference algorithm for learning energy parameters
+"""
+@enum InferenceAlgorithm begin
+    ImportanceSampling = 1     # Importance sampling (default)
+    MCMC = 2                   # Markov Chain Monte Carlo
 end
 
 """
@@ -197,9 +206,53 @@ epsilon = 1e-12
 end
 
 """
+Learn MSP430 instruction energy parameters from training data using MCMC
+TODO: Implement full MCMC inference algorithm
+"""
+function learn_parameters_mcmc(
+    training_data::TrainingData, granularity::ModelGranularity; n_samples::Int=1000
+)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+    # Get all valid parameter keys based on granularity
+    valid_keys = get_valid_param_keys(training_data, granularity)
+
+    @info "Starting parameter inference using MCMC"
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
+        length(valid_keys) n_samples
+
+    # Start timing
+    start_time = time()
+
+    # TODO: Implement MCMC inference
+    # For now, this is a skeleton that uses a simple fallback strategy
+    @warn "MCMC inference is not yet fully implemented - using default parameters"
+
+    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
+
+    for param_key in valid_keys
+        # Default parameters based on rough estimates
+        # Current ≈ 118 µA/MHz -> roughly 1 nJ per instruction
+        # Using Gamma distribution with mean=1.0, variance=0.33
+        alpha = 3.0
+        beta = 0.33
+        learned_params[param_key] = (alpha, beta)
+
+        mean_energy = alpha * beta
+        @info "Using default parameters (MCMC not implemented)" param_key alpha beta mean_energy =
+            round(mean_energy; digits=6)
+    end
+
+    # Calculate and log execution time
+    learning_time = time() - start_time
+    @info "Parameter learning completed (MCMC skeleton)" time = learning_time num_learned_params =
+        length(learned_params)
+
+    return learned_params
+end
+
+"""
 Learn MSP430 instruction energy parameters from training data using importance sampling
 """
-function learn_parameters(
+function learn_parameters_importance_sampling(
     training_data::TrainingData, granularity::ModelGranularity; n_samples::Int=1000
 )::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
@@ -273,6 +326,35 @@ function learn_parameters(
     )
 
     return learned_params
+end
+
+"""
+Learn MSP430 instruction energy parameters from training data.
+
+# Arguments
+- `training_data`: Training data containing programs and measured energies
+- `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
+- `algorithm`: Inference algorithm to use (ImportanceSampling or MCMC)
+- `n_samples`: Number of samples to use for inference (default: 1000)
+
+# Returns
+Dictionary mapping instruction keys to (alpha, beta) parameters of Gamma distributions
+"""
+function learn_parameters(
+    training_data::TrainingData,
+    granularity::ModelGranularity,
+    algorithm::InferenceAlgorithm=ImportanceSampling;
+    n_samples::Int=1000,
+)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+    if algorithm == ImportanceSampling
+        return learn_parameters_importance_sampling(
+            training_data, granularity; n_samples=n_samples
+        )
+    elseif algorithm == MCMC
+        return learn_parameters_mcmc(training_data, granularity; n_samples=n_samples)
+    else
+        error("Unknown inference algorithm: $algorithm")
+    end
 end
 
 end # module

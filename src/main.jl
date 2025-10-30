@@ -49,6 +49,10 @@ function parse_commandline()
         help = "Model granularity: opcode or addressing_mode (default: opcode)"
         arg_type = String
         default = "opcode"
+        "--inference"
+        help = "Inference algorithm: importance-sampling or mcmc (default: importance-sampling)"
+        arg_type = String
+        default = "importance-sampling"
     end
 
     return parse_args(s)
@@ -88,6 +92,7 @@ function run_train(
     max_steps::Int,
     n_samples::Int,
     granularity_str::String,
+    inference_str::String,
 )::Nothing
     @info "Running in TRAIN mode"
     @info "Assembly file" path = asm_file
@@ -102,6 +107,16 @@ function run_train(
         error("Invalid granularity: $granularity_str. Must be 'opcode' or 'addressing_mode'")
     end
     @info "Model granularity" granularity
+
+    # Parse inference algorithm
+    inference_algorithm = if inference_str == "importance-sampling"
+        Inference.ImportanceSampling
+    elseif inference_str == "mcmc"
+        Inference.MCMC
+    else
+        error("Invalid inference algorithm: $inference_str. Must be 'importance-sampling' or 'mcmc'")
+    end
+    @info "Inference algorithm" algorithm = inference_algorithm
 
     if !isnothing(output_file)
         @info "Output file" path = output_file
@@ -142,7 +157,9 @@ function run_train(
     @info "Training data created successfully"
 
     @info "Learning energy parameters from training data" n_samples
-    learned_params = Inference.learn_parameters(training_data, granularity; n_samples=n_samples)
+    learned_params = Inference.learn_parameters(
+        training_data, granularity, inference_algorithm; n_samples=n_samples
+    )
 
     @info "Parameter learning complete" num_parameters = length(learned_params)
 
@@ -334,7 +351,10 @@ function main()
             output_file = args["output"]
             n_samples = args["n-samples"]
             granularity = args["granularity"]
-            run_train(asm_file, data_file, output_file, max_steps, n_samples, granularity)
+            inference = args["inference"]
+            run_train(
+                asm_file, data_file, output_file, max_steps, n_samples, granularity, inference
+            )
 
         elseif mode == "estimate"
             if isnothing(asm_file)
