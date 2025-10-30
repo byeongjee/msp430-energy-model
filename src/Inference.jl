@@ -269,16 +269,18 @@ function learn_parameters_mcmc_hmc(
     trace, = generate(all_programs_energy_model, (training_data, granularity), constraints)
     @info "Initial log probability" log_prob = get_score(trace)
 
-    # Select all continuous parameters for HMC
-    selection = select()
+    # Collect all parameter addresses for HMC
+    param_addresses = []
     for param_key in valid_keys
-        selection = selection | select((param_key..., :logμ))
-        selection = selection | select((param_key..., :logκ))
+        push!(param_addresses, (param_key..., :logμ))
+        push!(param_addresses, (param_key..., :logκ))
     end
-    selection = selection | select(:log_obs_sigma)
+    push!(param_addresses, :log_obs_sigma)
 
-    num_params = length(valid_keys) * 2 + 1  # 2 params per key + sigma
-    @info "Number of parameters to sample" num_params
+    # Select all continuous parameters for HMC
+    selection = select(param_addresses...)
+
+    @info "Number of parameters to sample" num_params = length(param_addresses)
 
     # MCMC sampling with HMC
     traces = []
