@@ -10,7 +10,7 @@ using Logging
 
 using Main.EnergyModel: Instruction, Operand, EnergyStats
 
-export TrainingData, ModelGranularity, InferenceAlgorithm
+export TrainingData, ModelGranularity
 export PerOpcode, PerAddressingMode
 export ImportanceSampling, MCMC
 export single_program_energy_model, parameter_inference_model
@@ -27,14 +27,6 @@ Granularity level for energy model parameters
 @enum ModelGranularity begin
     PerOpcode = 1              # One parameter per opcode (e.g., mov, add, sub)
     PerAddressingMode = 2      # One parameter per (opcode, addressing_mode) combination
-end
-
-"""
-Inference algorithm for learning energy parameters
-"""
-@enum InferenceAlgorithm begin
-    ImportanceSampling = 1     # Importance sampling (default)
-    MCMC = 2                   # Markov Chain Monte Carlo
 end
 
 """
@@ -247,19 +239,6 @@ function compute_posterior_means(
     return learned_params
 end
 
-"""
-Learn MSP430 instruction energy parameters using simple Metropolis-Hastings MCMC.
-Uses random walk proposals on each parameter independently.
-
-# Arguments
-- `training_data`: Training data containing programs and measured energies
-- `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
-- `n_samples`: Number of samples to collect after burn-in (default: 1000)
-- `burn_in`: Number of burn-in iterations to discard (default: 500)
-
-# Returns
-Dictionary mapping instruction keys to posterior mean (alpha, beta) parameters
-"""
 function learn_parameters_mcmc(
     training_data::TrainingData,
     granularity::ModelGranularity;
@@ -270,8 +249,9 @@ function learn_parameters_mcmc(
     valid_keys = get_valid_param_keys(training_data, granularity)
 
     @info "Starting MCMC inference (Metropolis-Hastings)"
-    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
-        length(valid_keys) n_samples burn_in
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys = length(
+        valid_keys
+    ) n_samples burn_in
 
     # Start timing
     start_time = time()
@@ -319,16 +299,17 @@ function learn_parameters_mcmc(
 
         if i % 100 == 0
             acceptance_rate = total_accepted / total_proposals
-            @info "MCMC progress" iteration = i log_prob = round(
-                get_score(trace); digits=2
-            ) acceptance_rate = round(acceptance_rate; digits=3)
+            @info "MCMC progress" iteration = i log_prob = round(get_score(trace); digits=2) acceptance_rate = round(
+                acceptance_rate; digits=3
+            )
         end
     end
 
     # Final acceptance rate
     final_acceptance_rate = total_accepted / total_proposals
-    @info "MCMC sampling complete" total_iterations = burn_in +
-        n_samples acceptance_rate = round(final_acceptance_rate; digits=3)
+    @info "MCMC sampling complete" total_iterations = burn_in + n_samples acceptance_rate = round(
+        final_acceptance_rate; digits=3
+    )
 
     # Compute posterior means
     @info "Computing posterior means..."
@@ -343,21 +324,6 @@ function learn_parameters_mcmc(
     return learned_params
 end
 
-"""
-Learn MSP430 instruction energy parameters using Hamiltonian Monte Carlo (HMC).
-Uses gradient information for more efficient proposals in high-dimensional spaces.
-
-# Arguments
-- `training_data`: Training data containing programs and measured energies
-- `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
-- `n_samples`: Number of samples to collect after burn-in (default: 1000)
-- `burn_in`: Number of burn-in iterations to discard (default: 500)
-- `step_size`: Step size for leapfrog integration (default: 0.01)
-- `n_leapfrog`: Number of leapfrog steps per HMC iteration (default: 10)
-
-# Returns
-Dictionary mapping instruction keys to posterior mean (alpha, beta) parameters
-"""
 function learn_parameters_mcmc_hmc(
     training_data::TrainingData,
     granularity::ModelGranularity;
@@ -370,8 +336,9 @@ function learn_parameters_mcmc_hmc(
     valid_keys = get_valid_param_keys(training_data, granularity)
 
     @info "Starting MCMC inference (Hamiltonian Monte Carlo)"
-    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
-        length(valid_keys) n_samples burn_in step_size n_leapfrog
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys = length(
+        valid_keys
+    ) n_samples burn_in step_size n_leapfrog
 
     # Start timing
     start_time = time()
@@ -418,16 +385,17 @@ function learn_parameters_mcmc_hmc(
 
         if i % 100 == 0
             acceptance_rate = total_accepted / total_proposals
-            @info "MCMC progress" iteration = i log_prob = round(
-                get_score(trace); digits=2
-            ) acceptance_rate = round(acceptance_rate; digits=3)
+            @info "MCMC progress" iteration = i log_prob = round(get_score(trace); digits=2) acceptance_rate = round(
+                acceptance_rate; digits=3
+            )
         end
     end
 
     # Final acceptance rate
     final_acceptance_rate = total_accepted / total_proposals
-    @info "MCMC sampling complete" total_iterations = burn_in +
-        n_samples acceptance_rate = round(final_acceptance_rate; digits=3)
+    @info "MCMC sampling complete" total_iterations = burn_in + n_samples acceptance_rate = round(
+        final_acceptance_rate; digits=3
+    )
 
     # Compute posterior means
     @info "Computing posterior means..."
@@ -442,19 +410,6 @@ function learn_parameters_mcmc_hmc(
     return learned_params
 end
 
-"""
-Learn MSP430 instruction energy parameters using Blocked Gibbs/MH MCMC.
-Updates different parameter groups separately for better mixing.
-
-# Arguments
-- `training_data`: Training data containing programs and measured energies
-- `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
-- `n_samples`: Number of samples to collect after burn-in (default: 1000)
-- `burn_in`: Number of burn-in iterations to discard (default: 500)
-
-# Returns
-Dictionary mapping instruction keys to posterior mean (alpha, beta) parameters
-"""
 function learn_parameters_mcmc_blocked(
     training_data::TrainingData,
     granularity::ModelGranularity;
@@ -465,8 +420,9 @@ function learn_parameters_mcmc_blocked(
     valid_keys = get_valid_param_keys(training_data, granularity)
 
     @info "Starting MCMC inference (Blocked Gibbs/MH)"
-    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
-        length(valid_keys) n_samples burn_in
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys = length(
+        valid_keys
+    ) n_samples burn_in
 
     # Start timing
     start_time = time()
@@ -515,16 +471,17 @@ function learn_parameters_mcmc_blocked(
 
         if i % 100 == 0
             acceptance_rate = total_accepted / total_proposals
-            @info "MCMC progress" iteration = i log_prob = round(
-                get_score(trace); digits=2
-            ) acceptance_rate = round(acceptance_rate; digits=3)
+            @info "MCMC progress" iteration = i log_prob = round(get_score(trace); digits=2) acceptance_rate = round(
+                acceptance_rate; digits=3
+            )
         end
     end
 
     # Final acceptance rate
     final_acceptance_rate = total_accepted / total_proposals
-    @info "MCMC sampling complete" total_iterations = burn_in +
-        n_samples acceptance_rate = round(final_acceptance_rate; digits=3)
+    @info "MCMC sampling complete" total_iterations = burn_in + n_samples acceptance_rate = round(
+        final_acceptance_rate; digits=3
+    )
 
     # Compute posterior means
     @info "Computing posterior means..."
@@ -532,8 +489,9 @@ function learn_parameters_mcmc_blocked(
 
     # Calculate and log execution time
     learning_time = time() - start_time
-    @info "Parameter learning completed (Blocked-MCMC)" time = learning_time num_learned_params =
-        length(learned_params)
+    @info "Parameter learning completed (Blocked-MCMC)" time = learning_time num_learned_params = length(
+        learned_params
+    )
 
     return learned_params
 end
@@ -548,8 +506,9 @@ function learn_parameters_importance_sampling(
     valid_keys = get_valid_param_keys(training_data, granularity)
 
     @info "Starting parameter inference using importance sampling"
-    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
-        length(valid_keys) n_samples
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys = length(
+        valid_keys
+    ) n_samples
 
     # Start timing
     start_time = time()
