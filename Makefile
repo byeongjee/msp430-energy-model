@@ -56,7 +56,7 @@ help:
 	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [GRANULARITY=<gran>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
 	@echo "  train_and_estimate TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> [options] - Full pipeline: measure → train → estimate → compare"
-	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> RAW_CSV=<file> MEASURED_RAW_CSV=<file> SEGMENTS_CSV=<file> PARAMS=<file>"
+	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> RAW_CSV=<file> MEASURED_RAW_CSV=<file> SEGMENTS_CSV=<file> MEASURED_SEGMENTS_CSV=<file> PARAMS=<file>"
 	@echo "                     VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> INFERENCE=<alg> GRANULARITY=<gran> SKIP_RESET=1 KEEP_INTERMEDIATES=1"
 	@echo "  analyze_distribution FILE=<file.c> [TAG=<tag>] [REPORT_DIR=<dir>] [VOLTAGE=<v>] [MAX_CURRENT=<a>] [NUM_REPEAT=<n>] [SKIP_RESET=1] - Flash, measure, and analyze energy distribution per event"
 	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
@@ -166,7 +166,7 @@ endif
 	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
 	@echo "✓ Estimation completed!"
 
-# Pipeline mode: measure → preprocess → train → estimate (full hardware-in-the-loop)
+# Pipeline mode: measure train → measure estimate → preprocess both → train → estimate → compare (full hardware-in-the-loop)
 train_and_estimate: GRANULARITY?=opcode
 train_and_estimate: INFERENCE?=importance-sampling
 train_and_estimate:
@@ -181,6 +181,7 @@ endif
 	if [ -n "$(RAW_CSV)" ]; then ARGS="$$ARGS --raw-csv $(RAW_CSV)"; fi; \
 	if [ -n "$(MEASURED_RAW_CSV)" ]; then ARGS="$$ARGS --measured-raw-csv $(MEASURED_RAW_CSV)"; fi; \
 	if [ -n "$(SEGMENTS_CSV)" ]; then ARGS="$$ARGS --segments-csv $(SEGMENTS_CSV)"; fi; \
+	if [ -n "$(MEASURED_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --measured-segments-csv $(MEASURED_SEGMENTS_CSV)"; fi; \
 	if [ -n "$(PARAMS)" ]; then ARGS="$$ARGS --params $(PARAMS)"; fi; \
 	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
 	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
