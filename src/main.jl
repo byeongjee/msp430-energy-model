@@ -50,7 +50,7 @@ function parse_commandline()
         arg_type = String
         default = "opcode"
         "--inference"
-        help = "Inference algorithm: importance-sampling or mcmc (default: importance-sampling)"
+        help = "Inference algorithm: importance-sampling, mcmc, mcmc-mh, mcmc-hmc, or mcmc-blocked (default: importance-sampling)"
         arg_type = String
         default = "importance-sampling"
     end
@@ -108,15 +108,21 @@ function run_train(
     end
     @info "Model granularity" granularity
 
-    # Parse inference algorithm
-    inference_algorithm = if inference_str == "importance-sampling"
-        Inference.ImportanceSampling
-    elseif inference_str == "mcmc"
-        Inference.MCMC
-    else
-        error("Invalid inference algorithm: $inference_str. Must be 'importance-sampling' or 'mcmc'")
+    # Validate inference algorithm
+    valid_inference_algorithms = [
+        "importance-sampling",
+        "mcmc",
+        "mcmc-mh",
+        "mcmc-hmc",
+        "mcmc-blocked",
+    ]
+    if !(inference_str in valid_inference_algorithms)
+        error(
+            "Invalid inference algorithm: $inference_str. Must be one of: " *
+            join(valid_inference_algorithms, ", "),
+        )
     end
-    @info "Inference algorithm" algorithm = inference_algorithm
+    @info "Inference algorithm" algorithm = inference_str
 
     if !isnothing(output_file)
         @info "Output file" path = output_file
@@ -158,7 +164,7 @@ function run_train(
 
     @info "Learning energy parameters from training data" n_samples
     learned_params = Inference.learn_parameters(
-        training_data, granularity, inference_algorithm; n_samples=n_samples
+        training_data, granularity, inference_str; n_samples=n_samples
     )
 
     @info "Parameter learning complete" num_parameters = length(learned_params)

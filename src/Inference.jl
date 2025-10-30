@@ -14,7 +14,7 @@ export TrainingData, ModelGranularity, InferenceAlgorithm
 export PerOpcode, PerAddressingMode
 export ImportanceSampling, MCMC
 export single_program_energy_model, parameter_inference_model
-export learn_parameters
+export learn_parameters, learn_parameters_mcmc_hmc, learn_parameters_mcmc_blocked
 
 struct TrainingData
     programs::Vector{Vector{Instruction}}
@@ -206,44 +206,333 @@ epsilon = 1e-12
 end
 
 """
-Learn MSP430 instruction energy parameters from training data using MCMC
-TODO: Implement full MCMC inference algorithm
+Compute posterior means from MCMC traces.
+
+# Arguments
+- `traces`: Vector of Gen traces from MCMC sampling
+- `valid_keys`: Set of valid parameter keys to extract
+
+# Returns
+Dictionary mapping instruction keys to posterior mean (alpha, beta) parameters
+"""
+function compute_posterior_means(
+    traces::Vector, valid_keys::Set{Tuple{Vararg{Symbol}}}
+)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
+
+    for param_key in valid_keys
+        alphas = Float64[]
+        betas = Float64[]
+
+        for trace in traces
+            params = get_retval(trace)
+            if haskey(params, param_key)
+                alpha, beta = params[param_key]
+                push!(alphas, alpha)
+                push!(betas, beta)
+            end
+        end
+
+        # Posterior mean
+        avg_alpha = mean(alphas)
+        avg_beta = mean(betas)
+        learned_params[param_key] = (avg_alpha, avg_beta)
+
+        mean_energy = avg_alpha * avg_beta
+        @info "Learned parameters (MCMC)" param_key alpha = round(avg_alpha; digits=4) beta = round(
+            avg_beta; digits=4
+        ) mean_energy = round(mean_energy; digits=6)
+    end
+
+    return learned_params
+end
+
+"""
+Learn MSP430 instruction energy parameters using simple Metropolis-Hastings MCMC.
+Uses random walk proposals on each parameter independently.
+
+# Arguments
+- `training_data`: Training data containing programs and measured energies
+- `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
+- `n_samples`: Number of samples to collect after burn-in (default: 1000)
+- `burn_in`: Number of burn-in iterations to discard (default: 500)
+
+# Returns
+Dictionary mapping instruction keys to posterior mean (alpha, beta) parameters
 """
 function learn_parameters_mcmc(
-    training_data::TrainingData, granularity::ModelGranularity; n_samples::Int=1000
+    training_data::TrainingData,
+    granularity::ModelGranularity;
+    n_samples::Int=1000,
+    burn_in::Int=500,
 )::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
 
-    @info "Starting parameter inference using MCMC"
+    @info "Starting MCMC inference (Metropolis-Hastings)"
     @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
-        length(valid_keys) n_samples
+        length(valid_keys) n_samples burn_in
 
     # Start timing
     start_time = time()
 
-    # TODO: Implement MCMC inference
-    # For now, this is a skeleton that uses a simple fallback strategy
-    @warn "MCMC inference is not yet fully implemented - using default parameters"
-
-    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
-
-    for param_key in valid_keys
-        # Default parameters based on rough estimates
-        # Current ≈ 118 µA/MHz -> roughly 1 nJ per instruction
-        # Using Gamma distribution with mean=1.0, variance=0.33
-        alpha = 3.0
-        beta = 0.33
-        learned_params[param_key] = (alpha, beta)
-
-        mean_energy = alpha * beta
-        @info "Using default parameters (MCMC not implemented)" param_key alpha beta mean_energy =
-            round(mean_energy; digits=6)
+    # Set up constraints (observed energies)
+    constraints = choicemap()
+    for (i, energy) in enumerate(training_data.energies)
+        constraints[(:observed_energy_consumption, i)] = energy
     end
+
+    # Initialize trace with constraints
+    @info "Initializing trace..."
+    trace, = generate(all_programs_energy_model, (training_data, granularity), constraints)
+    @info "Initial log probability" log_prob = get_score(trace)
+
+    # Collect parameter addresses to update
+    param_addresses = []
+    for param_key in valid_keys
+        push!(param_addresses, (param_key..., :logμ))
+        push!(param_addresses, (param_key..., :logκ))
+    end
+    push!(param_addresses, :log_obs_sigma)
+
+    @info "Number of parameters to sample" num_params = length(param_addresses)
+
+    # MCMC sampling
+    traces = []
+    total_proposals = 0
+    total_accepted = 0
+
+    for i in 1:(burn_in + n_samples)
+        # Random walk MH on each parameter
+        for addr in param_addresses
+            trace, accepted = mh(trace, select(addr))
+            total_proposals += 1
+            if accepted
+                total_accepted += 1
+            end
+        end
+
+        # Collect samples after burn-in
+        if i > burn_in
+            push!(traces, trace)
+        end
+
+        if i % 100 == 0
+            acceptance_rate = total_accepted / total_proposals
+            @info "MCMC progress" iteration = i log_prob = round(
+                get_score(trace); digits=2
+            ) acceptance_rate = round(acceptance_rate; digits=3)
+        end
+    end
+
+    # Final acceptance rate
+    final_acceptance_rate = total_accepted / total_proposals
+    @info "MCMC sampling complete" total_iterations = burn_in +
+        n_samples acceptance_rate = round(final_acceptance_rate; digits=3)
+
+    # Compute posterior means
+    @info "Computing posterior means..."
+    learned_params = compute_posterior_means(traces, valid_keys)
 
     # Calculate and log execution time
     learning_time = time() - start_time
-    @info "Parameter learning completed (MCMC skeleton)" time = learning_time num_learned_params =
+    @info "Parameter learning completed (MH-MCMC)" time = learning_time num_learned_params = length(
+        learned_params
+    )
+
+    return learned_params
+end
+
+"""
+Learn MSP430 instruction energy parameters using Hamiltonian Monte Carlo (HMC).
+Uses gradient information for more efficient proposals in high-dimensional spaces.
+
+# Arguments
+- `training_data`: Training data containing programs and measured energies
+- `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
+- `n_samples`: Number of samples to collect after burn-in (default: 1000)
+- `burn_in`: Number of burn-in iterations to discard (default: 500)
+- `step_size`: Step size for leapfrog integration (default: 0.01)
+- `n_leapfrog`: Number of leapfrog steps per HMC iteration (default: 10)
+
+# Returns
+Dictionary mapping instruction keys to posterior mean (alpha, beta) parameters
+"""
+function learn_parameters_mcmc_hmc(
+    training_data::TrainingData,
+    granularity::ModelGranularity;
+    n_samples::Int=1000,
+    burn_in::Int=500,
+    step_size::Float64=0.01,
+    n_leapfrog::Int=10,
+)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+    # Get all valid parameter keys based on granularity
+    valid_keys = get_valid_param_keys(training_data, granularity)
+
+    @info "Starting MCMC inference (Hamiltonian Monte Carlo)"
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
+        length(valid_keys) n_samples burn_in step_size n_leapfrog
+
+    # Start timing
+    start_time = time()
+
+    # Set up constraints (observed energies)
+    constraints = choicemap()
+    for (i, energy) in enumerate(training_data.energies)
+        constraints[(:observed_energy_consumption, i)] = energy
+    end
+
+    # Initialize trace with constraints
+    @info "Initializing trace..."
+    trace, = generate(all_programs_energy_model, (training_data, granularity), constraints)
+    @info "Initial log probability" log_prob = get_score(trace)
+
+    # Select all continuous parameters for HMC
+    selection = select()
+    for param_key in valid_keys
+        selection = selection | select((param_key..., :logμ))
+        selection = selection | select((param_key..., :logκ))
+    end
+    selection = selection | select(:log_obs_sigma)
+
+    num_params = length(valid_keys) * 2 + 1  # 2 params per key + sigma
+    @info "Number of parameters to sample" num_params
+
+    # MCMC sampling with HMC
+    traces = []
+    total_proposals = 0
+    total_accepted = 0
+
+    for i in 1:(burn_in + n_samples)
+        # HMC update on all parameters jointly
+        trace, accepted = hmc(trace, selection; L=n_leapfrog, eps=step_size)
+        total_proposals += 1
+        if accepted
+            total_accepted += 1
+        end
+
+        # Collect samples after burn-in
+        if i > burn_in
+            push!(traces, trace)
+        end
+
+        if i % 100 == 0
+            acceptance_rate = total_accepted / total_proposals
+            @info "MCMC progress" iteration = i log_prob = round(
+                get_score(trace); digits=2
+            ) acceptance_rate = round(acceptance_rate; digits=3)
+        end
+    end
+
+    # Final acceptance rate
+    final_acceptance_rate = total_accepted / total_proposals
+    @info "MCMC sampling complete" total_iterations = burn_in +
+        n_samples acceptance_rate = round(final_acceptance_rate; digits=3)
+
+    # Compute posterior means
+    @info "Computing posterior means..."
+    learned_params = compute_posterior_means(traces, valid_keys)
+
+    # Calculate and log execution time
+    learning_time = time() - start_time
+    @info "Parameter learning completed (HMC-MCMC)" time = learning_time num_learned_params = length(
+        learned_params
+    )
+
+    return learned_params
+end
+
+"""
+Learn MSP430 instruction energy parameters using Blocked Gibbs/MH MCMC.
+Updates different parameter groups separately for better mixing.
+
+# Arguments
+- `training_data`: Training data containing programs and measured energies
+- `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
+- `n_samples`: Number of samples to collect after burn-in (default: 1000)
+- `burn_in`: Number of burn-in iterations to discard (default: 500)
+
+# Returns
+Dictionary mapping instruction keys to posterior mean (alpha, beta) parameters
+"""
+function learn_parameters_mcmc_blocked(
+    training_data::TrainingData,
+    granularity::ModelGranularity;
+    n_samples::Int=1000,
+    burn_in::Int=500,
+)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+    # Get all valid parameter keys based on granularity
+    valid_keys = get_valid_param_keys(training_data, granularity)
+
+    @info "Starting MCMC inference (Blocked Gibbs/MH)"
+    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys =
+        length(valid_keys) n_samples burn_in
+
+    # Start timing
+    start_time = time()
+
+    # Set up constraints (observed energies)
+    constraints = choicemap()
+    for (i, energy) in enumerate(training_data.energies)
+        constraints[(:observed_energy_consumption, i)] = energy
+    end
+
+    # Initialize trace with constraints
+    @info "Initializing trace..."
+    trace, = generate(all_programs_energy_model, (training_data, granularity), constraints)
+    @info "Initial log probability" log_prob = get_score(trace)
+
+    @info "Number of parameter blocks" num_blocks = length(valid_keys) + 1  # one per key + sigma
+
+    # MCMC sampling with blocked updates
+    traces = []
+    total_proposals = 0
+    total_accepted = 0
+
+    for i in 1:(burn_in + n_samples)
+        # Block 1: Update each instruction's parameters separately
+        # This allows parameters for each instruction type to mix independently
+        for param_key in valid_keys
+            selection = select((param_key..., :logμ), (param_key..., :logκ))
+            trace, accepted = mh(trace, selection)
+            total_proposals += 1
+            if accepted
+                total_accepted += 1
+            end
+        end
+
+        # Block 2: Update observation noise parameter
+        trace, accepted = mh(trace, select(:log_obs_sigma))
+        total_proposals += 1
+        if accepted
+            total_accepted += 1
+        end
+
+        # Collect samples after burn-in
+        if i > burn_in
+            push!(traces, trace)
+        end
+
+        if i % 100 == 0
+            acceptance_rate = total_accepted / total_proposals
+            @info "MCMC progress" iteration = i log_prob = round(
+                get_score(trace); digits=2
+            ) acceptance_rate = round(acceptance_rate; digits=3)
+        end
+    end
+
+    # Final acceptance rate
+    final_acceptance_rate = total_accepted / total_proposals
+    @info "MCMC sampling complete" total_iterations = burn_in +
+        n_samples acceptance_rate = round(final_acceptance_rate; digits=3)
+
+    # Compute posterior means
+    @info "Computing posterior means..."
+    learned_params = compute_posterior_means(traces, valid_keys)
+
+    # Calculate and log execution time
+    learning_time = time() - start_time
+    @info "Parameter learning completed (Blocked-MCMC)" time = learning_time num_learned_params =
         length(learned_params)
 
     return learned_params
@@ -334,7 +623,11 @@ Learn MSP430 instruction energy parameters from training data.
 # Arguments
 - `training_data`: Training data containing programs and measured energies
 - `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
-- `algorithm`: Inference algorithm to use (ImportanceSampling or MCMC)
+- `algorithm`: Inference algorithm to use as a string:
+  - "importance-sampling": Importance sampling (default)
+  - "mcmc" or "mcmc-mh": Simple Metropolis-Hastings MCMC
+  - "mcmc-hmc": Hamiltonian Monte Carlo MCMC
+  - "mcmc-blocked": Blocked Gibbs/MH MCMC
 - `n_samples`: Number of samples to use for inference (default: 1000)
 
 # Returns
@@ -343,17 +636,26 @@ Dictionary mapping instruction keys to (alpha, beta) parameters of Gamma distrib
 function learn_parameters(
     training_data::TrainingData,
     granularity::ModelGranularity,
-    algorithm::InferenceAlgorithm=ImportanceSampling;
+    algorithm::String="importance-sampling";
     n_samples::Int=1000,
 )::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
-    if algorithm == ImportanceSampling
+    if algorithm == "importance-sampling"
         return learn_parameters_importance_sampling(
             training_data, granularity; n_samples=n_samples
         )
-    elseif algorithm == MCMC
+    elseif algorithm == "mcmc" || algorithm == "mcmc-mh"
         return learn_parameters_mcmc(training_data, granularity; n_samples=n_samples)
+    elseif algorithm == "mcmc-hmc"
+        return learn_parameters_mcmc_hmc(training_data, granularity; n_samples=n_samples)
+    elseif algorithm == "mcmc-blocked"
+        return learn_parameters_mcmc_blocked(
+            training_data, granularity; n_samples=n_samples
+        )
     else
-        error("Unknown inference algorithm: $algorithm")
+        error(
+            "Unknown inference algorithm: $algorithm. " *
+            "Must be one of: importance-sampling, mcmc, mcmc-mh, mcmc-hmc, mcmc-blocked",
+        )
     end
 end
 
