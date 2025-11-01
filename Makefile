@@ -138,12 +138,40 @@ interpret: disasm
 train: NUM_REPEAT?=10
 train: GRANULARITY?=opcode
 train: INFERENCE?=importance-sampling
-train: disasm
-ifndef DATA
-	$(error Please specify DATA=<measurement_file.csv>)
+train: | $(BUILD_DIR) $(ASM_DIR)
+ifndef FILES
+	$(error Please specify FILES=file1.c;file2.c;... (semicolon-separated))
 endif
+ifndef DATA
+	$(error Please specify DATA=data1.csv;data2.csv;... (semicolon-separated))
+endif
+	@echo "Compiling and disassembling files..."
+	@IFS=';' read -ra FILE_ARRAY <<< "$(FILES)"; \
+	for file in "$${FILE_ARRAY[@]}"; do \
+		echo "  Processing $$file..."; \
+		BASENAME=$$(basename $$file .c); \
+		NUM_REPEAT_FLAG=""; \
+		if [ -n "$(NUM_REPEAT)" ]; then \
+			NUM_REPEAT_FLAG="-DNUM_REPEAT=$(NUM_REPEAT)"; \
+		fi; \
+		$(CC) $(CFLAGS) $$NUM_REPEAT_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $$file; \
+		$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm; \
+		echo "  ✓ Compiled and disassembled $$BASENAME"; \
+	done
 	@echo "Training energy model..."
-	@BASENAME=$$(basename $(FILE) .c); \
+	@IFS=';' read -ra FILE_ARRAY <<< "$(FILES)"; \
+	IFS=';' read -ra DATA_ARRAY <<< "$(DATA)"; \
+	if [ $${#FILE_ARRAY[@]} -ne $${#DATA_ARRAY[@]} ]; then \
+		echo "Error: Number of FILES ($${#FILE_ARRAY[@]}) must match number of DATA files ($${#DATA_ARRAY[@]})"; \
+		exit 1; \
+	fi; \
+	ASM_FILES=(); \
+	DATA_FILES=(); \
+	for i in "$${!FILE_ARRAY[@]}"; do \
+		BASENAME=$$(basename "$${FILE_ARRAY[$$i]}" .c); \
+		ASM_FILES+=("$(ASM_DIR)/$$BASENAME.asm"); \
+		DATA_FILES+=("$${DATA_ARRAY[$$i]}"); \
+	done; \
 	OUTPUT=$${OUTPUT:-energy_params.json}; \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
@@ -151,7 +179,7 @@ endif
 	if [ -n "$(N_SAMPLES)" ]; then N_SAMPLES_FLAG="--n-samples $(N_SAMPLES)"; fi; \
 	GRANULARITY_FLAG="--granularity $(GRANULARITY)"; \
 	INFERENCE_FLAG="--inference $(INFERENCE)"; \
-	julia --project=. src/main.jl train --asm $(ASM_DIR)/$$BASENAME.asm --data $(DATA) --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG $$GRANULARITY_FLAG $$INFERENCE_FLAG
+	julia --project=. src/main.jl train --asm "$${ASM_FILES[@]}" --data "$${DATA_FILES[@]}" --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG $$GRANULARITY_FLAG $$INFERENCE_FLAG
 	@echo "✓ Training completed!"
 
 # Estimate mode: predict energy consumption
