@@ -2,7 +2,6 @@ include("../src/EnergyModel.jl")
 include("../src/Interpreter.jl")
 include("../src/Inference.jl")
 include("../src/Estimation.jl")
-include("../src/Visualization.jl")
 using .EnergyModel
 using .Interpreter
 using .Inference
@@ -20,11 +19,11 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "mode"
-        help = "Mode: interpret, train, estimate, or visualize"
+        help = "Mode: interpret, train, or estimate"
         required = true
         arg_type = String
         "--asm"
-        help = "Path to assembly file (not required for visualize mode)"
+        help = "Path to assembly file"
         required = false
         arg_type = String
         "--data"
@@ -292,37 +291,6 @@ function run_estimate(
 end
 
 """
-Visualize mode: Visualize energy parameter distributions
-"""
-function run_visualize(
-    params_file::String, output_file::Union{String,Nothing}=nothing
-)::Nothing
-    @info "Running in VISUALIZE mode"
-    @info "Energy parameters" path = params_file
-
-    if !isnothing(output_file)
-        @info "Output file" path = output_file
-    end
-
-    # Load energy parameters
-    params, granularity = load_energy_params(params_file)
-
-    # Visualize parameter distributions
-    try
-        visualize_instruction_params(params, granularity, output_file)
-    catch e
-        @warn "Failed to visualize instruction parameters" error = e
-        rethrow(e)
-    end
-
-    @info "="^60
-    @info "VISUALIZATION COMPLETE"
-    @info "="^60
-
-    return nothing
-end
-
-"""
 Main function
 """
 function main()
@@ -366,17 +334,9 @@ function main()
             output_file = args["output"]
             run_estimate(asm_file, params_file, max_steps, output_file)
 
-        elseif mode == "visualize"
-            params_file = args["params"]
-            if isnothing(params_file)
-                error("--params is required for visualize mode")
-            end
-            output_file = args["output"]
-            run_visualize(params_file, output_file)
-
         else
             error(
-                "Invalid mode: $mode. Must be one of: interpret, train, estimate, visualize"
+                "Invalid mode: $mode. Must be one of: interpret, train, estimate"
             )
         end
 

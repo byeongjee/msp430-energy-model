@@ -42,7 +42,7 @@ JULIA_NUM_THREADS ?= auto
 export JULIA_NUM_THREADS
 
 # Default target
-.PHONY: all clean help interpret train estimate visualize test flash create_fixture train_and_estimate analyze_distribution
+.PHONY: all clean help interpret train estimate test flash create_fixture train_and_estimate analyze_distribution
 
 all: help
 
@@ -64,7 +64,6 @@ help:
 	@echo "                     VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> GRANULARITY=<gran> SKIP_RESET=1 KEEP_INTERMEDIATES=1"
 	@echo "                     INFERENCE=<alg> (importance-sampling, mcmc-hmc, mcmc-blocked)"
 	@echo "  analyze_distribution FILE=<file.c> [TAG=<tag>] [REPORT_DIR=<dir>] [VOLTAGE=<v>] [MAX_CURRENT=<a>] [NUM_REPEAT=<n>] [SKIP_RESET=1] - Flash, measure, and analyze energy distribution per event"
-	@echo "  visualize PARAMS=<params> [OUTPUT=<file>] - Visualize instruction energy distributions"
 	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
 	@echo "  test [PATTERN=<regex>]      - Run Julia test suite (compare interpreter vs GDB)"
@@ -89,8 +88,6 @@ help:
 	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c"
 	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c TAG=experiment1 NUM_REPEAT=20"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json JULIA_NUM_THREADS=4  # Use 4 threads"
-	@echo "  make visualize PARAMS=energy_params.json"
-	@echo "  make visualize PARAMS=energy_params.json OUTPUT=instruction_distributions.png"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make flash FILE=examples/c_programs/simple.c DEBUG=1"
 	@echo "  make create_fixture FILE=examples/c_programs/simple.c NAME=simple"
@@ -213,17 +210,6 @@ endif
 	if [ -n "$(REPORT_DIR)" ]; then ARGS="$$ARGS --report-dir $(REPORT_DIR)"; fi; \
 	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
 	./scripts/analyze_distribution.sh $$ARGS
-
-# Visualize mode: visualize instruction energy distributions
-visualize:
-ifndef PARAMS
-	$(error Please specify PARAMS=<parameter_file>)
-endif
-	@echo "Visualizing instruction energy distributions..."
-	@OUTPUT_FLAG=""; \
-	if [ -n "$(OUTPUT)" ]; then OUTPUT_FLAG="--output $(OUTPUT)"; fi; \
-	julia --project=. src/main.jl visualize --params $(PARAMS) $$OUTPUT_FLAG
-	@echo "✓ Visualization completed!"
 
 # Create test fixture
 create_fixture:
