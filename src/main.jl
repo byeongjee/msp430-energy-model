@@ -23,12 +23,14 @@ function parse_commandline()
         required = true
         arg_type = String
         "--asm"
-        help = "Path to assembly file"
+        help = "Path(s) to assembly file(s) (space-separated for multiple files)"
         required = false
         arg_type = String
+        nargs = '+'
         "--data"
-        help = "Path to energy measurement data (required for train mode)"
+        help = "Path(s) to energy measurement data (space-separated, required for train mode)"
         arg_type = String
+        nargs = '+'
         "--params"
         help = "Path to energy parameter file (required for estimate mode)"
         arg_type = String
@@ -81,44 +83,15 @@ function run_interpret(asm_file::String, max_steps::Int)
 end
 
 """
-Train mode: Infer energy parameters from assembly and measurement data
+Process a single assembly file and its corresponding measurement data
+Returns event sequences and energy measurements
 """
-function run_train(
+function process_training_file(
     asm_file::String,
     data_file::String,
-    output_file::Union{String,Nothing},
-    max_steps::Int,
-    n_samples::Int,
-    granularity_str::String,
-    inference_str::String,
-)::Nothing
-    @info "Running in TRAIN mode"
-    @info "Assembly file" path = asm_file
-    @info "Measurement data" path = data_file
-
-    # Parse granularity
-    granularity = if granularity_str == "opcode"
-        Inference.PerOpcode
-    elseif granularity_str == "addressing_mode"
-        Inference.PerAddressingMode
-    else
-        error("Invalid granularity: $granularity_str. Must be 'opcode' or 'addressing_mode'")
-    end
-    @info "Model granularity" granularity
-
-    # Validate inference algorithm
-    valid_inference_algorithms = ["importance-sampling", "mcmc-hmc", "mcmc-blocked"]
-    if !(inference_str in valid_inference_algorithms)
-        error(
-            "Invalid inference algorithm: $inference_str. Must be one of: " *
-            join(valid_inference_algorithms, ", "),
-        )
-    end
-    @info "Inference algorithm" algorithm = inference_str
-
-    if !isnothing(output_file)
-        @info "Output file" path = output_file
-    end
+    max_steps::Int
+)::Tuple{Vector{Vector{Instruction}}, Vector{Float64}}
+    @info "Processing training file" asm = asm_file data = data_file
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
@@ -145,12 +118,72 @@ function run_train(
 
     if length(event_sequences) != length(energies)
         error(
-            "Mismatch between event sequences ($(length(event_sequences))) and energy measurements ($(length(energies)))",
+            "Mismatch between event sequences ($(length(event_sequences))) and energy measurements ($(length(energies))) for file: $asm_file",
         )
     end
 
-    @info "Creating training data" num_samples = length(energies)
-    training_data = TrainingData(event_sequences, energies)
+    @info "File processed successfully" num_events = length(event_sequences)
+
+    return event_sequences, energies
+end
+
+"""
+Train mode: Infer energy parameters from assembly and measurement data
+Supports single or multiple files for training
+"""
+function run_train(
+    asm_files::Vector{String},
+    data_files::Vector{String},
+    output_file::Union{String,Nothing},
+    max_steps::Int,
+    n_samples::Int,
+    granularity_str::String,
+    inference_str::String,
+)::Nothing
+    @info "Running in TRAIN mode"
+    @info "Number of training files" n_files = length(asm_files)
+
+    # Validate that number of asm files matches number of data files
+    if length(asm_files) != length(data_files)
+        error("Number of assembly files ($(length(asm_files))) must match number of data files ($(length(data_files)))")
+    end
+
+    # Parse granularity
+    granularity = if granularity_str == "opcode"
+        Inference.PerOpcode
+    elseif granularity_str == "addressing_mode"
+        Inference.PerAddressingMode
+    else
+        error("Invalid granularity: $granularity_str. Must be 'opcode' or 'addressing_mode'")
+    end
+    @info "Model granularity" granularity
+
+    # Validate inference algorithm
+    valid_inference_algorithms = ["importance-sampling", "mcmc-hmc", "mcmc-blocked"]
+    if !(inference_str in valid_inference_algorithms)
+        error(
+            "Invalid inference algorithm: $inference_str. Must be one of: " *
+            join(valid_inference_algorithms, ", "),
+        )
+    end
+    @info "Inference algorithm" algorithm = inference_str
+
+    if !isnothing(output_file)
+        @info "Output file" path = output_file
+    end
+
+    # Process each file and collect event sequences and energies
+    all_event_sequences = Vector{Vector{Instruction}}()
+    all_energies = Vector{Float64}()
+
+    for (asm_file, data_file) in zip(asm_files, data_files)
+        event_sequences, energies = process_training_file(asm_file, data_file, max_steps)
+        append!(all_event_sequences, event_sequences)
+        append!(all_energies, energies)
+    end
+
+    @info "Creating combined training data" total_samples = length(all_energies)
+    training_data = TrainingData(all_event_sequences, all_energies)
 
     @info "Training data created successfully"
 
@@ -297,22 +330,26 @@ function main()
     args = parse_commandline()
 
     mode = lowercase(args["mode"])
-    asm_file = args["asm"]
     max_steps = args["max-steps"]
 
     try
         if mode == "interpret"
-            if isnothing(asm_file)
+            asm_files = args["asm"]
+            if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for interpret mode")
             end
-            run_interpret(asm_file, max_steps)
+            if length(asm_files) > 1
+                error("interpret mode only supports a single assembly file")
+            end
+            run_interpret(asm_files[1], max_steps)
 
         elseif mode == "train"
-            if isnothing(asm_file)
+            asm_files = args["asm"]
+            if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for train mode")
             end
-            data_file = args["data"]
-            if isnothing(data_file)
+            data_files = args["data"]
+            if isnothing(data_files) || isempty(data_files)
                 error("--data is required for train mode")
             end
             output_file = args["output"]
@@ -320,19 +357,23 @@ function main()
             granularity = args["granularity"]
             inference = args["inference"]
             run_train(
-                asm_file, data_file, output_file, max_steps, n_samples, granularity, inference
+                asm_files, data_files, output_file, max_steps, n_samples, granularity, inference
             )
 
         elseif mode == "estimate"
-            if isnothing(asm_file)
+            asm_files = args["asm"]
+            if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for estimate mode")
+            end
+            if length(asm_files) > 1
+                error("estimate mode only supports a single assembly file")
             end
             params_file = args["params"]
             if isnothing(params_file)
                 error("--params is required for estimate mode")
             end
             output_file = args["output"]
-            run_estimate(asm_file, params_file, max_steps, output_file)
+            run_estimate(asm_files[1], params_file, max_steps, output_file)
 
         else
             error(
