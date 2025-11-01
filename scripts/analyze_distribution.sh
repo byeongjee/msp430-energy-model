@@ -26,8 +26,8 @@ FILE=""
 # Script directory and paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MEASURE_PY="$PROJECT_ROOT/measurement/measure.py"
-PREPROCESS_PY="$PROJECT_ROOT/measurement/preprocess.py"
+MEASURE_PY="$SCRIPT_DIR/measure.py"
+PREPROCESS_PY="$SCRIPT_DIR/preprocess.py"
 GENERATE_REPORT_PY="$SCRIPT_DIR/generate_distribution_report.py"
 
 # Load Makefile variables
