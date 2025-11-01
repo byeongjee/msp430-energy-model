@@ -1,5 +1,3 @@
-# msp430_machine_state.jl - MSP430 machine state management and instruction execution
-
 """
 Initialize a new MSP430 machine state
 """
