@@ -1,13 +1,17 @@
 # Makefile for C to MSP430 compilation and analysis pipeline
 
 # MSP430 toolchain configuration
-MSPGCC_PATH := /Users/byeongjee/migration/msp430-gcc/bin
-MSP430_INC_PATH := /Users/byeongjee/ti/msp430-gcc/include
-MSP430_LD_PATH := /Users/byeongjee/ti/msp430-gcc/include
+# Require environment variables to be set
+ifndef MSP430GCC_TOOLCHAIN_PATH
+$(error MSP430GCC_TOOLCHAIN_PATH is not set. Please set it in your environment or .env file)
+endif
+ifndef MSP430GCC_SUPPORT_PATH
+$(error MSP430GCC_SUPPORT_PATH is not set. Please set it in your environment or .env file)
+endif
 
-CC := $(MSPGCC_PATH)/msp430-elf-gcc
-OBJDUMP := $(MSPGCC_PATH)/msp430-elf-objdump
-OBJCOPY := $(MSPGCC_PATH)/msp430-elf-objcopy
+CC := $(MSP430GCC_TOOLCHAIN_PATH)/bin/msp430-elf-gcc
+OBJDUMP := $(MSP430GCC_TOOLCHAIN_PATH)/bin/msp430-elf-objdump
+OBJCOPY := $(MSP430GCC_TOOLCHAIN_PATH)/bin/msp430-elf-objcopy
 
 # Device configuration
 DEVICE := MSP430FR5994
@@ -22,8 +26,8 @@ CFLAGS := -mmcu=$(DEVICE) -O0 -g -Wall
 ifdef DEBUG
 CFLAGS += -DDEBUG
 endif
-INCLUDES := -I$(MSP430_INC_PATH) -I$(MEASUREMENT_INCLUDE_PATH)
-LDFLAGS := -L$(MSP430_LD_PATH)
+INCLUDES := -I$(MSP430GCC_SUPPORT_PATH)/include -I$(MEASUREMENT_INCLUDE_PATH)
+LDFLAGS := -L$(MSP430GCC_SUPPORT_PATH)/include
 
 # Directories
 SRC_DIR := examples/c_programs

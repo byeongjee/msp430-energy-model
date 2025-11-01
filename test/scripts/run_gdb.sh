@@ -18,8 +18,14 @@ if [ ! -f "$ELF_FILE" ]; then
     exit 1
 fi
 
+# Check required environment variables
+if [[ -z "${MSP430GCC_TOOLCHAIN_PATH}" ]]; then
+    echo "Error: MSP430GCC_TOOLCHAIN_PATH is not set. Please set it in your environment or .env file"
+    exit 1
+fi
+
 # Path to GDB
-GDB="/Users/byeongjee/migration/msp430-gcc/bin/msp430-elf-gdb"
+GDB="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-gdb"
 
 if [ ! -x "$GDB" ]; then
     echo "Error: GDB not found or not executable: $GDB"

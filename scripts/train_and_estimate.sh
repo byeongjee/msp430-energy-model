@@ -48,16 +48,23 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 MEASURE_PY="$SCRIPT_DIR/measure.py"
 PREPROCESS_PY="$SCRIPT_DIR/preprocess.py"
 
+# Check required environment variables
+if [[ -z "${MSP430GCC_TOOLCHAIN_PATH}" ]]; then
+    log_error "MSP430GCC_TOOLCHAIN_PATH is not set. Please set it in your environment or .env file"
+    exit 1
+fi
+if [[ -z "${MSP430GCC_SUPPORT_PATH}" ]]; then
+    log_error "MSP430GCC_SUPPORT_PATH is not set. Please set it in your environment or .env file"
+    exit 1
+fi
+
 # Load Makefile variables
-MSPGCC_PATH="$PROJECT_ROOT/../msp430-gcc/bin"
-MSP430_INC_PATH="$HOME/ti/msp430-gcc/include"
-MSP430_LD_PATH="$HOME/ti/msp430-gcc/include"
-CC="$MSPGCC_PATH/msp430-elf-gcc"
-OBJDUMP="$MSPGCC_PATH/msp430-elf-objdump"
+CC="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-gcc"
+OBJDUMP="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-objdump"
 DEVICE="MSP430FR5994"
 CFLAGS="-mmcu=$DEVICE -O0 -g -Wall"
-INCLUDES="-I$MSP430_INC_PATH -I$PROJECT_ROOT/include"
-LDFLAGS="-L$MSP430_LD_PATH"
+INCLUDES="-I$MSP430GCC_SUPPORT_PATH/include -I$PROJECT_ROOT/include"
+LDFLAGS="-L$MSP430GCC_SUPPORT_PATH/include"
 BUILD_DIR="$PROJECT_ROOT/build"
 ASM_DIR="$BUILD_DIR/asm"
 

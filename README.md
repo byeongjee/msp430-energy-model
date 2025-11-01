@@ -9,13 +9,15 @@ MSP430FR5994 microcontroller programs using probabilistic methods.
 We use the MSP430 GCC toolchain to compile C programs to MSP430 binaries.
 Install and set the following environment variables:
 
-- `MSP430GCC_PATH`: The path to the MSP430 GCC toolchain.
+- `MSP430GCC_TOOLCHAIN_PATH`: The path to the MSP430 GCC toolchain root directory (without `/bin` postfix).
   - Download "toolchain only" from [here](https://www.ti.com/tool/download/MSP430-GCC-OPENSOURCE/9.3.1.2)
 that fits your platform.
 
-- `MSP430_INC_PATH`: The path to the MSP430 GCC include files.
+- `MSP430GCC_SUPPORT_PATH`: The path to the MSP430 GCC support files root directory (without `/include` postfix).
   - Download "Header and Support Files" from
   [here](https://www.ti.com/tool/download/MSP430-GCC-OPENSOURCE/9.3.1.2). This is platform independent.
+
+You can refer to `.env.sh.example` to set up your environment variables.
 
 ### 2. Install Julia Dependencies
 

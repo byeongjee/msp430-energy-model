@@ -46,19 +46,26 @@ mkdir -p "$BUILD_DIR"
 mkdir -p "$ASM_DIR"
 mkdir -p "$FIXTURE_DIR"
 
+# Check required environment variables
+if [[ -z "${MSP430GCC_TOOLCHAIN_PATH}" ]]; then
+    echo "Error: MSP430GCC_TOOLCHAIN_PATH is not set. Please set it in your environment or .env file"
+    exit 1
+fi
+if [[ -z "${MSP430GCC_SUPPORT_PATH}" ]]; then
+    echo "Error: MSP430GCC_SUPPORT_PATH is not set. Please set it in your environment or .env file"
+    exit 1
+fi
+
 # MSP430 toolchain
-MSPGCC_PATH="/Users/byeongjee/migration/msp430-gcc/bin"
-MSP430_INC_PATH="/Users/byeongjee/ti/msp430-gcc/include"
-MSP430_LD_PATH="/Users/byeongjee/ti/msp430-gcc/include"
 MEASUREMENT_INCLUDE_PATH="$PROJECT_ROOT/include"
 
-CC="$MSPGCC_PATH/msp430-elf-gcc"
-OBJDUMP="$MSPGCC_PATH/msp430-elf-objdump"
+CC="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-gcc"
+OBJDUMP="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-objdump"
 
 DEVICE="MSP430FR5994"
 CFLAGS="-mmcu=$DEVICE -O0 -g -Wall"
-INCLUDES="-I$MSP430_INC_PATH -I$MEASUREMENT_INCLUDE_PATH"
-LDFLAGS="-L$MSP430_LD_PATH"
+INCLUDES="-I$MSP430GCC_SUPPORT_PATH/include -I$MEASUREMENT_INCLUDE_PATH"
+LDFLAGS="-L$MSP430GCC_SUPPORT_PATH/include"
 
 # Output files
 ELF_FILE="$BUILD_DIR/${TEST_NAME}.elf"
