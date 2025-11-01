@@ -1,3 +1,14 @@
+[compat]
+ArgParse = "1.2.0"
+CSV = "0.10.15"
+DataFrames = "1.8.0"
+Distributions = "0.25.122"
+Gen = "0.4.8"
+JSON = "0.21.4"
+Optim = "1.13.2"
+Plots = "1.41.1"
+Test = "1.11.0"
+
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
