@@ -1,3 +1,5 @@
+// training program for simple energy model
+// with opcode-level modularity
 #include "setup.h"
 
 #define INNER_ITERS 30

@@ -1,3 +1,5 @@
+// test program that we want to validate
+// our inference results against
 #include "setup.h"
 
 int main(void) {

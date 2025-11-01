@@ -1,3 +1,9 @@
+// the goal of this program is to quantify the data switching overhead
+// by comparing the energy consumption
+// of
+// add;add;add;add;...;sub;sub;sub;sub;...
+// and
+// add;sub;add;sub;...
 #include "setup.h"
 
 #define STR_HELPER(x) #x
@@ -13,12 +19,7 @@
 
 #define NOINLINE __attribute__((noinline))
 
-/* =================== Kernel 1: interleaved (add; sub) =================== */
-/* for j = 0 .. INNER_ITERS-1:
- *   .rept REPT_OPS: add r8→r6; sub r9→r7
- */
 NOINLINE void add_sub_interleaved() {
-  /* Pin variables to registers */
   register uint16_t acc_add asm("r6") = 0x1234;
   register uint16_t acc_sub asm("r7") = 0xFEDC;
   register uint16_t src_add asm("r8") = 0x0003;
@@ -35,12 +36,6 @@ NOINLINE void add_sub_interleaved() {
   }
 }
 
-/* =================== Kernel 2: blocked (adds then subs) ================== */
-/* for j = 0 .. (INNER_ITERS/2)-1:
- *   .rept (REPT_OPS*2): add r8→r6
- * for j = 0 .. (INNER_ITERS/2)-1:
- *   .rept (REPT_OPS*2): sub r9→r7
- */
 NOINLINE void add_then_sub_blocked() {
   register uint16_t acc_add asm("r6") = 0x0000;
   register uint16_t acc_sub asm("r7") = 0x8000;
@@ -56,7 +51,6 @@ NOINLINE void add_then_sub_blocked() {
         :
         : "cc", "memory");
   }
-  /* Subs half */
   for (uint32_t j = 0; j < (INNER_ITERS / 2); ++j) {
     __asm__ volatile(
         ".rept " STR(REPT_OPS * 2) " \n\t"
@@ -68,7 +62,6 @@ NOINLINE void add_then_sub_blocked() {
   }
 }
 
-/* -------------------------------- Main -------------------------------- */
 int main(void) {
   initialize();
 
