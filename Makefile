@@ -60,7 +60,7 @@ help:
 	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [GRANULARITY=<gran>] - Train energy model"
 	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
 	@echo "  train_and_estimate TRAIN_FILE=<file.c> ESTIMATE_FILE=<file.c> [options] - Full pipeline: measure → train → estimate → compare"
-	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> RAW_CSV=<file> MEASURED_RAW_CSV=<file> SEGMENTS_CSV=<file> MEASURED_SEGMENTS_CSV=<file> PARAMS=<file>"
+	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> TRAINING_RAW_CSV=<file> TEST_RAW_CSV=<file> TRAINING_SEGMENTS_CSV=<file> TEST_SEGMENTS_CSV=<file> PARAMS=<file>"
 	@echo "                     VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> GRANULARITY=<gran> SKIP_RESET=1 KEEP_INTERMEDIATES=1"
 	@echo "                     INFERENCE=<alg> (importance-sampling, mcmc-hmc, mcmc-blocked)"
 	@echo "  analyze_distribution FILE=<file.c> [TAG=<tag>] [REPORT_DIR=<dir>] [VOLTAGE=<v>] [MAX_CURRENT=<a>] [NUM_REPEAT=<n>] [SKIP_RESET=1] - Flash, measure, and analyze energy distribution per event"
@@ -84,8 +84,8 @@ help:
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
 	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c"
 	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TAG=experiment1 KEEP_INTERMEDIATES=1"
-	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PARAMS=my_params.json RAW_CSV=measurement.csv REPORT_DIR=./my_reports"
-	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c RAW_CSV=train.csv MEASURED_RAW_CSV=estimate.csv  # Resume without hardware"
+	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c PARAMS=my_params.json TRAINING_RAW_CSV=measurement.csv REPORT_DIR=./my_reports"
+	@echo "  make train_and_estimate TRAIN_FILE=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TRAINING_RAW_CSV=train.csv TEST_RAW_CSV=estimate.csv  # Resume without hardware"
 	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c"
 	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c TAG=experiment1 NUM_REPEAT=20"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json JULIA_NUM_THREADS=4  # Use 4 threads"
@@ -184,10 +184,10 @@ ifndef ESTIMATE_FILE
 endif
 	@ARGS="--train-file $(TRAIN_FILE) --estimate-file $(ESTIMATE_FILE)"; \
 	if [ -n "$(TAG)" ]; then ARGS="$$ARGS --tag $(TAG)"; fi; \
-	if [ -n "$(RAW_CSV)" ]; then ARGS="$$ARGS --raw-csv $(RAW_CSV)"; fi; \
-	if [ -n "$(MEASURED_RAW_CSV)" ]; then ARGS="$$ARGS --measured-raw-csv $(MEASURED_RAW_CSV)"; fi; \
-	if [ -n "$(SEGMENTS_CSV)" ]; then ARGS="$$ARGS --segments-csv $(SEGMENTS_CSV)"; fi; \
-	if [ -n "$(MEASURED_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --measured-segments-csv $(MEASURED_SEGMENTS_CSV)"; fi; \
+	if [ -n "$(TRAINING_RAW_CSV)" ]; then ARGS="$$ARGS --training-raw-csv $(TRAINING_RAW_CSV)"; fi; \
+	if [ -n "$(TEST_RAW_CSV)" ]; then ARGS="$$ARGS --test-raw-csv $(TEST_RAW_CSV)"; fi; \
+	if [ -n "$(TRAINING_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --training-segments-csv $(TRAINING_SEGMENTS_CSV)"; fi; \
+	if [ -n "$(TEST_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --test-segments-csv $(TEST_SEGMENTS_CSV)"; fi; \
 	if [ -n "$(PARAMS)" ]; then ARGS="$$ARGS --params $(PARAMS)"; fi; \
 	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
 	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \

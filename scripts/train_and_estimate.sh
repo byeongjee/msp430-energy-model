@@ -28,19 +28,19 @@ TAG=""
 # Required parameters (to be set via command line)
 TRAIN_FILE=""
 ESTIMATE_FILE=""
-RAW_CSV=""
-SEGMENTS_CSV=""
+TRAINING_RAW_CSV=""
+TRAINING_SEGMENTS_CSV=""
 PARAMS_FILE=""
 ESTIMATED_STATS_JSON=""
-MEASURED_RAW_CSV=""
-MEASURED_SEGMENTS_CSV=""
+TEST_RAW_CSV=""
+TEST_SEGMENTS_CSV=""
 
 # Optional intermediate files
-USE_TEMP_RAW=0
-USE_TEMP_SEGMENTS=0
+USE_TEMP_TRAINING_RAW=0
+USE_TEMP_TRAINING_SEGMENTS=0
 USE_TEMP_PARAMS=0
-USE_TEMP_MEASURED_RAW=0
-USE_TEMP_MEASURED_SEGMENTS=0
+USE_TEMP_TEST_RAW=0
+USE_TEMP_TEST_SEGMENTS=0
 
 # Script directory and paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -99,10 +99,10 @@ Required arguments:
   --estimate-file FILE      C file to estimate energy for
 
 Optional arguments:
-  --raw-csv FILE            Raw measurement CSV file for training (default: temp file)
-  --measured-raw-csv FILE   Raw measurement CSV file for estimation (default: temp file)
-  --segments-csv FILE       Preprocessed segments CSV file for training (default: temp file)
-  --measured-segments-csv FILE  Preprocessed segments CSV file for estimation (default: temp file)
+  --training-raw-csv FILE   Raw measurement CSV file for training (default: temp file)
+  --test-raw-csv FILE       Raw measurement CSV file for estimation (default: temp file)
+  --training-segments-csv FILE  Preprocessed segments CSV file for training (default: temp file)
+  --test-segments-csv FILE  Preprocessed segments CSV file for estimation (default: temp file)
   --params FILE             Model parameters JSON file (default: temp file)
   --tag TAG                 Tag for naming output files (default: process ID)
   --voltage V               Voltage for measurement (default: 3.3)
@@ -131,8 +131,8 @@ Examples:
   # Keep intermediate files with explicit names
   $0 --train-file examples/c_programs/simple.c \\
      --estimate-file examples/c_programs/test.c \\
-     --raw-csv measurement.csv \\
-     --segments-csv segments.csv \\
+     --training-raw-csv measurement.csv \\
+     --training-segments-csv segments.csv \\
      --params energy_params.json
 
   # Custom measurement settings
@@ -155,20 +155,20 @@ while [[ $# -gt 0 ]]; do
             ESTIMATE_FILE="$2"
             shift 2
             ;;
-        --raw-csv)
-            RAW_CSV="$2"
+        --training-raw-csv)
+            TRAINING_RAW_CSV="$2"
             shift 2
             ;;
-        --measured-raw-csv)
-            MEASURED_RAW_CSV="$2"
+        --test-raw-csv)
+            TEST_RAW_CSV="$2"
             shift 2
             ;;
-        --segments-csv)
-            SEGMENTS_CSV="$2"
+        --training-segments-csv)
+            TRAINING_SEGMENTS_CSV="$2"
             shift 2
             ;;
-        --measured-segments-csv)
-            MEASURED_SEGMENTS_CSV="$2"
+        --test-segments-csv)
+            TEST_SEGMENTS_CSV="$2"
             shift 2
             ;;
         --params)
@@ -270,16 +270,16 @@ else
     REPORT_DIR_FULL="${REPORT_DIR}/${TIMESTAMP}"
 fi
 
-if [[ -z "$RAW_CSV" ]]; then
-    RAW_CSV="$TEMP_DIR/measurement_${FILE_SUFFIX}.csv"
-    USE_TEMP_RAW=1
-    log_info "Using temporary raw CSV: $RAW_CSV"
+if [[ -z "$TRAINING_RAW_CSV" ]]; then
+    TRAINING_RAW_CSV="$TEMP_DIR/measurement_${FILE_SUFFIX}.csv"
+    USE_TEMP_TRAINING_RAW=1
+    log_info "Using temporary training raw CSV: $TRAINING_RAW_CSV"
 fi
 
-if [[ -z "$SEGMENTS_CSV" ]]; then
-    SEGMENTS_CSV="$TEMP_DIR/segments_${FILE_SUFFIX}.csv"
-    USE_TEMP_SEGMENTS=1
-    log_info "Using temporary segments CSV: $SEGMENTS_CSV"
+if [[ -z "$TRAINING_SEGMENTS_CSV" ]]; then
+    TRAINING_SEGMENTS_CSV="$TEMP_DIR/segments_${FILE_SUFFIX}.csv"
+    USE_TEMP_TRAINING_SEGMENTS=1
+    log_info "Using temporary training segments CSV: $TRAINING_SEGMENTS_CSV"
 fi
 
 if [[ -z "$PARAMS_FILE" ]]; then
@@ -291,18 +291,18 @@ fi
 # Setup temporary file for estimated stats (always temp)
 ESTIMATED_STATS_JSON="$TEMP_DIR/estimated_stats_${FILE_SUFFIX}.json"
 
-# Setup temporary file for measured raw CSV if not provided
-if [[ -z "$MEASURED_RAW_CSV" ]]; then
-    MEASURED_RAW_CSV="$TEMP_DIR/measured_${FILE_SUFFIX}.csv"
-    USE_TEMP_MEASURED_RAW=1
-    log_info "Using temporary measured raw CSV: $MEASURED_RAW_CSV"
+# Setup temporary file for test raw CSV if not provided
+if [[ -z "$TEST_RAW_CSV" ]]; then
+    TEST_RAW_CSV="$TEMP_DIR/measured_${FILE_SUFFIX}.csv"
+    USE_TEMP_TEST_RAW=1
+    log_info "Using temporary test raw CSV: $TEST_RAW_CSV"
 fi
 
-# Setup temporary file for measured segments if not provided
-if [[ -z "$MEASURED_SEGMENTS_CSV" ]]; then
-    MEASURED_SEGMENTS_CSV="$TEMP_DIR/measured_segments_${FILE_SUFFIX}.csv"
-    USE_TEMP_MEASURED_SEGMENTS=1
-    log_info "Using temporary measured segments CSV: $MEASURED_SEGMENTS_CSV"
+# Setup temporary file for test segments if not provided
+if [[ -z "$TEST_SEGMENTS_CSV" ]]; then
+    TEST_SEGMENTS_CSV="$TEMP_DIR/measured_segments_${FILE_SUFFIX}.csv"
+    USE_TEMP_TEST_SEGMENTS=1
+    log_info "Using temporary test segments CSV: $TEST_SEGMENTS_CSV"
 fi
 
 log_info "Report will be saved to: $REPORT_DIR_FULL"
@@ -344,34 +344,34 @@ if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]] && [[ $USE_TEMP_PARAMS -eq
     SKIP_MEASURED_PREPROCESSING=1
     SKIP_TRAINING=1
     log_info "Resuming from existing params: $PARAMS_FILE"
-# Else if SEGMENTS_CSV provided and exists, skip measurement and preprocessing
-elif [[ -n "$SEGMENTS_CSV" ]] && [[ -f "$SEGMENTS_CSV" ]] && [[ $USE_TEMP_SEGMENTS -eq 0 ]]; then
+# Else if TRAINING_SEGMENTS_CSV provided and exists, skip measurement and preprocessing
+elif [[ -n "$TRAINING_SEGMENTS_CSV" ]] && [[ -f "$TRAINING_SEGMENTS_CSV" ]] && [[ $USE_TEMP_TRAINING_SEGMENTS -eq 0 ]]; then
     SKIP_MEASUREMENT=1
     SKIP_ESTIMATION_MEASUREMENT=1
     SKIP_PREPROCESSING=1
-    log_info "Resuming from existing segments: $SEGMENTS_CSV"
-# Else if both RAW_CSV and MEASURED_RAW_CSV provided and exist, skip both measurements
-elif [[ -n "$RAW_CSV" ]] && [[ -f "$RAW_CSV" ]] && [[ $USE_TEMP_RAW -eq 0 ]] && \
-     [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]] && [[ $USE_TEMP_MEASURED_RAW -eq 0 ]]; then
+    log_info "Resuming from existing training segments: $TRAINING_SEGMENTS_CSV"
+# Else if both TRAINING_RAW_CSV and TEST_RAW_CSV provided and exist, skip both measurements
+elif [[ -n "$TRAINING_RAW_CSV" ]] && [[ -f "$TRAINING_RAW_CSV" ]] && [[ $USE_TEMP_TRAINING_RAW -eq 0 ]] && \
+     [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]] && [[ $USE_TEMP_TEST_RAW -eq 0 ]]; then
     SKIP_MEASUREMENT=1
     SKIP_ESTIMATION_MEASUREMENT=1
-    log_info "Resuming from existing raw CSVs: $RAW_CSV and $MEASURED_RAW_CSV"
-# Else if only RAW_CSV provided and exists, skip training measurement only
-elif [[ -n "$RAW_CSV" ]] && [[ -f "$RAW_CSV" ]] && [[ $USE_TEMP_RAW -eq 0 ]]; then
+    log_info "Resuming from existing raw CSVs: $TRAINING_RAW_CSV and $TEST_RAW_CSV"
+# Else if only TRAINING_RAW_CSV provided and exists, skip training measurement only
+elif [[ -n "$TRAINING_RAW_CSV" ]] && [[ -f "$TRAINING_RAW_CSV" ]] && [[ $USE_TEMP_TRAINING_RAW -eq 0 ]]; then
     SKIP_MEASUREMENT=1
-    log_info "Resuming from existing training raw CSV: $RAW_CSV"
+    log_info "Resuming from existing training raw CSV: $TRAINING_RAW_CSV"
 fi
 
-# Check if MEASURED_RAW_CSV is provided separately
-if [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]] && [[ $USE_TEMP_MEASURED_RAW -eq 0 ]]; then
+# Check if TEST_RAW_CSV is provided separately
+if [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]] && [[ $USE_TEMP_TEST_RAW -eq 0 ]]; then
     SKIP_ESTIMATION_MEASUREMENT=1
-    log_info "Using existing estimation raw CSV: $MEASURED_RAW_CSV"
+    log_info "Using existing test raw CSV: $TEST_RAW_CSV"
 fi
 
-# Check if MEASURED_SEGMENTS_CSV is provided separately
-if [[ -n "$MEASURED_SEGMENTS_CSV" ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]] && [[ $USE_TEMP_MEASURED_SEGMENTS -eq 0 ]]; then
+# Check if TEST_SEGMENTS_CSV is provided separately
+if [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]] && [[ $USE_TEMP_TEST_SEGMENTS -eq 0 ]]; then
     SKIP_MEASURED_PREPROCESSING=1
-    log_info "Using existing measured segments CSV: $MEASURED_SEGMENTS_CSV"
+    log_info "Using existing test segments CSV: $TEST_SEGMENTS_CSV"
 fi
 
 # Cleanup function
@@ -380,25 +380,25 @@ cleanup() {
         return
     fi
 
-    if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
-        log_info "Cleaning up temporary raw CSV: $RAW_CSV"
-        rm -f "$RAW_CSV"
+    if [[ $USE_TEMP_TRAINING_RAW -eq 1 ]] && [[ -f "$TRAINING_RAW_CSV" ]]; then
+        log_info "Cleaning up temporary training raw CSV: $TRAINING_RAW_CSV"
+        rm -f "$TRAINING_RAW_CSV"
     fi
-    if [[ $USE_TEMP_SEGMENTS -eq 1 ]] && [[ -f "$SEGMENTS_CSV" ]]; then
-        log_info "Cleaning up temporary segments CSV: $SEGMENTS_CSV"
-        rm -f "$SEGMENTS_CSV"
+    if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 1 ]] && [[ -f "$TRAINING_SEGMENTS_CSV" ]]; then
+        log_info "Cleaning up temporary training segments CSV: $TRAINING_SEGMENTS_CSV"
+        rm -f "$TRAINING_SEGMENTS_CSV"
     fi
     if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
         log_info "Cleaning up temporary params file: $PARAMS_FILE"
         rm -f "$PARAMS_FILE"
     fi
-    if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-        log_info "Cleaning up temporary measured raw CSV: $MEASURED_RAW_CSV"
-        rm -f "$MEASURED_RAW_CSV"
+    if [[ $USE_TEMP_TEST_RAW -eq 1 ]] && [[ -f "$TEST_RAW_CSV" ]]; then
+        log_info "Cleaning up temporary test raw CSV: $TEST_RAW_CSV"
+        rm -f "$TEST_RAW_CSV"
     fi
-    if [[ $USE_TEMP_MEASURED_SEGMENTS -eq 1 ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
-        log_info "Cleaning up temporary measured segments CSV: $MEASURED_SEGMENTS_CSV"
-        rm -f "$MEASURED_SEGMENTS_CSV"
+    if [[ $USE_TEMP_TEST_SEGMENTS -eq 1 ]] && [[ -f "$TEST_SEGMENTS_CSV" ]]; then
+        log_info "Cleaning up temporary test segments CSV: $TEST_SEGMENTS_CSV"
+        rm -f "$TEST_SEGMENTS_CSV"
     fi
 }
 
@@ -437,11 +437,11 @@ if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
         --max_current "$MAX_CURRENT" \
-        --outfile "$RAW_CSV" \
+        --outfile "$TRAINING_RAW_CSV" \
         $SKIP_RESET
-    log_success "Training raw measurement saved: $RAW_CSV"
+    log_success "Training raw measurement saved: $TRAINING_RAW_CSV"
 else
-    log_step "Steps 1-3: SKIPPED (using existing training raw CSV: $RAW_CSV)"
+    log_step "Steps 1-3: SKIPPED (using existing training raw CSV: $TRAINING_RAW_CSV)"
 fi
 
 # Steps 4-6: Estimation measurement (compile estimation file, flash, measure)
@@ -464,11 +464,11 @@ if [[ $SKIP_ESTIMATION_MEASUREMENT -eq 0 ]]; then
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
         --max_current "$MAX_CURRENT" \
-        --outfile "$MEASURED_RAW_CSV" \
+        --outfile "$TEST_RAW_CSV" \
         $SKIP_RESET
-    log_success "Estimation raw measurement saved: $MEASURED_RAW_CSV"
+    log_success "Estimation raw measurement saved: $TEST_RAW_CSV"
 else
-    log_step "Steps 4-6: SKIPPED (using existing estimation raw CSV: $MEASURED_RAW_CSV)"
+    log_step "Steps 4-6: SKIPPED (using existing estimation raw CSV: $TEST_RAW_CSV)"
 fi
 
 echo ""
@@ -479,22 +479,22 @@ echo ""
 if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
     log_step "Step 7/12: Preprocessing training measurements"
     python3 "$PREPROCESS_PY" \
-        --input "$RAW_CSV" \
-        --output "$SEGMENTS_CSV"
-    log_success "Training segments saved: $SEGMENTS_CSV"
+        --input "$TRAINING_RAW_CSV" \
+        --output "$TRAINING_SEGMENTS_CSV"
+    log_success "Training segments saved: $TRAINING_SEGMENTS_CSV"
 else
-    log_step "Step 7: SKIPPED (using existing training segments CSV: $SEGMENTS_CSV)"
+    log_step "Step 7: SKIPPED (using existing training segments CSV: $TRAINING_SEGMENTS_CSV)"
 fi
 
 # Step 8: Preprocess measured estimation data
 if [[ $SKIP_MEASURED_PREPROCESSING -eq 0 ]]; then
     log_step "Step 8/12: Preprocessing measured estimation data"
     python3 "$PREPROCESS_PY" \
-        --input "$MEASURED_RAW_CSV" \
-        --output "$MEASURED_SEGMENTS_CSV"
-    log_success "Measured estimation segments saved: $MEASURED_SEGMENTS_CSV"
+        --input "$TEST_RAW_CSV" \
+        --output "$TEST_SEGMENTS_CSV"
+    log_success "Measured estimation segments saved: $TEST_SEGMENTS_CSV"
 else
-    log_step "Step 8: SKIPPED (using existing measured segments CSV: $MEASURED_SEGMENTS_CSV)"
+    log_step "Step 8: SKIPPED (using existing test segments CSV: $TEST_SEGMENTS_CSV)"
 fi
 
 # Step 9: Train energy model
@@ -509,7 +509,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
     log_info "Disassembled: $ASM_DIR/${TRAIN_BASENAME}.asm"
     julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" train \
         --asm "$ASM_DIR/${TRAIN_BASENAME}.asm" \
-        --data "$SEGMENTS_CSV" \
+        --data "$TRAINING_SEGMENTS_CSV" \
         --output "$PARAMS_FILE" \
         $MAX_STEPS_FLAG \
         $N_SAMPLES_FLAG \
@@ -541,7 +541,7 @@ log_success "Estimation complete: $ESTIMATED_STATS_JSON"
 log_step "Step 12/12: Generating comparison report"
 python3 "$PROJECT_ROOT/scripts/generate_comparison_report.py" \
     --estimated-stats "$ESTIMATED_STATS_JSON" \
-    --measured-data "$MEASURED_SEGMENTS_CSV" \
+    --measured-data "$TEST_SEGMENTS_CSV" \
     --report-dir "$REPORT_DIR_FULL" \
     --num-repeat "$NUM_REPEAT"
 log_success "Comparison report generated: $REPORT_DIR_FULL"
@@ -559,17 +559,17 @@ echo "    - comparison.md (detailed markdown report with all events)"
 echo "    - event_N_estimated.png (per-event estimated distributions)"
 echo "    - event_N_measured.png (per-event measured distributions)"
 echo "    - event_N_comparison.png (per-event comparisons)"
-if [[ $USE_TEMP_RAW -eq 0 ]]; then
-    echo "  - Training Raw CSV: $RAW_CSV"
+if [[ $USE_TEMP_TRAINING_RAW -eq 0 ]]; then
+    echo "  - Training Raw CSV: $TRAINING_RAW_CSV"
 fi
-if [[ $USE_TEMP_MEASURED_RAW -eq 0 ]]; then
-    echo "  - Estimation Raw CSV: $MEASURED_RAW_CSV"
+if [[ $USE_TEMP_TEST_RAW -eq 0 ]]; then
+    echo "  - Test Raw CSV: $TEST_RAW_CSV"
 fi
-if [[ $USE_TEMP_SEGMENTS -eq 0 ]]; then
-    echo "  - Training Segments CSV: $SEGMENTS_CSV"
+if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 0 ]]; then
+    echo "  - Training Segments CSV: $TRAINING_SEGMENTS_CSV"
 fi
-if [[ $USE_TEMP_MEASURED_SEGMENTS -eq 0 ]]; then
-    echo "  - Estimation Segments CSV: $MEASURED_SEGMENTS_CSV"
+if [[ $USE_TEMP_TEST_SEGMENTS -eq 0 ]]; then
+    echo "  - Test Segments CSV: $TEST_SEGMENTS_CSV"
 fi
 if [[ $USE_TEMP_PARAMS -eq 0 ]]; then
     echo "  - Parameters: $PARAMS_FILE"
@@ -582,95 +582,95 @@ if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
     log_info "You can resume the pipeline from intermediate files using these commands:"
     echo ""
 
-    # Option 1: Have PARAMS and MEASURED_SEGMENTS - skip to estimation compilation (steps 1-9)
+    # Option 1: Have PARAMS and TEST_SEGMENTS - skip to estimation compilation (steps 1-9)
     if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]] && \
-       [[ -n "$MEASURED_SEGMENTS_CSV" ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
+       [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]]; then
         echo "Resume from estimation compilation (skip all preprocessing and training - steps 1-9):"
-        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE MEASURED_SEGMENTS_CSV=$MEASURED_SEGMENTS_CSV"
+        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE TEST_SEGMENTS_CSV=$TEST_SEGMENTS_CSV"
         echo ""
     fi
 
-    # Option 2: Have PARAMS but not MEASURED_SEGMENTS - skip to measured preprocessing (steps 1-7, still need step 8)
+    # Option 2: Have PARAMS but not TEST_SEGMENTS - skip to test data preprocessing (steps 1-7, still need step 8)
     if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]]; then
-        echo "Resume from measured data preprocessing (skip measurements and training - steps 1-7):"
-        if [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+        echo "Resume from test data preprocessing (skip measurements and training - steps 1-7):"
+        if [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]]; then
+            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE TEST_RAW_CSV=$TEST_RAW_CSV"
         else
             echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE PARAMS=$PARAMS_FILE"
         fi
         echo ""
     fi
 
-    # Option 3: Have SEGMENTS and MEASURED_SEGMENTS - skip all preprocessing (steps 1-8)
-    if [[ -n "$SEGMENTS_CSV" ]] && [[ -f "$SEGMENTS_CSV" ]] && \
-       [[ -n "$MEASURED_SEGMENTS_CSV" ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
+    # Option 3: Have TRAINING_SEGMENTS and TEST_SEGMENTS - skip all preprocessing (steps 1-8)
+    if [[ -n "$TRAINING_SEGMENTS_CSV" ]] && [[ -f "$TRAINING_SEGMENTS_CSV" ]] && \
+       [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]]; then
         echo "Retrain model (skip all measurements and preprocessing - steps 1-8):"
-        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE SEGMENTS_CSV=$SEGMENTS_CSV MEASURED_SEGMENTS_CSV=$MEASURED_SEGMENTS_CSV"
+        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE TRAINING_SEGMENTS_CSV=$TRAINING_SEGMENTS_CSV TEST_SEGMENTS_CSV=$TEST_SEGMENTS_CSV"
         echo ""
     fi
 
-    # Option 4: Have SEGMENTS but not MEASURED_SEGMENTS - skip to measured preprocessing (steps 1-7)
-    if [[ -n "$SEGMENTS_CSV" ]] && [[ -f "$SEGMENTS_CSV" ]]; then
+    # Option 4: Have TRAINING_SEGMENTS but not TEST_SEGMENTS - skip to test preprocessing (steps 1-7)
+    if [[ -n "$TRAINING_SEGMENTS_CSV" ]] && [[ -f "$TRAINING_SEGMENTS_CSV" ]]; then
         echo "Retrain model from training segments (skip measurements and training preprocessing - steps 1-7):"
-        if [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE SEGMENTS_CSV=$SEGMENTS_CSV MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
+        if [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]]; then
+            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE TRAINING_SEGMENTS_CSV=$TRAINING_SEGMENTS_CSV TEST_RAW_CSV=$TEST_RAW_CSV"
         else
-            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE SEGMENTS_CSV=$SEGMENTS_CSV"
+            echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE TRAINING_SEGMENTS_CSV=$TRAINING_SEGMENTS_CSV"
         fi
         echo ""
     fi
 
     # Option 5: Have both raw CSVs - skip all measurements (steps 1-6)
-    if [[ -n "$RAW_CSV" ]] && [[ -f "$RAW_CSV" ]] && \
-       [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
+    if [[ -n "$TRAINING_RAW_CSV" ]] && [[ -f "$TRAINING_RAW_CSV" ]] && \
+       [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]]; then
         echo "Reprocess and retrain (skip all measurements - steps 1-6):"
-        CMD="  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE RAW_CSV=$RAW_CSV MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
-        if [[ -n "$MEASURED_SEGMENTS_CSV" ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
-            CMD="$CMD MEASURED_SEGMENTS_CSV=$MEASURED_SEGMENTS_CSV"
+        CMD="  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE TRAINING_RAW_CSV=$TRAINING_RAW_CSV TEST_RAW_CSV=$TEST_RAW_CSV"
+        if [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]]; then
+            CMD="$CMD TEST_SEGMENTS_CSV=$TEST_SEGMENTS_CSV"
         fi
         echo "$CMD"
         echo ""
     fi
 
     # Option 6: Have only training raw CSV - skip training measurement (steps 1-3)
-    if [[ -n "$RAW_CSV" ]] && [[ -f "$RAW_CSV" ]]; then
+    if [[ -n "$TRAINING_RAW_CSV" ]] && [[ -f "$TRAINING_RAW_CSV" ]]; then
         echo "Remeasure estimation only (skip training measurement - steps 1-3):"
-        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE RAW_CSV=$RAW_CSV"
+        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE TRAINING_RAW_CSV=$TRAINING_RAW_CSV"
         echo ""
     fi
 
-    # Option 7: Have only measured raw CSV - skip estimation measurement (steps 4-6)
-    if [[ -n "$MEASURED_RAW_CSV" ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-        echo "Remeasure training and retrain (skip estimation measurement - steps 4-6):"
-        CMD="  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE MEASURED_RAW_CSV=$MEASURED_RAW_CSV"
-        if [[ -n "$MEASURED_SEGMENTS_CSV" ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
-            CMD="$CMD MEASURED_SEGMENTS_CSV=$MEASURED_SEGMENTS_CSV"
+    # Option 7: Have only test raw CSV - skip test measurement (steps 4-6)
+    if [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]]; then
+        echo "Remeasure training and retrain (skip test measurement - steps 4-6):"
+        CMD="  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE TEST_RAW_CSV=$TEST_RAW_CSV"
+        if [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]]; then
+            CMD="$CMD TEST_SEGMENTS_CSV=$TEST_SEGMENTS_CSV"
         fi
         echo "$CMD"
         echo ""
     fi
 
-    # Option 8: Have MEASURED_SEGMENTS only - skip estimation measurement and preprocessing (steps 4-8)
-    if [[ -n "$MEASURED_SEGMENTS_CSV" ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
-        echo "Remeasure and retrain (skip estimation preprocessing - step 8):"
-        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE MEASURED_SEGMENTS_CSV=$MEASURED_SEGMENTS_CSV"
+    # Option 8: Have TEST_SEGMENTS only - skip test measurement and preprocessing (steps 4-8)
+    if [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]]; then
+        echo "Remeasure and retrain (skip test preprocessing - step 8):"
+        echo "  make train_and_estimate TRAIN_FILE=$TRAIN_FILE ESTIMATE_FILE=$ESTIMATE_FILE TEST_SEGMENTS_CSV=$TEST_SEGMENTS_CSV"
         echo ""
     fi
 
     log_info "Intermediate files kept:"
-    if [[ $USE_TEMP_RAW -eq 1 ]] && [[ -f "$RAW_CSV" ]]; then
-        echo "  - Training Raw CSV: $RAW_CSV"
+    if [[ $USE_TEMP_TRAINING_RAW -eq 1 ]] && [[ -f "$TRAINING_RAW_CSV" ]]; then
+        echo "  - Training Raw CSV: $TRAINING_RAW_CSV"
     fi
-    if [[ $USE_TEMP_MEASURED_RAW -eq 1 ]] && [[ -f "$MEASURED_RAW_CSV" ]]; then
-        echo "  - Estimation Raw CSV: $MEASURED_RAW_CSV"
+    if [[ $USE_TEMP_TEST_RAW -eq 1 ]] && [[ -f "$TEST_RAW_CSV" ]]; then
+        echo "  - Test Raw CSV: $TEST_RAW_CSV"
     fi
-    if [[ $USE_TEMP_SEGMENTS -eq 1 ]] && [[ -f "$SEGMENTS_CSV" ]]; then
-        echo "  - Training Segments CSV: $SEGMENTS_CSV"
+    if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 1 ]] && [[ -f "$TRAINING_SEGMENTS_CSV" ]]; then
+        echo "  - Training Segments CSV: $TRAINING_SEGMENTS_CSV"
     fi
     if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
         echo "  - Parameters: $PARAMS_FILE"
     fi
-    if [[ $USE_TEMP_MEASURED_SEGMENTS -eq 1 ]] && [[ -f "$MEASURED_SEGMENTS_CSV" ]]; then
-        echo "  - Measured Segments CSV: $MEASURED_SEGMENTS_CSV"
+    if [[ $USE_TEMP_TEST_SEGMENTS -eq 1 ]] && [[ -f "$TEST_SEGMENTS_CSV" ]]; then
+        echo "  - Test Segments CSV: $TEST_SEGMENTS_CSV"
     fi
 fi

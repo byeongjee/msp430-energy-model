@@ -176,8 +176,8 @@ fi
 mkdir -p "$REPORT_DIR_FULL"
 
 # Setup file paths
-RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
-SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
+TRAINING_RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
+TRAINING_SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
 
 # ============================================================
 # MAIN PIPELINE
@@ -207,29 +207,29 @@ log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
 python3 "$MEASURE_PY" \
     --voltage "$VOLTAGE" \
     --max_current "$MAX_CURRENT" \
-    --outfile "$RAW_CSV" \
+    --outfile "$TRAINING_RAW_CSV" \
     $SKIP_RESET
-log_success "Raw measurement saved: $RAW_CSV"
+log_success "Raw measurement saved: $TRAINING_RAW_CSV"
 
 # Step 4: Preprocess
 log_step "Step 4/5: Preprocessing measurements"
 python3 "$PREPROCESS_PY" \
-    --input "$RAW_CSV" \
-    --output "$SEGMENTS_CSV"
-log_success "Segments saved: $SEGMENTS_CSV"
+    --input "$TRAINING_RAW_CSV" \
+    --output "$TRAINING_SEGMENTS_CSV"
+log_success "Segments saved: $TRAINING_SEGMENTS_CSV"
 
 # Step 5: Generate distribution analysis report
 log_step "Step 5/5: Generating distribution analysis report"
 python3 "$GENERATE_REPORT_PY" \
-    --segments-csv "$SEGMENTS_CSV" \
+    --segments-csv "$TRAINING_SEGMENTS_CSV" \
     --num-repeat "$NUM_REPEAT" \
     --report-dir "$REPORT_DIR_FULL" \
     --file-name "$FILE"
 log_success "Distribution analysis report generated"
 
 # Cleanup temporary raw CSV
-rm -f "$RAW_CSV"
-log_info "Cleaned up temporary file: $RAW_CSV"
+rm -f "$TRAINING_RAW_CSV"
+log_info "Cleaned up temporary file: $TRAINING_RAW_CSV"
 
 # Done
 log_step "ANALYSIS COMPLETE"
@@ -237,7 +237,7 @@ log_success "All steps completed successfully!"
 echo ""
 log_info "Output files:"
 echo "  - Markdown Report: ${REPORT_DIR_FULL}/distribution_analysis.md"
-echo "  - Segments CSV: $SEGMENTS_CSV"
+echo "  - Segments CSV: $TRAINING_SEGMENTS_CSV"
 echo "  - Summary CSV: ${REPORT_DIR_FULL}/distribution_summary.csv"
 echo "  - Distribution plots: ${REPORT_DIR_FULL}/event_*_distribution.png"
 echo "  - Report directory: $REPORT_DIR_FULL"

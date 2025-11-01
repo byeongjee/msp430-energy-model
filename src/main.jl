@@ -7,7 +7,6 @@ using .EnergyModel
 using .Interpreter
 using .Inference
 using .Estimation
-using .Visualization
 using ArgParse
 using CSV
 using DataFrames
