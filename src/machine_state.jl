@@ -121,6 +121,8 @@ const EXECUTORS = Dict{Symbol,Function}(
     :rlam => single_operand_executor!,
     :sbc => single_operand_executor!,
     :adc => single_operand_executor!,
+    :decd => single_operand_executor!,
+    :incd => single_operand_executor!,
     # Jump instructions
     :jnz => jump_executor!,
     :jz => jump_executor!,
@@ -301,6 +303,16 @@ function execute_single_operand!(
         operand_val = get_operand_value(state, ops[1])
         result = UInt16((operand_val - 1) & 0xFFFF)
         update_flags!(state, result, operand_val, UInt16(1), false)
+    elseif opcode == :decd
+        # Double decrement (emulated instruction: sub #2, dst)
+        operand_val = get_operand_value(state, ops[1])
+        result = UInt16((operand_val - 2) & 0xFFFF)
+        update_flags!(state, result, operand_val, UInt16(2), false)
+    elseif opcode == :incd
+        # Double increment (emulated instruction: add #2, dst)
+        operand_val = get_operand_value(state, ops[1])
+        result = UInt16((operand_val + 2) & 0xFFFF)
+        update_flags!(state, result, operand_val, UInt16(2), true)
     elseif opcode == :sbc
         # SBC is an emulated instruction: sbc dst == subc #0, dst
         # It subtracts the carry flag from the destination
