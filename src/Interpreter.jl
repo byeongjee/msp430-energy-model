@@ -133,6 +133,88 @@ FUNCTIONS_TO_SKIP = [
 ]
 
 """
+Fast-path handler for memset(void *ptr, int value, size_t num)
+MSP430 calling convention: r12=ptr, r13=value, r14=num
+"""
+function handle_memset!(state::MachineState)::Nothing
+    ptr = state.registers[:R12]
+    value = UInt8(state.registers[:R13] & 0xFF)
+    num = state.registers[:R14]
+
+    # Fill memory directly
+    for i in 0:(num - 1)
+        addr = UInt16((ptr + i) & 0xFFFF)
+        state.memory[addr] = UInt16(value)
+    end
+
+    @debug "Fast-path: memset filled $num bytes at 0x$(string(ptr, base=16, pad=4)) with value $value"
+    return nothing
+end
+
+"""
+Fast-path handler for memmove/memcpy(void *dest, const void *src, size_t num)
+MSP430 calling convention: r12=dest, r13=src, r14=num
+"""
+function handle_memmove!(state::MachineState)::Nothing
+    dest = state.registers[:R12]
+    src = state.registers[:R13]
+    num = state.registers[:R14]
+
+    # Copy memory directly (handle overlapping regions for memmove)
+    if dest <= src || dest >= src + num
+        # Non-overlapping or dest before src: copy forward
+        for i in 0:(num - 1)
+            src_addr = UInt16((src + i) & 0xFFFF)
+            dest_addr = UInt16((dest + i) & 0xFFFF)
+            state.memory[dest_addr] = get(state.memory, src_addr, UInt16(0))
+        end
+    else
+        # Overlapping with dest after src: copy backward
+        for i in (num - 1):-1:0
+            src_addr = UInt16((src + i) & 0xFFFF)
+            dest_addr = UInt16((dest + i) & 0xFFFF)
+            state.memory[dest_addr] = get(state.memory, src_addr, UInt16(0))
+        end
+    end
+
+    @debug "Fast-path: memmove/memcpy copied $num bytes from 0x$(string(src, base=16, pad=4)) to 0x$(string(dest, base=16, pad=4))"
+    return nothing
+end
+
+"""
+memset/memmove/memcpy functions are reasonably fast in real hardward
+but extremely slow in our interpreter.
+We handle the function calls with fast-path optimizations.
+"""
+function try_fast_path_call!(
+    state::MachineState,
+    call_target::UInt16,
+    func_addrs::Dict{String,UInt16},
+    addresses::Vector{UInt16},
+    current_idx::Int,
+)::Bool
+    # memset
+    memset_addr = get(func_addrs, "memset", nothing)
+    if !isnothing(memset_addr) && call_target == memset_addr
+        handle_memset!(state)
+        state.registers[:PC] = addresses[current_idx + 1]
+        return true
+    end
+
+    # memmove/memcpy
+    memmove_addr = get(func_addrs, "memmove", nothing)
+    memcpy_addr = get(func_addrs, "memcpy", nothing)
+    if (!isnothing(memmove_addr) && call_target == memmove_addr) ||
+        (!isnothing(memcpy_addr) && call_target == memcpy_addr)
+        handle_memmove!(state)
+        state.registers[:PC] = addresses[current_idx + 1]
+        return true
+    end
+
+    return false
+end
+
+"""
 Interpret MSP430 program
 """
 function interpret_program(
@@ -243,6 +325,13 @@ function interpret_program(
                 if get(func_addrs, "_exit", nothing) == call_target
                     should_terminate = true
                 end
+            end
+
+            # Try fast-path optimization for common library functions
+            if is_call && try_fast_path_call!(
+                state, call_target, func_addrs, addresses, current_addr_idx
+            )
+                continue
             end
 
             # Execute the instruction
