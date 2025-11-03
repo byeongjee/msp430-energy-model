@@ -285,13 +285,13 @@ for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     basename=$(basename "$train_file" .c)
 
     # Raw CSV
-    if [[ -z "${TRAINING_RAW_CSV_ARRAY[$i]}" ]]; then
+    if [[ -z "${TRAINING_RAW_CSV_ARRAY[$i]:-}" ]]; then
         TRAINING_RAW_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_${TIMESTAMP}.csv"
         USE_TEMP_TRAINING_RAW=1
     fi
 
     # Segments CSV
-    if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]}" ]]; then
+    if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
         TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_${TIMESTAMP}_segments.csv"
         USE_TEMP_TRAINING_SEGMENTS=1
     fi

@@ -208,11 +208,11 @@ endif
 ifndef ESTIMATE_FILE
 	$(error Please specify ESTIMATE_FILE=<file.c> for estimation)
 endif
-	@ARGS="--train-files \"$(TRAIN_FILES)\" --estimate-file $(ESTIMATE_FILE)"; \
+	@ARGS="--train-files $(TRAIN_FILES) --estimate-file $(ESTIMATE_FILE)"; \
 	if [ -n "$(TAG)" ]; then ARGS="$$ARGS --tag $(TAG)"; fi; \
-	if [ -n "$(TRAINING_RAW_CSV)" ]; then ARGS="$$ARGS --training-raw-csv \"$(TRAINING_RAW_CSV)\""; fi; \
+	if [ -n "$(TRAINING_RAW_CSV)" ]; then ARGS="$$ARGS --training-raw-csv $(TRAINING_RAW_CSV)"; fi; \
 	if [ -n "$(TEST_RAW_CSV)" ]; then ARGS="$$ARGS --test-raw-csv $(TEST_RAW_CSV)"; fi; \
-	if [ -n "$(TRAINING_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --training-segments-csv \"$(TRAINING_SEGMENTS_CSV)\""; fi; \
+	if [ -n "$(TRAINING_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --training-segments-csv $(TRAINING_SEGMENTS_CSV)"; fi; \
 	if [ -n "$(TEST_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --test-segments-csv $(TEST_SEGMENTS_CSV)"; fi; \
 	if [ -n "$(PARAMS)" ]; then ARGS="$$ARGS --params $(PARAMS)"; fi; \
 	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \

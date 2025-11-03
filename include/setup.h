@@ -147,3 +147,28 @@ void initialize(void) {
          (unsigned long)CLOCK_HZ);
 #endif
 }
+
+#ifndef NUM_REPEAT
+#define NUM_REPEAT 10
+#endif
+
+#define REPEAT_WITH_EVENT(X)                                                   \
+  for (int _rep_i_ = 0; _rep_i_ < (NUM_REPEAT); ++_rep_i_) {                   \
+    begin_event();                                                             \
+    do {                                                                       \
+      X;                                                                       \
+    } while (0);                                                               \
+    end_event();                                                               \
+  }
+
+#ifndef INNER_ITERS
+#define INNER_ITERS 100
+#endif
+
+#define REPEAT_INNER_ITERS(X)                                                  \
+  for (int _rep_i_ = 0; _rep_i_ < (INNER_ITERS); ++_rep_i_) {                  \
+    X;                                                                         \
+  }
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
