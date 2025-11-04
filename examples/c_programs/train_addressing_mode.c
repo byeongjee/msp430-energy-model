@@ -218,19 +218,7 @@ void bench_jge_taken(void) {
                                  ".endr\n" : "+r"(a) : "r"(b) : "cc"));
 }
 
-void bench_jmp_not_taken(void) {
-  /* Execute jmp over a local label; sequence is structured so flow is stable */
-  REPEAT_INNER_ITERS(__asm__ volatile(".rept " STR(
-      TEXTUAL_REPT) "\n"
-                    "nop\n"
-                    "jnz 1f\n" /* Z=1 from nop, branch not taken */
-                    "jmp 2f\n" /* execute jmp, relative hop forward */
-                    "2:\n"
-                    "1:\n"
-                    ".endr\n" : : : "cc"));
-}
-
-void bench_jmp_taken(void) {
+void bench_jmp(void) {
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
                                                   "jmp 1f\n"
@@ -489,8 +477,7 @@ int main(void) {
 
   REPEAT_WITH_EVENT(bench_jge_not_taken());
   REPEAT_WITH_EVENT(bench_jge_taken());
-  REPEAT_WITH_EVENT(bench_jmp_not_taken());
-  REPEAT_WITH_EVENT(bench_jmp_taken());
+  REPEAT_WITH_EVENT(bench_jmp());
 
   REPEAT_WITH_EVENT(bench_mov_reg_to_idx());
   REPEAT_WITH_EVENT(bench_mov_imm_to_idx());
