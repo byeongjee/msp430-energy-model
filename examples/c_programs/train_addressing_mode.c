@@ -1,10 +1,13 @@
 #include "setup.h"
 
-#define INNER_ITERS 100
+#define TEXTUAL_REPT 100
 
 /* Fixed data for memory addressing */
 static volatile uint16_t sym_data = 0x1111;
 static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
+
+#define BASE_PTR ((uint16_t *)mem_buf) /* base for indexed addressing */
+#define OFFS 4                         /* word-aligned offset for .w */
 
 /* Use word forms for simplicity (.w). Mirror with .b if you want byte benches.
  */
@@ -14,18 +17,18 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 void bench_add_reg_reg(void) {
   uint16_t dst = 0x1234, src = 0x5678;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "add" WSUF " %1, %0\n"
-                                ".endr\n" : "+r"(dst) : "r"(src) : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "add" WSUF " %1, %0\n"
+                                 ".endr\n" : "+r"(dst) : "r"(src) : "cc"));
 }
 
 /* add.w #imm, Rd */
 void bench_add_imm_reg(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "add" WSUF " #0x1357, %0\n"
-                                ".endr\n" : "+r"(dst) : : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "add" WSUF " #0x1357, %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc"));
 }
 
 /* add.w off(base), Rd  (indexed) */
@@ -33,31 +36,31 @@ void bench_add_idx_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *base = (uint16_t *)mem_buf; /* even-aligned */
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "add" WSUF " %c2(%1), %0\n"
-                                ".endr\n" : "+r"(dst) : "r"(base),
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "add" WSUF " %c2(%1), %0\n"
+                                 ".endr\n" : "+r"(dst) : "r"(base),
       "i"(4) : "cc", "memory"));
 }
 
 /* add.w sym, Rd  (symbolic, PC-relative) */
 void bench_add_sym_reg(void) {
   uint16_t dst = 0x1234;
-  REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "add" WSUF " sym_data, %0\n"
-                                                 ".endr\n" : "+r"(dst) : : "cc",
-                       "memory"));
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "add" WSUF " sym_data, %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc",
+      "memory"));
 }
 
 /* add.w &abs, Rd  (absolute) */
 void bench_add_abs_reg(void) {
   uint16_t dst = 0x1234;
   (void)sym_data;
-  REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "add" WSUF " &sym_data, %0\n"
-                                                 ".endr\n" : "+r"(dst) : : "cc",
-                       "memory"));
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "add" WSUF " &sym_data, %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc",
+      "memory"));
 }
 
 /* add.w @Rs, Rd  (indirect) */
@@ -65,9 +68,9 @@ void bench_add_ind_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *p = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "add" WSUF " @%1, %0\n"
-                                ".endr\n" : "+r"(dst) : "r"(p) : "cc",
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "add" WSUF " @%1, %0\n"
+                                 ".endr\n" : "+r"(dst) : "r"(p) : "cc",
       "memory"));
 }
 
@@ -76,9 +79,9 @@ void bench_add_aut_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *p = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "add" WSUF " @%1+, %0\n"
-                                ".endr\n" : "+r"(dst) : "r"(p) : "cc",
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "add" WSUF " @%1+, %0\n"
+                                 ".endr\n" : "+r"(dst) : "r"(p) : "cc",
       "memory"));
 }
 
@@ -89,9 +92,9 @@ void bench_add_reg_idx(void) {
   uint16_t src = 0x5678;
   uint16_t *base = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "add" WSUF " %0, %c2(%1)\n"
-                                                 ".endr\n" : : "r"(src),
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "add" WSUF " %0, %c2(%1)\n"
+                                                  ".endr\n" : : "r"(src),
                        "r"(base), "i"(4) : "cc", "memory"));
 }
 
@@ -99,9 +102,9 @@ void bench_add_reg_idx(void) {
 void bench_add_reg_sym(void) {
   uint16_t src = 0x5678;
   REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "add" WSUF " %0, sym_data\n"
-                                                 ".endr\n" : : "r"(src) : "cc",
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "add" WSUF " %0, sym_data\n"
+                                                  ".endr\n" : : "r"(src) : "cc",
                        "memory"));
 }
 
@@ -110,9 +113,9 @@ void bench_add_reg_abs(void) {
   uint16_t src = 0x5678;
   (void)sym_data;
   REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "add" WSUF " %0, &sym_data\n"
-                                                 ".endr\n" : : "r"(src) : "cc",
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "add" WSUF " %0, &sym_data\n"
+                                                  ".endr\n" : : "r"(src) : "cc",
                        "memory"));
 }
 
@@ -122,27 +125,27 @@ void bench_add_reg_abs(void) {
 void bench_inc_reg(void) {
   uint16_t dst = 0x2222;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "inc" WSUF " %0\n"
-                                ".endr\n" : "+r"(dst) : : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "inc" WSUF " %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc"));
 }
 
 /* inc.w off(base) */
 void bench_inc_idx(void) {
   uint16_t *base = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "inc" WSUF " %c1(%0)\n"
-                                                 ".endr\n" : : "r"(base),
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "inc" WSUF " %c1(%0)\n"
+                                                  ".endr\n" : : "r"(base),
                        "i"(4) : "cc", "memory"));
 }
 
 /* inc.w sym */
 void bench_inc_sym(void) {
   REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "inc" WSUF " sym_data\n"
-                                                 ".endr\n" : : : "cc",
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "inc" WSUF " sym_data\n"
+                                                  ".endr\n" : : : "cc",
                        "memory"));
 }
 
@@ -150,9 +153,9 @@ void bench_inc_sym(void) {
 void bench_inc_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "inc" WSUF " &sym_data\n"
-                                                 ".endr\n" : : : "cc",
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "inc" WSUF " &sym_data\n"
+                                                  ".endr\n" : : : "cc",
                        "memory"));
 }
 
@@ -161,33 +164,33 @@ void bench_inc_abs(void) {
 void bench_rlam_1_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "rlam #1, %0\n"
-                                ".endr\n" : "+r"(dst) : : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "rlam #1, %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc"));
 }
 
 void bench_rlam_2_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "rlam #2, %0\n"
-                                ".endr\n" : "+r"(dst) : : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "rlam #2, %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc"));
 }
 
 void bench_rlam_3_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "rlam #3, %0\n"
-                                ".endr\n" : "+r"(dst) : : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "rlam #3, %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc"));
 }
 
 void bench_rlam_4_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "rlam #4, %0\n"
-                                ".endr\n" : "+r"(dst) : : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "rlam #4, %0\n"
+                                 ".endr\n" : "+r"(dst) : : "cc"));
 }
 
 /* ========== Branches: JGE, JMP (relative only) ========== */
@@ -196,43 +199,266 @@ void bench_rlam_4_reg(void) {
 void bench_jge_not_taken(void) {
   uint16_t a = 0x0000, b = 0xFFFF; /* a < b (signed), so JGE is false */
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "cmp" WSUF " %1, %0\n"
-                                "jge 1f\n"
-                                "nop\n"
-                                "1:\n"
-                                ".endr\n" : "+r"(a) : "r"(b) : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "cmp" WSUF " %1, %0\n"
+                                 "jge 1f\n"
+                                 "nop\n"
+                                 "1:\n"
+                                 ".endr\n" : "+r"(a) : "r"(b) : "cc"));
 }
 
 void bench_jge_taken(void) {
   uint16_t a = 0x7FFF, b = 0x0001; /* a >= b (signed), so JGE is true */
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(INNER_ITERS) "\n"
-                                "cmp" WSUF " %1, %0\n"
-                                "jge 1f\n"
-                                "nop\n"
-                                "1:\n"
-                                ".endr\n" : "+r"(a) : "r"(b) : "cc"));
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "cmp" WSUF " %1, %0\n"
+                                 "jge 1f\n"
+                                 "nop\n"
+                                 "1:\n"
+                                 ".endr\n" : "+r"(a) : "r"(b) : "cc"));
 }
 
 void bench_jmp_not_taken(void) {
   /* Execute jmp over a local label; sequence is structured so flow is stable */
   REPEAT_INNER_ITERS(__asm__ volatile(".rept " STR(
-      INNER_ITERS) "\n"
-                   "nop\n"
-                   "jnz 1f\n" /* Z=1 from nop, branch not taken */
-                   "jmp 2f\n" /* execute jmp, relative hop forward */
-                   "2:\n"
-                   "1:\n"
-                   ".endr\n" : : : "cc"));
+      TEXTUAL_REPT) "\n"
+                    "nop\n"
+                    "jnz 1f\n" /* Z=1 from nop, branch not taken */
+                    "jmp 2f\n" /* execute jmp, relative hop forward */
+                    "2:\n"
+                    "1:\n"
+                    ".endr\n" : : : "cc"));
 }
 
 void bench_jmp_taken(void) {
   REPEAT_INNER_ITERS(
-      __asm__ volatile(".rept " STR(INNER_ITERS) "\n"
-                                                 "jmp 1f\n"
-                                                 "1:\n"
-                                                 ".endr\n" : : : "cc"));
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "jmp 1f\n"
+                                                  "1:\n"
+                                                  ".endr\n" : : : "cc"));
+}
+
+/* ========== 1) Destination: indexed (off(base)) ========== */
+
+/* reg -> idx */
+void bench_mov_reg_to_idx(void) {
+  uint16_t src = 0x5678;
+  uint16_t *base = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "mov" WSUF " %0, %c2(%1)\n"
+                                                  ".endr\n" : : "r"(src),
+                       "r"(base), "i"(OFFS) : "cc", "memory"));
+}
+
+/* imm -> idx */
+void bench_mov_imm_to_idx(void) {
+  uint16_t *base = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " #0x1357, %c1(%0)\n"
+                                 ".endr\n" : : "r"(base),
+      "i"(OFFS) : "cc", "memory"));
+}
+
+/* idx -> idx */
+void bench_mov_idx_to_idx(void) {
+  uint16_t *bsrc = (uint16_t *)BASE_PTR;
+  uint16_t *bdst = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " %c2(%0), %c3(%1)\n"
+                                 ".endr\n" : : "r"(bsrc),
+      "r"(bdst), "i"(OFFS), "i"(OFFS) : "cc", "memory"));
+}
+
+/* sym -> idx */
+void bench_mov_sym_to_idx(void) {
+  uint16_t *base = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " sym_data, %c1(%0)\n"
+                                 ".endr\n" : : "r"(base),
+      "i"(OFFS) : "cc", "memory"));
+}
+
+/* abs -> idx */
+void bench_mov_abs_to_idx(void) {
+  uint16_t *base = (uint16_t *)BASE_PTR;
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " &sym_data, %c1(%0)\n"
+                                 ".endr\n" : : "r"(base),
+      "i"(OFFS) : "cc", "memory"));
+}
+
+/* ind -> idx */
+void bench_mov_ind_to_idx(void) {
+  uint16_t *psrc = (uint16_t *)BASE_PTR;
+  uint16_t *bdst = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "mov" WSUF " @%0, %c2(%1)\n"
+                                                  ".endr\n" : : "r"(psrc),
+                       "r"(bdst), "i"(OFFS) : "cc", "memory"));
+}
+
+/* aut -> idx */
+void bench_mov_aut_to_idx(void) {
+  uint16_t *psrc = (uint16_t *)BASE_PTR;
+  uint16_t *bdst = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "mov" WSUF " @%0+, %c2(%1)\n"
+                                                  ".endr\n" : : "r"(psrc),
+                       "r"(bdst), "i"(OFFS) : "cc", "memory"));
+}
+
+/* ========== 2) Destination: symbolic (sym_data) ========== */
+
+/* reg -> sym */
+void bench_mov_reg_to_sym(void) {
+  uint16_t src = 0x5678;
+  REPEAT_INNER_ITERS(
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "mov" WSUF " %0, sym_data\n"
+                                                  ".endr\n" : : "r"(src) : "cc",
+                       "memory"));
+}
+
+/* imm -> sym */
+void bench_mov_imm_to_sym(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " #0x1357, sym_data\n"
+                                 ".endr\n" : : : "cc",
+      "memory"));
+}
+
+/* idx -> sym */
+void bench_mov_idx_to_sym(void) {
+  uint16_t *base = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " %c1(%0), sym_data\n"
+                                 ".endr\n" : : "r"(base),
+      "i"(OFFS) : "cc", "memory"));
+}
+
+/* sym -> sym */
+void bench_mov_sym_to_sym(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " sym_data, sym_data\n"
+                                 ".endr\n" : : : "cc",
+      "memory"));
+}
+
+/* abs -> sym */
+void bench_mov_abs_to_sym(void) {
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " &sym_data, sym_data\n"
+                                 ".endr\n" : : : "cc",
+      "memory"));
+}
+
+/* ind -> sym */
+void bench_mov_ind_to_sym(void) {
+  uint16_t *psrc = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " @%0, sym_data\n"
+                                 ".endr\n" : : "r"(psrc) : "cc",
+      "memory"));
+}
+
+/* aut -> sym */
+void bench_mov_aut_to_sym(void) {
+  uint16_t *psrc = (uint16_t *)BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " @%0+, sym_data\n"
+                                 ".endr\n" : : "r"(psrc) : "cc",
+      "memory"));
+}
+
+/* ========== 3) Destination: absolute (&sym_data) ========== */
+
+/* reg -> abs */
+void bench_mov_reg_to_abs(void) {
+  uint16_t src = 0x5678;
+  (void)sym_data;
+  REPEAT_INNER_ITERS(
+      __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
+                                                  "mov" WSUF " %0, &sym_data\n"
+                                                  ".endr\n" : : "r"(src) : "cc",
+                       "memory"));
+}
+
+/* imm -> abs */
+void bench_mov_imm_to_abs(void) {
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " #0x1357, &sym_data\n"
+                                 ".endr\n" : : : "cc",
+      "memory"));
+}
+
+/* idx -> abs */
+void bench_mov_idx_to_abs(void) {
+  uint16_t *base = (uint16_t *)BASE_PTR;
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " %c1(%0), &sym_data\n"
+                                 ".endr\n" : : "r"(base),
+      "i"(OFFS) : "cc", "memory"));
+}
+
+/* sym -> abs */
+void bench_mov_sym_to_abs(void) {
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " sym_data, &sym_data\n"
+                                 ".endr\n" : : : "cc",
+      "memory"));
+}
+
+/* abs -> abs */
+void bench_mov_abs_to_abs(void) {
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " &sym_data, &sym_data\n"
+                                 ".endr\n" : : : "cc",
+      "memory"));
+}
+
+/* ind -> abs */
+void bench_mov_ind_to_abs(void) {
+  uint16_t *psrc = (uint16_t *)BASE_PTR;
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " @%0, &sym_data\n"
+                                 ".endr\n" : : "r"(psrc) : "cc",
+      "memory"));
+}
+
+/* aut -> abs */
+void bench_mov_aut_to_abs(void) {
+  uint16_t *psrc = (uint16_t *)BASE_PTR;
+  (void)sym_data;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+                                 "mov" WSUF " @%0+, &sym_data\n"
+                                 ".endr\n" : : "r"(psrc) : "cc",
+      "memory"));
 }
 
 int main(void) {
@@ -265,6 +491,30 @@ int main(void) {
   REPEAT_WITH_EVENT(bench_jge_taken());
   REPEAT_WITH_EVENT(bench_jmp_not_taken());
   REPEAT_WITH_EVENT(bench_jmp_taken());
+
+  REPEAT_WITH_EVENT(bench_mov_reg_to_idx());
+  REPEAT_WITH_EVENT(bench_mov_imm_to_idx());
+  REPEAT_WITH_EVENT(bench_mov_idx_to_idx());
+  REPEAT_WITH_EVENT(bench_mov_sym_to_idx());
+  REPEAT_WITH_EVENT(bench_mov_abs_to_idx());
+  REPEAT_WITH_EVENT(bench_mov_ind_to_idx());
+  REPEAT_WITH_EVENT(bench_mov_aut_to_idx());
+
+  REPEAT_WITH_EVENT(bench_mov_reg_to_sym());
+  REPEAT_WITH_EVENT(bench_mov_imm_to_sym());
+  REPEAT_WITH_EVENT(bench_mov_idx_to_sym());
+  REPEAT_WITH_EVENT(bench_mov_sym_to_sym());
+  REPEAT_WITH_EVENT(bench_mov_abs_to_sym());
+  REPEAT_WITH_EVENT(bench_mov_ind_to_sym());
+  REPEAT_WITH_EVENT(bench_mov_aut_to_sym());
+
+  REPEAT_WITH_EVENT(bench_mov_reg_to_abs());
+  REPEAT_WITH_EVENT(bench_mov_imm_to_abs());
+  REPEAT_WITH_EVENT(bench_mov_idx_to_abs());
+  REPEAT_WITH_EVENT(bench_mov_sym_to_abs());
+  REPEAT_WITH_EVENT(bench_mov_abs_to_abs());
+  REPEAT_WITH_EVENT(bench_mov_ind_to_abs());
+  REPEAT_WITH_EVENT(bench_mov_aut_to_abs());
 
   end_measurement_window();
 
