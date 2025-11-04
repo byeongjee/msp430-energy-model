@@ -243,7 +243,7 @@ function learn_parameters_mcmc_hmc(
     training_data::TrainingData,
     granularity::ModelGranularity;
     n_samples::Int=1000,
-    burn_in::Int=500,
+    burn_in::Int=100,  # Reduced from 500 to 100 for large datasets
     step_size::Float64=0.01,
     n_leapfrog::Int=10,
 )::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
@@ -331,7 +331,7 @@ function learn_parameters_mcmc_blocked(
     training_data::TrainingData,
     granularity::ModelGranularity;
     n_samples::Int=1000,
-    burn_in::Int=500,
+    burn_in::Int=100,  # Reduced from 500 to 100 for large datasets
 )::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
@@ -386,7 +386,7 @@ function learn_parameters_mcmc_blocked(
             push!(traces, trace)
         end
 
-        if i % 100 == 0
+        if i % 10 == 0
             acceptance_rate = total_accepted / total_proposals
             @info "MCMC progress" iteration = i log_prob = round(get_score(trace); digits=2) acceptance_rate = round(
                 acceptance_rate; digits=3
