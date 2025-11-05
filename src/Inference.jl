@@ -15,6 +15,7 @@ export PerOpcode, PerAddressingMode
 export ImportanceSampling, MCMC
 export single_program_energy_model, parameter_inference_model
 export learn_parameters, learn_parameters_mcmc_hmc, learn_parameters_mcmc_blocked
+export get_instruction_key
 
 struct TrainingData
     programs::Vector{Vector{Instruction}}
