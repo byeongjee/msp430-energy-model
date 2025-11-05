@@ -301,7 +301,7 @@ function interpret_program(
                 # Check for end_event
                 if get(func_addrs, "end_event", nothing) == call_target
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
-                    push!(event_sequences, current_sequence)
+                    push!(event_sequences, copy(current_sequence))
                     state.registers[:PC] = addresses[current_addr_idx + 1]
                     continue
                 end
