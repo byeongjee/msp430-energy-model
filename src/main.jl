@@ -70,7 +70,7 @@ function run_interpret(asm_file::String, max_steps::Int)
     func_addrs = EnergyModel.find_functions(asm_file)
 
     # Execute program
-    final_state, _ = Interpreter.interpret_program(
+    final_state, event_sequences = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
 
@@ -78,6 +78,12 @@ function run_interpret(asm_file::String, max_steps::Int)
     @info "EXECUTION SUMMARY"
     @info "="^60
     @info "Successfully executed MSP430 instructions" count = length(instructions)
+    @info "Number of events" count = length(event_sequences)
+
+    # Print number of instructions in each event
+    for (i, event) in enumerate(event_sequences)
+        @info "Event $i" instructions = length(event)
+    end
 
     return final_state
 end
