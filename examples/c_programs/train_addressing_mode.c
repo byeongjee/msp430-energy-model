@@ -197,23 +197,27 @@ void bench_rlam_4_reg(void) {
 /* Provide taken and not-taken variants */
 
 void bench_jge_not_taken(void) {
-  uint16_t a = 0x0000, b = 0xFFFF; /* a < b (signed), so JGE is false */
+  uint16_t a = 0x0000,
+           b = 0xFFFF; /* signed: a < b -> JGE is false (not taken) */
   REPEAT_INNER_ITERS(__asm__ volatile(
+      /* Prime flags once: sets N/Z/C/V based on (a - b). */
+      "cmp" WSUF " %1, %0\n"
+      /* Repeat only the conditional branch; no cmp inside the loop. */
       ".rept " STR(TEXTUAL_REPT) "\n"
-                                 "cmp" WSUF " %1, %0\n"
-                                 "jge 1f\n"
-                                 "nop\n"
+                                 "  jge 1f\n"
+                                 "  nop\n"
                                  "1:\n"
                                  ".endr\n" : "+r"(a) : "r"(b) : "cc"));
 }
 
 void bench_jge_taken(void) {
-  uint16_t a = 0x7FFF, b = 0x0001; /* a >= b (signed), so JGE is true */
+  uint16_t a = 0x7FFF, b = 0x0001; /* signed: a >= b -> JGE is true (taken) */
   REPEAT_INNER_ITERS(__asm__ volatile(
+      /* Prime flags once before the repeated jge’s. */
+      "cmp" WSUF " %1, %0\n"
       ".rept " STR(TEXTUAL_REPT) "\n"
-                                 "cmp" WSUF " %1, %0\n"
-                                 "jge 1f\n"
-                                 "nop\n"
+                                 "  jge 1f\n"
+                                 "  nop\n"
                                  "1:\n"
                                  ".endr\n" : "+r"(a) : "r"(b) : "cc"));
 }
