@@ -13,8 +13,10 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
  */
 #define WSUF ".w"
 
+#define INLINE __attribute__((always_inline))
+
 /* add.w Rs, Rd */
-void bench_add_reg_reg(void) {
+INLINE void bench_add_reg_reg(void) {
   uint16_t dst = 0x1234, src = 0x5678;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -23,7 +25,7 @@ void bench_add_reg_reg(void) {
 }
 
 /* add.w #imm, Rd */
-void bench_add_imm_reg(void) {
+INLINE void bench_add_imm_reg(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -32,7 +34,7 @@ void bench_add_imm_reg(void) {
 }
 
 /* add.w off(base), Rd  (indexed) */
-void bench_add_idx_reg(void) {
+INLINE void bench_add_idx_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *base = (uint16_t *)mem_buf; /* even-aligned */
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -43,7 +45,7 @@ void bench_add_idx_reg(void) {
 }
 
 /* add.w sym, Rd  (symbolic, PC-relative) */
-void bench_add_sym_reg(void) {
+INLINE void bench_add_sym_reg(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -53,7 +55,7 @@ void bench_add_sym_reg(void) {
 }
 
 /* add.w &abs, Rd  (absolute) */
-void bench_add_abs_reg(void) {
+INLINE void bench_add_abs_reg(void) {
   uint16_t dst = 0x1234;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -64,7 +66,7 @@ void bench_add_abs_reg(void) {
 }
 
 /* add.w @Rs, Rd  (indirect) */
-void bench_add_ind_reg(void) {
+INLINE void bench_add_ind_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *p = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -75,7 +77,7 @@ void bench_add_ind_reg(void) {
 }
 
 /* add.w @Rs+, Rd  (autoincrement) */
-void bench_add_aut_reg(void) {
+INLINE void bench_add_aut_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *p = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -88,7 +90,7 @@ void bench_add_aut_reg(void) {
 /* ========== ADD: register source to memory destination ========== */
 
 /* add.w Rs, off(base)  (indexed) */
-void bench_add_reg_idx(void) {
+INLINE void bench_add_reg_idx(void) {
   uint16_t src = 0x5678;
   uint16_t *base = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(
@@ -99,7 +101,7 @@ void bench_add_reg_idx(void) {
 }
 
 /* add.w Rs, sym  (symbolic) */
-void bench_add_reg_sym(void) {
+INLINE void bench_add_reg_sym(void) {
   uint16_t src = 0x5678;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -109,7 +111,7 @@ void bench_add_reg_sym(void) {
 }
 
 /* add.w Rs, &abs  (absolute) */
-void bench_add_reg_abs(void) {
+INLINE void bench_add_reg_abs(void) {
   uint16_t src = 0x5678;
   (void)sym_data;
   REPEAT_INNER_ITERS(
@@ -122,7 +124,7 @@ void bench_add_reg_abs(void) {
 /* ========== INC: register and memory destinations ========== */
 
 /* inc.w Rd */
-void bench_inc_reg(void) {
+INLINE void bench_inc_reg(void) {
   uint16_t dst = 0x2222;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -131,7 +133,7 @@ void bench_inc_reg(void) {
 }
 
 /* inc.w off(base) */
-void bench_inc_idx(void) {
+INLINE void bench_inc_idx(void) {
   uint16_t *base = (uint16_t *)mem_buf;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -141,7 +143,7 @@ void bench_inc_idx(void) {
 }
 
 /* inc.w sym */
-void bench_inc_sym(void) {
+INLINE void bench_inc_sym(void) {
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
                                                   "inc" WSUF " sym_data\n"
@@ -150,7 +152,7 @@ void bench_inc_sym(void) {
 }
 
 /* inc.w &abs */
-void bench_inc_abs(void) {
+INLINE void bench_inc_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -161,7 +163,7 @@ void bench_inc_abs(void) {
 
 /* ========== RLAM: immediate {1..4}, register destination ========== */
 
-void bench_rlam_1_reg(void) {
+INLINE void bench_rlam_1_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -169,7 +171,7 @@ void bench_rlam_1_reg(void) {
                                  ".endr\n" : "+r"(dst) : : "cc"));
 }
 
-void bench_rlam_2_reg(void) {
+INLINE void bench_rlam_2_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -177,7 +179,7 @@ void bench_rlam_2_reg(void) {
                                  ".endr\n" : "+r"(dst) : : "cc"));
 }
 
-void bench_rlam_3_reg(void) {
+INLINE void bench_rlam_3_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -185,7 +187,7 @@ void bench_rlam_3_reg(void) {
                                  ".endr\n" : "+r"(dst) : : "cc"));
 }
 
-void bench_rlam_4_reg(void) {
+INLINE void bench_rlam_4_reg(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -196,7 +198,7 @@ void bench_rlam_4_reg(void) {
 /* ========== Branches: JGE, JMP (relative only) ========== */
 /* Provide taken and not-taken variants */
 
-void bench_jge_not_taken(void) {
+INLINE void bench_jge_not_taken(void) {
   uint16_t a = 0x0000,
            b = 0xFFFF; /* signed: a < b -> JGE is false (not taken) */
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -210,7 +212,7 @@ void bench_jge_not_taken(void) {
                                  ".endr\n" : "+r"(a) : "r"(b) : "cc"));
 }
 
-void bench_jge_taken(void) {
+INLINE void bench_jge_taken(void) {
   uint16_t a = 0x7FFF, b = 0x0001; /* signed: a >= b -> JGE is true (taken) */
   REPEAT_INNER_ITERS(__asm__ volatile(
       /* Prime flags once before the repeated jge’s. */
@@ -222,7 +224,7 @@ void bench_jge_taken(void) {
                                  ".endr\n" : "+r"(a) : "r"(b) : "cc"));
 }
 
-void bench_jmp(void) {
+INLINE void bench_jmp(void) {
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
                                                   "jmp 1f\n"
@@ -233,7 +235,7 @@ void bench_jmp(void) {
 /* ========== 1) Destination: indexed (off(base)) ========== */
 
 /* reg -> idx */
-void bench_mov_reg_to_idx(void) {
+INLINE void bench_mov_reg_to_idx(void) {
   uint16_t src = 0x5678;
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -244,7 +246,7 @@ void bench_mov_reg_to_idx(void) {
 }
 
 /* imm -> idx */
-void bench_mov_imm_to_idx(void) {
+INLINE void bench_mov_imm_to_idx(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -254,7 +256,7 @@ void bench_mov_imm_to_idx(void) {
 }
 
 /* idx -> idx */
-void bench_mov_idx_to_idx(void) {
+INLINE void bench_mov_idx_to_idx(void) {
   uint16_t *bsrc = (uint16_t *)BASE_PTR;
   uint16_t *bdst = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -265,7 +267,7 @@ void bench_mov_idx_to_idx(void) {
 }
 
 /* sym -> idx */
-void bench_mov_sym_to_idx(void) {
+INLINE void bench_mov_sym_to_idx(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -275,7 +277,7 @@ void bench_mov_sym_to_idx(void) {
 }
 
 /* abs -> idx */
-void bench_mov_abs_to_idx(void) {
+INLINE void bench_mov_abs_to_idx(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -286,7 +288,7 @@ void bench_mov_abs_to_idx(void) {
 }
 
 /* ind -> idx */
-void bench_mov_ind_to_idx(void) {
+INLINE void bench_mov_ind_to_idx(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   uint16_t *bdst = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -297,7 +299,7 @@ void bench_mov_ind_to_idx(void) {
 }
 
 /* aut -> idx */
-void bench_mov_aut_to_idx(void) {
+INLINE void bench_mov_aut_to_idx(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   uint16_t *bdst = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -310,7 +312,7 @@ void bench_mov_aut_to_idx(void) {
 /* ========== 2) Destination: symbolic (sym_data) ========== */
 
 /* reg -> sym */
-void bench_mov_reg_to_sym(void) {
+INLINE void bench_mov_reg_to_sym(void) {
   uint16_t src = 0x5678;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -320,7 +322,7 @@ void bench_mov_reg_to_sym(void) {
 }
 
 /* imm -> sym */
-void bench_mov_imm_to_sym(void) {
+INLINE void bench_mov_imm_to_sym(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
                                  "mov" WSUF " #0x1357, sym_data\n"
@@ -329,7 +331,7 @@ void bench_mov_imm_to_sym(void) {
 }
 
 /* idx -> sym */
-void bench_mov_idx_to_sym(void) {
+INLINE void bench_mov_idx_to_sym(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -339,7 +341,7 @@ void bench_mov_idx_to_sym(void) {
 }
 
 /* sym -> sym */
-void bench_mov_sym_to_sym(void) {
+INLINE void bench_mov_sym_to_sym(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
                                  "mov" WSUF " sym_data, sym_data\n"
@@ -348,7 +350,7 @@ void bench_mov_sym_to_sym(void) {
 }
 
 /* abs -> sym */
-void bench_mov_abs_to_sym(void) {
+INLINE void bench_mov_abs_to_sym(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -358,7 +360,7 @@ void bench_mov_abs_to_sym(void) {
 }
 
 /* ind -> sym */
-void bench_mov_ind_to_sym(void) {
+INLINE void bench_mov_ind_to_sym(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -368,7 +370,7 @@ void bench_mov_ind_to_sym(void) {
 }
 
 /* aut -> sym */
-void bench_mov_aut_to_sym(void) {
+INLINE void bench_mov_aut_to_sym(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -380,7 +382,7 @@ void bench_mov_aut_to_sym(void) {
 /* ========== 3) Destination: absolute (&sym_data) ========== */
 
 /* reg -> abs */
-void bench_mov_reg_to_abs(void) {
+INLINE void bench_mov_reg_to_abs(void) {
   uint16_t src = 0x5678;
   (void)sym_data;
   REPEAT_INNER_ITERS(
@@ -391,7 +393,7 @@ void bench_mov_reg_to_abs(void) {
 }
 
 /* imm -> abs */
-void bench_mov_imm_to_abs(void) {
+INLINE void bench_mov_imm_to_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -401,7 +403,7 @@ void bench_mov_imm_to_abs(void) {
 }
 
 /* idx -> abs */
-void bench_mov_idx_to_abs(void) {
+INLINE void bench_mov_idx_to_abs(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -412,7 +414,7 @@ void bench_mov_idx_to_abs(void) {
 }
 
 /* sym -> abs */
-void bench_mov_sym_to_abs(void) {
+INLINE void bench_mov_sym_to_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -422,7 +424,7 @@ void bench_mov_sym_to_abs(void) {
 }
 
 /* abs -> abs */
-void bench_mov_abs_to_abs(void) {
+INLINE void bench_mov_abs_to_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -432,7 +434,7 @@ void bench_mov_abs_to_abs(void) {
 }
 
 /* ind -> abs */
-void bench_mov_ind_to_abs(void) {
+INLINE void bench_mov_ind_to_abs(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -443,7 +445,7 @@ void bench_mov_ind_to_abs(void) {
 }
 
 /* aut -> abs */
-void bench_mov_aut_to_abs(void) {
+INLINE void bench_mov_aut_to_abs(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -455,7 +457,7 @@ void bench_mov_aut_to_abs(void) {
 
 /* -------- mov SRC -> Rd (7 sources, dest is register) -------- */
 
-void bench_mov_reg_to_reg(void) {
+INLINE void bench_mov_reg_to_reg(void) {
   uint16_t dst = 0x1234, src = 0x5678;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -463,7 +465,7 @@ void bench_mov_reg_to_reg(void) {
                                  ".endr\n" : "+r"(dst) : "r"(src) :));
 }
 
-void bench_mov_imm_to_reg(void) {
+INLINE void bench_mov_imm_to_reg(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -471,7 +473,7 @@ void bench_mov_imm_to_reg(void) {
                                                   ".endr\n" : "+r"(dst) : :));
 }
 
-void bench_mov_idx_to_reg(void) {
+INLINE void bench_mov_idx_to_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *base = (uint16_t *)BASE_PTR; /* word-aligned base */
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -481,7 +483,7 @@ void bench_mov_idx_to_reg(void) {
       "i"(OFFS) : "memory"));
 }
 
-void bench_mov_sym_to_reg(void) {
+INLINE void bench_mov_sym_to_reg(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -489,7 +491,7 @@ void bench_mov_sym_to_reg(void) {
                                  ".endr\n" : "+r"(dst) : : "memory"));
 }
 
-void bench_mov_abs_to_reg(void) {
+INLINE void bench_mov_abs_to_reg(void) {
   uint16_t dst = 0x1234;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -498,7 +500,7 @@ void bench_mov_abs_to_reg(void) {
                                  ".endr\n" : "+r"(dst) : : "memory"));
 }
 
-void bench_mov_ind_to_reg(void) {
+INLINE void bench_mov_ind_to_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -507,7 +509,7 @@ void bench_mov_ind_to_reg(void) {
                                  ".endr\n" : "+r"(dst) : "r"(psrc) : "memory"));
 }
 
-void bench_mov_aut_to_reg(void) {
+INLINE void bench_mov_aut_to_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -520,7 +522,7 @@ void bench_mov_aut_to_reg(void) {
  * CMP: SRC -> REG destination (7)
  * ========================= */
 
-void bench_cmp_reg_to_reg(void) {
+INLINE void bench_cmp_reg_to_reg(void) {
   uint16_t dst = 0x1234, src = 0x5678;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -529,7 +531,7 @@ void bench_cmp_reg_to_reg(void) {
                        "r"(src) : "cc"));
 }
 
-void bench_cmp_imm_to_reg(void) {
+INLINE void bench_cmp_imm_to_reg(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -537,7 +539,7 @@ void bench_cmp_imm_to_reg(void) {
                                  ".endr\n" : : "r"(dst) : "cc"));
 }
 
-void bench_cmp_idx_to_reg(void) {
+INLINE void bench_cmp_idx_to_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *base = (uint16_t *)BASE_PTR; /* word aligned for .w */
   REPEAT_INNER_ITERS(
@@ -547,7 +549,7 @@ void bench_cmp_idx_to_reg(void) {
                        "r"(base), "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_sym_to_reg(void) {
+INLINE void bench_cmp_sym_to_reg(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -556,7 +558,7 @@ void bench_cmp_sym_to_reg(void) {
                        "memory"));
 }
 
-void bench_cmp_abs_to_reg(void) {
+INLINE void bench_cmp_abs_to_reg(void) {
   uint16_t dst = 0x1234;
   (void)sym_data;
   REPEAT_INNER_ITERS(
@@ -566,7 +568,7 @@ void bench_cmp_abs_to_reg(void) {
                        "memory"));
 }
 
-void bench_cmp_ind_to_reg(void) {
+INLINE void bench_cmp_ind_to_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -576,7 +578,7 @@ void bench_cmp_ind_to_reg(void) {
                        "r"(psrc) : "cc", "memory"));
 }
 
-void bench_cmp_aut_to_reg(void) {
+INLINE void bench_cmp_aut_to_reg(void) {
   uint16_t dst = 0x1234;
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -590,7 +592,7 @@ void bench_cmp_aut_to_reg(void) {
  * CMP: SRC -> IDX destination (7)
  * ========================= */
 
-void bench_cmp_reg_to_idx(void) {
+INLINE void bench_cmp_reg_to_idx(void) {
   uint16_t src = 0x5678;
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -600,7 +602,7 @@ void bench_cmp_reg_to_idx(void) {
                        "r"(base), "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_imm_to_idx(void) {
+INLINE void bench_cmp_imm_to_idx(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -609,7 +611,7 @@ void bench_cmp_imm_to_idx(void) {
       "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_idx_to_idx(void) {
+INLINE void bench_cmp_idx_to_idx(void) {
   uint16_t *bsrc = (uint16_t *)BASE_PTR;
   uint16_t *bdst = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -619,7 +621,7 @@ void bench_cmp_idx_to_idx(void) {
       "r"(bdst), "i"(OFFS), "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_sym_to_idx(void) {
+INLINE void bench_cmp_sym_to_idx(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -628,7 +630,7 @@ void bench_cmp_sym_to_idx(void) {
       "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_abs_to_idx(void) {
+INLINE void bench_cmp_abs_to_idx(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -638,7 +640,7 @@ void bench_cmp_abs_to_idx(void) {
       "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_ind_to_idx(void) {
+INLINE void bench_cmp_ind_to_idx(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   uint16_t *bdst = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -648,7 +650,7 @@ void bench_cmp_ind_to_idx(void) {
                        "r"(bdst), "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_aut_to_idx(void) {
+INLINE void bench_cmp_aut_to_idx(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   uint16_t *bdst = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(
@@ -662,7 +664,7 @@ void bench_cmp_aut_to_idx(void) {
  * CMP: SRC -> SYM destination (7)
  * ========================= */
 
-void bench_cmp_reg_to_sym(void) {
+INLINE void bench_cmp_reg_to_sym(void) {
   uint16_t src = 0x5678;
   REPEAT_INNER_ITERS(
       __asm__ volatile(".rept " STR(TEXTUAL_REPT) "\n"
@@ -671,7 +673,7 @@ void bench_cmp_reg_to_sym(void) {
                        "memory"));
 }
 
-void bench_cmp_imm_to_sym(void) {
+INLINE void bench_cmp_imm_to_sym(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
                                  "cmp" WSUF " #0x1357, sym_data\n"
@@ -679,7 +681,7 @@ void bench_cmp_imm_to_sym(void) {
       "memory"));
 }
 
-void bench_cmp_idx_to_sym(void) {
+INLINE void bench_cmp_idx_to_sym(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -688,7 +690,7 @@ void bench_cmp_idx_to_sym(void) {
       "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_sym_to_sym(void) {
+INLINE void bench_cmp_sym_to_sym(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
                                  "cmp" WSUF " sym_data, sym_data\n"
@@ -696,7 +698,7 @@ void bench_cmp_sym_to_sym(void) {
       "memory"));
 }
 
-void bench_cmp_abs_to_sym(void) {
+INLINE void bench_cmp_abs_to_sym(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -705,7 +707,7 @@ void bench_cmp_abs_to_sym(void) {
       "memory"));
 }
 
-void bench_cmp_ind_to_sym(void) {
+INLINE void bench_cmp_ind_to_sym(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -714,7 +716,7 @@ void bench_cmp_ind_to_sym(void) {
       "memory"));
 }
 
-void bench_cmp_aut_to_sym(void) {
+INLINE void bench_cmp_aut_to_sym(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -727,7 +729,7 @@ void bench_cmp_aut_to_sym(void) {
  * CMP: SRC -> ABS destination (7)
  * ========================= */
 
-void bench_cmp_reg_to_abs(void) {
+INLINE void bench_cmp_reg_to_abs(void) {
   uint16_t src = 0x5678;
   (void)sym_data;
   REPEAT_INNER_ITERS(
@@ -737,7 +739,7 @@ void bench_cmp_reg_to_abs(void) {
                        "memory"));
 }
 
-void bench_cmp_imm_to_abs(void) {
+INLINE void bench_cmp_imm_to_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -746,7 +748,7 @@ void bench_cmp_imm_to_abs(void) {
       "memory"));
 }
 
-void bench_cmp_idx_to_abs(void) {
+INLINE void bench_cmp_idx_to_abs(void) {
   uint16_t *base = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -756,7 +758,7 @@ void bench_cmp_idx_to_abs(void) {
       "i"(OFFS) : "cc", "memory"));
 }
 
-void bench_cmp_sym_to_abs(void) {
+INLINE void bench_cmp_sym_to_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -765,7 +767,7 @@ void bench_cmp_sym_to_abs(void) {
       "memory"));
 }
 
-void bench_cmp_abs_to_abs(void) {
+INLINE void bench_cmp_abs_to_abs(void) {
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -774,7 +776,7 @@ void bench_cmp_abs_to_abs(void) {
       "memory"));
 }
 
-void bench_cmp_ind_to_abs(void) {
+INLINE void bench_cmp_ind_to_abs(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -784,7 +786,7 @@ void bench_cmp_ind_to_abs(void) {
       "memory"));
 }
 
-void bench_cmp_aut_to_abs(void) {
+INLINE void bench_cmp_aut_to_abs(void) {
   uint16_t *psrc = (uint16_t *)BASE_PTR;
   (void)sym_data;
   REPEAT_INNER_ITERS(__asm__ volatile(
