@@ -118,6 +118,21 @@ def main():
     df = pd.read_csv(segments_path)
     all_energies = df['energy_nJ'].values
 
+    # Check if event labels are available
+    has_labels = 'event_label' in df.columns
+    if has_labels:
+        # Get unique event labels in order
+        event_labels = []
+        seen_labels = set()
+        for label in df['event_label']:
+            if label not in seen_labels:
+                event_labels.append(label)
+                seen_labels.add(label)
+        print(f"  Using event labels from CSV: {len(event_labels)} events")
+    else:
+        event_labels = None
+        print(f"  No event labels found in CSV, using numeric indices")
+
     # Calculate number of events
     total_samples = len(all_energies)
     num_events = total_samples // args.num_repeat
@@ -152,12 +167,23 @@ def main():
             event_data = all_energies[start_idx:end_idx]
             stats = calculate_statistics(event_data)
 
-            print(f"  Processing Event {event_idx + 1}/{num_events}")
+            # Get event label
+            if event_labels and event_idx < len(event_labels):
+                event_label = event_labels[event_idx]
+                event_name = f"{event_label}"
+                event_display = f"Event {event_idx + 1}: {event_label}"
+            else:
+                event_label = f"event_{event_idx + 1}"
+                event_name = f"Event {event_idx + 1}"
+                event_display = f"Event {event_idx + 1}"
+
+            print(f"  Processing {event_display}/{num_events}")
             print(f"    Mean: {stats['mean']:.2f} nJ, Std: {stats['std']:.2f} nJ")
 
             # Save to summary
             summary_data.append({
                 'event': event_idx + 1,
+                'event_label': event_label,
                 'mean_nJ': stats['mean'],
                 'std_nJ': stats['std'],
                 'min_nJ': stats['min'],
@@ -166,7 +192,7 @@ def main():
             })
 
             # Write to markdown report
-            f.write(f"## Event {event_idx + 1}\n\n")
+            f.write(f"## {event_name}\n\n")
 
             # Statistics table
             f.write("### Statistics\n\n")
@@ -182,14 +208,15 @@ def main():
 
             # Distribution plot
             f.write("### Distribution\n\n")
-            f.write(f"![Event {event_idx + 1} Distribution](event_{event_idx + 1}_distribution.png)\n\n")
+            plot_filename = f'{event_label}_distribution.png'
+            f.write(f"![{event_name} Distribution]({plot_filename})\n\n")
             f.write("---\n\n")
 
             # Generate plot for this event
             plot_distribution(
                 event_data,
-                f'Event {event_idx + 1} Energy Distribution',
-                report_dir / f'event_{event_idx + 1}_distribution.png',
+                f'{event_name} Energy Distribution',
+                report_dir / plot_filename,
                 color='steelblue',
                 stats=stats
             )
@@ -197,18 +224,33 @@ def main():
         # Write summary section
         f.write("## Summary\n\n")
         f.write("### All Events Statistics\n\n")
-        f.write("| Event | Mean (nJ) | Std Dev (nJ) | CV (%) | Min (nJ) | Max (nJ) | Samples |\n")
-        f.write("|------:|----------:|-------------:|-------:|---------:|---------:|--------:|\n")
+        if has_labels:
+            f.write("| Event | Label | Mean (nJ) | Std Dev (nJ) | CV (%) | Min (nJ) | Max (nJ) | Samples |\n")
+            f.write("|------:|:------|----------:|-------------:|-------:|---------:|---------:|--------:|\n")
 
-        for event_summary in summary_data:
-            cv = (event_summary['std_nJ'] / event_summary['mean_nJ'] * 100) if event_summary['mean_nJ'] > 0 else 0
-            f.write(f"| {event_summary['event']} | "
-                   f"{event_summary['mean_nJ']:.4f} | "
-                   f"{event_summary['std_nJ']:.4f} | "
-                   f"{cv:.2f} | "
-                   f"{event_summary['min_nJ']:.4f} | "
-                   f"{event_summary['max_nJ']:.4f} | "
-                   f"{event_summary['samples']} |\n")
+            for event_summary in summary_data:
+                cv = (event_summary['std_nJ'] / event_summary['mean_nJ'] * 100) if event_summary['mean_nJ'] > 0 else 0
+                f.write(f"| {event_summary['event']} | "
+                       f"`{event_summary['event_label']}` | "
+                       f"{event_summary['mean_nJ']:.4f} | "
+                       f"{event_summary['std_nJ']:.4f} | "
+                       f"{cv:.2f} | "
+                       f"{event_summary['min_nJ']:.4f} | "
+                       f"{event_summary['max_nJ']:.4f} | "
+                       f"{event_summary['samples']} |\n")
+        else:
+            f.write("| Event | Mean (nJ) | Std Dev (nJ) | CV (%) | Min (nJ) | Max (nJ) | Samples |\n")
+            f.write("|------:|----------:|-------------:|-------:|---------:|---------:|--------:|\n")
+
+            for event_summary in summary_data:
+                cv = (event_summary['std_nJ'] / event_summary['mean_nJ'] * 100) if event_summary['mean_nJ'] > 0 else 0
+                f.write(f"| {event_summary['event']} | "
+                       f"{event_summary['mean_nJ']:.4f} | "
+                       f"{event_summary['std_nJ']:.4f} | "
+                       f"{cv:.2f} | "
+                       f"{event_summary['min_nJ']:.4f} | "
+                       f"{event_summary['max_nJ']:.4f} | "
+                       f"{event_summary['samples']} |\n")
 
         # Overall statistics
         all_means = [s['mean_nJ'] for s in summary_data]
@@ -224,9 +266,14 @@ def main():
 
         f.write("### Output Files\n\n")
         f.write("```\n")
-        for event_idx in range(num_events):
-            f.write(f"Event {event_idx + 1}:\n")
-            f.write(f"  - event_{event_idx + 1}_distribution.png\n")
+        for event_summary in summary_data:
+            event_num = event_summary['event']
+            event_label = event_summary['event_label']
+            if has_labels:
+                f.write(f"Event {event_num} ({event_label}):\n")
+            else:
+                f.write(f"Event {event_num}:\n")
+            f.write(f"  - {event_label}_distribution.png\n")
         f.write("segments.csv (preprocessed data)\n")
         f.write("distribution_summary.csv (statistics summary)\n")
         f.write("distribution_analysis.md (this file)\n")

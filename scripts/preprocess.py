@@ -2,14 +2,16 @@
 import pandas as pd
 from scipy import integrate
 import argparse
+import json
 
 
-def preprocess_csv(input, output):
+def preprocess_csv(input, output, event_labels=None):
     """
     Preprocess CSV file to extract segments where GPI2=1 and calculate energy.
     Parameters:
     input_file: Path to input CSV file
     output_file: Path to output CSV file
+    event_labels: Optional list of event labels (function names from BENCH() macros)
     """
     # Read the CSV file
     df = pd.read_csv(input)
@@ -50,6 +52,29 @@ def preprocess_csv(input, output):
         )
     # Create output DataFrame
     output_df = pd.DataFrame(results)
+
+    # Add event labels if provided
+    if event_labels is not None and len(event_labels) > 0:
+        # Assign event labels to segments
+        # Each event should have the same number of segments (one per repetition)
+        num_segments = len(output_df)
+        num_events = len(event_labels)
+
+        # Calculate segments per event
+        if num_segments % num_events == 0:
+            segments_per_event = num_segments // num_events
+
+            # Create label list by repeating each label segments_per_event times
+            label_list = []
+            for label in event_labels:
+                label_list.extend([label] * segments_per_event)
+
+            output_df['event_label'] = label_list
+            print(f"Added event labels: {num_events} events, {segments_per_event} segments per event")
+        else:
+            print(f"Warning: Number of segments ({num_segments}) is not evenly divisible by number of events ({num_events})")
+            print(f"Skipping event label assignment")
+
     # Save to CSV
     output_df.to_csv(output, index=False)
     print(f"Processed {len(output_df)} segments")
@@ -64,10 +89,21 @@ if __name__ == "__main__":
     )
     parser.add_argument("--input", help="Path to input CSV file")
     parser.add_argument("--output", help="Path to output CSV file")
+    parser.add_argument("--event-labels", help="Path to JSON file containing event labels (optional)")
 
     args = parser.parse_args()
 
-    result_df = preprocess_csv(args.input, args.output)
+    # Load event labels if provided
+    event_labels = None
+    if args.event_labels:
+        try:
+            with open(args.event_labels, 'r') as f:
+                event_labels = json.load(f)
+            print(f"Loaded {len(event_labels)} event labels from {args.event_labels}")
+        except Exception as e:
+            print(f"Warning: Could not load event labels from {args.event_labels}: {e}")
+
+    result_df = preprocess_csv(args.input, args.output, event_labels=event_labels)
 
     # Display the results
     print("\nPreprocessed data:")

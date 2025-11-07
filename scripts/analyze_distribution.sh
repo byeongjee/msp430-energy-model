@@ -29,6 +29,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 MEASURE_PY="$SCRIPT_DIR/measure.py"
 PREPROCESS_PY="$SCRIPT_DIR/preprocess.py"
 GENERATE_REPORT_PY="$SCRIPT_DIR/generate_distribution_report.py"
+EXTRACT_BENCH_LABELS_PY="$SCRIPT_DIR/extract_bench_labels.py"
 
 # Check required environment variables
 if [[ -z "${MSP430GCC_TOOLCHAIN_PATH}" ]]; then
@@ -196,6 +197,50 @@ cd "$PROJECT_ROOT"
 # Array to store individual segments CSV files
 SEGMENTS_CSV_ARRAY=()
 
+# Step 1: Extract event labels from all files
+log_step "Step 1: Extracting event labels from C source files"
+EVENT_LABELS_ARRAY=()
+for i in "${!FILE_ARRAY[@]}"; do
+    FILE="${FILE_ARRAY[$i]}"
+    BASENAME="$(basename "$FILE" .c)"
+
+    EVENT_LABELS_JSON="$TEMP_DIR/labels_${BASENAME}_${TIMESTAMP}.json"
+
+    log_info "Extracting labels from $FILE..."
+    python3 "$EXTRACT_BENCH_LABELS_PY" \
+        --input "$FILE" \
+        --output "$EVENT_LABELS_JSON" \
+        --format json
+
+    EVENT_LABELS_ARRAY+=("$EVENT_LABELS_JSON")
+done
+
+# Combine all event labels into single JSON file
+COMBINED_LABELS_JSON="$TEMP_DIR/combined_labels_${TIMESTAMP}.json"
+log_info "Combining event labels from ${#EVENT_LABELS_ARRAY[@]} file(s)..."
+
+# Use Python to combine JSON arrays
+python3 -c "
+import json
+import sys
+
+combined_labels = []
+for label_file in sys.argv[1:-1]:
+    try:
+        with open(label_file, 'r') as f:
+            labels = json.load(f)
+            combined_labels.extend(labels)
+    except Exception as e:
+        print(f'Warning: Could not load {label_file}: {e}', file=sys.stderr)
+
+with open(sys.argv[-1], 'w') as f:
+    json.dump(combined_labels, f, indent=2)
+
+print(f'Combined {len(combined_labels)} event labels')
+" "${EVENT_LABELS_ARRAY[@]}" "$COMBINED_LABELS_JSON"
+
+log_success "Event labels combined: $COMBINED_LABELS_JSON"
+
 # Process each file
 for i in "${!FILE_ARRAY[@]}"; do
     FILE="${FILE_ARRAY[$i]}"
@@ -207,21 +252,22 @@ for i in "${!FILE_ARRAY[@]}"; do
     # Setup file paths for this file
     TRAINING_RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
     TRAINING_SEGMENTS_CSV="$TEMP_DIR/segments_${BASENAME}_${TIMESTAMP}.csv"
+    EVENT_LABELS_JSON="${EVENT_LABELS_ARRAY[$i]}"
 
-    # Step 1: Compile
-    log_step "Step 1.$((i+1)): Compiling $FILE"
+    # Step 2: Compile
+    log_step "Step 2.$((i+1)): Compiling $FILE"
     log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
     $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
     log_success "Compiled: $BUILD_DIR/${BASENAME}.elf"
 
-    # Step 2: Flash
-    log_step "Step 2.$((i+1)): Flashing binary to device"
+    # Step 3: Flash
+    log_step "Step 3.$((i+1)): Flashing binary to device"
     log_info "Flashing $BUILD_DIR/${BASENAME}.elf..."
     mspdebug tilib "prog $BUILD_DIR/${BASENAME}.elf" "exit"
     log_success "Flashed to device"
 
-    # Step 3: Measure
-    log_step "Step 3.$((i+1)): Measuring energy consumption"
+    # Step 4: Measure
+    log_step "Step 4.$((i+1)): Measuring energy consumption"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
@@ -230,11 +276,12 @@ for i in "${!FILE_ARRAY[@]}"; do
         $SKIP_RESET
     log_success "Raw measurement saved: $TRAINING_RAW_CSV"
 
-    # Step 4: Preprocess
-    log_step "Step 4.$((i+1)): Preprocessing measurements"
+    # Step 5: Preprocess
+    log_step "Step 5.$((i+1)): Preprocessing measurements"
     python3 "$PREPROCESS_PY" \
         --input "$TRAINING_RAW_CSV" \
-        --output "$TRAINING_SEGMENTS_CSV"
+        --output "$TRAINING_SEGMENTS_CSV" \
+        --event-labels "$EVENT_LABELS_JSON"
     log_success "Segments saved: $TRAINING_SEGMENTS_CSV"
 
     # Add to segments array
@@ -245,8 +292,8 @@ for i in "${!FILE_ARRAY[@]}"; do
     log_info "Cleaned up temporary file: $TRAINING_RAW_CSV"
 done
 
-# Step 5: Combine all segments into single CSV
-log_step "Step 5: Combining segments from ${#FILE_ARRAY[@]} file(s)"
+# Step 6: Combine all segments into single CSV
+log_step "Step 6: Combining segments from ${#FILE_ARRAY[@]} file(s)"
 COMBINED_SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
 
 if [[ ${#SEGMENTS_CSV_ARRAY[@]} -eq 1 ]]; then
@@ -280,8 +327,8 @@ TOTAL_EVENTS=$((TOTAL_SEGMENTS / NUM_REPEAT))
 log_info "Total segments: $TOTAL_SEGMENTS"
 log_info "Total events: $TOTAL_EVENTS"
 
-# Step 6: Generate distribution analysis report
-log_step "Step 6: Generating combined distribution analysis report"
+# Step 7: Generate distribution analysis report
+log_step "Step 7: Generating combined distribution analysis report"
 
 # Create a file list string for the report
 FILE_LIST=""
@@ -296,6 +343,12 @@ python3 "$GENERATE_REPORT_PY" \
     --report-dir "$REPORT_DIR_FULL" \
     --file-name "$FILE_LIST"
 log_success "Distribution analysis report generated"
+
+# Cleanup temporary label files
+for label_file in "${EVENT_LABELS_ARRAY[@]}"; do
+    rm -f "$label_file"
+done
+rm -f "$COMBINED_LABELS_JSON"
 
 # Done
 log_step "ANALYSIS COMPLETE"
