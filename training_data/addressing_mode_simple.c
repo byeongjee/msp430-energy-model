@@ -10,8 +10,6 @@ static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
 
 #define WSUF ".w"
 
-#define INLINE __attribute__((always_inline))
-
 INLINE void bench_add_reg_reg(void) {
   uint16_t dst = 0x1234, src = 0x5678;
   REPEAT_INNER_ITERS(__asm__ volatile(

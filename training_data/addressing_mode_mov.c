@@ -10,8 +10,6 @@ static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
 
 #define WSUF ".w"
 
-#define INLINE __attribute__((always_inline))
-
 INLINE void bench_mov_reg_to_idx(void) {
   uint16_t src = 0x5678;
   uint16_t *base = (uint16_t *)BASE_PTR;

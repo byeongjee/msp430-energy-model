@@ -172,3 +172,5 @@ void initialize(void) {
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
+
+#define INLINE static inline __attribute__((always_inline))
