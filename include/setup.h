@@ -152,7 +152,7 @@ void initialize(void) {
 #define NUM_REPEAT 10
 #endif
 
-#define REPEAT_WITH_EVENT(X)                                                   \
+#define BENCH(X)                                                               \
   for (int _rep_i_ = 0; _rep_i_ < (NUM_REPEAT); ++_rep_i_) {                   \
     begin_event();                                                             \
     do {                                                                       \
