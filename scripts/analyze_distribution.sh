@@ -21,7 +21,7 @@ TEMP_DIR="./tmp"
 TAG=""
 
 # Required parameters (to be set via command line)
-FILE=""
+FILES=""  # Semicolon-separated list of files
 
 # Script directory and paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -75,7 +75,7 @@ Usage: $0 [OPTIONS]
 Analyze energy distribution: flash → measure → preprocess → analyze
 
 Required arguments:
-  --file FILE               C file to analyze
+  --files FILES             C file(s) to analyze (semicolon-separated for multiple)
 
 Optional arguments:
   --tag TAG                 Tag for naming output files (default: none)
@@ -87,14 +87,17 @@ Optional arguments:
   --help                    Show this help message
 
 Examples:
-  # Basic usage
-  $0 --file examples/c_programs/simple.c
+  # Basic usage (single file)
+  $0 --files examples/c_programs/simple.c
+
+  # Multiple files
+  $0 --files "file1.c;file2.c;file3.c"
 
   # With tag for organized output
-  $0 --file examples/c_programs/simple.c --tag experiment1
+  $0 --files examples/c_programs/simple.c --tag experiment1
 
   # Custom measurement settings
-  $0 --file examples/c_programs/simple.c \\
+  $0 --files examples/c_programs/simple.c \\
      --voltage 3.0 \\
      --max-current 0.02
 EOF
@@ -103,8 +106,8 @@ EOF
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --file)
-            FILE="$2"
+        --files)
+            FILES="$2"
             shift 2
             ;;
         --tag)
@@ -144,17 +147,22 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate required arguments
-if [[ -z "$FILE" ]]; then
-    log_error "Missing required argument: --file"
+if [[ -z "$FILES" ]]; then
+    log_error "Missing required argument: --files"
     usage
     exit 1
 fi
 
-# Check if file exists
-if [[ ! -f "$FILE" ]]; then
-    log_error "File not found: $FILE"
-    exit 1
-fi
+# Parse files into array
+IFS=';' read -ra FILE_ARRAY <<< "$FILES"
+
+# Check if files exist
+for file in "${FILE_ARRAY[@]}"; do
+    if [[ ! -f "$file" ]]; then
+        log_error "File not found: $file"
+        exit 1
+    fi
+done
 
 # Setup temporary files and directories
 mkdir -p "$TEMP_DIR"
@@ -163,10 +171,7 @@ mkdir -p "$BUILD_DIR"
 # Create timestamp
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
-# Extract basename
-BASENAME="$(basename "$FILE" .c)"
-
-# Determine report directory
+# Determine report directory (single directory for all files)
 if [[ -n "$TAG" ]]; then
     REPORT_DIR_FULL="${REPORT_DIR}/analyze_distribution/${TAG}"
 else
@@ -175,69 +180,135 @@ fi
 
 mkdir -p "$REPORT_DIR_FULL"
 
-# Setup file paths
-TRAINING_RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
-TRAINING_SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
-
 # ============================================================
 # MAIN PIPELINE
 # ============================================================
 
 log_step "ANALYZE DISTRIBUTION START"
-log_info "File: $FILE"
+log_info "Files: ${#FILE_ARRAY[@]}"
+for file in "${FILE_ARRAY[@]}"; do
+    log_info "  - $file"
+done
 log_info "Report directory: $REPORT_DIR_FULL"
 
 cd "$PROJECT_ROOT"
 
-# Step 1: Compile
-log_step "Step 1/4: Compiling $FILE"
-log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
-$CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
-log_success "Compiled: $BUILD_DIR/${BASENAME}.elf"
+# Array to store individual segments CSV files
+SEGMENTS_CSV_ARRAY=()
 
-# Step 2: Flash
-log_step "Step 2/4: Flashing binary to device"
-log_info "Flashing $BUILD_DIR/${BASENAME}.elf..."
-mspdebug tilib "prog $BUILD_DIR/${BASENAME}.elf" "exit"
-log_success "Flashed to device"
+# Process each file
+for i in "${!FILE_ARRAY[@]}"; do
+    FILE="${FILE_ARRAY[$i]}"
+    BASENAME="$(basename "$FILE" .c)"
 
-# Step 3: Measure
-log_step "Step 3/4: Measuring energy consumption"
-log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-python3 "$MEASURE_PY" \
-    --voltage "$VOLTAGE" \
-    --max_current "$MAX_CURRENT" \
-    --outfile "$TRAINING_RAW_CSV" \
-    $SKIP_RESET
-log_success "Raw measurement saved: $TRAINING_RAW_CSV"
+    log_info ""
+    log_info "Processing file $((i+1))/${#FILE_ARRAY[@]}: $FILE"
 
-# Step 4: Preprocess
-log_step "Step 4/5: Preprocessing measurements"
-python3 "$PREPROCESS_PY" \
-    --input "$TRAINING_RAW_CSV" \
-    --output "$TRAINING_SEGMENTS_CSV"
-log_success "Segments saved: $TRAINING_SEGMENTS_CSV"
+    # Setup file paths for this file
+    TRAINING_RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
+    TRAINING_SEGMENTS_CSV="$TEMP_DIR/segments_${BASENAME}_${TIMESTAMP}.csv"
 
-# Step 5: Generate distribution analysis report
-log_step "Step 5/5: Generating distribution analysis report"
+    # Step 1: Compile
+    log_step "Step 1.$((i+1)): Compiling $FILE"
+    log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
+    $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
+    log_success "Compiled: $BUILD_DIR/${BASENAME}.elf"
+
+    # Step 2: Flash
+    log_step "Step 2.$((i+1)): Flashing binary to device"
+    log_info "Flashing $BUILD_DIR/${BASENAME}.elf..."
+    mspdebug tilib "prog $BUILD_DIR/${BASENAME}.elf" "exit"
+    log_success "Flashed to device"
+
+    # Step 3: Measure
+    log_step "Step 3.$((i+1)): Measuring energy consumption"
+    log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
+    python3 "$MEASURE_PY" \
+        --voltage "$VOLTAGE" \
+        --max_current "$MAX_CURRENT" \
+        --outfile "$TRAINING_RAW_CSV" \
+        $SKIP_RESET
+    log_success "Raw measurement saved: $TRAINING_RAW_CSV"
+
+    # Step 4: Preprocess
+    log_step "Step 4.$((i+1)): Preprocessing measurements"
+    python3 "$PREPROCESS_PY" \
+        --input "$TRAINING_RAW_CSV" \
+        --output "$TRAINING_SEGMENTS_CSV"
+    log_success "Segments saved: $TRAINING_SEGMENTS_CSV"
+
+    # Add to segments array
+    SEGMENTS_CSV_ARRAY+=("$TRAINING_SEGMENTS_CSV")
+
+    # Cleanup temporary raw CSV
+    rm -f "$TRAINING_RAW_CSV"
+    log_info "Cleaned up temporary file: $TRAINING_RAW_CSV"
+done
+
+# Step 5: Combine all segments into single CSV
+log_step "Step 5: Combining segments from ${#FILE_ARRAY[@]} file(s)"
+COMBINED_SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
+
+if [[ ${#SEGMENTS_CSV_ARRAY[@]} -eq 1 ]]; then
+    # Single file: just move it
+    mv "${SEGMENTS_CSV_ARRAY[0]}" "$COMBINED_SEGMENTS_CSV"
+    log_success "Segments saved: $COMBINED_SEGMENTS_CSV"
+else
+    # Multiple files: concatenate them
+    # First file with header
+    cat "${SEGMENTS_CSV_ARRAY[0]}" > "$COMBINED_SEGMENTS_CSV"
+
+    # Remaining files without header
+    for i in "${!SEGMENTS_CSV_ARRAY[@]}"; do
+        if [[ $i -gt 0 ]]; then
+            tail -n +2 "${SEGMENTS_CSV_ARRAY[$i]}" >> "$COMBINED_SEGMENTS_CSV"
+        fi
+    done
+
+    log_success "Combined ${#SEGMENTS_CSV_ARRAY[@]} segment files into: $COMBINED_SEGMENTS_CSV"
+
+    # Cleanup individual segment files
+    for csv in "${SEGMENTS_CSV_ARRAY[@]}"; do
+        rm -f "$csv"
+    done
+fi
+
+# Calculate total number of events across all files
+TOTAL_SEGMENTS=$(tail -n +2 "$COMBINED_SEGMENTS_CSV" | wc -l | tr -d ' ')
+TOTAL_EVENTS=$((TOTAL_SEGMENTS / NUM_REPEAT))
+
+log_info "Total segments: $TOTAL_SEGMENTS"
+log_info "Total events: $TOTAL_EVENTS"
+
+# Step 6: Generate distribution analysis report
+log_step "Step 6: Generating combined distribution analysis report"
+
+# Create a file list string for the report
+FILE_LIST=""
+for file in "${FILE_ARRAY[@]}"; do
+    FILE_LIST="${FILE_LIST}${file}, "
+done
+FILE_LIST="${FILE_LIST%, }"  # Remove trailing comma and space
+
 python3 "$GENERATE_REPORT_PY" \
-    --segments-csv "$TRAINING_SEGMENTS_CSV" \
+    --segments-csv "$COMBINED_SEGMENTS_CSV" \
     --num-repeat "$NUM_REPEAT" \
     --report-dir "$REPORT_DIR_FULL" \
-    --file-name "$FILE"
+    --file-name "$FILE_LIST"
 log_success "Distribution analysis report generated"
-
-# Cleanup temporary raw CSV
-rm -f "$TRAINING_RAW_CSV"
-log_info "Cleaned up temporary file: $TRAINING_RAW_CSV"
 
 # Done
 log_step "ANALYSIS COMPLETE"
 log_success "All steps completed successfully!"
 echo ""
 log_info "Output files:"
+echo "  - Report directory: $REPORT_DIR_FULL"
 echo "  - Markdown Report: ${REPORT_DIR_FULL}/distribution_analysis.md"
-echo "  - Segments CSV: $TRAINING_SEGMENTS_CSV"
+echo "  - Segments CSV: $COMBINED_SEGMENTS_CSV"
 echo "  - Summary CSV: ${REPORT_DIR_FULL}/distribution_summary.csv"
 echo "  - Distribution plots: ${REPORT_DIR_FULL}/event_*_distribution.png"
-echo "  - Report directory: $REPORT_DIR_FULL"
+echo ""
+log_info "Files analyzed: ${#FILE_ARRAY[@]}"
+for i in "${!FILE_ARRAY[@]}"; do
+    echo "  $((i+1)). ${FILE_ARRAY[$i]}"
+done

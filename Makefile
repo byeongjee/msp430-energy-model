@@ -64,7 +64,8 @@ help:
 	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> TRAINING_RAW_CSV=<files> TEST_RAW_CSV=<file> TRAINING_SEGMENTS_CSV=<files> TEST_SEGMENTS_CSV=<file> PARAMS=<file>"
 	@echo "                     VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> GRANULARITY=<gran> SKIP_RESET=1 KEEP_INTERMEDIATES=1"
 	@echo "                     INFERENCE=<alg> (importance-sampling, mcmc-hmc, mcmc-blocked)"
-	@echo "  analyze_distribution FILE=<file.c> [TAG=<tag>] [REPORT_DIR=<dir>] [VOLTAGE=<v>] [MAX_CURRENT=<a>] [NUM_REPEAT=<n>] [SKIP_RESET=1] - Flash, measure, and analyze energy distribution per event"
+	@echo "  analyze_distribution FILES=<files> [TAG=<tag>] [REPORT_DIR=<dir>] [VOLTAGE=<v>] [MAX_CURRENT=<a>] [NUM_REPEAT=<n>] [SKIP_RESET=1] - Flash, measure, and analyze energy distribution per event"
+	@echo "           FILES can be single or semicolon-separated: file.c or file1.c;file2.c;file3.c"
 	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
 	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
 	@echo "  test [PATTERN=<regex>]      - Run Julia test suite (compare interpreter vs GDB)"
@@ -86,8 +87,9 @@ help:
 	@echo "  make train_and_estimate TRAIN_FILES=\"file1.c;file2.c;file3.c\" ESTIMATE_FILE=test.c TAG=multi_train"
 	@echo "  make train_and_estimate TRAIN_FILES=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TAG=experiment1 KEEP_INTERMEDIATES=1"
 	@echo "  make train_and_estimate TRAIN_FILES=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TRAINING_RAW_CSV=train.csv TEST_RAW_CSV=estimate.csv  # Resume without hardware"
-	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c"
-	@echo "  make analyze_distribution FILE=examples/c_programs/simple.c TAG=experiment1 NUM_REPEAT=20"
+	@echo "  make analyze_distribution FILES=examples/c_programs/simple.c"
+	@echo "  make analyze_distribution FILES=\"file1.c;file2.c;file3.c\" TAG=multi_analyze"
+	@echo "  make analyze_distribution FILES=examples/c_programs/simple.c TAG=experiment1 NUM_REPEAT=20"
 	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json JULIA_NUM_THREADS=4  # Use 4 threads"
 	@echo "  make flash FILE=examples/c_programs/simple.c"
 	@echo "  make flash FILE=examples/c_programs/simple.c DEBUG=1"
@@ -228,10 +230,10 @@ endif
 
 # Analyze distribution mode: flash → measure → preprocess → analyze
 analyze_distribution:
-ifndef FILE
-	$(error Please specify FILE=<file.c>)
+ifndef FILES
+	$(error Please specify FILES=file.c or FILES=file1.c;file2.c;... (semicolon-separated))
 endif
-	@ARGS="--file $(FILE)"; \
+	@ARGS="--files $(FILES)"; \
 	if [ -n "$(TAG)" ]; then ARGS="$$ARGS --tag $(TAG)"; fi; \
 	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
 	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
