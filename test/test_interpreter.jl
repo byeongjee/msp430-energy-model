@@ -1,11 +1,14 @@
 using Test
 using JSON
 
-# Include the interpreter and energy model modules
-include("../src/EnergyModel.jl")
+# Include Interpreter module (which includes the core types internally)
 include("../src/Interpreter.jl")
-using .EnergyModel
 using .Interpreter
+
+# Import the types and functions we need from Interpreter module
+const MachineState = Interpreter.MachineState
+const Instruction = Interpreter.Instruction
+const find_functions = Interpreter.find_functions
 
 """
 Load a test fixture from JSON file
@@ -32,7 +35,7 @@ function run_interpreter(asm_file::String, max_steps::Int=100000000)
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
     # Find function addresses
-    func_addrs = EnergyModel.find_functions(asm_file)
+    func_addrs = find_functions(asm_file)
 
     # Execute program
     final_state, _ = Interpreter.interpret_program(

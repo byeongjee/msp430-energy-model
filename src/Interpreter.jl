@@ -5,8 +5,10 @@ using Gen
 using Printf
 using Logging
 
-# Use Main.EnergyModel to avoid type conflicts
-using Main.EnergyModel
+# Include core types and functions
+include("types.jl")
+include("machine_state.jl")
+include("parser.jl")
 
 """
 Format all register values in a formatted way for MSP430
@@ -42,7 +44,7 @@ function _memory_op_debug_msg(
             base_addr = get(old_regs, reg, UInt16(0))
             addr = UInt16((base_addr + offset) & 0xFFFF)
             if inst.opcode == :mov
-                src_val = Main.EnergyModel.get_operand_value(state, inst.operands[1])
+                src_val = get_operand_value(state, inst.operands[1])
                 return "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
             end
         end
@@ -288,7 +290,7 @@ function interpret_program(
             should_terminate = false
 
             if is_call
-                call_target = Main.EnergyModel.get_operand_value(state, inst.operands[1])
+                call_target = get_operand_value(state, inst.operands[1])
 
                 # Check for begin_event
                 if get(func_addrs, "begin_event", nothing) == call_target

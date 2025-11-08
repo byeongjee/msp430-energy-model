@@ -3,16 +3,19 @@
 # Test baseline mean estimation method
 # Train on train_addressing_mode.c, test on test.c with two granularities
 
-include("../src/EnergyModel.jl")
 include("../src/Interpreter.jl")
 include("../src/Inference.jl")
 include("../src/BaselineEstimation.jl")
 
-using .EnergyModel
 using .Interpreter
 using .Inference
 using .BaselineEstimation
 using .Inference: get_instruction_key
+
+# Import the types and functions we need
+const Instruction = Interpreter.Instruction
+const MachineState = Interpreter.MachineState
+const find_functions = Interpreter.find_functions
 using CSV
 using DataFrames
 using Statistics
@@ -50,7 +53,7 @@ function process_data(
 
     # Parse assembly
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
-    func_addrs = EnergyModel.find_functions(asm_file)
+    func_addrs = find_functions(asm_file)
 
     # Run interpreter to get event sequences
     _, event_sequences = Interpreter.interpret_program(
@@ -83,7 +86,7 @@ function process_test_asm(asm_file::String, max_steps::Int=100000000)
 
     # Parse assembly
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
-    func_addrs = EnergyModel.find_functions(asm_file)
+    func_addrs = find_functions(asm_file)
 
     # Run interpreter to get event sequences
     _, event_sequences = Interpreter.interpret_program(
