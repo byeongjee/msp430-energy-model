@@ -345,7 +345,7 @@ end
 Generic Gamma distribution model.
 Uses Gamma(alpha, beta) distributions for each instruction key based on specified granularity.
 """
-mutable struct GammaModel <: Model
+mutable struct GammaModel <: AbstractModel
     params::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
     granularity::ModelGranularity
 
