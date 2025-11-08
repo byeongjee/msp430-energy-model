@@ -18,7 +18,7 @@ SKIP_RESET=""
 MAX_STEPS=""
 N_SAMPLES=""
 NUM_REPEAT=10
-GRANULARITY="opcode"
+MODEL="gamma_per_instruction"
 INFERENCE="importance-sampling"
 REPORT_DIR="./report"
 TEMP_DIR="./tmp"
@@ -110,7 +110,7 @@ Optional arguments:
   --max-steps N             Maximum execution steps for train/estimate
   --n-samples N             Number of samples for inference (default: 100)
   --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
-  --granularity MODE        Model granularity: opcode or addressing_mode (default: opcode)
+  --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
   --inference ALG           Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)
   --report-dir DIR          Directory for comparison report (default: ./report)
   --skip-reset              Skip device reset during measurement
@@ -189,8 +189,8 @@ while [[ $# -gt 0 ]]; do
             NUM_REPEAT="$2"
             shift 2
             ;;
-        --granularity)
-            GRANULARITY="$2"
+        --model)
+            MODEL="$2"
             shift 2
             ;;
         --inference)
@@ -342,8 +342,8 @@ if [[ -n "$N_SAMPLES" ]]; then
     N_SAMPLES_FLAG="--n-samples $N_SAMPLES"
 fi
 
-# Build GRANULARITY_FLAG
-GRANULARITY_FLAG="--granularity $GRANULARITY"
+# Build MODEL_FLAG
+MODEL_FLAG="--model $MODEL"
 
 # Build INFERENCE_FLAG
 INFERENCE_FLAG="--inference $INFERENCE"
@@ -599,7 +599,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
         --output "$PARAMS_FILE" \
         $MAX_STEPS_FLAG \
         $N_SAMPLES_FLAG \
-        $GRANULARITY_FLAG \
+        $MODEL_FLAG \
         $INFERENCE_FLAG
     log_success "Model trained: $PARAMS_FILE"
 else
