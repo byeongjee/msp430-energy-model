@@ -3,14 +3,48 @@ include("../src/machine_state.jl")
 include("../src/parser.jl")
 include("../src/Interpreter.jl")
 include("../src/Inference.jl")
-include("../src/Estimation.jl")
+include("../src/model.jl")
+include("../src/models/gamma_per_instruction.jl")
+include("../src/models/gamma_per_addressing_mode.jl")
+include("../src/models/mean_per_instruction.jl")
+include("../src/models/mean_per_addressing_mode.jl")
+
 using .Interpreter
 using .Inference
-using .Estimation
 using ArgParse
 using CSV
 using DataFrames
 using JSON
+
+"""
+Create a model instance based on the model name
+"""
+function create_model(model_str::String)::Model
+    if model_str == "gamma_per_instruction"
+        return GammaPerInstruction()
+    elseif model_str == "gamma_per_addressing_mode"
+        return GammaPerAddressingMode()
+    elseif model_str == "mean_per_instruction"
+        return MeanPerInstruction()
+    elseif model_str == "mean_per_addressing_mode"
+        return MeanPerAddressingMode()
+    else
+        error("Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode")
+    end
+end
+
+"""
+Create model configuration based on model type
+"""
+function create_model_config(model::Model, n_samples::Int, inference_algorithm::String)::ModelConfig
+    if isa(model, GammaModel)
+        return GammaConfig(n_samples=n_samples, inference_algorithm=inference_algorithm)
+    elseif isa(model, MeanModel)
+        return MeanConfig()
+    else
+        error("Unknown model type: $(typeof(model))")
+    end
+end
 
 """
 Parse command line arguments
@@ -46,12 +80,12 @@ function parse_commandline()
         help = "Number of samples for importance sampling inference (train mode)"
         arg_type = Int
         default = 100
-        "--granularity"
-        help = "Model granularity: opcode or addressing_mode (default: opcode)"
+        "--model"
+        help = "Model type: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode"
         arg_type = String
-        default = "opcode"
+        default = "gamma_per_instruction"
         "--inference"
-        help = "Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)"
+        help = "Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling, only for Gamma models)"
         arg_type = String
         default = "importance-sampling"
     end
@@ -142,7 +176,7 @@ function run_train(
     output_file::Union{String,Nothing},
     max_steps::Int,
     n_samples::Int,
-    granularity_str::String,
+    model_str::String,
     inference_str::String,
 )::Nothing
     @info "Running in TRAIN mode"
@@ -155,25 +189,9 @@ function run_train(
         )
     end
 
-    # Parse granularity
-    granularity = if granularity_str == "opcode"
-        Inference.PerOpcode
-    elseif granularity_str == "addressing_mode"
-        Inference.PerAddressingMode
-    else
-        error("Invalid granularity: $granularity_str. Must be 'opcode' or 'addressing_mode'")
-    end
-    @info "Model granularity" granularity
-
-    # Validate inference algorithm
-    valid_inference_algorithms = ["importance-sampling", "mcmc-blocked"]
-    if !(inference_str in valid_inference_algorithms)
-        error(
-            "Invalid inference algorithm: $inference_str. Must be one of: " *
-            join(valid_inference_algorithms, ", "),
-        )
-    end
-    @info "Inference algorithm" algorithm = inference_str
+    # Create model
+    model = create_model(model_str)
+    @info "Model type" model = model_str
 
     if !isnothing(output_file)
         @info "Output file" path = output_file
@@ -194,40 +212,55 @@ function run_train(
 
     @info "Training data created successfully"
 
-    @info "Learning energy parameters from training data" n_samples
-    learned_params = Inference.learn_parameters(
-        training_data, granularity, inference_str; n_samples=n_samples
-    )
-
-    @info "Parameter learning complete" num_parameters = length(learned_params)
-
-    # Convert tuple keys to string keys for JSON serialization
-    params_dict = Dict{String,Dict{String,Float64}}()
-    for (param_key, (alpha, beta)) in learned_params
-        # Convert tuple of symbols to string: (:mov, :immediate, :register) -> "mov_immediate_register"
-        key_str = join(string.(param_key), "_")
-        params_dict[key_str] = Dict("alpha" => alpha, "beta" => beta)
-    end
-
-    # Create output with metadata
-    output_dict = Dict{String,Any}(
-        "granularity" => string(granularity),  # Save granularity for loading
-        "parameters" => params_dict,
-    )
+    # Create model config and learn parameters
+    config = create_model_config(model, n_samples, inference_str)
+    learn_params!(model, training_data, config)
 
     # Export parameters to file if output path is provided
     if !isnothing(output_file)
-        @info "Exporting parameters to file" path = output_file
-        open(output_file, "w") do f
-            JSON.print(f, output_dict, 4)  # 4 spaces for indentation
-        end
-        @info "Parameters exported successfully"
+        save_params(model, output_file)
     else
-        @info "No output file specified, printing parameters to console"
-        println(JSON.json(output_dict, 4))
+        @info "No output file specified, skipping save"
     end
 
     return nothing
+end
+
+"""
+Detect model type from params file by checking parameter format
+"""
+function detect_model_type(params_file::String)::String
+    file_dict = JSON.parsefile(params_file)
+
+    # Extract parameters
+    params_dict = if haskey(file_dict, "parameters")
+        file_dict["parameters"]
+    else
+        file_dict
+    end
+
+    # Check first parameter to determine type
+    for (key, value) in params_dict
+        if isa(value, Dict) && haskey(value, "alpha") && haskey(value, "beta")
+            # Gamma model
+            granularity = get(file_dict, "granularity", "PerOpcode")
+            if granularity == "PerOpcode"
+                return "gamma_per_instruction"
+            else
+                return "gamma_per_addressing_mode"
+            end
+        else
+            # Mean model
+            granularity = get(file_dict, "granularity", "PerOpcode")
+            if granularity == "PerOpcode"
+                return "mean_per_instruction"
+            else
+                return "mean_per_addressing_mode"
+            end
+        end
+    end
+
+    error("Could not detect model type from params file")
 end
 
 """
@@ -237,6 +270,7 @@ function run_estimate(
     asm_file::String,
     params_file::String,
     max_steps::Int,
+    n_samples::Int,
     output_file::Union{String,Nothing}=nothing,
 )::Nothing
     @info "Running in ESTIMATE mode"
@@ -247,7 +281,13 @@ function run_estimate(
         @info "Statistics output file" path = output_file
     end
 
-    params, granularity = load_energy_params(params_file)
+    # Detect and create model
+    model_str = detect_model_type(params_file)
+    model = create_model(model_str)
+    @info "Detected model type" model = model_str
+
+    # Load parameters
+    load_params!(model, params_file)
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
@@ -260,27 +300,18 @@ function run_estimate(
     )
     inference_time = time() - start_time
 
-    # Track all parameter keys and unknown parameter keys across all event sequences
-    all_param_keys = Set{Tuple{Vararg{Symbol}}}()
-    all_unknown_param_keys = Set{Tuple{Vararg{Symbol}}}()
+    # Estimate energy for each event sequence
     all_stats = NamedTuple{
         (:mean, :std, :min, :max, :samples),
         Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
     }[]
 
+    # Create config for estimation
+    config = create_model_config(model, n_samples, "importance-sampling")
+
     for event_sequence in event_sequences
         @info "Event sequence" length = length(event_sequence)
-
-        # Check for unknown parameter keys in this sequence
-        for inst in event_sequence
-            param_key = Inference.get_instruction_key(inst, granularity)
-            push!(all_param_keys, param_key)
-            if !haskey(params, param_key)
-                push!(all_unknown_param_keys, param_key)
-            end
-        end
-
-        stats = estimate_cost_distribution(event_sequence, params, granularity)
+        stats = estimate_energy(model, event_sequence, config)
         push!(all_stats, stats)
     end
 
@@ -289,25 +320,9 @@ function run_estimate(
     @info "="^60
     @info "Inference time" time_seconds = round(inference_time; digits=3)
 
-    # Show all parameter keys used
-    param_key_strs = [join(string.(k), "_") for k in all_param_keys]
-    @info "Parameter keys used" count = length(all_param_keys) keys = join(
-        sort(param_key_strs), ", "
-    )
-
-    # Emit warning for unknown parameter keys if any were found
-    if !isempty(all_unknown_param_keys)
-        unknown_key_strs = [join(string.(k), "_") for k in all_unknown_param_keys]
-        @warn "Unknown parameter keys encountered (not in energy parameters file)" count = length(
-            all_unknown_param_keys
-        ) keys = join(sort(unknown_key_strs), ", ") default_params = "Using Gamma(alpha=1.0, beta=3.0) for these parameter keys"
-    end
-
     # Save stats to JSON if requested
     if !isnothing(output_file) && !isempty(all_stats)
-        @info "Saving estimation statistics" path = output_file num_events = length(
-            all_stats
-        )
+        @info "Saving estimation statistics" path = output_file num_events = length(all_stats)
         # Save all event sequences' stats as an array
         events_array = []
         for stats in all_stats
@@ -363,7 +378,7 @@ function main()
             end
             output_file = args["output"]
             n_samples = args["n-samples"]
-            granularity = args["granularity"]
+            model_str = args["model"]
             inference = args["inference"]
             run_train(
                 asm_files,
@@ -371,7 +386,7 @@ function main()
                 output_file,
                 max_steps,
                 n_samples,
-                granularity,
+                model_str,
                 inference,
             )
 
@@ -388,7 +403,8 @@ function main()
                 error("--params is required for estimate mode")
             end
             output_file = args["output"]
-            run_estimate(asm_files[1], params_file, max_steps, output_file)
+            n_samples = args["n-samples"]
+            run_estimate(asm_files[1], params_file, max_steps, n_samples, output_file)
 
         else
             error("Invalid mode: $mode. Must be one of: interpret, train, estimate")
