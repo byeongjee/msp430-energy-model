@@ -69,6 +69,14 @@ Energy statistics (mean, std, min, max, samples) as a NamedTuple
 """
 function estimate_energy end
 
+# Include common model utilities (only once!)
+include("model_common.jl")
+
+# Include base model implementations (only once!)
+include("models/gamma.jl")
+include("models/mean.jl")
+
+# Include specific model constructors
 include("models/gamma_per_instruction.jl")
 include("models/gamma_per_addressing_mode.jl")
 include("models/mean_per_instruction.jl")

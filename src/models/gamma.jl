@@ -7,8 +7,6 @@ using Base.Threads
 using Gen
 using Logging
 
-include("../model_common.jl")
-
 """
 Configuration for Gamma-based models
 """

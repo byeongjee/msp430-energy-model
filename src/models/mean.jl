@@ -3,8 +3,6 @@
 using JSON
 using Statistics
 
-include("../model_common.jl")
-
 """
 Configuration for Mean-based models
 """
