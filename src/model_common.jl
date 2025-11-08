@@ -3,14 +3,6 @@
 include("types.jl")
 
 """
-Training data structure containing programs and their energy measurements
-"""
-struct TrainingData
-    programs::Vector{Vector{Instruction}}
-    energies::Vector{Float64}
-end
-
-"""
 Granularity level for energy model parameters
 """
 @enum ModelGranularity begin
