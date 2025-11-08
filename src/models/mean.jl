@@ -20,9 +20,10 @@ Uses simple mean energy per instruction key based on specified granularity.
 mutable struct MeanModel <: AbstractModel
     params::Dict{Tuple{Vararg{Symbol}},Float64}
     granularity::ModelGranularity
+    model_type::String
 
-    function MeanModel(granularity::ModelGranularity)
-        new(Dict{Tuple{Vararg{Symbol}},Float64}(), granularity)
+    function MeanModel(granularity::ModelGranularity, model_type::String)
+        new(Dict{Tuple{Vararg{Symbol}},Float64}(), granularity, model_type)
     end
 end
 
@@ -58,33 +59,26 @@ function load_params!(model::MeanModel, filename::String)
 
     file_dict = JSON.parsefile(filename)
 
-    # Check format and extract parameters
-    params_dict = if haskey(file_dict, "granularity") && haskey(file_dict, "parameters")
-        # Verify it's the right granularity
-        expected_granularity = string(model.granularity)
-        if file_dict["granularity"] != expected_granularity
-            @warn "Expected $expected_granularity granularity, got $(file_dict["granularity"])"
-        end
-        file_dict["parameters"]
-    else
-        # Old format
-        file_dict
+    # Verify it's the right model type
+    if !haskey(file_dict, "model")
+        error("Parameter file missing 'model' field")
     end
+
+    if file_dict["model"] != model.model_type
+        @warn "Expected $(model.model_type) model, got $(file_dict["model"])"
+    end
+
+    params_dict = file_dict["parameters"]
 
     # Convert string keys to tuple keys
     model.params = Dict{Tuple{Vararg{Symbol}},Float64}()
     for (key_str, mean_energy) in params_dict
         key_parts = Symbol.(split(key_str, "_"))
         param_key = tuple(key_parts...)
-        # Handle both formats: just a number or a dict with "mean"
-        if isa(mean_energy, Number)
-            model.params[param_key] = Float64(mean_energy)
-        else
-            model.params[param_key] = Float64(mean_energy["mean"])
-        end
+        model.params[param_key] = Float64(mean_energy)
     end
 
-    @info "Loaded Mean model parameters" granularity = model.granularity num_parameters = length(
+    @info "Loaded Mean model parameters" model_type = model.model_type num_parameters = length(
         model.params
     )
     return nothing
@@ -140,10 +134,10 @@ function save_params(model::MeanModel, filename::String)
     end
 
     output_dict = Dict{String,Any}(
-        "granularity" => string(model.granularity), "parameters" => params_dict
+        "model" => model.model_type, "parameters" => params_dict
     )
 
-    @info "Saving Mean model parameters" path = filename granularity = model.granularity
+    @info "Saving Mean model parameters" path = filename model_type = model.model_type
     open(filename, "w") do f
         JSON.print(f, output_dict, 4)
     end

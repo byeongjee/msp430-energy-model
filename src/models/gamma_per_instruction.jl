@@ -4,5 +4,5 @@
 Gamma distribution model with per-instruction (opcode) granularity.
 """
 function GammaPerInstruction()
-    return GammaModel(PerOpcode)
+    return GammaModel(PerOpcode, "gamma_per_instruction")
 end

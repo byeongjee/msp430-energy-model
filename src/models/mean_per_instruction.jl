@@ -4,5 +4,5 @@
 Mean-based model with per-instruction (opcode) granularity.
 """
 function MeanPerInstruction()
-    return MeanModel(PerOpcode)
+    return MeanModel(PerOpcode, "mean_per_instruction")
 end

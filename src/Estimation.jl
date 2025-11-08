@@ -9,40 +9,16 @@ using ..Model
 export run_estimate
 
 """
-Detect model type from params file by checking parameter format
+Detect model type from params file by reading the 'model' field
 """
 function detect_model_type(params_file::String)::String
     file_dict = JSON.parsefile(params_file)
 
-    # Extract parameters
-    params_dict = if haskey(file_dict, "parameters")
-        file_dict["parameters"]
-    else
-        file_dict
+    if !haskey(file_dict, "model")
+        error("Parameter file missing 'model' field")
     end
 
-    # Check first parameter to determine type
-    for (key, value) in params_dict
-        if isa(value, Dict) && haskey(value, "alpha") && haskey(value, "beta")
-            # Gamma model
-            granularity = get(file_dict, "granularity", "PerOpcode")
-            if granularity == "PerOpcode"
-                return "gamma_per_instruction"
-            else
-                return "gamma_per_addressing_mode"
-            end
-        else
-            # Mean model
-            granularity = get(file_dict, "granularity", "PerOpcode")
-            if granularity == "PerOpcode"
-                return "mean_per_instruction"
-            else
-                return "mean_per_addressing_mode"
-            end
-        end
-    end
-
-    error("Could not detect model type from params file")
+    return file_dict["model"]
 end
 
 """

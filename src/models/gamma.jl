@@ -345,9 +345,10 @@ Uses Gamma(alpha, beta) distributions for each instruction key based on specifie
 mutable struct GammaModel <: AbstractModel
     params::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
     granularity::ModelGranularity
+    model_type::String
 
-    function GammaModel(granularity::ModelGranularity)
-        new(Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}(), granularity)
+    function GammaModel(granularity::ModelGranularity, model_type::String)
+        new(Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}(), granularity, model_type)
     end
 end
 
@@ -361,18 +362,16 @@ function load_params!(model::GammaModel, filename::String)
 
     file_dict = JSON.parsefile(filename)
 
-    # Check format and extract parameters
-    params_dict = if haskey(file_dict, "granularity") && haskey(file_dict, "parameters")
-        # Verify it's the right granularity
-        expected_granularity = string(model.granularity)
-        if file_dict["granularity"] != expected_granularity
-            @warn "Expected $expected_granularity granularity, got $(file_dict["granularity"])"
-        end
-        file_dict["parameters"]
-    else
-        # Old format
-        file_dict
+    # Verify it's the right model type
+    if !haskey(file_dict, "model")
+        error("Parameter file missing 'model' field")
     end
+
+    if file_dict["model"] != model.model_type
+        @warn "Expected $(model.model_type) model, got $(file_dict["model"])"
+    end
+
+    params_dict = file_dict["parameters"]
 
     # Convert string keys to tuple keys
     model.params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
@@ -384,7 +383,7 @@ function load_params!(model::GammaModel, filename::String)
         model.params[param_key] = (alpha, beta)
     end
 
-    @info "Loaded Gamma model parameters" granularity = model.granularity num_parameters = length(model.params)
+    @info "Loaded Gamma model parameters" model_type = model.model_type num_parameters = length(model.params)
     return nothing
 end
 
@@ -417,11 +416,11 @@ function save_params(model::GammaModel, filename::String)
     end
 
     output_dict = Dict{String,Any}(
-        "granularity" => string(model.granularity),
+        "model" => model.model_type,
         "parameters" => params_dict
     )
 
-    @info "Saving Gamma model parameters" path = filename granularity = model.granularity
+    @info "Saving Gamma model parameters" path = filename model_type = model.model_type
     open(filename, "w") do f
         JSON.print(f, output_dict, 4)
     end
