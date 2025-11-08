@@ -93,9 +93,9 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
 	@echo "✓ Interpret completed!"
 
 train: NUM_REPEAT?=10
-train: GRANULARITY?=opcode
+train: MODEL?=gamma_per_instruction
 train: INFERENCE?=importance-sampling
-train: | $(BUILD_DIR) $(ASM_DIR) ## Train energy model (FILES=<files> DATA=<data> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [GRANULARITY=<gran>])
+train: | $(BUILD_DIR) $(ASM_DIR) ## Train energy model (FILES=<files> DATA=<data> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [MODEL=<model>])
 ifndef FILES
 	$(error Please specify FILES=file1.c;file2.c;... (semicolon-separated))
 endif
@@ -134,9 +134,9 @@ endif
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
 	N_SAMPLES_FLAG=""; \
 	if [ -n "$(N_SAMPLES)" ]; then N_SAMPLES_FLAG="--n-samples $(N_SAMPLES)"; fi; \
-	GRANULARITY_FLAG="--granularity $(GRANULARITY)"; \
+	MODEL_FLAG="--model $(MODEL)"; \
 	INFERENCE_FLAG="--inference $(INFERENCE)"; \
-	julia --project=. src/main.jl train --asm "$${ASM_FILES[@]}" --data "$${DATA_FILES[@]}" --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG $$GRANULARITY_FLAG $$INFERENCE_FLAG
+	julia --project=. src/main.jl train --asm "$${ASM_FILES[@]}" --data "$${DATA_FILES[@]}" --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG $$MODEL_FLAG $$INFERENCE_FLAG
 	@echo "✓ Training completed!"
 
 estimate: NUM_REPEAT=1
@@ -153,7 +153,7 @@ endif
 	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
 	@echo "✓ Estimation completed!"
 
-train_and_estimate: GRANULARITY?=opcode
+train_and_estimate: MODEL?=gamma_per_instruction
 train_and_estimate: INFERENCE?=importance-sampling
 train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<files> ESTIMATE_FILE=<file> [TAG=<tag>] [options])
 ifndef TRAIN_FILES
@@ -174,7 +174,7 @@ endif
 	[ -n "$(MAX_STEPS)" ] && ARGS+=("--max-steps" "$(MAX_STEPS)"); \
 	[ -n "$(N_SAMPLES)" ] && ARGS+=("--n-samples" "$(N_SAMPLES)"); \
 	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
-	[ -n "$(GRANULARITY)" ] && ARGS+=("--granularity" "$(GRANULARITY)"); \
+	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
