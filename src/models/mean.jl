@@ -3,9 +3,8 @@
 using JSON
 using Statistics
 
-# Assume types.jl, model.jl, and Inference.jl are already included by main.jl
-# We only use symbols from Inference module
-using Main.Inference: TrainingData, ModelGranularity, get_instruction_key
+# Include common model utilities
+include("../model_common.jl")
 
 """
 Configuration for Mean-based models
