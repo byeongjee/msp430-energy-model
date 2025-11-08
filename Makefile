@@ -46,7 +46,7 @@ export JULIA_NUM_THREADS
 
 all: help
 
-help:
+help: ## Show this help message
 	@echo "MSP430 C to Assembly Pipeline"
 	@echo "============================="
 	@echo ""
@@ -54,48 +54,7 @@ help:
 	@echo "  JULIA_NUM_THREADS=$(JULIA_NUM_THREADS) (override with JULIA_NUM_THREADS=N)"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  compile FILE=<file.c> [DEBUG=1]       - Compile C file to MSP430 binary"
-	@echo "  disasm FILE=<file.c>        - Compile and disassemble"
-	@echo "  interpret FILE=<file.c> [MAX_STEPS=<n>] - Interpret assembly program"
-	@echo "  train FILE=<file.c> DATA=<data.csv> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [GRANULARITY=<gran>] - Train energy model"
-	@echo "  estimate FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] - Estimate energy consumption"
-	@echo "  train_and_estimate TRAIN_FILES=<files> ESTIMATE_FILE=<file.c> [options] - Full pipeline: measure → train → estimate → compare"
-	@echo "           TRAIN_FILES can be single or semicolon-separated: file.c or file1.c;file2.c;file3.c"
-	@echo "           Optional: TAG=<tag> REPORT_DIR=<dir> TRAINING_RAW_CSV=<files> TEST_RAW_CSV=<file> TRAINING_SEGMENTS_CSV=<files> TEST_SEGMENTS_CSV=<file> PARAMS=<file>"
-	@echo "                     VOLTAGE=<v> MAX_CURRENT=<a> MAX_STEPS=<n> N_SAMPLES=<n> NUM_REPEAT=<n> GRANULARITY=<gran> SKIP_RESET=1 KEEP_INTERMEDIATES=1"
-	@echo "                     INFERENCE=<alg> (importance-sampling, mcmc-blocked)"
-	@echo "  analyze_distribution FILES=<files> [TAG=<tag>] [REPORT_DIR=<dir>] [VOLTAGE=<v>] [MAX_CURRENT=<a>] [NUM_REPEAT=<n>] [SKIP_RESET=1] - Flash, measure, and analyze energy distribution per event"
-	@echo "           FILES can be single or semicolon-separated: file.c or file1.c;file2.c;file3.c"
-	@echo "  flash FILE=<file.c> [DEBUG=1]         - Flash binary to microcontroller"
-	@echo "  create_fixture FILE=<file.c> NAME=<name> - Create test fixture (compile, run in GDB, save results)"
-	@echo "  test [PATTERN=<regex>]      - Run Julia test suite (compare interpreter vs GDB)"
-	@echo "  clean                       - Clean build artifacts"
-	@echo ""
-	@echo "Examples:"
-	@echo "  make compile FILE=examples/c_programs/simple.c"
-	@echo "  make compile FILE=examples/c_programs/simple.c DEBUG=1"
-	@echo "  make interpret FILE=examples/c_programs/simple.c"
-	@echo "  make interpret FILE=examples/c_programs/simple.c MAX_STEPS=1000"
-	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv"
-	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv OUTPUT=my_params.json MAX_STEPS=500 N_SAMPLES=200"
-	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv INFERENCE=mcmc-blocked"
-	@echo "  make train FILE=examples/c_programs/simple.c DATA=measurements/segments.csv INFERENCE=importance-sampling GRANULARITY=addressing_mode"
-	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json"
-	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json PLOT=cost_dist.png"
-	@echo "  make train_and_estimate TRAIN_FILES=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c"
-	@echo "  make train_and_estimate TRAIN_FILES=\"file1.c;file2.c;file3.c\" ESTIMATE_FILE=test.c TAG=multi_train"
-	@echo "  make train_and_estimate TRAIN_FILES=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TAG=experiment1 KEEP_INTERMEDIATES=1"
-	@echo "  make train_and_estimate TRAIN_FILES=examples/c_programs/simple.c ESTIMATE_FILE=examples/c_programs/test.c TRAINING_RAW_CSV=train.csv TEST_RAW_CSV=estimate.csv  # Resume without hardware"
-	@echo "  make analyze_distribution FILES=examples/c_programs/simple.c"
-	@echo "  make analyze_distribution FILES=\"file1.c;file2.c;file3.c\" TAG=multi_analyze"
-	@echo "  make analyze_distribution FILES=examples/c_programs/simple.c TAG=experiment1 NUM_REPEAT=20"
-	@echo "  make estimate FILE=examples/c_programs/simple.c PARAMS=energy_params.json JULIA_NUM_THREADS=4  # Use 4 threads"
-	@echo "  make flash FILE=examples/c_programs/simple.c"
-	@echo "  make flash FILE=examples/c_programs/simple.c DEBUG=1"
-	@echo "  make create_fixture FILE=examples/c_programs/simple.c NAME=simple"
-	@echo "  make test"
-	@echo "  make test PATTERN=simple"
-	@echo "  make test PATTERN='arith.*'"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-30s %s\n", $$1, $$2}'
 
 # Create directories
 $(BUILD_DIR):
@@ -104,8 +63,7 @@ $(BUILD_DIR):
 $(ASM_DIR): | $(BUILD_DIR)
 	@mkdir -p $(ASM_DIR)
 
-# Compile C to MSP430 binary
-compile: | $(BUILD_DIR)
+compile: | $(BUILD_DIR) ## Compile C file to MSP430 binary (FILE=<file.c> [DEBUG=1] [NUM_REPEAT=<n>])
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif
@@ -119,16 +77,14 @@ endif
 	$(CC) $(CFLAGS) $$NUM_REPEAT_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
 	@echo "✓ Compilation successful: $(BUILD_DIR)/$$(basename $(FILE) .c).elf"
 
-# Disassemble binary
-disasm: compile | $(ASM_DIR)
+disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c>)
 	@echo "Disassembling binary..."
 	@BASENAME=$$(basename $(FILE) .c); \
 	$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm
 	@echo "✓ Disassembly saved to: $(ASM_DIR)/$$(basename $(FILE) .c).asm"
 
 
-# Interpret mode: run interpreter on assembly
-interpret: disasm
+interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
 	@echo "Running MSP430 interpreter..."
 	@BASENAME=$$(basename $(FILE) .c); \
 	MAX_STEPS_FLAG=""; \
@@ -136,11 +92,10 @@ interpret: disasm
 	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG
 	@echo "✓ Interpret completed!"
 
-# Train mode: infer energy parameters from measurements
 train: NUM_REPEAT?=10
 train: GRANULARITY?=opcode
 train: INFERENCE?=importance-sampling
-train: | $(BUILD_DIR) $(ASM_DIR)
+train: | $(BUILD_DIR) $(ASM_DIR) ## Train energy model (FILES=<files> DATA=<data> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [GRANULARITY=<gran>])
 ifndef FILES
 	$(error Please specify FILES=file1.c;file2.c;... (semicolon-separated))
 endif
@@ -184,9 +139,8 @@ endif
 	julia --project=. src/main.jl train --asm "$${ASM_FILES[@]}" --data "$${DATA_FILES[@]}" --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG $$GRANULARITY_FLAG $$INFERENCE_FLAG
 	@echo "✓ Training completed!"
 
-# Estimate mode: predict energy consumption
 estimate: NUM_REPEAT=1
-estimate: disasm
+estimate: disasm ## Estimate energy consumption (FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>])
 ifndef PARAMS
 	$(error Please specify PARAMS=<parameter_file>)
 endif
@@ -199,10 +153,9 @@ endif
 	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
 	@echo "✓ Estimation completed!"
 
-# Pipeline mode: measure train → measure estimate → preprocess both → train → estimate → compare (full hardware-in-the-loop)
 train_and_estimate: GRANULARITY?=opcode
 train_and_estimate: INFERENCE?=importance-sampling
-train_and_estimate:
+train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<files> ESTIMATE_FILE=<file> [TAG=<tag>] [options])
 ifndef TRAIN_FILES
 	$(error Please specify TRAIN_FILES=<file.c> or TRAIN_FILES=<file1.c>;<file2.c>;... (semicolon-separated))
 endif
@@ -227,8 +180,7 @@ endif
 	if [ "$(KEEP_INTERMEDIATES)" = "1" ]; then ARGS="$$ARGS --keep-intermediates"; fi; \
 	./scripts/train_and_estimate.sh $$ARGS
 
-# Analyze distribution mode: flash → measure → preprocess → analyze
-analyze_distribution:
+analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<files> [TAG=<tag>] [NUM_REPEAT=<n>] [options])
 ifndef FILES
 	$(error Please specify FILES=file.c or FILES=file1.c;file2.c;... (semicolon-separated))
 endif
@@ -241,8 +193,7 @@ endif
 	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
 	./scripts/analyze_distribution.sh $$ARGS
 
-# Create test fixture
-create_fixture:
+create_fixture: ## Create test fixture (FILE=<file.c> NAME=<name>)
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif
@@ -252,9 +203,7 @@ endif
 	@echo "Creating test fixture..."
 	@./test/scripts/create_fixture.sh $(FILE) $(NAME)
 
-# Run Julia test suite
-# Optional: make test PATTERN=<regex> to filter tests
-test:
+test: ## Run Julia test suite ([PATTERN=<regex>])
 	@echo "Running Julia test suite..."
 	@if [ -n "$(PATTERN)" ]; then \
 		julia --project=. test/runtests.jl "$(PATTERN)"; \
@@ -262,8 +211,7 @@ test:
 		julia --project=. test/runtests.jl; \
 	fi
 
-# Flash binary to microcontroller
-flash: compile
+flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEBUG=1])
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif
@@ -272,14 +220,12 @@ endif
 	mspdebug tilib "prog $(BUILD_DIR)/$$BASENAME.elf"
 	@echo "✓ Flash completed!"
 
-# Clean build artifacts
-clean:
+clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
 	@echo "✓ Clean completed!"
 
-# Show build information
-info:
+info: ## Show build and toolchain information
 	@echo "MSP430 Toolchain Information"
 	@echo "============================"
 	@echo "CC:           $(CC)"
