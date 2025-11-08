@@ -3,50 +3,17 @@ include("../src/machine_state.jl")
 include("../src/parser.jl")
 include("../src/Interpreter.jl")
 include("../src/model.jl")
-include("../src/models/gamma_per_instruction.jl")
-include("../src/models/gamma_per_addressing_mode.jl")
-include("../src/models/mean_per_instruction.jl")
-include("../src/models/mean_per_addressing_mode.jl")
 include("../src/Train.jl")
 include("../src/Estimation.jl")
 
 using .Interpreter
+using .Model
 using .Train
 using .Estimation
 using ArgParse
 using CSV
 using DataFrames
 using JSON
-
-"""
-Create a model instance based on the model name
-"""
-function create_model(model_str::String)::Model
-    if model_str == "gamma_per_instruction"
-        return GammaPerInstruction()
-    elseif model_str == "gamma_per_addressing_mode"
-        return GammaPerAddressingMode()
-    elseif model_str == "mean_per_instruction"
-        return MeanPerInstruction()
-    elseif model_str == "mean_per_addressing_mode"
-        return MeanPerAddressingMode()
-    else
-        error("Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode")
-    end
-end
-
-"""
-Create model configuration based on model type
-"""
-function create_model_config(model::Model, n_samples::Int, inference_algorithm::String)::ModelConfig
-    if isa(model, GammaModel)
-        return GammaConfig(n_samples=n_samples, inference_algorithm=inference_algorithm)
-    elseif isa(model, MeanModel)
-        return MeanConfig()
-    else
-        error("Unknown model type: $(typeof(model))")
-    end
-end
 
 """
 Parse command line arguments

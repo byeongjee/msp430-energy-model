@@ -7,7 +7,10 @@ using DataFrames
 using Logging
 
 # Import Interpreter module
-using Main.Interpreter
+using ..Interpreter
+
+# Import Model module
+using ..Model
 
 # Import model_common types
 include("model_common.jl")
@@ -25,7 +28,7 @@ function process_training_file(
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = Main.find_functions(asm_file)
+    func_addrs = Interpreter.find_functions(asm_file)
     begin_event_addr = get(func_addrs, "begin_event", nothing)
     end_event_addr = get(func_addrs, "end_event", nothing)
 
@@ -80,8 +83,8 @@ function run_train(
         )
     end
 
-    # Create model (use Main namespace where these are defined)
-    model = Main.create_model(model_str)
+    # Create model
+    model = Model.create_model(model_str)
     @info "Model type" model = model_str
 
     if !isnothing(output_file)
@@ -104,12 +107,12 @@ function run_train(
     @info "Training data created successfully"
 
     # Create model config and learn parameters
-    config = Main.create_model_config(model, n_samples, inference_str)
-    Main.learn_params!(model, training_data, config)
+    config = Model.create_model_config(model, n_samples, inference_str)
+    Model.learn_params!(model, training_data, config)
 
     # Export parameters to file if output path is provided
     if !isnothing(output_file)
-        Main.save_params(model, output_file)
+        Model.save_params(model, output_file)
     else
         @info "No output file specified, skipping save"
     end
