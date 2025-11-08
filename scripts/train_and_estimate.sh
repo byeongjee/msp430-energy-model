@@ -389,34 +389,28 @@ if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]] && [[ $USE_TEMP_PARAMS -eq
     SKIP_MEASURED_PREPROCESSING=1
     SKIP_TRAINING=1
     log_info "Resuming from existing params: $PARAMS_FILE"
-# Else if all TRAINING_SEGMENTS_CSV provided and exist, skip measurement and preprocessing
-elif [[ $ALL_TRAINING_SEGMENTS_EXIST -eq 1 ]]; then
+fi
+
+# Check training segments - if provided, skip training measurement and preprocessing
+if [[ $ALL_TRAINING_SEGMENTS_EXIST -eq 1 ]]; then
     SKIP_MEASUREMENT=1
-    SKIP_ESTIMATION_MEASUREMENT=1
     SKIP_PREPROCESSING=1
-    log_info "Resuming from existing training segments (${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files)"
-# Else if all TRAINING_RAW_CSV and TEST_RAW_CSV provided and exist, skip both measurements
-elif [[ $ALL_TRAINING_RAW_EXIST -eq 1 ]] && \
-     [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]] && [[ $USE_TEMP_TEST_RAW -eq 0 ]]; then
-    SKIP_MEASUREMENT=1
-    SKIP_ESTIMATION_MEASUREMENT=1
-    log_info "Resuming from existing raw CSVs (training: ${#TRAINING_RAW_CSV_ARRAY[@]} files, test: 1 file)"
-# Else if only all TRAINING_RAW_CSV provided and exist, skip training measurement only
+    log_info "Using existing training segments (${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files) - skipping training measurement and preprocessing"
+# Else if all TRAINING_RAW_CSV provided and exist, skip training measurement only
 elif [[ $ALL_TRAINING_RAW_EXIST -eq 1 ]]; then
     SKIP_MEASUREMENT=1
-    log_info "Resuming from existing training raw CSVs (${#TRAINING_RAW_CSV_ARRAY[@]} files)"
+    log_info "Using existing training raw CSVs (${#TRAINING_RAW_CSV_ARRAY[@]} files) - skipping training measurement"
 fi
 
-# Check if TEST_RAW_CSV is provided separately
-if [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]] && [[ $USE_TEMP_TEST_RAW -eq 0 ]]; then
-    SKIP_ESTIMATION_MEASUREMENT=1
-    log_info "Using existing test raw CSV: $TEST_RAW_CSV"
-fi
-
-# Check if TEST_SEGMENTS_CSV is provided separately
+# Check test segments - if provided, skip test measurement and preprocessing
 if [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]] && [[ $USE_TEMP_TEST_SEGMENTS -eq 0 ]]; then
+    SKIP_ESTIMATION_MEASUREMENT=1
     SKIP_MEASURED_PREPROCESSING=1
-    log_info "Using existing test segments CSV: $TEST_SEGMENTS_CSV"
+    log_info "Using existing test segments CSV: $TEST_SEGMENTS_CSV - skipping test measurement and preprocessing"
+# Else if TEST_RAW_CSV is provided, skip test measurement only
+elif [[ -n "$TEST_RAW_CSV" ]] && [[ -f "$TEST_RAW_CSV" ]] && [[ $USE_TEMP_TEST_RAW -eq 0 ]]; then
+    SKIP_ESTIMATION_MEASUREMENT=1
+    log_info "Using existing test raw CSV: $TEST_RAW_CSV - skipping test measurement"
 fi
 
 # Cleanup function
