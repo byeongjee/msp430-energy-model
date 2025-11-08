@@ -6,7 +6,10 @@ using JSON
 using Statistics
 using Distributions
 using Base.Threads
-using Main.EnergyModel: Instruction
+
+# Include core types
+include("types.jl")
+
 using Main.Inference: ModelGranularity, PerOpcode, PerAddressingMode, get_instruction_key
 
 export load_energy_params, estimate_cost_distribution

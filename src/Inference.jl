@@ -8,7 +8,8 @@ using Optim
 using Statistics
 using Logging
 
-using Main.EnergyModel: Instruction, Operand, EnergyStats
+# Include core types
+include("types.jl")
 
 export TrainingData, ModelGranularity
 export PerOpcode, PerAddressingMode

@@ -5,7 +5,9 @@ module BaselineEstimation
 using Statistics
 using Logging
 
-using Main.EnergyModel: Instruction
+# Include core types
+include("types.jl")
+
 using Main.Inference: TrainingData, ModelGranularity, get_instruction_key
 
 export learn_mean_parameters, estimate_energy_baseline

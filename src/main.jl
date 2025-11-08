@@ -1,8 +1,9 @@
-include("../src/EnergyModel.jl")
+include("../src/types.jl")
+include("../src/machine_state.jl")
+include("../src/parser.jl")
 include("../src/Interpreter.jl")
 include("../src/Inference.jl")
 include("../src/Estimation.jl")
-using .EnergyModel
 using .Interpreter
 using .Inference
 using .Estimation
@@ -67,7 +68,7 @@ function run_interpret(asm_file::String, max_steps::Int)
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = EnergyModel.find_functions(asm_file)
+    func_addrs = find_functions(asm_file)
 
     # Execute program
     final_state, event_sequences = Interpreter.interpret_program(
@@ -101,7 +102,7 @@ function process_training_file(
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = EnergyModel.find_functions(asm_file)
+    func_addrs = find_functions(asm_file)
     begin_event_addr = get(func_addrs, "begin_event", nothing)
     end_event_addr = get(func_addrs, "end_event", nothing)
 
@@ -250,7 +251,7 @@ function run_estimate(
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = EnergyModel.find_functions(asm_file)
+    func_addrs = find_functions(asm_file)
 
     @info "Executing program to get event sequences"
     start_time = time()
