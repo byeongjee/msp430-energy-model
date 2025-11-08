@@ -47,3 +47,11 @@ struct EnergyStats
     max::Float64
     samples::Vector{Float64}
 end
+
+"""
+Training data structure containing programs and their energy measurements
+"""
+struct TrainingData
+    programs::Vector{Vector{Instruction}}
+    energies::Vector{Float64}
+end
