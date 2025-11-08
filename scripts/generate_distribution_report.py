@@ -171,13 +171,13 @@ def main():
             if event_labels and event_idx < len(event_labels):
                 event_label = event_labels[event_idx]
                 event_name = f"{event_label}"
-                event_display = f"Event {event_idx + 1}: {event_label}"
+                event_display = f"{event_label}"
             else:
                 event_label = f"event_{event_idx + 1}"
                 event_name = f"Event {event_idx + 1}"
                 event_display = f"Event {event_idx + 1}"
 
-            print(f"  Processing {event_display}/{num_events}")
+            print(f"  Processing {event_display} ({event_idx + 1}/{num_events})")
             print(f"    Mean: {stats['mean']:.2f} nJ, Std: {stats['std']:.2f} nJ")
 
             # Save to summary
