@@ -6,7 +6,10 @@ using JSON
 using Logging
 
 # Import Interpreter module
-using Main.Interpreter
+using ..Interpreter
+
+# Import Model module
+using ..Model
 
 export run_estimate
 
@@ -65,17 +68,17 @@ function run_estimate(
         @info "Statistics output file" path = output_file
     end
 
-    # Detect and create model (use Main namespace where these are defined)
+    # Detect and create model
     model_str = detect_model_type(params_file)
-    model = Main.create_model(model_str)
+    model = Model.create_model(model_str)
     @info "Detected model type" model = model_str
 
     # Load parameters
-    Main.load_params!(model, params_file)
+    Model.load_params!(model, params_file)
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = Main.find_functions(asm_file)
+    func_addrs = Interpreter.find_functions(asm_file)
 
     @info "Executing program to get event sequences"
     start_time = time()
@@ -91,11 +94,11 @@ function run_estimate(
     }[]
 
     # Create config for estimation
-    config = Main.create_model_config(model, n_samples, "importance-sampling")
+    config = Model.create_model_config(model, n_samples, "importance-sampling")
 
     for event_sequence in event_sequences
         @info "Event sequence" length = length(event_sequence)
-        stats = Main.estimate_energy(model, event_sequence, config)
+        stats = Model.estimate_energy(model, event_sequence, config)
         push!(all_stats, stats)
     end
 
