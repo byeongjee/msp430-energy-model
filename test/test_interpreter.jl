@@ -7,11 +7,11 @@ using .Types: MachineState, Instruction
 
 # Include Parser module
 include("../src/parser.jl")
-using .Parser: find_functions
+using .Parser
 
 # Include Interpreter module
 include("../src/Interpreter.jl")
-using .Interpreter: parse_asm_file, interpret_program
+using .Interpreter
 
 """
 Load a test fixture from JSON file
@@ -35,13 +35,13 @@ function run_interpreter(asm_file::String, max_steps::Int=100000000)
     end
 
     # Parse assembly file
-    instructions, addresses, _base_address = parse_asm_file(asm_file)
+    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
     # Find function addresses
-    func_addrs = find_functions(asm_file)
+    func_addrs = Parser.find_functions(asm_file)
 
     # Execute program
-    final_state, _ = interpret_program(
+    final_state, _ = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
 
