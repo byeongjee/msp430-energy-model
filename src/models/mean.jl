@@ -20,7 +20,7 @@ end
 Generic Mean-based model.
 Uses simple mean energy per instruction key based on specified granularity.
 """
-mutable struct MeanModel <: Model
+mutable struct MeanModel <: AbstractModel
     params::Dict{Tuple{Vararg{Symbol}},Float64}
     granularity::ModelGranularity
 
