@@ -5,8 +5,10 @@ using Gen
 using Printf
 using Logging
 
-# Include core types and functions
-include("types.jl")
+# Import core types
+using ..Types: Instruction, Operand, MachineState
+
+# Include core functions
 include("machine_state.jl")
 include("parser.jl")
 

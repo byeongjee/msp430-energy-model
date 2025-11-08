@@ -1,14 +1,13 @@
 using Test
 using JSON
 
-# Include Interpreter module (which includes the core types internally)
-include("../src/Interpreter.jl")
-using .Interpreter
+# Include Types module first
+include("../src/types.jl")
+using .Types: MachineState, Instruction
 
-# Import the types and functions we need from Interpreter module
-const MachineState = Interpreter.MachineState
-const Instruction = Interpreter.Instruction
-const find_functions = Interpreter.find_functions
+# Include Interpreter module
+include("../src/Interpreter.jl")
+using .Interpreter: find_functions, parse_asm_file, interpret_program
 
 """
 Load a test fixture from JSON file
@@ -32,13 +31,13 @@ function run_interpreter(asm_file::String, max_steps::Int=100000000)
     end
 
     # Parse assembly file
-    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
+    instructions, addresses, _base_address = parse_asm_file(asm_file)
 
     # Find function addresses
     func_addrs = find_functions(asm_file)
 
     # Execute program
-    final_state, _ = Interpreter.interpret_program(
+    final_state, _ = interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
 

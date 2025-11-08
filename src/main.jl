@@ -1,11 +1,10 @@
 include("../src/types.jl")
-include("../src/machine_state.jl")
-include("../src/parser.jl")
 include("../src/Interpreter.jl")
 include("../src/model.jl")
 include("../src/Train.jl")
 include("../src/Estimation.jl")
 
+using .Types
 using .Interpreter
 using .Model
 using .Train
