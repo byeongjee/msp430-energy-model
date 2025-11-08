@@ -1,21 +1,12 @@
-# Train.jl - Training orchestration module
-
 module Train
 
 using CSV
 using DataFrames
 using Logging
-
-# Import Interpreter module
 using ..Interpreter
-
-# Import Parser module
 using ..Parser
-
-# Import Model module
 using ..Model
 
-# Import model_common types
 include("model_common.jl")
 
 export run_train
@@ -86,7 +77,6 @@ function run_train(
         )
     end
 
-    # Create model
     model = Model.create_model(model_str)
     @info "Model type" model = model_str
 
@@ -94,7 +84,6 @@ function run_train(
         @info "Output file" path = output_file
     end
 
-    # Process each file and collect event sequences and energies
     all_event_sequences = Vector{Vector{Instruction}}()
     all_energies = Vector{Float64}()
 
@@ -109,11 +98,9 @@ function run_train(
 
     @info "Training data created successfully"
 
-    # Create model config and learn parameters
     config = Model.create_model_config(model, n_samples, inference_str)
     Model.learn_params!(model, training_data, config)
 
-    # Export parameters to file if output path is provided
     if !isnothing(output_file)
         Model.save_params(model, output_file)
     else

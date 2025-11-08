@@ -1,17 +1,9 @@
-# Estimation.jl - Energy estimation orchestration module
-
 module Estimation
 
 using JSON
 using Logging
-
-# Import Interpreter module
 using ..Interpreter
-
-# Import Parser module
 using ..Parser
-
-# Import Model module
 using ..Model
 
 export run_estimate
@@ -71,16 +63,13 @@ function run_estimate(
         @info "Statistics output file" path = output_file
     end
 
-    # Detect and create model
     model_str = detect_model_type(params_file)
     model = Model.create_model(model_str)
     @info "Detected model type" model = model_str
 
-    # Load parameters
     Model.load_params!(model, params_file)
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
-
     func_addrs = Parser.find_functions(asm_file)
 
     @info "Executing program to get event sequences"
@@ -90,13 +79,11 @@ function run_estimate(
     )
     inference_time = time() - start_time
 
-    # Estimate energy for each event sequence
     all_stats = NamedTuple{
         (:mean, :std, :min, :max, :samples),
         Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
     }[]
 
-    # Create config for estimation
     config = Model.create_model_config(model, n_samples, "importance-sampling")
 
     for event_sequence in event_sequences
@@ -110,10 +97,8 @@ function run_estimate(
     @info "="^60
     @info "Inference time" time_seconds = round(inference_time; digits=3)
 
-    # Save stats to JSON if requested
     if !isnothing(output_file) && !isempty(all_stats)
         @info "Saving estimation statistics" path = output_file num_events = length(all_stats)
-        # Save all event sequences' stats as an array
         events_array = []
         for stats in all_stats
             push!(

@@ -1,15 +1,12 @@
 using Test
 using JSON
 
-# Include Types module first
 include("../src/types.jl")
 using .Types: MachineState, Instruction
 
-# Include Parser module
 include("../src/parser.jl")
 using .Parser
 
-# Include Interpreter module
 include("../src/Interpreter.jl")
 using .Interpreter
 
