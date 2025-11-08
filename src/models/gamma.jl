@@ -7,7 +7,6 @@ using Base.Threads
 using Gen
 using Logging
 
-# Include common model utilities
 include("../model_common.jl")
 
 """
@@ -419,7 +418,6 @@ function save_params(model::GammaModel, filename::String)
         params_dict[key_str] = Dict("alpha" => alpha, "beta" => beta)
     end
 
-    # Create output with metadata
     output_dict = Dict{String,Any}(
         "granularity" => string(model.granularity),
         "parameters" => params_dict

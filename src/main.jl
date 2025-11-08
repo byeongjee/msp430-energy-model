@@ -71,10 +71,8 @@ function run_interpret(asm_file::String, max_steps::Int)
     @info "Assembly file" path = asm_file
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
-
     func_addrs = Parser.find_functions(asm_file)
 
-    # Execute program
     final_state, event_sequences = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps
     )
@@ -85,7 +83,6 @@ function run_interpret(asm_file::String, max_steps::Int)
     @info "Successfully executed MSP430 instructions" count = length(instructions)
     @info "Number of events" count = length(event_sequences)
 
-    # Print number of instructions in each event
     for (i, event) in enumerate(event_sequences)
         @info "Event $i" instructions = length(event)
     end

@@ -3,7 +3,6 @@
 using JSON
 using Statistics
 
-# Include common model utilities
 include("../model_common.jl")
 
 """
@@ -129,7 +128,6 @@ function save_params(model::MeanModel, filename::String)
         params_dict[key_str] = mean_energy
     end
 
-    # Create output with metadata
     output_dict = Dict{String,Any}(
         "granularity" => string(model.granularity),
         "parameters" => params_dict

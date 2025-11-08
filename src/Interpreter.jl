@@ -4,14 +4,9 @@ using Statistics
 using Gen
 using Printf
 using Logging
-
-# Import core types
 using ..Types: Instruction, Operand, MachineState
-
-# Import Parser module
 using ..Parser
 
-# Include core functions
 include("machine_state.jl")
 
 """
@@ -258,7 +253,6 @@ function interpret_program(
         )
     end
 
-    # Create PC -> instruction mapping
     pc_to_instruction = Dict{UInt16,Tuple{Int,Instruction}}()
     for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
         pc_to_instruction[addr] = (i, inst)
