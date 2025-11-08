@@ -32,13 +32,19 @@ end
 Get dominant instruction key from a program (most frequent instruction).
 Used for microbenchmarks where one instruction type dominates.
 """
-function get_dominant_key(program::Vector{Instruction}, granularity::ModelGranularity)::Tuple{Vararg{Symbol}}
+function get_dominant_key(
+    program::Vector{Instruction}, granularity::ModelGranularity
+)::Tuple{Vararg{Symbol}}
     # Count instruction types
     inst_counts = Dict{Tuple{Vararg{Symbol}},Int}()
     for inst in program
         key = get_instruction_key(inst, granularity)
         inst_counts[key] = get(inst_counts, key, 0) + 1
     end
+    # nop should not be considered
+    # in microbenchmarks, nop is not expected to be executed (they are skipped
+    # by jmp instructions)
+    delete!(inst_counts, :nop)
 
     # Return key with maximum count
     return argmax(inst_counts)
@@ -80,7 +86,9 @@ function load_params!(model::MeanModel, filename::String)
         end
     end
 
-    @info "Loaded Mean model parameters" granularity = model.granularity num_parameters = length(model.params)
+    @info "Loaded Mean model parameters" granularity = model.granularity num_parameters = length(
+        model.params
+    )
     return nothing
 end
 
@@ -88,7 +96,9 @@ end
 Learn parameters from training data using simple mean
 """
 function learn_params!(model::MeanModel, training_data::TrainingData, config::MeanConfig)
-    @info "Learning Mean model parameters" granularity = model.granularity num_programs = length(training_data.programs)
+    @info "Learning Mean model parameters" granularity = model.granularity num_programs = length(
+        training_data.programs
+    )
 
     # Accumulate total energy and instruction count for each dominant key
     total_energy = Dict{Tuple{Vararg{Symbol}},Float64}()
@@ -100,7 +110,8 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
         # Accumulate for this key
         num_instructions = length(program)
         total_energy[dominant_key] = get(total_energy, dominant_key, 0.0) + energy
-        total_instructions[dominant_key] = get(total_instructions, dominant_key, 0) + num_instructions
+        total_instructions[dominant_key] =
+            get(total_instructions, dominant_key, 0) + num_instructions
     end
 
     # Compute mean energy per instruction (weighted average)
@@ -110,7 +121,9 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
         mean_energy = total_energy[key] / total_instructions[key]
         model.params[key] = mean_energy
 
-        @info "Learned mean energy per instruction" param_key = key mean_energy = round(mean_energy; digits=6) total_insts = total_instructions[key]
+        @info "Learned mean energy per instruction" param_key = key mean_energy = round(
+            mean_energy; digits=6
+        ) total_insts = total_instructions[key]
     end
 
     @info "Learned Mean model parameters" num_parameters = length(model.params)
@@ -129,8 +142,7 @@ function save_params(model::MeanModel, filename::String)
     end
 
     output_dict = Dict{String,Any}(
-        "granularity" => string(model.granularity),
-        "parameters" => params_dict
+        "granularity" => string(model.granularity), "parameters" => params_dict
     )
 
     @info "Saving Mean model parameters" path = filename granularity = model.granularity
@@ -145,12 +157,14 @@ end
 Estimate energy for a program (deterministic - just sums mean energies)
 """
 function estimate_energy(
-    model::MeanModel,
-    program::Vector{Instruction},
-    config::MeanConfig
-)::NamedTuple{(:mean, :std, :min, :max, :samples), Tuple{Float64,Float64,Float64,Float64,Vector{Float64}}}
-
-    @info "Estimating energy with Mean model" granularity = model.granularity num_instructions = length(program)
+    model::MeanModel, program::Vector{Instruction}, config::MeanConfig
+)::NamedTuple{
+    (:mean, :std, :min, :max, :samples),
+    Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
+}
+    @info "Estimating energy with Mean model" granularity = model.granularity num_instructions = length(
+        program
+    )
 
     total_energy = 0.0
     unknown_keys = Set{Tuple{Vararg{Symbol}}}()
@@ -170,11 +184,19 @@ function estimate_energy(
 
     if !isempty(unknown_keys)
         unknown_strs = [join(string.(k), "_") for k in unknown_keys]
-        @warn "Unknown instruction keys. Using default 1.0nJ" keys = join(sort(unknown_strs), ", ")
+        @warn "Unknown instruction keys. Using default 1.0nJ" keys = join(
+            sort(unknown_strs), ", "
+        )
     end
 
     @info "Energy estimation complete" total_energy = round(total_energy; digits=3)
 
     # Mean model is deterministic, so std=0 and min=max=mean
-    return (mean=total_energy, std=0.0, min=total_energy, max=total_energy, samples=[total_energy])
+    return (
+        mean=total_energy,
+        std=0.0,
+        min=total_energy,
+        max=total_energy,
+        samples=[total_energy],
+    )
 end
