@@ -8,9 +8,11 @@ using Logging
 # Import core types
 using ..Types: Instruction, Operand, MachineState
 
+# Import Parser module
+using ..Parser
+
 # Include core functions
 include("machine_state.jl")
-include("parser.jl")
 
 """
 Format all register values in a formatted way for MSP430
@@ -108,7 +110,7 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
             end
 
             # Parse the instruction string with current address for relative jump resolution
-            parsed_instr = parse_line(String(instr_str), addr)
+            parsed_instr = Parser.parse_line(String(instr_str), addr)
             if !isnothing(parsed_instr)
                 push!(instructions, parsed_instr)
                 push!(addresses, addr)

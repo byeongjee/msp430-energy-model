@@ -5,9 +5,13 @@ using JSON
 include("../src/types.jl")
 using .Types: MachineState, Instruction
 
+# Include Parser module
+include("../src/parser.jl")
+using .Parser: find_functions
+
 # Include Interpreter module
 include("../src/Interpreter.jl")
-using .Interpreter: find_functions, parse_asm_file, interpret_program
+using .Interpreter: parse_asm_file, interpret_program
 
 """
 Load a test fixture from JSON file

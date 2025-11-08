@@ -1,4 +1,10 @@
-# msp430_parser.jl - MSP430 assembly parser
+# parser.jl - MSP430 assembly parser module
+
+module Parser
+
+using ..Types: Instruction, Operand
+
+export parse_line, find_functions
 
 """
 Parse MSP430 assembly string into instruction objects
@@ -295,3 +301,5 @@ function find_functions(filename::String)::Dict{String,UInt16}
 
     return functions
 end
+
+end # module Parser

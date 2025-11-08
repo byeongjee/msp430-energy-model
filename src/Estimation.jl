@@ -8,6 +8,9 @@ using Logging
 # Import Interpreter module
 using ..Interpreter
 
+# Import Parser module
+using ..Parser
+
 # Import Model module
 using ..Model
 
@@ -78,7 +81,7 @@ function run_estimate(
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = Interpreter.find_functions(asm_file)
+    func_addrs = Parser.find_functions(asm_file)
 
     @info "Executing program to get event sequences"
     start_time = time()
