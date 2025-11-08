@@ -51,7 +51,7 @@ function parse_commandline()
         arg_type = String
         default = "opcode"
         "--inference"
-        help = "Inference algorithm: importance-sampling, mcmc-hmc, or mcmc-blocked (default: importance-sampling)"
+        help = "Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)"
         arg_type = String
         default = "importance-sampling"
     end
@@ -94,10 +94,8 @@ Process a single assembly file and its corresponding measurement data
 Returns event sequences and energy measurements
 """
 function process_training_file(
-    asm_file::String,
-    data_file::String,
-    max_steps::Int
-)::Tuple{Vector{Vector{Instruction}}, Vector{Float64}}
+    asm_file::String, data_file::String, max_steps::Int
+)::Tuple{Vector{Vector{Instruction}},Vector{Float64}}
     @info "Processing training file" asm = asm_file data = data_file
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
@@ -152,7 +150,9 @@ function run_train(
 
     # Validate that number of asm files matches number of data files
     if length(asm_files) != length(data_files)
-        error("Number of assembly files ($(length(asm_files))) must match number of data files ($(length(data_files)))")
+        error(
+            "Number of assembly files ($(length(asm_files))) must match number of data files ($(length(data_files)))",
+        )
     end
 
     # Parse granularity
@@ -166,7 +166,7 @@ function run_train(
     @info "Model granularity" granularity
 
     # Validate inference algorithm
-    valid_inference_algorithms = ["importance-sampling", "mcmc-hmc", "mcmc-blocked"]
+    valid_inference_algorithms = ["importance-sampling", "mcmc-blocked"]
     if !(inference_str in valid_inference_algorithms)
         error(
             "Invalid inference algorithm: $inference_str. Must be one of: " *
@@ -212,7 +212,7 @@ function run_train(
     # Create output with metadata
     output_dict = Dict{String,Any}(
         "granularity" => string(granularity),  # Save granularity for loading
-        "parameters" => params_dict
+        "parameters" => params_dict,
     )
 
     # Export parameters to file if output path is provided
@@ -305,7 +305,9 @@ function run_estimate(
 
     # Save stats to JSON if requested
     if !isnothing(output_file) && !isempty(all_stats)
-        @info "Saving estimation statistics" path = output_file num_events = length(all_stats)
+        @info "Saving estimation statistics" path = output_file num_events = length(
+            all_stats
+        )
         # Save all event sequences' stats as an array
         events_array = []
         for stats in all_stats
@@ -364,7 +366,13 @@ function main()
             granularity = args["granularity"]
             inference = args["inference"]
             run_train(
-                asm_files, data_files, output_file, max_steps, n_samples, granularity, inference
+                asm_files,
+                data_files,
+                output_file,
+                max_steps,
+                n_samples,
+                granularity,
+                inference,
             )
 
         elseif mode == "estimate"
@@ -383,9 +391,7 @@ function main()
             run_estimate(asm_files[1], params_file, max_steps, output_file)
 
         else
-            error(
-                "Invalid mode: $mode. Must be one of: interpret, train, estimate"
-            )
+            error("Invalid mode: $mode. Must be one of: interpret, train, estimate")
         end
 
     catch e
