@@ -1,0 +1,12 @@
+# gamma_per_instruction.jl - Gamma model with per-instruction (opcode) granularity
+
+include("gamma.jl")
+
+using Main.Inference: PerOpcode
+
+"""
+Gamma distribution model with per-instruction (opcode) granularity.
+"""
+function GammaPerInstruction()
+    return GammaModel(PerOpcode)
+end
