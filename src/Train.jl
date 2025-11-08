@@ -9,6 +9,9 @@ using Logging
 # Import Interpreter module
 using ..Interpreter
 
+# Import Parser module
+using ..Parser
+
 # Import Model module
 using ..Model
 
@@ -28,7 +31,7 @@ function process_training_file(
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = Interpreter.find_functions(asm_file)
+    func_addrs = Parser.find_functions(asm_file)
     begin_event_addr = get(func_addrs, "begin_event", nothing)
     end_event_addr = get(func_addrs, "end_event", nothing)
 

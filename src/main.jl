@@ -1,10 +1,12 @@
 include("../src/types.jl")
+include("../src/parser.jl")
 include("../src/Interpreter.jl")
 include("../src/model.jl")
 include("../src/Train.jl")
 include("../src/Estimation.jl")
 
 using .Types
+using .Parser
 using .Interpreter
 using .Model
 using .Train
@@ -70,7 +72,7 @@ function run_interpret(asm_file::String, max_steps::Int)
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
 
-    func_addrs = find_functions(asm_file)
+    func_addrs = Parser.find_functions(asm_file)
 
     # Execute program
     final_state, event_sequences = Interpreter.interpret_program(
