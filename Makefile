@@ -3,10 +3,10 @@
 # MSP430 toolchain configuration
 # Require environment variables to be set
 ifndef MSP430GCC_TOOLCHAIN_PATH
-$(error MSP430GCC_TOOLCHAIN_PATH is not set. Please set it in your environment or .env file)
+$(error MSP430GCC_TOOLCHAIN_PATH is not set.)
 endif
 ifndef MSP430GCC_SUPPORT_PATH
-$(error MSP430GCC_SUPPORT_PATH is not set. Please set it in your environment or .env file)
+$(error MSP430GCC_SUPPORT_PATH is not set.)
 endif
 
 CC := $(MSP430GCC_TOOLCHAIN_PATH)/bin/msp430-elf-gcc
