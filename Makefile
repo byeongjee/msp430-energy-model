@@ -93,7 +93,7 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
 	@echo "✓ Interpret completed!"
 
 train: NUM_REPEAT?=10
-train: MODEL?=gamma_per_instruction
+train: MODEL?=mean_per_addressing_mode
 train: INFERENCE?=importance-sampling
 train: | $(BUILD_DIR) $(ASM_DIR) ## Train energy model (FILES=<files> DATA=<data> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [MODEL=<model>])
 ifndef FILES
