@@ -1,6 +1,6 @@
 # model_common.jl - Common types and utilities for energy models
 
-include("types.jl")
+using ..Types: Instruction, TrainingData
 
 """
 Granularity level for energy model parameters

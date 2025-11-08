@@ -1,4 +1,8 @@
-# types.jl - Type definitions
+# types.jl - Core type definitions module
+
+module Types
+
+export Operand, Instruction, MachineState, EnergyStats, TrainingData
 
 """
 Operand representation with its addressing mode
@@ -55,3 +59,5 @@ struct TrainingData
     programs::Vector{Vector{Instruction}}
     energies::Vector{Float64}
 end
+
+end # module Types
