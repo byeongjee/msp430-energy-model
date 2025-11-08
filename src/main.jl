@@ -2,7 +2,6 @@ include("../src/types.jl")
 include("../src/machine_state.jl")
 include("../src/parser.jl")
 include("../src/Interpreter.jl")
-include("../src/Inference.jl")
 include("../src/model.jl")
 include("../src/models/gamma_per_instruction.jl")
 include("../src/models/gamma_per_addressing_mode.jl")
@@ -11,7 +10,6 @@ include("../src/models/mean_per_addressing_mode.jl")
 include("../src/Estimation.jl")
 
 using .Interpreter
-using .Inference
 using .Estimation
 using ArgParse
 using CSV

@@ -2,8 +2,6 @@
 
 include("mean.jl")
 
-using Main.Inference: PerAddressingMode
-
 """
 Mean-based model with per-addressing-mode granularity.
 """

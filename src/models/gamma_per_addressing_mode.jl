@@ -2,8 +2,6 @@
 
 include("gamma.jl")
 
-using Main.Inference: PerAddressingMode
-
 """
 Gamma distribution model with per-addressing-mode granularity.
 """

@@ -2,8 +2,6 @@
 
 include("mean.jl")
 
-using Main.Inference: PerOpcode
-
 """
 Mean-based model with per-instruction (opcode) granularity.
 """

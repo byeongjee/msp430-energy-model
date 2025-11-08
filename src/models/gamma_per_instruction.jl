@@ -2,8 +2,6 @@
 
 include("gamma.jl")
 
-using Main.Inference: PerOpcode
-
 """
 Gamma distribution model with per-instruction (opcode) granularity.
 """
