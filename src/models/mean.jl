@@ -113,7 +113,7 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
         mean_energy = total_energy[key] / total_instructions[key]
         model.params[key] = mean_energy
 
-        @info "Learned mean energy per instruction" param_key = key mean_energy = round(
+        @debug "Learned mean energy per instruction" param_key = key mean_energy = round(
             mean_energy; digits=6
         ) total_insts = total_instructions[key]
     end
