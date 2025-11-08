@@ -153,7 +153,7 @@ endif
 	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
 	@echo "✓ Estimation completed!"
 
-train_and_estimate: MODEL?=gamma_per_instruction
+train_and_estimate: MODEL?=mean_per_addressing_mode
 train_and_estimate: INFERENCE?=importance-sampling
 train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<files> ESTIMATE_FILE=<file> [TAG=<tag>] [options])
 ifndef TRAIN_FILES
