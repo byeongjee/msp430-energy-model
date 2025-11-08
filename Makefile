@@ -162,36 +162,36 @@ endif
 ifndef ESTIMATE_FILE
 	$(error Please specify ESTIMATE_FILE=<file.c> for estimation)
 endif
-	@ARGS="--train-files $(TRAIN_FILES) --estimate-file $(ESTIMATE_FILE)"; \
-	if [ -n "$(TAG)" ]; then ARGS="$$ARGS --tag $(TAG)"; fi; \
-	if [ -n "$(TRAINING_RAW_CSV)" ]; then ARGS="$$ARGS --training-raw-csv $(TRAINING_RAW_CSV)"; fi; \
-	if [ -n "$(TEST_RAW_CSV)" ]; then ARGS="$$ARGS --test-raw-csv $(TEST_RAW_CSV)"; fi; \
-	if [ -n "$(TRAINING_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --training-segments-csv $(TRAINING_SEGMENTS_CSV)"; fi; \
-	if [ -n "$(TEST_SEGMENTS_CSV)" ]; then ARGS="$$ARGS --test-segments-csv $(TEST_SEGMENTS_CSV)"; fi; \
-	if [ -n "$(PARAMS)" ]; then ARGS="$$ARGS --params $(PARAMS)"; fi; \
-	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
-	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
-	if [ -n "$(MAX_STEPS)" ]; then ARGS="$$ARGS --max-steps $(MAX_STEPS)"; fi; \
-	if [ -n "$(N_SAMPLES)" ]; then ARGS="$$ARGS --n-samples $(N_SAMPLES)"; fi; \
-	if [ -n "$(NUM_REPEAT)" ]; then ARGS="$$ARGS --num-repeat $(NUM_REPEAT)"; fi; \
-	if [ -n "$(GRANULARITY)" ]; then ARGS="$$ARGS --granularity $(GRANULARITY)"; fi; \
-	if [ -n "$(INFERENCE)" ]; then ARGS="$$ARGS --inference $(INFERENCE)"; fi; \
-	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
-	if [ "$(KEEP_INTERMEDIATES)" = "1" ]; then ARGS="$$ARGS --keep-intermediates"; fi; \
-	./scripts/train_and_estimate.sh $$ARGS
+	@ARGS=("--train-files" "$(TRAIN_FILES)" "--estimate-file" "$(ESTIMATE_FILE)"); \
+	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
+	[ -n "$(TRAINING_RAW_CSV)" ] && ARGS+=("--training-raw-csv" "$(TRAINING_RAW_CSV)"); \
+	[ -n "$(TEST_RAW_CSV)" ] && ARGS+=("--test-raw-csv" "$(TEST_RAW_CSV)"); \
+	[ -n "$(TRAINING_SEGMENTS_CSV)" ] && ARGS+=("--training-segments-csv" "$(TRAINING_SEGMENTS_CSV)"); \
+	[ -n "$(TEST_SEGMENTS_CSV)" ] && ARGS+=("--test-segments-csv" "$(TEST_SEGMENTS_CSV)"); \
+	[ -n "$(PARAMS)" ] && ARGS+=("--params" "$(PARAMS)"); \
+	[ -n "$(VOLTAGE)" ] && ARGS+=("--voltage" "$(VOLTAGE)"); \
+	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
+	[ -n "$(MAX_STEPS)" ] && ARGS+=("--max-steps" "$(MAX_STEPS)"); \
+	[ -n "$(N_SAMPLES)" ] && ARGS+=("--n-samples" "$(N_SAMPLES)"); \
+	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
+	[ -n "$(GRANULARITY)" ] && ARGS+=("--granularity" "$(GRANULARITY)"); \
+	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
+	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
+	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
+	./scripts/train_and_estimate.sh "$${ARGS[@]}"
 
 analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<files> [TAG=<tag>] [NUM_REPEAT=<n>] [options])
 ifndef FILES
 	$(error Please specify FILES=file.c or FILES=file1.c;file2.c;... (semicolon-separated))
 endif
-	@ARGS="--files $(FILES)"; \
-	if [ -n "$(TAG)" ]; then ARGS="$$ARGS --tag $(TAG)"; fi; \
-	if [ -n "$(VOLTAGE)" ]; then ARGS="$$ARGS --voltage $(VOLTAGE)"; fi; \
-	if [ -n "$(MAX_CURRENT)" ]; then ARGS="$$ARGS --max-current $(MAX_CURRENT)"; fi; \
-	if [ -n "$(NUM_REPEAT)" ]; then ARGS="$$ARGS --num-repeat $(NUM_REPEAT)"; fi; \
-	if [ -n "$(REPORT_DIR)" ]; then ARGS="$$ARGS --report-dir $(REPORT_DIR)"; fi; \
-	if [ "$(SKIP_RESET)" = "1" ]; then ARGS="$$ARGS --skip-reset"; fi; \
-	./scripts/analyze_distribution.sh $$ARGS
+	@ARGS=("--files" "$(FILES)"); \
+	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
+	[ -n "$(VOLTAGE)" ] && ARGS+=("--voltage" "$(VOLTAGE)"); \
+	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
+	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
+	[ -n "$(REPORT_DIR)" ] && ARGS+=("--report-dir" "$(REPORT_DIR)"); \
+	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
+	./scripts/analyze_distribution.sh "$${ARGS[@]}"
 
 create_fixture: ## Create test fixture (FILE=<file.c> NAME=<name>)
 ifndef FILE
