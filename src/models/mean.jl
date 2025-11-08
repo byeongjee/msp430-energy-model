@@ -133,9 +133,7 @@ function save_params(model::MeanModel, filename::String)
         params_dict[key_str] = mean_energy
     end
 
-    output_dict = Dict{String,Any}(
-        "model" => model.model_type, "parameters" => params_dict
-    )
+    output_dict = Dict{String,Any}("model" => model.model_type, "parameters" => params_dict)
 
     @info "Saving Mean model parameters" path = filename model_type = model.model_type
     open(filename, "w") do f
