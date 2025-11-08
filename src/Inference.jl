@@ -15,7 +15,7 @@ export TrainingData, ModelGranularity
 export PerOpcode, PerAddressingMode
 export ImportanceSampling, MCMC
 export single_program_energy_model, parameter_inference_model
-export learn_parameters, learn_parameters_mcmc_hmc, learn_parameters_mcmc_blocked
+export learn_parameters, learn_parameters_mcmc_blocked
 export get_instruction_key
 
 struct TrainingData
@@ -241,94 +241,6 @@ function compute_posterior_means(
     return learned_params
 end
 
-function learn_parameters_mcmc_hmc(
-    training_data::TrainingData,
-    granularity::ModelGranularity;
-    n_samples::Int=1000,
-    burn_in::Int=100,  # Reduced from 500 to 100 for large datasets
-    step_size::Float64=0.01,
-    n_leapfrog::Int=10,
-)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
-    # Get all valid parameter keys based on granularity
-    valid_keys = get_valid_param_keys(training_data, granularity)
-
-    @info "Starting MCMC inference (Hamiltonian Monte Carlo)"
-    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys = length(
-        valid_keys
-    ) n_samples burn_in step_size n_leapfrog
-
-    # Start timing
-    start_time = time()
-
-    # Set up constraints (observed energies)
-    constraints = choicemap()
-    for (i, energy) in enumerate(training_data.energies)
-        constraints[(:observed_energy_consumption, i)] = energy
-    end
-
-    # Initialize trace with constraints
-    @info "Initializing trace..."
-    trace, = generate(all_programs_energy_model, (training_data, granularity), constraints)
-    @info "Initial log probability" log_prob = get_score(trace)
-
-    # Collect all parameter addresses for HMC
-    param_addresses = []
-    for param_key in valid_keys
-        push!(param_addresses, (param_key..., :logμ))
-        push!(param_addresses, (param_key..., :logκ))
-    end
-    push!(param_addresses, :log_obs_sigma)
-
-    # Select all continuous parameters for HMC
-    selection = select(param_addresses...)
-
-    @info "Number of parameters to sample" num_params = length(param_addresses)
-
-    # MCMC sampling with HMC
-    traces = []
-    total_proposals = 0
-    total_accepted = 0
-
-    for i in 1:(burn_in + n_samples)
-        # HMC update on all parameters jointly
-        trace, accepted = hmc(trace, selection; L=n_leapfrog, eps=step_size)
-        total_proposals += 1
-        if accepted
-            total_accepted += 1
-        end
-
-        # Collect samples after burn-in
-        if i > burn_in
-            push!(traces, trace)
-        end
-
-        if i % 100 == 0
-            acceptance_rate = total_accepted / total_proposals
-            @info "MCMC progress" iteration = i log_prob = round(get_score(trace); digits=2) acceptance_rate = round(
-                acceptance_rate; digits=3
-            )
-        end
-    end
-
-    # Final acceptance rate
-    final_acceptance_rate = total_accepted / total_proposals
-    @info "MCMC sampling complete" total_iterations = burn_in + n_samples acceptance_rate = round(
-        final_acceptance_rate; digits=3
-    )
-
-    # Compute posterior means
-    @info "Computing posterior means..."
-    learned_params = compute_posterior_means(traces, valid_keys)
-
-    # Calculate and log execution time
-    learning_time = time() - start_time
-    @info "Parameter learning completed (HMC-MCMC)" time = learning_time num_learned_params = length(
-        learned_params
-    )
-
-    return learned_params
-end
-
 function learn_parameters_mcmc_blocked(
     training_data::TrainingData,
     granularity::ModelGranularity;
@@ -503,7 +415,6 @@ Learn MSP430 instruction energy parameters from training data.
 - `granularity`: Model granularity level (PerOpcode or PerAddressingMode)
 - `algorithm`: Inference algorithm to use as a string:
   - "importance-sampling": Importance sampling (default)
-  - "mcmc-hmc": Hamiltonian Monte Carlo MCMC
   - "mcmc-blocked": Blocked Gibbs/MH MCMC
 - `n_samples`: Number of samples to use for inference (default: 1000)
 
@@ -520,8 +431,6 @@ function learn_parameters(
         return learn_parameters_importance_sampling(
             training_data, granularity; n_samples=n_samples
         )
-    elseif algorithm == "mcmc-hmc"
-        return learn_parameters_mcmc_hmc(training_data, granularity; n_samples=n_samples)
     elseif algorithm == "mcmc-blocked"
         return learn_parameters_mcmc_blocked(
             training_data, granularity; n_samples=n_samples
@@ -529,7 +438,7 @@ function learn_parameters(
     else
         error(
             "Unknown inference algorithm: $algorithm. " *
-            "Must be one of: importance-sampling, mcmc-hmc, mcmc-blocked",
+            "Must be one of: importance-sampling, mcmc-blocked",
         )
     end
 end
