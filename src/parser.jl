@@ -94,11 +94,21 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             push!(operands, Operand(value, :immediate))
 
         elseif startswith(op, "@")
-            # Indirect register mode: @Rn
-            # TODO: Handle indirect autoincrement mode (@Rn+)
-            reg_name = normalize_register_name(Symbol(uppercase(strip(op[2:end]))))
-            indirect_symbol = Symbol("@" * string(reg_name))
-            push!(operands, Operand(indirect_symbol, :indirect))
+            # Indirect register mode: @Rn or autoincrement mode: @Rn+
+            reg_str = strip(op[2:end])  # Remove @ prefix
+
+            if endswith(reg_str, "+")
+                # Autoincrement mode: @Rn+
+                reg_str = reg_str[1:end-1]  # Remove + suffix
+                reg_name = normalize_register_name(Symbol(uppercase(reg_str)))
+                indirect_symbol = Symbol("@" * string(reg_name))
+                push!(operands, Operand(indirect_symbol, :autoincrement))
+            else
+                # Indirect mode: @Rn
+                reg_name = normalize_register_name(Symbol(uppercase(reg_str)))
+                indirect_symbol = Symbol("@" * string(reg_name))
+                push!(operands, Operand(indirect_symbol, :indirect))
+            end
 
         elseif contains(op, "(") && contains(op, ")")
             # Indexed mode: offset(Rn) or Symbolic mode: offset(PC)
@@ -148,6 +158,13 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             word_offset = div(byte_offset - 2, 2)
             # Store as tuple (offset, PC) for consistency with X(PC) symbolic mode
             push!(operands, Operand((word_offset, :PC), :symbolic))
+
+        elseif startswith(op, "0x") || startswith(op, "0X")
+            # Bare hex address without prefix = Symbolic (PC-relative) addressing
+            # Example: add 0xdbc0, r12  (objdump shows this for symbolic mode)
+            # This is different from &0x1c00 which is absolute addressing
+            offset = parse(UInt16, op[3:end]; base=16)
+            push!(operands, Operand((offset, :PC), :symbolic))
 
         else
             # Register mode: Rn or register name

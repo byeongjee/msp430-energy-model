@@ -482,6 +482,17 @@ function get_operand_value(
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get(state.registers, reg_name, UInt16(0))
         get(state.memory, addr, UInt16(0))
+    elseif operand.mode == :autoincrement
+        # Autoincrement addressing: @R1+ means "value at address in R1, then increment R1"
+        @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
+        operand_str = string(operand.value)
+        reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
+        addr = get(state.registers, reg_name, UInt16(0))
+        val = get(state.memory, addr, UInt16(0))
+        # Increment register after reading (by 2 for word, 1 for byte)
+        increment = data_size == :byte ? UInt16(1) : UInt16(2)
+        state.registers[reg_name] = UInt16((addr + increment) & 0xFFFF)
+        val
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
         # Symbolic addressing: X(PC) -> (PC + X) points to operand
