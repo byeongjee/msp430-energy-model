@@ -153,7 +153,7 @@ void initialize(void) {
 #endif
 
 #define BENCH(X)                                                               \
-  for (int _rep_i_ = 0; _rep_i_ < (NUM_REPEAT); ++_rep_i_) {                   \
+  for (int _rep_bench_ = 0; _rep_bench_ < (NUM_REPEAT); ++_rep_bench_) {       \
     begin_event();                                                             \
     do {                                                                       \
       X;                                                                       \
@@ -166,7 +166,7 @@ void initialize(void) {
 #endif
 
 #define REPEAT_INNER_ITERS(X)                                                  \
-  for (int _rep_i_ = 0; _rep_i_ < (INNER_ITERS); ++_rep_i_) {                  \
+  for (int _rep_inner_ = 0; _rep_inner_ < (INNER_ITERS); ++_rep_inner_) {      \
     X;                                                                         \
   }
 
