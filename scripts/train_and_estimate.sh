@@ -47,6 +47,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 MEASURE_PY="$SCRIPT_DIR/measure.py"
 PREPROCESS_PY="$SCRIPT_DIR/preprocess.py"
+EXTRACT_BENCH_LABELS_PY="$SCRIPT_DIR/extract_bench_labels.py"
 
 # Check required environment variables
 if [[ -z "${MSP430GCC_TOOLCHAIN_PATH}" ]]; then
@@ -330,6 +331,34 @@ log_info "Report will be saved to: $REPORT_DIR_FULL"
 # Extract basenames
 ESTIMATE_BASENAME="$(basename "$ESTIMATE_FILE" .c)"
 
+# ============================================================
+# EXTRACT EVENT LABELS
+# ============================================================
+
+# Extract event labels for all training files
+TRAINING_EVENT_LABELS_ARRAY=()
+for i in "${!TRAIN_FILE_ARRAY[@]}"; do
+    train_file="${TRAIN_FILE_ARRAY[$i]}"
+    basename=$(basename "$train_file" .c)
+    event_labels_json="$TEMP_DIR/labels_${basename}_${TIMESTAMP}.json"
+
+    log_info "Extracting event labels from $train_file..."
+    python3 "$EXTRACT_BENCH_LABELS_PY" \
+        --input "$train_file" \
+        --output "$event_labels_json" \
+        --format json
+
+    TRAINING_EVENT_LABELS_ARRAY+=("$event_labels_json")
+done
+
+# Extract event labels for estimation file
+ESTIMATE_EVENT_LABELS_JSON="$TEMP_DIR/labels_${ESTIMATE_BASENAME}_${TIMESTAMP}.json"
+log_info "Extracting event labels from $ESTIMATE_FILE..."
+python3 "$EXTRACT_BENCH_LABELS_PY" \
+    --input "$ESTIMATE_FILE" \
+    --output "$ESTIMATE_EVENT_LABELS_JSON" \
+    --format json
+
 # Build MAX_STEPS_FLAG
 MAX_STEPS_FLAG=""
 if [[ -n "$MAX_STEPS" ]]; then
@@ -381,14 +410,12 @@ else
     ALL_TRAINING_RAW_EXIST=0
 fi
 
-# If PARAMS provided and exists, skip everything up to training
+# If PARAMS provided and exists, skip training-related steps only
 if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]] && [[ $USE_TEMP_PARAMS -eq 0 ]]; then
     SKIP_MEASUREMENT=1
-    SKIP_ESTIMATION_MEASUREMENT=1
     SKIP_PREPROCESSING=1
-    SKIP_MEASURED_PREPROCESSING=1
     SKIP_TRAINING=1
-    log_info "Resuming from existing params: $PARAMS_FILE"
+    log_info "Resuming from existing params: $PARAMS_FILE (skipping training steps only)"
 fi
 
 # Check training segments - if provided, skip training measurement and preprocessing
@@ -543,11 +570,13 @@ if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
         training_segments_csv="${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
         train_file="${TRAIN_FILE_ARRAY[$i]}"
         train_basename=$(basename "$train_file" .c)
+        event_labels_json="${TRAINING_EVENT_LABELS_ARRAY[$i]}"
 
         log_step "Step 7.$((i+1))/12: Preprocessing training measurements ($train_basename)"
         python3 "$PREPROCESS_PY" \
             --input "$training_raw_csv" \
-            --output "$training_segments_csv"
+            --output "$training_segments_csv" \
+            --event-labels "$event_labels_json"
         log_success "Training segments saved: $training_segments_csv"
     done
 else
@@ -559,7 +588,8 @@ if [[ $SKIP_MEASURED_PREPROCESSING -eq 0 ]]; then
     log_step "Step 8/12: Preprocessing measured estimation data"
     python3 "$PREPROCESS_PY" \
         --input "$TEST_RAW_CSV" \
-        --output "$TEST_SEGMENTS_CSV"
+        --output "$TEST_SEGMENTS_CSV" \
+        --event-labels "$ESTIMATE_EVENT_LABELS_JSON"
     log_success "Measured estimation segments saved: $TEST_SEGMENTS_CSV"
 else
     log_step "Step 8: SKIPPED (using existing test segments CSV: $TEST_SEGMENTS_CSV)"
@@ -628,6 +658,12 @@ log_success "Comparison report generated: $REPORT_DIR_FULL"
 
 # Cleanup estimated stats temp file
 rm -f "$ESTIMATED_STATS_JSON"
+
+# Cleanup event label files
+for label_file in "${TRAINING_EVENT_LABELS_ARRAY[@]}"; do
+    rm -f "$label_file"
+done
+rm -f "$ESTIMATE_EVENT_LABELS_JSON"
 
 # Done
 log_step "PIPELINE COMPLETE"

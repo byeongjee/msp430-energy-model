@@ -17,29 +17,31 @@ import pandas as pd
 
 def load_estimated_stats(stats_file):
     """Load estimated statistics from JSON file."""
-    with open(stats_file, 'r') as f:
+    with open(stats_file, "r") as f:
         stats = json.load(f)
     return stats
 
 
 def load_measured_data(csv_file):
-    """Load measured energy data from CSV file."""
+    """Load measured energy data and event labels from CSV file."""
     df = pd.read_csv(csv_file)
-    return df['energy_nJ'].values
+    energy = df["energy_nJ"].values
+    event_labels = df["event_label"].values if "event_label" in df.columns else None
+    return energy, event_labels
 
 
 def calculate_statistics(data):
     """Calculate statistics for a dataset."""
     return {
-        'mean': np.mean(data),
-        'std': np.std(data, ddof=1),
-        'min': np.min(data),
-        'max': np.max(data),
-        'count': len(data)
+        "mean": np.mean(data),
+        "std": np.std(data, ddof=1),
+        "min": np.min(data),
+        "max": np.max(data),
+        "count": len(data),
     }
 
 
-def plot_distribution(data, title, output_path, color='steelblue', stats=None):
+def plot_distribution(data, title, output_path, color="steelblue", stats=None):
     """Plot a histogram distribution."""
     fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
 
@@ -49,7 +51,7 @@ def plot_distribution(data, title, output_path, color='steelblue', stats=None):
         q75, q25 = np.percentile(data, [75, 25])
         iqr = q75 - q25
         if iqr > 0:
-            bin_width = 2 * iqr / (len(data) ** (1/3))
+            bin_width = 2 * iqr / (len(data) ** (1 / 3))
             n_bins = int(np.ceil((data.max() - data.min()) / bin_width))
             # Constrain to reasonable range
             n_bins = min(100, max(10, n_bins))
@@ -61,36 +63,54 @@ def plot_distribution(data, title, output_path, color='steelblue', stats=None):
 
     # Create histogram
     n, bins, patches = ax.hist(
-        data, bins=n_bins, density=True,
-        color=color, alpha=0.6, edgecolor=color, linewidth=1
+        data,
+        bins=n_bins,
+        density=True,
+        color=color,
+        alpha=0.6,
+        edgecolor=color,
+        linewidth=1,
     )
 
     # Add mean line
-    mean_val = stats['mean'] if stats else np.mean(data)
-    std_val = stats['std'] if stats else np.std(data, ddof=1)
+    mean_val = stats["mean"] if stats else np.mean(data)
+    std_val = stats["std"] if stats else np.std(data, ddof=1)
 
-    ax.axvline(mean_val, color='red', linewidth=2.5, linestyle='-',
-               label=f'Mean: {mean_val:.2f} nJ')
+    ax.axvline(
+        mean_val,
+        color="red",
+        linewidth=2.5,
+        linestyle="-",
+        label=f"Mean: {mean_val:.2f} nJ",
+    )
 
     # Add text annotation
     y_max = n.max()
-    ax.text(mean_val, y_max * 0.9, f'σ={std_val:.2f} nJ',
-            fontsize=8, color='red',
-            ha='center', va='top')
+    ax.text(
+        mean_val,
+        y_max * 0.9,
+        f"σ={std_val:.2f} nJ",
+        fontsize=8,
+        color="red",
+        ha="center",
+        va="top",
+    )
 
-    ax.set_xlabel('Energy (nJ)', fontsize=10)
-    ax.set_ylabel('Probability Density', fontsize=10)
-    ax.set_title(title, fontsize=12, fontweight='bold')
-    ax.legend(loc='upper right', fontsize=9)
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_xlabel("Energy (nJ)", fontsize=10)
+    ax.set_ylabel("Probability Density", fontsize=10)
+    ax.set_title(title, fontsize=12, fontweight="bold")
+    ax.legend(loc="upper right", fontsize=9)
+    ax.grid(True, alpha=0.3, linestyle="--")
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"  - Saved: {output_path}")
 
 
-def plot_comparison(estimated_data, measured_data, estimated_stats, measured_stats, output_path):
+def plot_comparison(
+    estimated_data, measured_data, estimated_stats, measured_stats, output_path
+):
     """Plot side-by-side comparison of estimated and measured distributions."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), dpi=150)
 
@@ -100,7 +120,7 @@ def plot_comparison(estimated_data, measured_data, estimated_stats, measured_sta
             q75, q25 = np.percentile(data, [75, 25])
             iqr = q75 - q25
             if iqr > 0:
-                bin_width = 2 * iqr / (len(data) ** (1/3))
+                bin_width = 2 * iqr / (len(data) ** (1 / 3))
                 n_bins = int(np.ceil((data.max() - data.min()) / bin_width))
                 return min(100, max(10, n_bins))
             else:
@@ -112,49 +132,101 @@ def plot_comparison(estimated_data, measured_data, estimated_stats, measured_sta
 
     # Estimated distribution
     n1, bins1, _ = ax1.hist(
-        estimated_data, bins=n_bins_est, density=True,
-        color='steelblue', alpha=0.6, edgecolor='steelblue', linewidth=1
+        estimated_data,
+        bins=n_bins_est,
+        density=True,
+        color="steelblue",
+        alpha=0.6,
+        edgecolor="steelblue",
+        linewidth=1,
     )
-    ax1.axvline(estimated_stats['mean'], color='red', linewidth=2.5, linestyle='-',
-                label=f'Mean: {estimated_stats["mean"]:.2f} nJ')
-    ax1.text(estimated_stats['mean'], n1.max() * 0.9, f'σ={estimated_stats["std"]:.2f} nJ',
-             fontsize=8, color='red', ha='center', va='top')
-    ax1.set_xlabel('Energy (nJ)', fontsize=10)
-    ax1.set_ylabel('Probability Density', fontsize=10)
-    ax1.set_title('Estimated Energy Distribution', fontsize=12, fontweight='bold')
-    ax1.legend(loc='upper right', fontsize=9)
-    ax1.grid(True, alpha=0.3, linestyle='--')
+    ax1.axvline(
+        estimated_stats["mean"],
+        color="red",
+        linewidth=2.5,
+        linestyle="-",
+        label=f'Mean: {estimated_stats["mean"]:.2f} nJ',
+    )
+    ax1.text(
+        estimated_stats["mean"],
+        n1.max() * 0.9,
+        f'σ={estimated_stats["std"]:.2f} nJ',
+        fontsize=8,
+        color="red",
+        ha="center",
+        va="top",
+    )
+    ax1.set_xlabel("Energy (nJ)", fontsize=10)
+    ax1.set_ylabel("Probability Density", fontsize=10)
+    ax1.set_title("Estimated Energy Distribution", fontsize=12, fontweight="bold")
+    ax1.legend(loc="upper right", fontsize=9)
+    ax1.grid(True, alpha=0.3, linestyle="--")
 
     # Measured distribution
     n2, bins2, _ = ax2.hist(
-        measured_data, bins=n_bins_meas, density=True,
-        color='green', alpha=0.6, edgecolor='green', linewidth=1
+        measured_data,
+        bins=n_bins_meas,
+        density=True,
+        color="green",
+        alpha=0.6,
+        edgecolor="green",
+        linewidth=1,
     )
-    ax2.axvline(measured_stats['mean'], color='red', linewidth=2.5, linestyle='-',
-                label=f'Mean: {measured_stats["mean"]:.2f} nJ')
-    ax2.text(measured_stats['mean'], n2.max() * 0.9, f'σ={measured_stats["std"]:.2f} nJ',
-             fontsize=8, color='red', ha='center', va='top')
-    ax2.set_xlabel('Energy (nJ)', fontsize=10)
-    ax2.set_ylabel('Probability Density', fontsize=10)
-    ax2.set_title('Measured Energy Distribution', fontsize=12, fontweight='bold')
-    ax2.legend(loc='upper right', fontsize=9)
-    ax2.grid(True, alpha=0.3, linestyle='--')
+    ax2.axvline(
+        measured_stats["mean"],
+        color="red",
+        linewidth=2.5,
+        linestyle="-",
+        label=f'Mean: {measured_stats["mean"]:.2f} nJ',
+    )
+    ax2.text(
+        measured_stats["mean"],
+        n2.max() * 0.9,
+        f'σ={measured_stats["std"]:.2f} nJ',
+        fontsize=8,
+        color="red",
+        ha="center",
+        va="top",
+    )
+    ax2.set_xlabel("Energy (nJ)", fontsize=10)
+    ax2.set_ylabel("Probability Density", fontsize=10)
+    ax2.set_title("Measured Energy Distribution", fontsize=12, fontweight="bold")
+    ax2.legend(loc="upper right", fontsize=9)
+    ax2.grid(True, alpha=0.3, linestyle="--")
 
-    fig.suptitle('Estimated vs Measured Energy Consumption', fontsize=14, fontweight='bold', y=1.02)
+    fig.suptitle(
+        "Estimated vs Measured Energy Consumption",
+        fontsize=14,
+        fontweight="bold",
+        y=1.02,
+    )
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"  - Saved: {output_path}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Generate comparison report between estimated and measured energy distributions'
+        description="Generate comparison report between estimated and measured energy distributions"
     )
-    parser.add_argument('--estimated-stats', required=True, help='Path to estimated statistics JSON file')
-    parser.add_argument('--measured-data', required=True, help='Path to measured segments CSV file')
-    parser.add_argument('--report-dir', required=True, help='Directory for comparison report output')
-    parser.add_argument('--num-repeat', type=int, required=True, help='NUM_REPEAT value used for measurements')
+    parser.add_argument(
+        "--estimated-stats",
+        required=True,
+        help="Path to estimated statistics JSON file",
+    )
+    parser.add_argument(
+        "--measured-data", required=True, help="Path to measured segments CSV file"
+    )
+    parser.add_argument(
+        "--report-dir", required=True, help="Directory for comparison report output"
+    )
+    parser.add_argument(
+        "--num-repeat",
+        type=int,
+        required=True,
+        help="NUM_REPEAT value used for measurements",
+    )
 
     args = parser.parse_args()
 
@@ -174,10 +246,10 @@ def main():
     # Load data
     print("Loading data...")
     estimated_stats_dict = load_estimated_stats(args.estimated_stats)
-    measured_energies = load_measured_data(args.measured_data)
+    measured_energies, event_labels = load_measured_data(args.measured_data)
 
     # Extract all events from estimated stats
-    events = estimated_stats_dict['events']
+    events = estimated_stats_dict["events"]
     num_events = len(events)
     num_repeat = args.num_repeat
 
@@ -189,7 +261,9 @@ def main():
 
     # Validate measurement count
     if len(measured_energies) != num_events * num_repeat:
-        print(f"ERROR: Expected {num_events * num_repeat} measurements but got {len(measured_energies)}")
+        print(
+            f"ERROR: Expected {num_events * num_repeat} measurements but got {len(measured_energies)}"
+        )
         return 1
 
     # Process each event
@@ -197,8 +271,8 @@ def main():
     all_errors = []
 
     # Create combined markdown report
-    report_path = report_dir / 'comparison.md'
-    with open(report_path, 'w') as f:
+    report_path = report_dir / "comparison.md"
+    with open(report_path, "w") as f:
         f.write("# Energy Consumption Comparison Report\n\n")
         f.write(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n")
         f.write(f"**Number of events:** {num_events}  \n")
@@ -206,94 +280,140 @@ def main():
         f.write("---\n\n")
 
         for event_idx, event_stats_dict in enumerate(events):
-            print(f"\n  Event {event_idx + 1}/{num_events}")
-
-            # Extract estimated data for this event
-            estimated_data = np.array(event_stats_dict['samples'])
-            estimated_stats = {
-                'mean': event_stats_dict['mean'],
-                'std': event_stats_dict['std'],
-                'min': event_stats_dict['min'],
-                'max': event_stats_dict['max'],
-                'count': len(estimated_data)
-            }
-
             # Extract measured data for this event (chunk of NUM_REPEAT measurements)
             start_idx = event_idx * num_repeat
             end_idx = start_idx + num_repeat
             measured_data_event = measured_energies[start_idx:end_idx]
+
+            # Get event label if available
+            event_label = event_labels[start_idx] if event_labels is not None else None
+            # Use just the label if available, otherwise use index
+            filename_prefix = event_label if event_label else f"event_{event_idx + 1}"
+
+            print(
+                f"\n  {event_label if event_label else f'Event {event_idx + 1}'} ({event_idx + 1}/{num_events})"
+            )
+
+            # Extract estimated data for this event
+            estimated_data = np.array(event_stats_dict["samples"])
+            estimated_stats = {
+                "mean": event_stats_dict["mean"],
+                "std": event_stats_dict["std"],
+                "min": event_stats_dict["min"],
+                "max": event_stats_dict["max"],
+                "count": len(estimated_data),
+            }
+
             measured_stats = calculate_statistics(measured_data_event)
 
-            print(f"    Estimated: {estimated_stats['count']} samples, mean={estimated_stats['mean']:.2f} nJ")
-            print(f"    Measured:  {measured_stats['count']} samples, mean={measured_stats['mean']:.2f} nJ")
+            print(
+                f"    Estimated: {estimated_stats['count']} samples, mean={estimated_stats['mean']:.2f} nJ"
+            )
+            print(
+                f"    Measured:  {measured_stats['count']} samples, mean={measured_stats['mean']:.2f} nJ"
+            )
 
             # Calculate comparison metrics
-            mean_diff = estimated_stats['mean'] - measured_stats['mean']
-            mean_diff_pct = (mean_diff / measured_stats['mean']) * 100
-            std_diff = estimated_stats['std'] - measured_stats['std']
-            std_diff_pct = (std_diff / measured_stats['std']) * 100
+            mean_diff = estimated_stats["mean"] - measured_stats["mean"]
+            mean_diff_pct = (mean_diff / measured_stats["mean"]) * 100
+            std_diff = estimated_stats["std"] - measured_stats["std"]
+            std_diff_pct = (std_diff / measured_stats["std"]) * 100
             all_errors.append(mean_diff_pct)
 
             # Write to report
-            f.write(f"## Event {event_idx + 1}\n\n")
+            f.write(f"## {filename_prefix}\n\n")
 
             # Statistics table
             f.write("### Statistics\n\n")
-            f.write("| Metric | Estimated (Model) | Measured (Hardware) | Difference | Error |\n")
-            f.write("|--------|------------------|--------------------|-----------:|------:|\n")
-            f.write(f"| **Mean** | {estimated_stats['mean']:.4f} nJ | {measured_stats['mean']:.4f} nJ | {mean_diff:.4f} nJ | {mean_diff_pct:.2f}% |\n")
-            f.write(f"| **Std Dev** | {estimated_stats['std']:.4f} nJ | {measured_stats['std']:.4f} nJ | {std_diff:.4f} nJ | {std_diff_pct:.2f}% |\n")
-            f.write(f"| **Min** | {estimated_stats['min']:.4f} nJ | {measured_stats['min']:.4f} nJ | - | - |\n")
-            f.write(f"| **Max** | {estimated_stats['max']:.4f} nJ | {measured_stats['max']:.4f} nJ | - | - |\n")
-            f.write(f"| **Samples** | {estimated_stats['count']} | {measured_stats['count']} | - | - |\n\n")
+            f.write(
+                "| Metric | Estimated (Model) | Measured (Hardware) | Difference | Error |\n"
+            )
+            f.write(
+                "|--------|------------------|--------------------|-----------:|------:|\n"
+            )
+            f.write(
+                f"| **Mean** | {estimated_stats['mean']:.4f} nJ | {measured_stats['mean']:.4f} nJ | {mean_diff:.4f} nJ | {mean_diff_pct:.2f}% |\n"
+            )
+            f.write(
+                f"| **Std Dev** | {estimated_stats['std']:.4f} nJ | {measured_stats['std']:.4f} nJ | {std_diff:.4f} nJ | {std_diff_pct:.2f}% |\n"
+            )
+            f.write(
+                f"| **Min** | {estimated_stats['min']:.4f} nJ | {measured_stats['min']:.4f} nJ | - | - |\n"
+            )
+            f.write(
+                f"| **Max** | {estimated_stats['max']:.4f} nJ | {measured_stats['max']:.4f} nJ | - | - |\n"
+            )
+            f.write(
+                f"| **Samples** | {estimated_stats['count']} | {measured_stats['count']} | - | - |\n\n"
+            )
 
             # Plots
             f.write("### Distributions\n\n")
             f.write("#### Comparison\n\n")
-            f.write(f"![Event {event_idx + 1} Comparison](event_{event_idx + 1}_comparison.png)\n\n")
+            f.write(
+                f"![Event {event_idx + 1} Comparison]({filename_prefix}_comparison.png)\n\n"
+            )
 
             f.write("#### Estimated Distribution\n\n")
-            f.write(f"![Event {event_idx + 1} Estimated](event_{event_idx + 1}_estimated.png)\n\n")
+            f.write(
+                f"![Event {event_idx + 1} Estimated]({filename_prefix}_estimated.png)\n\n"
+            )
 
             f.write("#### Measured Distribution\n\n")
-            f.write(f"![Event {event_idx + 1} Measured](event_{event_idx + 1}_measured.png)\n\n")
+            f.write(
+                f"![Event {event_idx + 1} Measured]({filename_prefix}_measured.png)\n\n"
+            )
 
             f.write("---\n\n")
 
             # Generate plots for this event
             plot_distribution(
-                estimated_data, f'Estimated Energy Distribution - Event {event_idx + 1}',
-                report_dir / f'event_{event_idx + 1}_estimated.png',
-                color='steelblue', stats=estimated_stats
+                estimated_data,
+                f"Estimated Energy Distribution - {filename_prefix}",
+                report_dir / f"{filename_prefix}_estimated.png",
+                color="steelblue",
+                stats=estimated_stats,
             )
 
             plot_distribution(
-                measured_data_event, f'Measured Energy Distribution - Event {event_idx + 1}',
-                report_dir / f'event_{event_idx + 1}_measured.png',
-                color='green', stats=measured_stats
+                measured_data_event,
+                f"Measured Energy Distribution - {filename_prefix}",
+                report_dir / f"{filename_prefix}_measured.png",
+                color="green",
+                stats=measured_stats,
             )
 
             plot_comparison(
-                estimated_data, measured_data_event,
-                estimated_stats, measured_stats,
-                report_dir / f'event_{event_idx + 1}_comparison.png'
+                estimated_data,
+                measured_data_event,
+                estimated_stats,
+                measured_stats,
+                report_dir / f"{filename_prefix}_comparison.png",
             )
 
         # Write summary
         f.write("## Summary\n\n")
         f.write("| Metric | Value |\n")
         f.write("|--------|------:|\n")
-        f.write(f"| **Average Absolute Error** | {np.mean(np.abs(all_errors)):.2f}% |\n")
+        f.write(
+            f"| **Average Absolute Error** | {np.mean(np.abs(all_errors)):.2f}% |\n"
+        )
         f.write(f"| **Max Absolute Error** | {np.max(np.abs(all_errors)):.2f}% |\n")
         f.write(f"| **Number of Events** | {num_events} |\n\n")
 
         f.write("### Output Files\n\n")
         f.write("```\n")
         for event_idx in range(num_events):
-            f.write(f"Event {event_idx + 1}:\n")
-            f.write(f"  - event_{event_idx + 1}_estimated.png\n")
-            f.write(f"  - event_{event_idx + 1}_measured.png\n")
-            f.write(f"  - event_{event_idx + 1}_comparison.png\n")
+            event_label = (
+                event_labels[event_idx * num_repeat]
+                if event_labels is not None
+                else None
+            )
+            filename_prefix = event_label if event_label else f"event_{event_idx + 1}"
+            f.write(f"{filename_prefix}:\n")
+            f.write(f"  - {filename_prefix}_estimated.png\n")
+            f.write(f"  - {filename_prefix}_measured.png\n")
+            f.write(f"  - {filename_prefix}_comparison.png\n")
         f.write("comparison.md (this file)\n")
         f.write("```\n")
 
@@ -310,5 +430,5 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
