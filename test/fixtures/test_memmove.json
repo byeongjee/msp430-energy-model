@@ -1,0 +1,31 @@
+{
+  "test_name": "test_memmove",
+  "asm_file": "test/fixtures/test_memmove.asm",
+  "gdb_result": {
+  "registers": {
+    "PC": 16466,
+    "SP": 11262,
+    "SR": 0,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 4369,
+    "R13": 16394,
+    "R14": 7178,
+    "R15": 16394
+  },
+  "flags": {
+    "C": false,
+    "Z": false,
+    "N": false,
+    "V": false
+  },
+  "pc": 16466
+}
+}
