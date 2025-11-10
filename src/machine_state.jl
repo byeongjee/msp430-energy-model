@@ -357,11 +357,11 @@ function execute_single_operand!(
         if length(ops) >= 2
             n = get_operand_value(state, ops[1])
             dst_reg = ops[2].value  # Extract register symbol from Operand
-            dst_num = reg_symbol_to_num(dst_reg)
+            dst_num = Parser.reg_symbol_to_num(dst_reg)
 
             for i in (dst_num - n + 1):dst_num
                 if i >= 0 && i <= 15
-                    reg_sym = reg_num_to_symbol(i)
+                    reg_sym = Parser.reg_num_to_symbol(i)
                     reg_val = get(state.registers, reg_sym, UInt16(0))
                     state.registers[:SP] = state.registers[:SP] - 2
                     state.memory[state.registers[:SP]] = reg_val
@@ -375,11 +375,11 @@ function execute_single_operand!(
         if length(ops) >= 2
             n = get_operand_value(state, ops[1])
             dst_reg = ops[2].value  # Extract register symbol from Operand
-            dst_num = reg_symbol_to_num(dst_reg)
+            dst_num = Parser.reg_symbol_to_num(dst_reg)
 
             for i in (dst_num - n + 1):dst_num
                 if i >= 0 && i <= 15
-                    reg_sym = reg_num_to_symbol(i)
+                    reg_sym = Parser.reg_num_to_symbol(i)
                     reg_val = get(state.memory, state.registers[:SP], UInt16(0))
                     state.registers[reg_sym] = reg_val
                     state.registers[:SP] = state.registers[:SP] + 2
