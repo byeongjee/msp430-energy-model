@@ -506,6 +506,11 @@ function get_operand_value(
             @assert reg == :PC "Symbolic mode: register must be :PC, got $reg"
         end
         base_addr = get(state.registers, reg, UInt16(0))
+        # For symbolic mode, PC points to current instruction but the offset is in the next word
+        # So we need to use PC+2 (after the opcode word is fetched)
+        if operand.mode == :symbolic
+            base_addr = UInt16((base_addr + 2) & 0xFFFF)
+        end
         addr = UInt16((base_addr + offset) & 0xFFFF)
         get(state.memory, addr, UInt16(0))
     elseif operand.mode == :absolute
@@ -549,6 +554,11 @@ function set_operand_value!(
             @assert reg == :PC "Symbolic mode: register must be :PC, got $reg"
         end
         base_addr = get(state.registers, reg, UInt16(0))
+        # For symbolic mode, PC points to current instruction but the offset is in the next word
+        # So we need to use PC+2 (after the opcode word is fetched)
+        if operand.mode == :symbolic
+            base_addr = UInt16((base_addr + 2) & 0xFFFF)
+        end
         addr = UInt16((base_addr + offset) & 0xFFFF)
 
         if data_size == :byte
