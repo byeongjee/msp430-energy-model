@@ -83,8 +83,9 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             # Immediate addressing mode: #value
             value_str = strip(op[2:end])
             value = if startswith(value_str, "0x") || startswith(value_str, "0X")
-                # Hexadecimal
-                parse(UInt16, value_str[3:end]; base=16)
+                # Hexadecimal - parse as UInt64 first, then take lower 16 bits
+                full_val = parse(UInt64, value_str[3:end]; base=16)
+                UInt16(full_val & 0xFFFF)
             else
                 # Decimal (may be negative)
                 int_val = parse(Int16, value_str)
@@ -118,7 +119,9 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
 
             # Parse offset (may be negative)
             offset = if startswith(offset_str, "0x") || startswith(offset_str, "0X")
-                parse(UInt16, offset_str[3:end]; base=16)
+                # Parse as UInt64 first, then take lower 16 bits
+                full_val = parse(UInt64, offset_str[3:end]; base=16)
+                UInt16(full_val & 0xFFFF)
             else
                 # Parse as signed integer first, then convert to UInt16 representation
                 int_offset = parse(Int16, offset_str)
@@ -135,7 +138,9 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             # Absolute addressing: &address
             addr_str = strip(op[2:end])
             addr = if startswith(addr_str, "0x") || startswith(addr_str, "0X")
-                parse(UInt16, addr_str[3:end]; base=16)
+                # Parse as UInt64 first, then take lower 16 bits
+                full_val = parse(UInt64, addr_str[3:end]; base=16)
+                UInt16(full_val & 0xFFFF)
             else
                 parse(UInt16, addr_str)
             end
@@ -163,7 +168,9 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             # Bare hex address without prefix = Symbolic (PC-relative) addressing
             # Example: add 0xdbc0, r12  (objdump shows this for symbolic mode)
             # This is different from &0x1c00 which is absolute addressing
-            offset = parse(UInt16, op[3:end]; base=16)
+            # Parse as UInt64 first, then take lower 16 bits
+            full_val = parse(UInt64, op[3:end]; base=16)
+            offset = UInt16(full_val & 0xFFFF)
             push!(operands, Operand((offset, :PC), :symbolic))
 
         else
