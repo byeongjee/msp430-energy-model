@@ -178,6 +178,28 @@ function handle_memmove!(state::MachineState)::Nothing
         end
     end
 
+    # Update registers to match what the actual memmove assembly would do
+    # The memmove implementation increments R13 and R14 as it copies bytes
+    state.registers[:R13] = UInt16((src + num) & 0xFFFF)
+    state.registers[:R14] = UInt16((dest + num) & 0xFFFF)
+    state.registers[:R15] = UInt16((src + num) & 0xFFFF)
+
+    # Clear all flags - the actual memmove ends with all flags clear
+    # The last comparison before return compares equal values, but testing shows
+    # that GDB reports all flags as 0 after memmove completes
+    state.flags[:C] = false
+    state.flags[:Z] = false
+    state.flags[:N] = false
+    state.flags[:V] = false
+
+    # Sync flags to SR register
+    state.registers[:SR] =
+        (state.registers[:SR] & 0xFFF0) |
+        (state.flags[:V] ? 0x0100 : 0x0000) |
+        (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
+
     @debug "Fast-path: memmove/memcpy copied $num bytes from 0x$(string(src, base=16, pad=4)) to 0x$(string(dest, base=16, pad=4))"
     return nothing
 end
