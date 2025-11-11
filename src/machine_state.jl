@@ -4,9 +4,9 @@ Initialize a new MSP430 machine state
 function MachineState()::MachineState
     # Initialize registers using proper MSP430 names
     # PC (Program Counter), SP (Stack Pointer), SR (Status Register), R3-R15
-    registers = Dict{Symbol,UInt16}(
-        :PC => 0x0000,   # Program Counter (R0)
-        :SP => 0xFFFF,   # Stack Pointer (R1) - start at top of RAM
+    registers = Dict{Symbol,UInt32}(
+        :PC => 0x00000,   # Program Counter (R0)
+        :SP => 0xFFFFF,   # Stack Pointer (R1) - start at top of RAM
         :SR => 0x0000,   # Status Register (R2)
         :R3 => 0x0000,   # Constant Generator
         :R4 => 0x0000,
@@ -25,7 +25,7 @@ function MachineState()::MachineState
 
     MachineState(
         registers,
-        Dict{UInt16,UInt16}(),  # Empty memory
+        Dict{UInt32,UInt16}(),  # Empty memory. Each cell is 16 bits.
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
     )
 end
@@ -165,44 +165,44 @@ function execute_dual_operand!(
     src_val = get_operand_value(state, ops[1], data_size)
     dst_val = get_operand_value(state, ops[2], data_size)
 
-    result = UInt16(0)
+    result = UInt32(0)
 
-    if opcode == :mov
+    if opcode == :mov || opcode == :mova
         result = src_val
     elseif opcode == :add
-        result = dst_val + src_val
-        update_flags!(state, result, dst_val, src_val, true)
+        result = UInt32(dst_val + src_val)
+        update_flags!(state, result, dst_val, src_val, true, data_size)
     elseif opcode == :addc
-        carry = state.flags[:C] ? UInt16(1) : UInt16(0)
-        result = dst_val + src_val + carry
-        update_flags!(state, result, dst_val, src_val, true)
+        carry = state.flags[:C] ? UInt32(1) : UInt32(0)
+        result = UInt32(dst_val + src_val + carry)
+        update_flags!(state, result, dst_val, src_val, true, data_size)
     elseif opcode == :sub
-        result = dst_val - src_val
-        update_flags!(state, result, dst_val, src_val, false)
+        result = UInt32(dst_val - src_val)
+        update_flags!(state, result, dst_val, src_val, false, data_size)
     elseif opcode == :subc
-        carry = state.flags[:C] ? UInt16(0) : UInt16(1)  # Inverted for subtraction
-        result = dst_val - src_val - carry
-        update_flags!(state, result, dst_val, src_val, false)
+        carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
+        result = UInt32(dst_val - src_val - carry)
+        update_flags!(state, result, dst_val, src_val, false, data_size)
     elseif opcode == :cmp
         # Compare without storing result
-        temp_result = dst_val - src_val
-        update_flags!(state, temp_result, dst_val, src_val, false)
+        temp_result = UInt32(dst_val - src_val)
+        update_flags!(state, temp_result, dst_val, src_val, false, data_size)
         return nothing  # Don't store result for compare
     elseif opcode == :bit
         # Test bits
-        temp_result = dst_val & src_val
-        update_flags!(state, temp_result, dst_val, src_val, false)
+        temp_result = UInt32(dst_val & src_val)
+        update_flags!(state, temp_result, dst_val, src_val, false, data_size)
         return nothing  # Don't store result for bit test
     elseif opcode == :bic
-        result = dst_val & (~src_val)  # Bit clear
+        result = UInt32(dst_val & (~src_val))
     elseif opcode == :bis
-        result = dst_val | src_val     # Bit set
+        result = UInt32(dst_val | src_val)
     elseif opcode == :xor
-        result = dst_val ⊻ src_val
-        update_flags!(state, result, dst_val, src_val, false)
+        result = UInt32(dst_val ⊻ src_val)
+        update_flags!(state, result, dst_val, src_val, false, data_size)
     elseif opcode == :and
-        result = dst_val & src_val
-        update_flags!(state, result, dst_val, src_val, false)
+        result = UInt32(dst_val & src_val)
+        update_flags!(state, result, dst_val, src_val, false, data_size)
     end
 
     # Store result in destination
@@ -249,34 +249,34 @@ function execute_single_operand!(
     end
 
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt16(0)
+    result = UInt32(0)
 
     if opcode == :rrc
         # Rotate right through carry
         new_carry = (operand_val & 0x0001) != 0
-        result = (operand_val >> 1) | (state.flags[:C] ? 0x8000 : 0x0000)
+        result = UInt32((operand_val >> 1) | (state.flags[:C] ? 0x8000 : 0x0000))
         state.flags[:C] = new_carry
-        update_flags_simple!(state, result)
+        update_flags_simple!(state, result, data_size)
     elseif opcode == :swpb
         # Swap bytes
-        result = ((operand_val & 0x00FF) << 8) | ((operand_val & 0xFF00) >> 8)
+        result = UInt32(((operand_val & 0x00FF) << 8) | ((operand_val & 0xFF00) >> 8))
     elseif opcode == :rra
         # Arithmetic right shift
-        result = UInt16((Int16(operand_val) >> 1) & 0xFFFF)
+        result = UInt32(Int32(operand_val) >> 1)
         state.flags[:C] = (operand_val & 0x0001) != 0
-        update_flags_simple!(state, result)
+        update_flags_simple!(state, result, data_size)
     elseif opcode == :sxt
         # Sign extend byte to word
         if (operand_val & 0x0080) != 0
-            result = operand_val | 0xFF00
+            result = UInt32(operand_val | 0xFF00)
         else
-            result = operand_val & 0x00FF
+            result = UInt32(operand_val & 0x00FF)
         end
-        update_flags_simple!(state, result)
+        update_flags_simple!(state, result, data_size)
     elseif opcode == :push
         # Push to stack
         state.registers[:SP] = state.registers[:SP] - 2
-        state.memory[state.registers[:SP]] = operand_val
+        state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
         return nothing  # Don't store result for push
     elseif opcode == :call
         # Call subroutine
@@ -292,46 +292,46 @@ function execute_single_operand!(
         return nothing
     elseif opcode == :clr
         # Clear (set to zero) - emulated as MOV #0, dst
-        result = UInt16(0)
+        result = UInt32(0)
     elseif opcode == :inc
         # Increment operand by 1
         operand_val = get_operand_value(state, ops[1])
-        result = UInt16((operand_val + 1) & 0xFFFF)
-        update_flags!(state, result, operand_val, UInt16(1), true)
+        result = UInt32(operand_val + 1)
+        update_flags!(state, result, operand_val, UInt32(1), true, data_size)
     elseif opcode == :dec
         # Decrement operand by 1
         operand_val = get_operand_value(state, ops[1])
-        result = UInt16((operand_val - 1) & 0xFFFF)
-        update_flags!(state, result, operand_val, UInt16(1), false)
+        result = UInt32(operand_val - 1)
+        update_flags!(state, result, operand_val, UInt32(1), false, data_size)
     elseif opcode == :decd
         # Double decrement (emulated instruction: sub #2, dst)
         operand_val = get_operand_value(state, ops[1])
-        result = UInt16((operand_val - 2) & 0xFFFF)
-        update_flags!(state, result, operand_val, UInt16(2), false)
+        result = UInt32(operand_val - 2)
+        update_flags!(state, result, operand_val, UInt32(2), false, data_size)
     elseif opcode == :incd
         # Double increment (emulated instruction: add #2, dst)
         operand_val = get_operand_value(state, ops[1])
-        result = UInt16((operand_val + 2) & 0xFFFF)
-        update_flags!(state, result, operand_val, UInt16(2), true)
+        result = UInt32(operand_val + 2)
+        update_flags!(state, result, operand_val, UInt32(2), true, data_size)
     elseif opcode == :sbc
         # SBC is an emulated instruction: sbc dst == subc #0, dst
         # It subtracts the carry flag from the destination
-        carry = state.flags[:C] ? UInt16(0) : UInt16(1)  # Inverted for subtraction
-        result = UInt16((operand_val - carry) & 0xFFFF)
-        update_flags!(state, result, operand_val, UInt16(0), false)
+        carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
+        result = UInt32(operand_val - carry)
+        update_flags!(state, result, operand_val, UInt32(0), false, data_size)
     elseif opcode == :adc
         # ADC is an emulated instruction: adc dst == addc #0, dst
         # It adds the carry flag to the destination
-        carry = state.flags[:C] ? UInt16(1) : UInt16(0)
-        result = UInt16((operand_val + carry) & 0xFFFF)
-        update_flags!(state, result, operand_val, UInt16(0), true)
+        carry = state.flags[:C] ? UInt32(1) : UInt32(0)
+        result = UInt32(operand_val + carry)
+        update_flags!(state, result, operand_val, UInt32(0), true, data_size)
     elseif opcode == :rla
         # Rotate left arithmetic (shift left, carry gets MSB, LSB gets 0)
         operand_val = get_operand_value(state, ops[1])
         new_carry = (operand_val & 0x8000) != 0
-        result = UInt16((operand_val << 1) & 0xFFFF)
+        result = UInt32(operand_val << 1)
         state.flags[:C] = new_carry
-        update_flags_simple!(state, result)
+        update_flags_simple!(state, result, data_size)
     elseif opcode == :rlam
         # Rotate left arithmetic multiple times
         # Format: rlam #n, Rdst where n is 1-4
@@ -343,11 +343,11 @@ function execute_single_operand!(
             result = dst_val
             for i in 1:shift_count
                 new_carry = (result & 0x8000) != 0
-                result = UInt16((result << 1) & 0xFFFF)
+                result = result << 1
                 state.flags[:C] = new_carry
             end
 
-            update_flags_simple!(state, result)
+            update_flags_simple!(state, result, data_size)
             set_operand_value!(state, ops[2], result, data_size)
             return nothing
         end
@@ -461,37 +461,136 @@ function execute_jump!(
     return nothing
 end
 
+function get_register_mask(register::Symbol)::UInt32
+    # PC (R0) and SP (R1) are always 20-bit
+    if register == :PC || register == :SP
+        return 0xFFFFF
+    # SR (R2) is always 16-bit (status register)
+    elseif register == :SR
+        return 0xFFFF
+    # R3 is constant generator, 16-bit
+    elseif register == :R3
+        return 0xFFFF
+    # R4-R15 are general purpose registers, can hold 20-bit values in MSP430X
+    else
+        return 0xFFFFF
+    end
+end
+
+function get_register_value(state::MachineState, register::Symbol)::UInt32
+    value = UInt32(state.registers[register])
+    @assert value >= 0 && value <= get_register_mask(register) "Register $register value must be between 0 and $(get_register_mask(register)), got $value"
+    return value
+end
+
+function set_register_value!(state::MachineState, register::Symbol, value::UInt32)::Nothing
+    @assert value >= 0 && value <= get_register_mask(register) "Register $register value must be between 0 and $(get_register_mask(register)), got $value"
+    state.registers[register] = value
+    return nothing
+end
+
+function apply_data_size_mask(value::UInt32, data_size::Symbol)::UInt32
+    if data_size == :word
+        return value & 0xFFFF
+    elseif data_size == :byte
+        return value & 0xFF
+    elseif data_size == :address
+        return value & 0xFFFFF
+    else
+        error("Unknown data size: $data_size")
+    end
+end
+
+function get_memory_value(state::MachineState, addr::UInt32, data_size::Symbol)::UInt32
+    if data_size == :word
+        # Read 16-bit word from memory
+        return UInt32(get(state.memory, addr, UInt16(0)))
+    elseif data_size == :byte
+        # Read byte from memory
+        # For even addresses: read lower byte (mask 0xFF)
+        # For odd addresses: read upper byte (mask 0xFF00)
+        word = get(state.memory, addr & ~UInt32(1), UInt16(0))  # Align to even address
+        if (addr & 1) == 0
+            # Even address: lower byte
+            return UInt32(word & 0xFF)
+        else
+            # Odd address: upper byte
+            return UInt32((word & 0xFF00) >> 8)
+        end
+    elseif data_size == :address
+        # Read 20-bit address (two words: lsw at addr, msw at addr+2)
+        lsw = get(state.memory, addr, UInt16(0))
+        msw = get(state.memory, addr + 2, UInt16(0))
+        # Combine: lower 16 bits from lsw, upper 4 bits from msw
+        return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
+    else
+        error("Unknown data size: $data_size")
+    end
+end
+
+function set_memory_value!(
+    state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
+)::Nothing
+    if data_size == :word
+        # Write 16-bit word to memory
+        state.memory[addr] = UInt16(value & 0xFFFF)
+    elseif data_size == :byte
+        # Write byte to memory
+        # For even addresses: write to lower byte
+        # For odd addresses: write to upper byte
+        aligned_addr = addr & ~UInt32(1)  # Align to even address
+        old_word = get(state.memory, aligned_addr, UInt16(0))
+        if (addr & 1) == 0
+            # Even address: write to lower byte
+            new_word = UInt16((old_word & 0xFF00) | (value & 0xFF))
+        else
+            # Odd address: write to upper byte
+            new_word = UInt16((old_word & 0x00FF) | ((value & 0xFF) << 8))
+        end
+        state.memory[aligned_addr] = new_word
+    elseif data_size == :address
+        # Write 20-bit address (two words: lsw at addr, msw at addr+2)
+        lsw = UInt16(value & 0xFFFF)
+        msw = UInt16((value >> 16) & 0xF)
+        state.memory[addr] = lsw
+        state.memory[addr + 2] = msw
+    else
+        error("Unknown data size: $data_size")
+    end
+    return nothing
+end
+
 """
 Get value from operand (register, immediate, or memory)
 """
 function get_operand_value(
     state::MachineState, operand::Operand, data_size::Symbol=:word
-)::UInt16
+)::UInt32
     value = if operand.mode == :immediate
         # Immediate value
         @assert isa(operand.value, Integer) "Immediate mode: operand.value must be Integer, got $(typeof(operand.value))"
-        UInt16(operand.value & 0xFFFF)
+        UInt32(operand.value)
     elseif operand.mode == :register
         # Register
         @assert isa(operand.value, Symbol) "Register mode: operand.value must be Symbol, got $(typeof(operand.value))"
-        get(state.registers, operand.value, UInt16(0))
+        get_register_value(state, operand.value)
     elseif operand.mode == :indirect
         # Indirect addressing: @R1 means "value at address contained in R1"
         @assert isa(operand.value, Symbol) "Indirect mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
-        addr = get(state.registers, reg_name, UInt16(0))
-        get(state.memory, addr, UInt16(0))
+        addr = get_register_value(state, reg_name)
+        get_memory_value(state, addr, data_size)
     elseif operand.mode == :autoincrement
         # Autoincrement addressing: @R1+ means "value at address in R1, then increment R1"
         @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
-        addr = get(state.registers, reg_name, UInt16(0))
-        val = get(state.memory, addr, UInt16(0))
+        addr = get_register_value(state, reg_name)
+        val = get_memory_value(state, addr, data_size)
         # Increment register after reading (by 2 for word, 1 for byte)
-        increment = data_size == :byte ? UInt16(1) : UInt16(2)
-        state.registers[reg_name] = UInt16((addr + increment) & 0xFFFF)
+        increment = data_size == :byte ? UInt32(1) : UInt32(2)
+        state.registers[reg_name] = UInt32((addr + increment) & get_register_mask(reg_name))
         val
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
@@ -505,43 +604,39 @@ function get_operand_value(
         if operand.mode == :symbolic
             @assert reg == :PC "Symbolic mode: register must be :PC, got $reg"
         end
-        base_addr = get(state.registers, reg, UInt16(0))
+        base_addr = get_register_value(state, reg)
         # For symbolic mode, PC points to current instruction but the offset is in the next word
         # So we need to use PC+2 (after the opcode word is fetched)
         if operand.mode == :symbolic
-            base_addr = UInt16((base_addr + 2) & 0xFFFF)
+            base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
         end
-        addr = UInt16((base_addr + offset) & 0xFFFF)
-        get(state.memory, addr, UInt16(0))
+        addr = UInt32((base_addr + offset) & get_register_mask(reg))
+        get_memory_value(state, addr, data_size)
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        get(state.memory, operand.value, UInt16(0))
+        get_memory_value(state, operand.value, data_size)
     else
         error("Unknown addressing mode: $(operand.mode)")
     end
 
     # Apply data size mask
-    return data_size == :byte ? UInt16(value & 0xFF) : value
+    return apply_data_size_mask(value, data_size)
 end
 
 """
 Set value to operand (register or memory)
 """
 function set_operand_value!(
-    state::MachineState, operand::Operand, value::UInt16, data_size::Symbol=:word
+    state::MachineState, operand::Operand, value::UInt32, data_size::Symbol=:word
 )::Nothing
     # Apply data size mask to value
-    masked_value = if data_size == :byte
-        UInt16(value & 0xFF)  # Keep only lower 8 bits
-    else
-        value  # Full 16-bit word
-    end
+    masked_value = apply_data_size_mask(value, data_size)
 
     if operand.mode == :register
         # Register
         @assert isa(operand.value, Symbol) "Register mode: operand.value must be Symbol, got $(typeof(operand.value))"
-        state.registers[operand.value] = masked_value
+        set_register_value!(state, operand.value, masked_value)
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
         # Symbolic addressing: X(PC) -> (PC + X) points to operand
@@ -553,33 +648,20 @@ function set_operand_value!(
         if operand.mode == :symbolic
             @assert reg == :PC "Symbolic mode: register must be :PC, got $reg"
         end
-        base_addr = get(state.registers, reg, UInt16(0))
+        base_addr = get_register_value(state, reg)
         # For symbolic mode, PC points to current instruction but the offset is in the next word
         # So we need to use PC+2 (after the opcode word is fetched)
         if operand.mode == :symbolic
-            base_addr = UInt16((base_addr + 2) & 0xFFFF)
+            base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
         end
-        addr = UInt16((base_addr + offset) & 0xFFFF)
+        # FIXME: for implementation simplicity, we assume that the address is 16-bit aligned
+        addr = UInt32((base_addr + offset) & get_register_mask(reg))
 
-        if data_size == :byte
-            # For byte operations to memory, only modify lower 8 bits
-            old_value = get(state.memory, addr, UInt16(0))
-            new_value = UInt16((old_value & 0xFF00) | masked_value)
-            state.memory[addr] = new_value
-        else
-            state.memory[addr] = masked_value
-        end
+        set_memory_value!(state, addr, masked_value, data_size)
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        if data_size == :byte
-            # For byte operations to memory, only modify lower 8 bits
-            old_value = get(state.memory, operand.value, UInt16(0))
-            new_value = UInt16((old_value & 0xFF00) | masked_value)
-            state.memory[operand.value] = new_value
-        else
-            state.memory[operand.value] = masked_value
-        end
+        set_memory_value!(state, operand.value, masked_value, data_size)
     else
         error("Cannot set value for addressing mode: $(operand.mode)")
     end
@@ -590,31 +672,47 @@ end
 Update status flags after arithmetic operations
 """
 function update_flags!(
-    state::MachineState, result::UInt16, dst::UInt16, src::UInt16, is_add::Bool
+    state::MachineState,
+    result::UInt32,
+    dst::UInt32,
+    src::UInt32,
+    is_add::Bool,
+    data_size::Symbol=:word,
 )::Nothing
+    # Get the appropriate mask and MSB bit for the data size
+    max_val, msb_bit = if data_size == :byte
+        (UInt32(0xFF), UInt32(0x80))
+    elseif data_size == :word
+        (UInt32(0xFFFF), UInt32(0x8000))
+    elseif data_size == :address
+        (UInt32(0xFFFFF), UInt32(0x80000))
+    else
+        error("Unknown data size: $data_size")
+    end
+
     # Zero flag
     state.flags[:Z] = (result == 0)
 
     # Negative flag (MSB set)
-    state.flags[:N] = (result & 0x8000) != 0
+    state.flags[:N] = (result & msb_bit) != 0
 
     if is_add
         # Carry flag for addition
-        state.flags[:C] = (UInt32(dst) + UInt32(src)) > 0xFFFF
+        state.flags[:C] = (dst + src) > max_val
 
         # Overflow flag for addition (both operands same sign, result different sign)
-        dst_sign = (dst & 0x8000) != 0
-        src_sign = (src & 0x8000) != 0
-        result_sign = (result & 0x8000) != 0
+        dst_sign = (dst & msb_bit) != 0
+        src_sign = (src & msb_bit) != 0
+        result_sign = (result & msb_bit) != 0
         state.flags[:V] = (dst_sign == src_sign) && (dst_sign != result_sign)
     else
         # Carry flag for subtraction (borrow)
-        state.flags[:C] = UInt32(dst) >= UInt32(src)
+        state.flags[:C] = dst >= src
 
         # Overflow flag for subtraction
-        dst_sign = (dst & 0x8000) != 0
-        src_sign = (src & 0x8000) != 0
-        result_sign = (result & 0x8000) != 0
+        dst_sign = (dst & msb_bit) != 0
+        src_sign = (src & msb_bit) != 0
+        result_sign = (result & msb_bit) != 0
         state.flags[:V] = (dst_sign != src_sign) && (dst_sign != result_sign)
     end
 
@@ -632,9 +730,22 @@ end
 """
 Update status flags for simple operations (no carry/overflow calculation)
 """
-function update_flags_simple!(state::MachineState, result::UInt16)::Nothing
+function update_flags_simple!(
+    state::MachineState, result::UInt32, data_size::Symbol=:word
+)::Nothing
+    # Get the appropriate MSB bit for the data size
+    msb_bit = if data_size == :byte
+        UInt32(0x80)
+    elseif data_size == :word
+        UInt32(0x8000)
+    elseif data_size == :address
+        UInt32(0x80000)
+    else
+        error("Unknown data size: $data_size")
+    end
+
     state.flags[:Z] = (result == 0)
-    state.flags[:N] = (result & 0x8000) != 0
+    state.flags[:N] = (result & msb_bit) != 0
 
     # Update status register
     state.registers[:SR] =
