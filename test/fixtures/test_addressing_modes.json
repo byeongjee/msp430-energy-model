@@ -3,7 +3,7 @@
   "asm_file": "test/fixtures/test_addressing_modes.asm",
   "gdb_result": {
   "registers": {
-    "PC": 16516,
+    "PC": 16828,
     "SP": 11262,
     "SR": 0,
     "R3": 0,
@@ -15,8 +15,8 @@
     "R9": 0,
     "R10": 0,
     "R11": 0,
-    "R12": 4369,
-    "R13": 4369,
+    "R12": 0,
+    "R13": 16394,
     "R14": 7178,
     "R15": 16394
   },
@@ -26,6 +26,6 @@
     "N": false,
     "V": false
   },
-  "pc": 16516
+  "pc": 16828
 }
 }
