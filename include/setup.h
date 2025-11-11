@@ -162,7 +162,11 @@ void initialize(void) {
   }
 
 #ifndef INNER_ITERS
-#define INNER_ITERS 100
+#define INNER_ITERS 20
+#endif
+
+#ifndef TEXTUAL_REPT
+#define TEXTUAL_REPT 500
 #endif
 
 #define REPEAT_INNER_ITERS(X)                                                  \

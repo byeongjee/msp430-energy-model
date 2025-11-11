@@ -1,7 +1,5 @@
 #include "setup.h"
 
-#define TEXTUAL_REPT 100
-
 static volatile uint16_t sym_data = 0x1111;
 static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
 
