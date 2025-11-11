@@ -60,6 +60,11 @@ function parse_line(line::String, current_addr::UInt16)::Union{Instruction,Nothi
 
     opcode = Symbol(opcode_str)
 
+    # Special case: mova always operates on 20-bit addresses
+    if opcode == :mova
+        data_size = :address
+    end
+
     # Parse operands
     operands = Operand[]
 

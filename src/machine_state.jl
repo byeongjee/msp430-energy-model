@@ -90,6 +90,7 @@ end
 const EXECUTORS = Dict{Symbol,Function}(
     # Dual operand instructions
     :mov => dual_operand_executor!,
+    :mova => dual_operand_executor!,  # Move address (20-bit) - same as mov, data_size set by parser
     :add => dual_operand_executor!,
     :addc => dual_operand_executor!,
     :sub => dual_operand_executor!,
@@ -352,37 +353,72 @@ function execute_single_operand!(
             return nothing
         end
     elseif opcode == :pushm
-        # Push multiple registers: pushm #n, Rdst
+        # Push multiple registers: pushm[.w|.a] #n, Rdst
         # Pushes n registers from Rdst-n+1 to Rdst
+        # .w (word): 16-bit values, 2 bytes per register
+        # .a (address): 20-bit values, 4 bytes per register (2 words)
         if length(ops) >= 2
             n = get_operand_value(state, ops[1])
             dst_reg = ops[2].value  # Extract register symbol from Operand
             dst_num = Parser.reg_symbol_to_num(dst_reg)
 
+            # Determine stack adjustment per register based on data_size
+            bytes_per_reg = if data_size == :address
+                4  # 20-bit = 2 words = 4 bytes
+            else
+                2  # 16-bit = 1 word = 2 bytes
+            end
+
             for i in (dst_num - n + 1):dst_num
                 if i >= 0 && i <= 15
                     reg_sym = Parser.reg_num_to_symbol(i)
-                    reg_val = get(state.registers, reg_sym, UInt16(0))
-                    state.registers[:SP] = state.registers[:SP] - 2
-                    state.memory[state.registers[:SP]] = reg_val
+                    reg_val = get_register_value(state, reg_sym)
+
+                    # Adjust stack pointer before push
+                    state.registers[:SP] = state.registers[:SP] - bytes_per_reg
+
+                    # Store value based on data_size
+                    if data_size == :address
+                        set_memory_value!(state, state.registers[:SP], reg_val, :address)
+                    else
+                        state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
+                    end
                 end
             end
         end
         return nothing
     elseif opcode == :popm
-        # Pop multiple registers: popm #n, Rdst
+        # Pop multiple registers: popm[.w|.a] #n, Rdst
         # Pops n registers from Rdst-n+1 to Rdst
+        # .w (word): 16-bit values, 2 bytes per register
+        # .a (address): 20-bit values, 4 bytes per register (2 words)
         if length(ops) >= 2
             n = get_operand_value(state, ops[1])
             dst_reg = ops[2].value  # Extract register symbol from Operand
             dst_num = Parser.reg_symbol_to_num(dst_reg)
 
+            # Determine stack adjustment per register based on data_size
+            bytes_per_reg = if data_size == :address
+                4  # 20-bit = 2 words = 4 bytes
+            else
+                2  # 16-bit = 1 word = 2 bytes
+            end
+
             for i in (dst_num - n + 1):dst_num
                 if i >= 0 && i <= 15
                     reg_sym = Parser.reg_num_to_symbol(i)
-                    reg_val = get(state.memory, state.registers[:SP], UInt16(0))
-                    state.registers[reg_sym] = reg_val
-                    state.registers[:SP] = state.registers[:SP] + 2
+
+                    # Load value based on data_size
+                    reg_val = if data_size == :address
+                        get_memory_value(state, state.registers[:SP], :address)
+                    else
+                        UInt32(get(state.memory, state.registers[:SP], UInt16(0)))
+                    end
+
+                    set_register_value!(state, reg_sym, reg_val)
+
+                    # Adjust stack pointer after pop
+                    state.registers[:SP] = state.registers[:SP] + bytes_per_reg
                 end
             end
         end
