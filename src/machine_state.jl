@@ -389,7 +389,7 @@ function execute_single_operand!(
         return nothing
     elseif opcode == :popm
         # Pop multiple registers: popm[.w|.a] #n, Rdst
-        # Pops n registers from Rdst-n+1 to Rdst
+        # Pops n registers from Rdst-n+1 to Rdst in REVERSE order (stack grows down)
         # .w (word): 16-bit values, 2 bytes per register
         # .a (address): 20-bit values, 4 bytes per register (2 words)
         if length(ops) >= 2
@@ -404,7 +404,8 @@ function execute_single_operand!(
                 2  # 16-bit = 1 word = 2 bytes
             end
 
-            for i in (dst_num - n + 1):dst_num
+            # Pop in reverse order: from Rdst down to Rdst-n+1
+            for i in dst_num:-1:(dst_num - n + 1)
                 if i >= 0 && i <= 15
                     reg_sym = Parser.reg_num_to_symbol(i)
 
