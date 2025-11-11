@@ -116,6 +116,7 @@ const EXECUTORS = Dict{Symbol,Function}(
     :dec => single_operand_executor!,
     :dint => single_operand_executor!,
     :nop => single_operand_executor!,
+    :br => single_operand_executor!,  # Branch (mov src, PC)
     :pushm => single_operand_executor!,
     :popm => single_operand_executor!,
     :rla => single_operand_executor!,
@@ -289,6 +290,11 @@ function execute_single_operand!(
         return_addr = addresses[current_idx + 1]
         state.registers[:SP] = state.registers[:SP] - 2
         state.memory[state.registers[:SP]] = return_addr  # Return address
+        state.registers[:PC] = operand_val
+        return nothing
+    elseif opcode == :br
+        # Branch (indirect jump) - mov src, PC
+        # Loads the operand value into PC to branch to that address
         state.registers[:PC] = operand_val
         return nothing
     elseif opcode == :clr

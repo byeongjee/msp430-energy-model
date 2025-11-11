@@ -148,6 +148,11 @@ function handle_memset!(state::MachineState)::Nothing
         state.memory[addr] = UInt16(value)
     end
 
+    # Update registers to match what the actual memset assembly would do
+    # The memset implementation: R14 = ptr + num, R15 = ptr + num
+    state.registers[:R14] = UInt16((ptr + num) & 0xFFFF)
+    state.registers[:R15] = UInt16((ptr + num) & 0xFFFF)
+
     @debug "Fast-path: memset filled $num bytes at 0x$(string(ptr, base=16, pad=4)) with value $value"
     return nothing
 end
