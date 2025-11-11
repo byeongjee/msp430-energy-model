@@ -1,0 +1,31 @@
+{
+  "test_name": "test_br",
+  "asm_file": "test/fixtures/test_br.asm",
+  "gdb_result": {
+  "registers": {
+    "PC": 16464,
+    "SP": 11262,
+    "SR": 0,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 42,
+    "R13": 16444,
+    "R14": 7172,
+    "R15": 7172
+  },
+  "flags": {
+    "C": false,
+    "Z": false,
+    "N": false,
+    "V": false
+  },
+  "pc": 16464
+}
+}
