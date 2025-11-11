@@ -27,15 +27,21 @@ Instruction representation
 struct Instruction
     opcode::Symbol
     operands::Vector{Operand}
-    data_size::Symbol        # :byte or :word
+    data_size::Symbol        # :byte (8-bit), :word (16-bit), or :address (20-bit)
 end
 
 """
 Machine state for processor simulation
+
+Register sizes:
+- PC (R0), SP (R1): 20-bit
+- SR (R2): 16-bit (status register)
+- R3: 16-bit (constant generator)
+- R4-R15: 20-bit (general purpose registers in MSP430X)
 """
 mutable struct MachineState
-    registers::Dict{Symbol,UInt16}  # R0-R15, 16-bit registers
-    memory::Dict{UInt16,UInt16}     # 16-bit address space, 16-bit words
+    registers::Dict{Symbol,UInt32}  # All stored as UInt32, masked per register capabilities
+    memory::Dict{UInt32,UInt16}     # 20-bit address space, 16-bit words
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
 end
 

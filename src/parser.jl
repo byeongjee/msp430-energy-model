@@ -53,6 +53,8 @@ function parse_line(line::String, current_addr::UInt16)::Union{Instruction,Nothi
             data_size = :byte
         elseif suffix == "w"
             data_size = :word
+        elseif suffix == "a"
+            data_size = :address
         end
     end
 
@@ -83,14 +85,14 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             # Immediate addressing mode: #value
             value_str = strip(op[2:end])
             value = if startswith(value_str, "0x") || startswith(value_str, "0X")
-                # Hexadecimal - parse as UInt64 first, then take lower 16 bits
+                # Hexadecimal - parse as UInt64 first, then take lower 20 bits
                 full_val = parse(UInt64, value_str[3:end]; base=16)
-                UInt16(full_val & 0xFFFF)
+                UInt32(full_val & 0xFFFFF)
             else
                 # Decimal (may be negative)
-                int_val = parse(Int16, value_str)
-                # Convert to UInt16 representation (two's complement)
-                reinterpret(UInt16, int_val)
+                int_val = parse(Int32, value_str)
+                # Convert to UInt32 representation (two's complement) and mask to 20 bits
+                reinterpret(UInt32, int_val) & 0xFFFFF
             end
             push!(operands, Operand(value, :immediate))
 
@@ -119,13 +121,13 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
 
             # Parse offset (may be negative)
             offset = if startswith(offset_str, "0x") || startswith(offset_str, "0X")
-                # Parse as UInt64 first, then take lower 16 bits
+                # Parse as UInt64 first, then take lower 20 bits
                 full_val = parse(UInt64, offset_str[3:end]; base=16)
-                UInt16(full_val & 0xFFFF)
+                UInt32(full_val & 0xFFFFF)
             else
-                # Parse as signed integer first, then convert to UInt16 representation
-                int_offset = parse(Int16, offset_str)
-                reinterpret(UInt16, int_offset)
+                # Parse as signed integer first, then convert to UInt32 representation and mask to 20 bits
+                int_offset = parse(Int32, offset_str)
+                reinterpret(UInt32, int_offset) & 0xFFFFF
             end
 
             reg_name = normalize_register_name(Symbol(uppercase(reg_part)))
@@ -138,11 +140,11 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             # Absolute addressing: &address
             addr_str = strip(op[2:end])
             addr = if startswith(addr_str, "0x") || startswith(addr_str, "0X")
-                # Parse as UInt64 first, then take lower 16 bits
+                # Parse as UInt64 first, then take lower 20 bits
                 full_val = parse(UInt64, addr_str[3:end]; base=16)
-                UInt16(full_val & 0xFFFF)
+                UInt32(full_val & 0xFFFFF)
             else
-                parse(UInt16, addr_str)
+                parse(UInt32, addr_str)
             end
             push!(operands, Operand(addr, :absolute))
 
@@ -168,9 +170,9 @@ function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
             # Bare hex address without prefix = Symbolic (PC-relative) addressing
             # Example: add 0xdbc0, r12  (objdump shows this for symbolic mode)
             # This is different from &0x1c00 which is absolute addressing
-            # Parse as UInt64 first, then take lower 16 bits
+            # Parse as UInt64 first, then take lower 20 bits
             full_val = parse(UInt64, op[3:end]; base=16)
-            offset = UInt16(full_val & 0xFFFF)
+            offset = UInt32(full_val & 0xFFFFF)
             push!(operands, Operand((offset, :PC), :symbolic))
 
         else

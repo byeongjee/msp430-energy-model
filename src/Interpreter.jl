@@ -32,7 +32,7 @@ function format_registers(state)::String
 end
 
 function _memory_op_debug_msg(
-    state::MachineState, inst::Instruction, old_regs::Dict{Symbol,UInt16}
+    state::MachineState, inst::Instruction, old_regs::Dict{Symbol,UInt32}
 )::Union{String,Nothing}
     # Only create a message if we can recognize a memory read/write
     if length(inst.operands) >= 2
@@ -40,11 +40,11 @@ function _memory_op_debug_msg(
         dst_operand = inst.operands[2]
         if dst_operand.mode == :indexed
             offset, reg = dst_operand.value
-            base_addr = get(old_regs, reg, UInt16(0))
-            addr = UInt16((base_addr + offset) & 0xFFFF)
+            base_addr = get(old_regs, reg, UInt32(0))
+            addr = UInt32((base_addr + offset) & 0xFFFFF)
             if inst.opcode == :mov
                 src_val = get_operand_value(state, inst.operands[1])
-                return "    Memory[0x$(string(addr, base=16, pad=4))] = $src_val"
+                return "    Memory[0x$(string(addr, base=16, pad=5))] = $src_val"
             end
         end
 
@@ -53,9 +53,9 @@ function _memory_op_debug_msg(
         if src_operand.mode == :indirect
             operand_str = string(src_operand.value)
             reg_name = Symbol(operand_str[2:end])
-            addr = get(old_regs, reg_name, UInt16(0))
+            addr = get(old_regs, reg_name, UInt32(0))
             val = get(state.memory, addr, UInt16(0))
-            return "    Memory[0x$(string(addr, base=16, pad=4))] → $val"
+            return "    Memory[0x$(string(addr, base=16, pad=5))] → $val"
         end
     end
     return nothing
@@ -211,7 +211,7 @@ We handle the function calls with fast-path optimizations.
 """
 function try_fast_path_call!(
     state::MachineState,
-    call_target::UInt16,
+    call_target::UInt32,
     func_addrs::Dict{String,UInt16},
     addresses::Vector{UInt16},
     current_idx::Int,
