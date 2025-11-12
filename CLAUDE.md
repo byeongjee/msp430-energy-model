@@ -1,0 +1,1 @@
+- use source env.sh before running make commands
