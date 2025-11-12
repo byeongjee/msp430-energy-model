@@ -23,9 +23,6 @@ MEASUREMENT_INCLUDE_PATH := $(MKFILE_DIR)/include
 
 # Compiler flags
 CFLAGS := -mmcu=$(DEVICE) -O0 -g -Wall
-ifdef DEBUG
-CFLAGS += -DDEBUG
-endif
 
 # Process DEFINES variable: space-separated list of macros (e.g., DEFINES="FOO=1 BAR ENABLE_FEATURE=value")
 # Each macro gets -D prefix automatically
@@ -72,21 +69,16 @@ $(BUILD_DIR):
 $(ASM_DIR): | $(BUILD_DIR)
 	@mkdir -p $(ASM_DIR)
 
-compile: | $(BUILD_DIR) ## Compile C file to MSP430 binary (FILE=<file.c> [DEBUG=1] [NUM_REPEAT=<n>] [DEFINES="MACRO1=val MACRO2..."])
+compile: | $(BUILD_DIR) ## Compile C file to MSP430 binary (FILE=<file.c> [DEFINES="MACRO1=val MACRO2..."])
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif
 	@echo "Compiling $(FILE) for MSP430..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	NUM_REPEAT_FLAG=""; \
-	if [ -n "$(NUM_REPEAT)" ]; then \
-		NUM_REPEAT_FLAG="-DNUM_REPEAT=$(NUM_REPEAT)"; \
-		echo "  NUM_REPEAT=$(NUM_REPEAT)"; \
-	fi; \
 	if [ -n "$(DEFINES)" ]; then \
 		echo "  DEFINES=$(DEFINES)"; \
 	fi; \
-	$(CC) $(CFLAGS) $(DEFINE_FLAGS) $$NUM_REPEAT_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
+	$(CC) $(CFLAGS) $(DEFINE_FLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
 	@echo "✓ Compilation successful: $(BUILD_DIR)/$$(basename $(FILE) .c).elf"
 
 disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c>)
@@ -127,8 +119,7 @@ endif
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train.sh "$${ARGS[@]}"
 
-estimate: NUM_REPEAT=1
-estimate: disasm ## Estimate energy consumption (FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>])
+estimate: disasm ## Estimate energy consumption (FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] [DEFINES="..."])
 ifndef PARAMS
 	$(error Please specify PARAMS=<parameter_file>)
 endif
@@ -201,7 +192,7 @@ test: ## Run Julia test suite ([PATTERN=<regex>])
 		julia --project=. test/runtests.jl; \
 	fi
 
-flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEBUG=1] [DEFINES="..."])
+flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEFINES="..."])
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif

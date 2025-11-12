@@ -237,8 +237,7 @@ for i in "${!FILE_ARRAY[@]}"; do
 
     # Step 2: Compile
     log_step "Step 2.$((i+1)): Compiling $FILE"
-    log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
-    $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
+    $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
     log_success "Compiled: $BUILD_DIR/${BASENAME}.elf"
 
     # Step 3: Flash
