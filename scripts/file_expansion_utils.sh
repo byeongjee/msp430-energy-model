@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# Shared utility for file pattern expansion
+# Supports: *.c, **/*.c, {a,b,c}.c, path/{dir1,dir2}/*.c
+# Requires: bash 4.0+ (for mapfile)
+
+# Helper function to expand file patterns (glob + brace expansion)
+expand_file_input() {
+    local input="$1"
+    local files=()
+
+    # Handle brace expansion manually
+    # This function expands {a,b,c} patterns
+    expand_braces() {
+        local pattern="$1"
+
+        # Check if pattern contains braces
+        if [[ "$pattern" =~ \{[^}]+\} ]]; then
+            # Extract the brace content
+            local before="${pattern%%\{*}"
+            local brace_content="${pattern#*\{}"
+            brace_content="${brace_content%%\}*}"
+            local after="${pattern#*\}}"
+
+            # Split by comma and expand each
+            IFS=',' read -ra items <<< "$brace_content"
+            for item in "${items[@]}"; do
+                expand_braces "${before}${item}${after}"
+            done
+        else
+            echo "$pattern"
+        fi
+    }
+
+    # First expand braces to get multiple patterns
+    mapfile -t patterns < <(expand_braces "$input")
+
+    # Now expand each pattern with glob/find
+    for pattern in "${patterns[@]}"; do
+        # Handle ** (recursive glob) with find
+        if [[ "$pattern" == *"**"* ]]; then
+            # Split on **
+            local prefix="${pattern%%\*\**}"
+            local suffix="${pattern#*\*\*}"
+            suffix="${suffix#/}" # Remove leading slash if present
+
+            # Use find for recursive search
+            if [[ -n "$suffix" ]]; then
+                while IFS= read -r -d '' file; do
+                    files+=("$file")
+                done < <(find "$prefix" -type f -path "*$suffix" -print0 2>/dev/null)
+            else
+                while IFS= read -r -d '' file; do
+                    files+=("$file")
+                done < <(find "$prefix" -type f -print0 2>/dev/null)
+            fi
+        # Handle regular glob patterns (*, ?)
+        elif [[ "$pattern" == *"*"* ]] || [[ "$pattern" == *"?"* ]]; then
+            # Use bash glob expansion
+            shopt -s nullglob
+            local expanded=($pattern)
+            shopt -u nullglob
+
+            for file in "${expanded[@]}"; do
+                [[ -f "$file" ]] && files+=("$file")
+            done
+        else
+            # Literal filename
+            [[ -f "$pattern" ]] && files+=("$pattern")
+        fi
+    done
+
+    # Remove duplicates and sort
+    if [[ ${#files[@]} -gt 0 ]]; then
+        printf '%s\n' "${files[@]}" | sort -u
+    fi
+}
+
+# Helper function to match files to CSVs by basename
+# Usage: match_files_by_basename source_files_array csv_pattern_or_list
+# Returns: matched CSV for each source file (empty if no match)
+match_files_by_basename() {
+    local -n source_files_ref=$1
+    local csv_input="$2"
+
+    # Build pool of CSV files
+    local csv_pool=()
+    if [[ -n "$csv_input" ]]; then
+        # Check if semicolon-separated or glob pattern
+        if [[ "$csv_input" == *";"* ]]; then
+            # Parse semicolon-separated list
+            IFS=';' read -ra csv_pool <<< "$csv_input"
+        else
+            # Expand glob pattern
+            mapfile -t csv_pool < <(expand_file_input "$csv_input")
+        fi
+    fi
+
+    # Match each source file to a CSV by basename
+    for source_file in "${source_files_ref[@]}"; do
+        local basename=$(basename "$source_file" .c)
+        local matched_csv=""
+
+        # Search for matching CSV
+        if [[ ${#csv_pool[@]} -gt 0 ]]; then
+            for csv in "${csv_pool[@]}"; do
+                local csv_basename=$(basename "$csv")
+                if [[ "$csv_basename" == *"$basename"* ]]; then
+                    matched_csv="$csv"
+                    break
+                fi
+            done
+        fi
+
+        # Output the matched CSV (or empty string if no match)
+        echo "$matched_csv"
+    done
+}
