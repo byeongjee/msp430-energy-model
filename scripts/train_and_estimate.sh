@@ -279,7 +279,7 @@ for i in "${!TRAIN_FILE_ARRAY[@]}"; do
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
-        TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_${TIMESTAMP}_segments.csv"
+        TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_segments_${TIMESTAMP}.csv"
         USE_TEMP_TRAINING_SEGMENTS=1
     else
         log_info "  Matched segments CSV for $basename: ${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
