@@ -23,7 +23,7 @@ KEEP_INTERMEDIATES=0
 TAG=""
 
 # Required parameters (to be set via command line)
-TRAIN_FILES=""  # Semicolon-separated list of training files
+TRAIN_FILES=""  # Pattern for training files (supports glob patterns and brace expansion)
 TRAINING_RAW_CSV=""  # Semicolon-separated list (optional, for resuming)
 TRAINING_SEGMENTS_CSV=""  # Semicolon-separated list (optional, for resuming)
 PARAMS_FILE=""
@@ -43,8 +43,8 @@ Required arguments:
   --train-files PATTERN     C file(s) to train the model from (supports glob patterns and brace expansion)
 
 Optional arguments:
-  --training-raw-csv PATTERN     Raw measurement CSV file(s) for training (glob pattern, semicolon-separated, or matched by basename)
-  --training-segments-csv PATTERN  Preprocessed segments CSV file(s) for training (glob pattern, semicolon-separated, or matched by basename)
+  --training-raw-csv PATTERN     Raw measurement CSV file(s) for training (semicolon-separated list or glob pattern; automatically matched to training files by basename)
+  --training-segments-csv PATTERN  Preprocessed segments CSV file(s) for training (semicolon-separated list or glob pattern; automatically matched to training files by basename)
   --params FILE             Model parameters JSON file (default: temp file)
   --tag TAG                 Tag for naming output files (default: process ID)
   --voltage V               Voltage for measurement (default: 3.3)
@@ -195,12 +195,12 @@ TRAINING_SEGMENTS_CSV_ARRAY=()
 # Match training files to CSVs by basename (supports glob patterns)
 if [[ -n "$TRAINING_RAW_CSV" ]]; then
     log_info "Matching training raw CSVs by basename..."
-    mapfile -t TRAINING_RAW_CSV_ARRAY < <(match_files_by_basename TRAIN_FILE_ARRAY "$TRAINING_RAW_CSV")
+    mapfile -t TRAINING_RAW_CSV_ARRAY < <(match_files_by_basename "TRAIN_FILE_ARRAY" "$TRAINING_RAW_CSV")
 fi
 
 if [[ -n "$TRAINING_SEGMENTS_CSV" ]]; then
     log_info "Matching training segments CSVs by basename..."
-    mapfile -t TRAINING_SEGMENTS_CSV_ARRAY < <(match_files_by_basename TRAIN_FILE_ARRAY "$TRAINING_SEGMENTS_CSV")
+    mapfile -t TRAINING_SEGMENTS_CSV_ARRAY < <(match_files_by_basename "TRAIN_FILE_ARRAY" "$TRAINING_SEGMENTS_CSV")
 fi
 
 # Create temp file paths for training files without matched CSVs
