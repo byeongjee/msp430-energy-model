@@ -536,12 +536,12 @@ end
 
 function get_register_value(state::MachineState, register::Symbol)::UInt32
     value = UInt32(state.registers[register])
-    @assert value >= 0 && value <= get_register_mask(register) "Register $register value must be between 0 and $(get_register_mask(register)), got $value"
+    @assert value <= get_register_mask(register) "Register $register value must be less than or equal to $(get_register_mask(register)), got $value"
     return value
 end
 
 function set_register_value!(state::MachineState, register::Symbol, value::UInt32)::Nothing
-    @assert value >= 0 && value <= get_register_mask(register) "Register $register value must be between 0 and $(get_register_mask(register)), got $value"
+    @assert value <= get_register_mask(register) "Register $register value must be less than or equal to $(get_register_mask(register)), got $value"
     state.registers[register] = value
     return nothing
 end
