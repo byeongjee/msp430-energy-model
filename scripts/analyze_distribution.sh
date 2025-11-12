@@ -17,6 +17,7 @@ REPORT_DIR="${REPORT_DIR_DEFAULT}"
 SKIP_RESET=""
 NUM_REPEAT=10
 TAG=""
+DEFINES=""  # Space-separated list of compiler macros
 
 # Required parameters (to be set via command line)
 FILES=""  # Semicolon-separated list of files
@@ -38,6 +39,7 @@ Optional arguments:
   --voltage V               Voltage for measurement (default: 3.3)
   --max-current A           Max current for measurement (default: 0.01)
   --num-repeat N            NUM_REPEAT value for compilation (default: 10)
+  --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
   --report-dir DIR          Directory for report (default: ./report)
   --skip-reset              Skip device reset during measurement
   --help                    Show this help message
@@ -88,6 +90,10 @@ while [[ $# -gt 0 ]]; do
             NUM_REPEAT="$2"
             shift 2
             ;;
+        --defines)
+            DEFINES="$2"
+            shift 2
+            ;;
         --report-dir)
             REPORT_DIR="$2"
             shift 2
@@ -133,6 +139,12 @@ for file in "${FILE_ARRAY[@]}"; do
         exit 1
     fi
 done
+
+# Process DEFINES variable
+DEFINE_FLAGS=$(process_defines "$DEFINES")
+if [[ -n "$DEFINES" ]]; then
+    log_info "Using compiler defines: $DEFINES"
+fi
 
 # Setup temporary files and directories
 mkdir -p "$TEMP_DIR"
@@ -226,7 +238,7 @@ for i in "${!FILE_ARRAY[@]}"; do
     # Step 2: Compile
     log_step "Step 2.$((i+1)): Compiling $FILE"
     log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
-    $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
+    $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
     log_success "Compiled: $BUILD_DIR/${BASENAME}.elf"
 
     # Step 3: Flash

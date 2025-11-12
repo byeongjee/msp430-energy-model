@@ -22,6 +22,7 @@ INFERENCE="importance-sampling"
 KEEP_INTERMEDIATES=0
 TAG=""
 TIMESTAMP=""  # Optional timestamp (if not provided, will be auto-generated)
+DEFINES=""  # Space-separated list of compiler macros
 
 # Required parameters (to be set via command line)
 TRAIN_FILES=""  # Pattern for training files (supports glob patterns and brace expansion)
@@ -56,6 +57,7 @@ Optional arguments:
   --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
   --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
   --inference ALG           Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)
+  --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
   --skip-reset              Skip device reset during measurement
   --keep-intermediates      Keep intermediate files and suggest resume commands
   --help                    Show this help message
@@ -133,6 +135,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --inference)
             INFERENCE="$2"
+            shift 2
+            ;;
+        --defines)
+            DEFINES="$2"
             shift 2
             ;;
         --skip-reset)
@@ -292,6 +298,12 @@ MODEL_FLAG="--model $MODEL"
 # Build INFERENCE_FLAG
 INFERENCE_FLAG="--inference $INFERENCE"
 
+# Process DEFINES variable
+DEFINE_FLAGS=$(process_defines "$DEFINES")
+if [[ -n "$DEFINES" ]]; then
+    log_info "Using compiler defines: $DEFINES"
+fi
+
 # Determine which steps to skip based on provided intermediate files
 SKIP_MEASUREMENT=0
 SKIP_PREPROCESSING=0
@@ -407,7 +419,7 @@ if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
         # Step 1: Compile training file
         log_step "Step 1.$((i+1)): Compiling training file ($train_basename)"
         log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
-        $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
+        $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
         log_success "Compiled: $BUILD_DIR/${train_basename}.elf"
 
         # Step 2: Flash training file to device
@@ -467,7 +479,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
         # Need to compile if we skipped measurement
         if [[ $SKIP_MEASUREMENT -eq 1 ]]; then
             log_info "Compiling $train_basename with NUM_REPEAT=$NUM_REPEAT"
-            $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
+            $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
         fi
 
         $OBJDUMP -d "$BUILD_DIR/${train_basename}.elf" > "$ASM_DIR/${train_basename}.asm"

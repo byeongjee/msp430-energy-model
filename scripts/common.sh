@@ -93,6 +93,30 @@ setup_toolchain() {
 }
 
 # ============================================================
+# DEFINES PROCESSING
+# ============================================================
+
+# Process DEFINES variable: space-separated list of macros
+# Usage: process_defines "FOO=1 BAR ENABLE_FEATURE=value"
+# Returns: "-DFOO=1 -DBAR -DENABLE_FEATURE=value"
+process_defines() {
+    local defines_str="$1"
+    local result=""
+
+    if [[ -z "$defines_str" ]]; then
+        echo ""
+        return
+    fi
+
+    # Split on spaces and add -D prefix to each
+    for define in $defines_str; do
+        result="$result -D$define"
+    done
+
+    echo "$result"
+}
+
+# ============================================================
 # DEFAULT VALUES
 # ============================================================
 
