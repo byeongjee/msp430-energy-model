@@ -246,12 +246,12 @@ TRAINING_SEGMENTS_CSV_ARRAY=()
 # Match training files to CSVs by basename (supports glob patterns)
 if [[ -n "$TRAINING_RAW_CSV" ]]; then
     log_info "Matching training raw CSVs by basename..."
-    mapfile -t TRAINING_RAW_CSV_ARRAY < <(match_files_by_basename TRAIN_FILE_ARRAY "$TRAINING_RAW_CSV")
+    mapfile -t TRAINING_RAW_CSV_ARRAY < <(match_files_by_basename "TRAIN_FILE_ARRAY" "$TRAINING_RAW_CSV")
 fi
 
 if [[ -n "$TRAINING_SEGMENTS_CSV" ]]; then
     log_info "Matching training segments CSVs by basename..."
-    mapfile -t TRAINING_SEGMENTS_CSV_ARRAY < <(match_files_by_basename TRAIN_FILE_ARRAY "$TRAINING_SEGMENTS_CSV")
+    mapfile -t TRAINING_SEGMENTS_CSV_ARRAY < <(match_files_by_basename "TRAIN_FILE_ARRAY" "$TRAINING_SEGMENTS_CSV")
 fi
 
 # Create temp file paths for training files without matched CSVs
