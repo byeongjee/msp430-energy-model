@@ -155,9 +155,9 @@ endif
 
 train_and_estimate: MODEL?=mean_per_addressing_mode
 train_and_estimate: INFERENCE?=importance-sampling
-train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<files> ESTIMATE_FILE=<file> [TAG=<tag>] [options])
+train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<pattern> ESTIMATE_FILE=<file> [TAG=<tag>] [options])
 ifndef TRAIN_FILES
-	$(error Please specify TRAIN_FILES=<file.c> or TRAIN_FILES=<file1.c>;<file2.c>;... (semicolon-separated))
+	$(error Please specify TRAIN_FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
 ifndef ESTIMATE_FILE
 	$(error Please specify ESTIMATE_FILE=<file.c> for estimation)
@@ -180,9 +180,9 @@ endif
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train_and_estimate.sh "$${ARGS[@]}"
 
-analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<files> [TAG=<tag>] [NUM_REPEAT=<n>] [options])
+analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [NUM_REPEAT=<n>] [options])
 ifndef FILES
-	$(error Please specify FILES=file.c or FILES=file1.c;file2.c;... (semicolon-separated))
+	$(error Please specify FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
 	@ARGS=("--files" "$(FILES)"); \
 	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \

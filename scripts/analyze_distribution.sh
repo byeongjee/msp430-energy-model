@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Analyze energy distribution: flash → measure → preprocess → analyze
 # Usage: ./scripts/analyze_distribution.sh [options]
+# Requires: bash 4.0+ (for mapfile)
 
 set -euo pipefail
 
@@ -69,6 +70,9 @@ log_step() {
     echo -e "${YELLOW}======================================${NC}"
 }
 
+# Source file expansion utilities
+source "$SCRIPT_DIR/file_expansion_utils.sh"
+
 usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
@@ -76,7 +80,7 @@ Usage: $0 [OPTIONS]
 Analyze energy distribution: flash → measure → preprocess → analyze
 
 Required arguments:
-  --files FILES             C file(s) to analyze (semicolon-separated for multiple)
+  --files PATTERN           C file(s) to analyze (supports glob patterns and brace expansion)
 
 Optional arguments:
   --tag TAG                 Tag for naming output files (default: none)
@@ -88,17 +92,23 @@ Optional arguments:
   --help                    Show this help message
 
 Examples:
-  # Basic usage (single file)
+  # Single file
   $0 --files examples/c_programs/simple.c
 
-  # Multiple files
-  $0 --files "file1.c;file2.c;file3.c"
+  # All .c files in a directory
+  $0 --files "examples/c_programs/*.c"
 
-  # With tag for organized output
-  $0 --files examples/c_programs/simple.c --tag experiment1
+  # Recursive glob (all .c files in subdirectories)
+  $0 --files "examples/**/*.c"
 
-  # Custom measurement settings
-  $0 --files examples/c_programs/simple.c \\
+  # Brace expansion (specific files)
+  $0 --files "examples/c_programs/{file1,file2,file3}.c"
+
+  # Brace expansion with directories
+  $0 --files "examples/{crypto,math}/*.c" --tag multi_dir
+
+  # With custom measurement settings
+  $0 --files "examples/c_programs/*.c" \\
      --voltage 3.0 \\
      --max-current 0.02
 EOF
@@ -154,10 +164,18 @@ if [[ -z "$FILES" ]]; then
     exit 1
 fi
 
-# Parse files into array
-IFS=';' read -ra FILE_ARRAY <<< "$FILES"
+# Parse files into array using pattern expansion
+mapfile -t FILE_ARRAY < <(expand_file_input "$FILES")
 
-# Check if files exist
+# Check if any files were found
+if [[ ${#FILE_ARRAY[@]} -eq 0 ]]; then
+    log_error "No files found matching pattern: $FILES"
+    exit 1
+fi
+
+log_info "Found ${#FILE_ARRAY[@]} file(s) from pattern: $FILES"
+
+# Check if files exist (should always pass after expand_file_input)
 for file in "${FILE_ARRAY[@]}"; do
     if [[ ! -f "$file" ]]; then
         log_error "File not found: $file"

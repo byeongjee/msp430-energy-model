@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Full pipeline: measure train → measure estimate → preprocess both → train → estimate → compare
 # Usage: ./scripts/train_and_estimate.sh [options]
+# Requires: bash 4.0+ (for mapfile)
 
 set -euo pipefail
 
@@ -89,6 +90,9 @@ log_step() {
     echo -e "${YELLOW}======================================${NC}"
 }
 
+# Source file expansion utilities
+source "$SCRIPT_DIR/file_expansion_utils.sh"
+
 usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
@@ -96,14 +100,14 @@ Usage: $0 [OPTIONS]
 Full pipeline: measure train → measure estimate → preprocess both → train → estimate → compare
 
 Required arguments:
-  --train-files FILES       C file(s) to train the model from (semicolon-separated for multiple)
+  --train-files PATTERN     C file(s) to train the model from (supports glob patterns and brace expansion)
   --estimate-file FILE      C file to estimate energy for
 
 Optional arguments:
-  --training-raw-csv FILES  Raw measurement CSV file(s) for training (semicolon-separated, default: temp files)
-  --test-raw-csv FILE       Raw measurement CSV file for estimation (default: temp file)
-  --training-segments-csv FILES  Preprocessed segments CSV file(s) for training (semicolon-separated, default: temp files)
-  --test-segments-csv FILE  Preprocessed segments CSV file for estimation (default: temp file)
+  --training-raw-csv PATTERN     Raw measurement CSV file(s) for training (glob pattern, semicolon-separated, or matched by basename)
+  --test-raw-csv FILE            Raw measurement CSV file for estimation (default: temp file)
+  --training-segments-csv PATTERN  Preprocessed segments CSV file(s) for training (glob pattern, semicolon-separated, or matched by basename)
+  --test-segments-csv FILE       Preprocessed segments CSV file for estimation (default: temp file)
   --params FILE             Model parameters JSON file (default: temp file)
   --tag TAG                 Tag for naming output files (default: process ID)
   --voltage V               Voltage for measurement (default: 3.3)
@@ -119,19 +123,32 @@ Optional arguments:
   --help                    Show this help message
 
 Examples:
-  # Single training file (backward compatible)
+  # Single training file
   $0 --train-files examples/c_programs/simple.c \\
      --estimate-file examples/c_programs/test.c
 
-  # Multiple training files
-  $0 --train-files "file1.c;file2.c;file3.c" \\
-     --estimate-file examples/c_programs/test.c \\
-     --tag multi_train
+  # All .c files in a directory
+  $0 --train-files "examples/c_programs/*.c" \\
+     --estimate-file examples/c_programs/test.c
 
-  # Resume with existing segment CSVs
-  $0 --train-files "file1.c;file2.c" \\
-     --estimate-file test.c \\
-     --training-segments-csv "file1_segments.csv;file2_segments.csv"
+  # Recursive glob (all .c files in subdirectories)
+  $0 --train-files "examples/**/*.c" \\
+     --estimate-file examples/c_programs/test.c
+
+  # Brace expansion (specific files)
+  $0 --train-files "examples/c_programs/{file1,file2,file3}.c" \\
+     --estimate-file examples/c_programs/test.c
+
+  # Brace expansion with directories
+  $0 --train-files "examples/{crypto,math}/*.c" \\
+     --estimate-file examples/c_programs/test.c \\
+     --tag multi_dir
+
+  # Resume with existing segments (matched by basename)
+  $0 --train-files "training_data/*.c" \\
+     --estimate-file examples/c_programs/test.c \\
+     --training-segments-csv "./tmp/*_segments.csv" \\
+     --num-repeat 100
 EOF
 }
 
@@ -235,10 +252,18 @@ if [[ -z "$ESTIMATE_FILE" ]]; then
     exit 1
 fi
 
-# Parse training files into array
-IFS=';' read -ra TRAIN_FILE_ARRAY <<< "$TRAIN_FILES"
+# Parse training files into array using pattern expansion
+mapfile -t TRAIN_FILE_ARRAY < <(expand_file_input "$TRAIN_FILES")
 
-# Check if training files exist
+# Check if any files were found
+if [[ ${#TRAIN_FILE_ARRAY[@]} -eq 0 ]]; then
+    log_error "No training files found matching pattern: $TRAIN_FILES"
+    exit 1
+fi
+
+log_info "Found ${#TRAIN_FILE_ARRAY[@]} training file(s) from pattern: $TRAIN_FILES"
+
+# Check if training files exist (should always pass after expand_file_input)
 for train_file in "${TRAIN_FILE_ARRAY[@]}"; do
     if [[ ! -f "$train_file" ]]; then
         log_error "Training file not found: $train_file"
@@ -271,30 +296,36 @@ fi
 TRAINING_RAW_CSV_ARRAY=()
 TRAINING_SEGMENTS_CSV_ARRAY=()
 
-# If user provided training CSVs, parse them
+# Match training files to CSVs by basename (supports glob patterns)
 if [[ -n "$TRAINING_RAW_CSV" ]]; then
-    IFS=';' read -ra TRAINING_RAW_CSV_ARRAY <<< "$TRAINING_RAW_CSV"
+    log_info "Matching training raw CSVs by basename..."
+    mapfile -t TRAINING_RAW_CSV_ARRAY < <(match_files_by_basename TRAIN_FILE_ARRAY "$TRAINING_RAW_CSV")
 fi
 
 if [[ -n "$TRAINING_SEGMENTS_CSV" ]]; then
-    IFS=';' read -ra TRAINING_SEGMENTS_CSV_ARRAY <<< "$TRAINING_SEGMENTS_CSV"
+    log_info "Matching training segments CSVs by basename..."
+    mapfile -t TRAINING_SEGMENTS_CSV_ARRAY < <(match_files_by_basename TRAIN_FILE_ARRAY "$TRAINING_SEGMENTS_CSV")
 fi
 
-# Create temp file paths for each training file if not provided
+# Create temp file paths for training files without matched CSVs
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
     basename=$(basename "$train_file" .c)
 
-    # Raw CSV
+    # Raw CSV - use temp file if no match found
     if [[ -z "${TRAINING_RAW_CSV_ARRAY[$i]:-}" ]]; then
         TRAINING_RAW_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_${TIMESTAMP}.csv"
         USE_TEMP_TRAINING_RAW=1
+    else
+        log_info "  Matched raw CSV for $basename: ${TRAINING_RAW_CSV_ARRAY[$i]}"
     fi
 
-    # Segments CSV
+    # Segments CSV - use temp file if no match found
     if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
         TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_${TIMESTAMP}_segments.csv"
         USE_TEMP_TRAINING_SEGMENTS=1
+    else
+        log_info "  Matched segments CSV for $basename: ${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
     fi
 done
 
