@@ -92,52 +92,27 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
 	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG
 	@echo "✓ Interpret completed!"
 
-train: NUM_REPEAT?=10
 train: MODEL?=mean_per_addressing_mode
 train: INFERENCE?=importance-sampling
-train: | $(BUILD_DIR) $(ASM_DIR) ## Train energy model (FILES=<files> DATA=<data> [OUTPUT=<params>] [MAX_STEPS=<n>] [N_SAMPLES=<n>] [NUM_REPEAT=<n>] [INFERENCE=<alg>] [MODEL=<model>])
+train: ## Training pipeline: measure → preprocess → train (FILES=<pattern> [PARAMS=<output>] [TAG=<tag>] [options])
 ifndef FILES
-	$(error Please specify FILES=file1.c;file2.c;... (semicolon-separated))
+	$(error Please specify FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
-ifndef DATA
-	$(error Please specify DATA=data1.csv;data2.csv;... (semicolon-separated))
-endif
-	@echo "Compiling and disassembling files..."
-	@IFS=';' read -ra FILE_ARRAY <<< "$(FILES)"; \
-	for file in "$${FILE_ARRAY[@]}"; do \
-		echo "  Processing $$file..."; \
-		BASENAME=$$(basename $$file .c); \
-		NUM_REPEAT_FLAG=""; \
-		if [ -n "$(NUM_REPEAT)" ]; then \
-			NUM_REPEAT_FLAG="-DNUM_REPEAT=$(NUM_REPEAT)"; \
-		fi; \
-		$(CC) $(CFLAGS) $$NUM_REPEAT_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $$file; \
-		$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm; \
-		echo "  ✓ Compiled and disassembled $$BASENAME"; \
-	done
-	@echo "Training energy model..."
-	@IFS=';' read -ra FILE_ARRAY <<< "$(FILES)"; \
-	IFS=';' read -ra DATA_ARRAY <<< "$(DATA)"; \
-	if [ $${#FILE_ARRAY[@]} -ne $${#DATA_ARRAY[@]} ]; then \
-		echo "Error: Number of FILES ($${#FILE_ARRAY[@]}) must match number of DATA files ($${#DATA_ARRAY[@]})"; \
-		exit 1; \
-	fi; \
-	ASM_FILES=(); \
-	DATA_FILES=(); \
-	for i in "$${!FILE_ARRAY[@]}"; do \
-		BASENAME=$$(basename "$${FILE_ARRAY[$$i]}" .c); \
-		ASM_FILES+=("$(ASM_DIR)/$$BASENAME.asm"); \
-		DATA_FILES+=("$${DATA_ARRAY[$$i]}"); \
-	done; \
-	OUTPUT=$${OUTPUT:-energy_params.json}; \
-	MAX_STEPS_FLAG=""; \
-	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
-	N_SAMPLES_FLAG=""; \
-	if [ -n "$(N_SAMPLES)" ]; then N_SAMPLES_FLAG="--n-samples $(N_SAMPLES)"; fi; \
-	MODEL_FLAG="--model $(MODEL)"; \
-	INFERENCE_FLAG="--inference $(INFERENCE)"; \
-	julia --project=. src/main.jl train --asm "$${ASM_FILES[@]}" --data "$${DATA_FILES[@]}" --output $$OUTPUT $$MAX_STEPS_FLAG $$N_SAMPLES_FLAG $$MODEL_FLAG $$INFERENCE_FLAG
-	@echo "✓ Training completed!"
+	@ARGS=("--train-files" "$(FILES)"); \
+	[ -n "$(PARAMS)" ] && ARGS+=("--params" "$(PARAMS)"); \
+	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
+	[ -n "$(TRAINING_RAW_CSV)" ] && ARGS+=("--training-raw-csv" "$(TRAINING_RAW_CSV)"); \
+	[ -n "$(TRAINING_SEGMENTS_CSV)" ] && ARGS+=("--training-segments-csv" "$(TRAINING_SEGMENTS_CSV)"); \
+	[ -n "$(VOLTAGE)" ] && ARGS+=("--voltage" "$(VOLTAGE)"); \
+	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
+	[ -n "$(MAX_STEPS)" ] && ARGS+=("--max-steps" "$(MAX_STEPS)"); \
+	[ -n "$(N_SAMPLES)" ] && ARGS+=("--n-samples" "$(N_SAMPLES)"); \
+	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
+	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
+	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
+	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
+	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
+	./scripts/train.sh "$${ARGS[@]}"
 
 estimate: NUM_REPEAT=1
 estimate: disasm ## Estimate energy consumption (FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>])
