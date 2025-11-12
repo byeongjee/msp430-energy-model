@@ -76,11 +76,13 @@ expand_file_input() {
 }
 
 # Helper function to match files to CSVs by basename
-# Usage: match_files_by_basename source_files_array csv_pattern_or_list
-# Returns: matched CSV for each source file (empty if no match)
+# Usage: match_files_by_basename source_files_array csv_pattern_or_list [csv_type_description]
+# Returns: matched CSV for each source file
+# Exits with error if any match fails
 match_files_by_basename() {
     local -n source_files_ref=$1
     local csv_input="$2"
+    local csv_type="${3:-CSV}"  # Optional: description for error messages (e.g., "training raw CSV")
 
     # Build pool of CSV files
     local csv_pool=()
@@ -96,6 +98,9 @@ match_files_by_basename() {
     fi
 
     # Match each source file to a CSV by basename
+    local matched_csvs=()
+    local failed_matches=()
+
     for source_file in "${source_files_ref[@]}"; do
         local basename=$(basename "$source_file" .c)
         local matched_csv=""
@@ -111,7 +116,23 @@ match_files_by_basename() {
             done
         fi
 
-        # Output the matched CSV (or empty string if no match)
-        echo "$matched_csv"
+        # Track results
+        if [[ -z "$matched_csv" ]]; then
+            failed_matches+=("$source_file")
+        fi
+        matched_csvs+=("$matched_csv")
     done
+
+    # Validate: error if any matches failed
+    if [[ ${#failed_matches[@]} -gt 0 ]]; then
+        echo "[ERROR] Failed to match $csv_type files for the following source files:" >&2
+        for file in "${failed_matches[@]}"; do
+            echo "[ERROR]   - $file" >&2
+        done
+        echo "[ERROR] Pattern provided: $csv_input" >&2
+        exit 1
+    fi
+
+    # Output matched CSVs
+    printf '%s\n' "${matched_csvs[@]}"
 }
