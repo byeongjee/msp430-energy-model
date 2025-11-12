@@ -301,7 +301,10 @@ function interpret_program(
 
         # Get instruction at current PC
         if !haskey(pc_to_instruction, state.registers[:PC])
-            @info "Execution finished" pc = string(state.registers[:PC]; base=16, pad=4) reason = "PC not in program"
+            @info "Execution finished" pc = string(state.registers[:PC]; base=16, pad=4) reason =
+                "PC not in program (this may not be a bug. It seems that GCC sometimes " *
+                "optimizes away the tail of the main function which restores the stack " *
+                "pointer, so main may not return correctly.)"
             break
         end
 
