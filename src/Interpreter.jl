@@ -144,14 +144,14 @@ function handle_memset!(state::MachineState)::Nothing
 
     # Fill memory directly
     for i in 0:(num - 1)
-        addr = UInt16((ptr + i) & 0xFFFF)
+        addr = UInt32((ptr + i) & 0xFFFFF)
         state.memory[addr] = UInt16(value)
     end
 
     # Update registers to match what the actual memset assembly would do
     # The memset implementation: R14 = ptr + num, R15 = ptr + num
-    state.registers[:R14] = UInt16((ptr + num) & 0xFFFF)
-    state.registers[:R15] = UInt16((ptr + num) & 0xFFFF)
+    state.registers[:R14] = UInt32((ptr + num) & 0xFFFFF)
+    state.registers[:R15] = UInt32((ptr + num) & 0xFFFFF)
 
     @debug "Fast-path: memset filled $num bytes at 0x$(string(ptr, base=16, pad=4)) with value $value"
     return nothing
@@ -170,24 +170,24 @@ function handle_memmove!(state::MachineState)::Nothing
     if dest <= src || dest >= src + num
         # Non-overlapping or dest before src: copy forward
         for i in 0:(num - 1)
-            src_addr = UInt16((src + i) & 0xFFFF)
-            dest_addr = UInt16((dest + i) & 0xFFFF)
+            src_addr = UInt32((src + i) & 0xFFFFF)
+            dest_addr = UInt32((dest + i) & 0xFFFFF)
             state.memory[dest_addr] = get(state.memory, src_addr, UInt16(0))
         end
     else
         # Overlapping with dest after src: copy backward
         for i in (num - 1):-1:0
-            src_addr = UInt16((src + i) & 0xFFFF)
-            dest_addr = UInt16((dest + i) & 0xFFFF)
+            src_addr = UInt32((src + i) & 0xFFFFF)
+            dest_addr = UInt32((dest + i) & 0xFFFFF)
             state.memory[dest_addr] = get(state.memory, src_addr, UInt16(0))
         end
     end
 
     # Update registers to match what the actual memmove assembly would do
     # The memmove implementation increments R13 and R14 as it copies bytes
-    state.registers[:R13] = UInt16((src + num) & 0xFFFF)
-    state.registers[:R14] = UInt16((dest + num) & 0xFFFF)
-    state.registers[:R15] = UInt16((src + num) & 0xFFFF)
+    state.registers[:R13] = UInt32((src + num) & 0xFFFFF)
+    state.registers[:R14] = UInt32((dest + num) & 0xFFFFF)
+    state.registers[:R15] = UInt32((src + num) & 0xFFFFF)
 
     # Clear all flags - the actual memmove ends with all flags clear
     # The last comparison before return compares equal values, but testing shows
