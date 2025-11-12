@@ -42,8 +42,14 @@ function dual_operand_executor!(
     current_idx::Int,
 )::Nothing
     execute_dual_operand!(state, opcode, ops, data_size)
-    # Advance PC to next instruction
+    # Advance PC to next instruction, unless destination is PC (R0)
+    # mov/mova to PC acts as a branch instruction
     if current_idx < length(addresses)
+        # Check if destination operand is PC (R0 is normalized to :PC by parser)
+        if length(ops) >= 2 && ops[2].mode == :register && ops[2].value == :PC
+            # Destination is PC, don't advance (PC was set by the instruction)
+            return nothing
+        end
         state.registers[:PC] = addresses[current_idx + 1]
     end
     return nothing
@@ -61,10 +67,11 @@ function single_operand_executor!(
     current_idx::Int,
 )::Nothing
     execute_single_operand!(state, opcode, ops, data_size, addresses, current_idx)
-    # call, ret, reti manage their own PC, others need to advance
+    # call, ret, reti, br manage their own PC, others need to advance
     if opcode != :call &&
         opcode != :ret &&
         opcode != :reti &&
+        opcode != :br &&
         current_idx < length(addresses)
         state.registers[:PC] = addresses[current_idx + 1]
     end
