@@ -530,8 +530,8 @@ fi
 if [[ $SKIP_ESTIMATION_MEASUREMENT -eq 0 ]]; then
     # Step 4: Compile estimation file for measurement
     log_step "Step 4/12: Compiling estimation file for measurement"
-    log_info "Compiling with NUM_REPEAT=$NUM_REPEAT (for measurement)"
-    $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+    log_info "Compiling for measurement"
+    $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
     log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 
     # Step 5: Flash estimation file to device
@@ -569,10 +569,10 @@ else
     log_step "Step 8: SKIPPED (using existing test segments CSV: $TEST_SEGMENTS_CSV)"
 fi
 
-# Step 10: Compile estimation file for estimation (NUM_REPEAT=1)
+# Step 10: Compile estimation file for estimation
 log_step "Step 10/12: Compiling estimation file for estimation"
-log_info "Compiling with NUM_REPEAT=1 (estimation mode)"
-$CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=1 $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+log_info "Compiling for estimation"
+$CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
 log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 $OBJDUMP -d "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" > "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"

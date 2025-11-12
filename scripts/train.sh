@@ -418,8 +418,7 @@ if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
 
         # Step 1: Compile training file
         log_step "Step 1.$((i+1)): Compiling training file ($train_basename)"
-        log_info "Compiling with NUM_REPEAT=$NUM_REPEAT"
-        $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
+        $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
         log_success "Compiled: $BUILD_DIR/${train_basename}.elf"
 
         # Step 2: Flash training file to device
@@ -478,8 +477,8 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
 
         # Need to compile if we skipped measurement
         if [[ $SKIP_MEASUREMENT -eq 1 ]]; then
-            log_info "Compiling $train_basename with NUM_REPEAT=$NUM_REPEAT"
-            $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
+            log_info "Compiling $train_basename"
+            $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
         fi
 
         $OBJDUMP -d "$BUILD_DIR/${train_basename}.elf" > "$ASM_DIR/${train_basename}.asm"
