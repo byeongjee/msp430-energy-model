@@ -506,8 +506,8 @@ function execute_jump!(
 
     if should_jump
         # Jump is relative to PC + 2
-        state.registers[:PC] = UInt16(
-            (Int32(state.registers[:PC]) + 2 + (Int32(offset) * 2)) & 0xFFFF
+        state.registers[:PC] = UInt32(
+            (Int32(state.registers[:PC]) + 2 + (Int32(offset) * 2)) & 0xFFFFF
         )
     else
         # Advance to next instruction
