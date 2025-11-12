@@ -3,25 +3,22 @@
 # Usage: ./scripts/train.sh [options]
 # Requires: bash 4.0+ (for mapfile)
 
-set -euo pipefail
+# Setup script directory before sourcing common
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Source common utilities and configuration
+source "$SCRIPT_DIR/common.sh"
 
-# Default values
-VOLTAGE=3.3
-MAX_CURRENT=0.01
+# Default values (using common defaults where applicable)
+VOLTAGE="${VOLTAGE_DEFAULT}"
+MAX_CURRENT="${MAX_CURRENT_DEFAULT}"
+TEMP_DIR="${TEMP_DIR_DEFAULT}"
 SKIP_RESET=""
 MAX_STEPS=""
 N_SAMPLES=""
 NUM_REPEAT=10
 MODEL="gamma_per_instruction"
 INFERENCE="importance-sampling"
-TEMP_DIR="./tmp"
 KEEP_INTERMEDIATES=0
 TAG=""
 
@@ -35,56 +32,6 @@ PARAMS_FILE=""
 USE_TEMP_TRAINING_RAW=0
 USE_TEMP_TRAINING_SEGMENTS=0
 USE_TEMP_PARAMS=0
-
-# Script directory and paths
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MEASURE_PY="$SCRIPT_DIR/measure.py"
-PREPROCESS_PY="$SCRIPT_DIR/preprocess.py"
-EXTRACT_BENCH_LABELS_PY="$SCRIPT_DIR/extract_bench_labels.py"
-
-# Check required environment variables
-if [[ -z "${MSP430GCC_TOOLCHAIN_PATH}" ]]; then
-    log_error "MSP430GCC_TOOLCHAIN_PATH is not set. Please set it in your environment or .env file"
-    exit 1
-fi
-if [[ -z "${MSP430GCC_SUPPORT_PATH}" ]]; then
-    log_error "MSP430GCC_SUPPORT_PATH is not set. Please set it in your environment or .env file"
-    exit 1
-fi
-
-# Load Makefile variables
-CC="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-gcc"
-OBJDUMP="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-objdump"
-DEVICE="MSP430FR5994"
-CFLAGS="-mmcu=$DEVICE -O0 -g -Wall"
-INCLUDES="-I$MSP430GCC_SUPPORT_PATH/include -I$PROJECT_ROOT/include"
-LDFLAGS="-L$MSP430GCC_SUPPORT_PATH/include"
-BUILD_DIR="$PROJECT_ROOT/build"
-ASM_DIR="$BUILD_DIR/asm"
-
-# Helper functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
-
-log_step() {
-    echo ""
-    echo -e "${YELLOW}======================================${NC}"
-    echo -e "${YELLOW}$1${NC}"
-    echo -e "${YELLOW}======================================${NC}"
-}
-
-# Source file expansion utilities
-source "$SCRIPT_DIR/file_expansion_utils.sh"
 
 usage() {
     cat << EOF
@@ -232,7 +179,7 @@ done
 mkdir -p "$TEMP_DIR"
 
 # Create timestamp
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+TIMESTAMP=$(create_timestamp)
 
 # Determine file suffix (TAG_TIMESTAMP if TAG provided, otherwise just TIMESTAMP)
 if [[ -n "$TAG" ]]; then
