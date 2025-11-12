@@ -298,7 +298,9 @@ function execute_single_operand!(
         # CALL instruction only supports 16-bit return addresses
         # For 20-bit addresses, MSP430X uses CALLA instead
         if return_addr > 0xFFFF
-            error("CALL instruction cannot handle return address 0x$(string(return_addr, base=16)) > 0xFFFF. Use CALLA for 20-bit addresses.")
+            error(
+                "CALL instruction cannot handle return address 0x$(string(return_addr, base=16)) > 0xFFFF. Use CALLA for 20-bit addresses.",
+            )
         end
         state.registers[:SP] = state.registers[:SP] - 2
         state.memory[state.registers[:SP]] = UInt16(return_addr)  # Return address (16-bit)
@@ -520,13 +522,13 @@ function get_register_mask(register::Symbol)::UInt32
     # PC (R0) and SP (R1) are always 20-bit
     if register == :PC || register == :SP
         return 0xFFFFF
-    # SR (R2) is always 16-bit (status register)
+        # SR (R2) is always 16-bit (status register)
     elseif register == :SR
         return 0xFFFF
-    # R3 is constant generator, 16-bit
+        # R3 is constant generator, 16-bit
     elseif register == :R3
         return 0xFFFF
-    # R4-R15 are general purpose registers, can hold 20-bit values in MSP430X
+        # R4-R15 are general purpose registers, can hold 20-bit values in MSP430X
     else
         return 0xFFFFF
     end
