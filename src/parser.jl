@@ -10,7 +10,7 @@ export parse_line, find_functions
 Parse MSP430 assembly string into instruction objects
 """
 function parse_assembly(
-    asm_lines::Vector{String}, start_addr::UInt16=UInt16(0x4000)
+    asm_lines::Vector{String}, start_addr::UInt32=UInt32(0x4000)
 )::Vector{Instruction}
     instructions = Instruction[]
     current_addr = start_addr
@@ -29,7 +29,7 @@ end
 """
 Parse a single line of MSP430 assembly
 """
-function parse_line(line::String, current_addr::UInt16)::Union{Instruction,Nothing}
+function parse_line(line::String, current_addr::UInt32)::Union{Instruction,Nothing}
     # Remove comments and trim
     line = strip(split(line, ";")[1])
     isempty(line) && return nothing
@@ -79,7 +79,7 @@ end
 """
 Parse MSP430 operand string into structured operands with addressing modes
 """
-function parse_operands(op_str::String, current_addr::UInt16)::Vector{Operand}
+function parse_operands(op_str::String, current_addr::UInt32)::Vector{Operand}
     operands = Operand[]
     op_parts = split(op_str, ",")
 
@@ -306,13 +306,13 @@ end
 Find all functions in an assembly file
 Returns a dictionary mapping function names to their addresses
 """
-function find_functions(filename::String)::Dict{String,UInt16}
+function find_functions(filename::String)::Dict{String,UInt32}
     if !isfile(filename)
         error("Assembly file not found: $filename")
     end
 
     lines = readlines(filename)
-    functions = Dict{String,UInt16}()
+    functions = Dict{String,UInt32}()
 
     for line in lines
         line = strip(line)
@@ -325,7 +325,7 @@ function find_functions(filename::String)::Dict{String,UInt16}
             func_name = match_result.captures[2]
 
             # Parse address (take lower 16 bits for MSP430)
-            addr = parse(UInt16, addr_str[5:8]; base=16)
+            addr = parse(UInt32, addr_str; base=16)
             functions[func_name] = addr
         end
     end

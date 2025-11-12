@@ -64,14 +64,14 @@ end
 """
 Parse MSP430 assembly file and extract instructions with their addresses
 """
-function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt16},UInt16}
+function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt32},UInt32}
     if !isfile(filename)
         error("Assembly file not found: $filename")
     end
 
     lines = readlines(filename)
     instructions = Instruction[]
-    addresses = UInt16[]
+    addresses = UInt32[]
     base_address = nothing
 
     @info "Parsing assembly file" filename
@@ -96,8 +96,8 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
             hex_bytes = match_result.captures[2]
             instr_str = strip(match_result.captures[3])
 
-            # Parse address
-            addr = parse(UInt16, addr_str; base=16)
+            # Parse address (MSP430X uses 20-bit addressing)
+            addr = parse(UInt32, addr_str; base=16)
 
             # Set base address to the first instruction address
             if base_address === nothing
@@ -217,8 +217,8 @@ We handle the function calls with fast-path optimizations.
 function try_fast_path_call!(
     state::MachineState,
     call_target::UInt32,
-    func_addrs::Dict{String,UInt16},
-    addresses::Vector{UInt16},
+    func_addrs::Dict{String,UInt32},
+    addresses::Vector{UInt32},
     current_idx::Int,
 )::Bool
     # memset
@@ -247,8 +247,8 @@ Interpret MSP430 program
 """
 function interpret_program(
     instructions::Vector{Instruction},
-    addresses::Vector{UInt16},
-    func_addrs::Dict{String,UInt16},
+    addresses::Vector{UInt32},
+    func_addrs::Dict{String,UInt32},
     max_steps::Int,
 )::Tuple{MachineState,Vector{Vector{Instruction}}}
     @info "="^60
@@ -256,7 +256,7 @@ function interpret_program(
     @info "="^60
 
     # Extract function addresses from the dictionary
-    skip_func_addrs = Dict{String,UInt16}()
+    skip_func_addrs = Dict{String,UInt32}()
     for func_name in FUNCTIONS_TO_SKIP
         func_addr = get(func_addrs, func_name, nothing)
         if !isnothing(func_addr)
@@ -280,7 +280,7 @@ function interpret_program(
         )
     end
 
-    pc_to_instruction = Dict{UInt16,Tuple{Int,Instruction}}()
+    pc_to_instruction = Dict{UInt32,Tuple{Int,Instruction}}()
     for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
         pc_to_instruction[addr] = (i, inst)
     end

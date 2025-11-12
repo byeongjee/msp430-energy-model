@@ -38,7 +38,7 @@ function dual_operand_executor!(
     opcode::Symbol,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt16},
+    addresses::Vector{UInt32},
     current_idx::Int,
 )::Nothing
     execute_dual_operand!(state, opcode, ops, data_size)
@@ -63,7 +63,7 @@ function single_operand_executor!(
     opcode::Symbol,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt16},
+    addresses::Vector{UInt32},
     current_idx::Int,
 )::Nothing
     execute_single_operand!(state, opcode, ops, data_size, addresses, current_idx)
@@ -86,7 +86,7 @@ function jump_executor!(
     opcode::Symbol,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt16},
+    addresses::Vector{UInt32},
     current_idx::Int,
 )::Nothing
     execute_jump!(state, opcode, ops, addresses, current_idx)
@@ -147,7 +147,7 @@ const EXECUTORS = Dict{Symbol,Function}(
 Execute an MSP430 instruction with proper PC management using instruction addresses
 """
 function execute_instruction!(
-    state::MachineState, inst::Instruction, addresses::Vector{UInt16}, current_idx::Int
+    state::MachineState, inst::Instruction, addresses::Vector{UInt32}, current_idx::Int
 )::Nothing
     opcode = inst.opcode
     ops = inst.operands
@@ -227,7 +227,7 @@ function execute_single_operand!(
     opcode::Symbol,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt16},
+    addresses::Vector{UInt32},
     current_idx::Int,
 )::Nothing
     # Handle instructions that don't need operands first
@@ -295,8 +295,13 @@ function execute_single_operand!(
             )
         end
         return_addr = addresses[current_idx + 1]
+        # CALL instruction only supports 16-bit return addresses
+        # For 20-bit addresses, MSP430X uses CALLA instead
+        if return_addr > 0xFFFF
+            error("CALL instruction cannot handle return address 0x$(string(return_addr, base=16)) > 0xFFFF. Use CALLA for 20-bit addresses.")
+        end
         state.registers[:SP] = state.registers[:SP] - 2
-        state.memory[state.registers[:SP]] = return_addr  # Return address
+        state.memory[state.registers[:SP]] = UInt16(return_addr)  # Return address (16-bit)
         state.registers[:PC] = operand_val
         return nothing
     elseif opcode == :br
@@ -460,7 +465,7 @@ function execute_jump!(
     state::MachineState,
     opcode::Symbol,
     ops::Vector{Operand},
-    addresses::Vector{UInt16},
+    addresses::Vector{UInt32},
     current_idx::Int,
 )::Nothing
     if length(ops) < 1
