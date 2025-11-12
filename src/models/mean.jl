@@ -18,12 +18,12 @@ Generic Mean-based model.
 Uses simple mean energy per instruction key based on specified granularity.
 """
 mutable struct MeanModel <: AbstractModel
-    params::Dict{Tuple{Vararg{Symbol}},Float64}
+    params::Dict{ParamKey,Float64}
     granularity::ModelGranularity
     model_type::String
 
     function MeanModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{Tuple{Vararg{Symbol}},Float64}(), granularity, model_type)
+        new(Dict{ParamKey,Float64}(), granularity, model_type)
     end
 end
 
@@ -33,9 +33,9 @@ Used for microbenchmarks where one instruction type dominates.
 """
 function get_dominant_key(
     program::Vector{Instruction}, granularity::ModelGranularity
-)::Tuple{Vararg{Symbol}}
+)::ParamKey
     # Count instruction types
-    inst_counts = Dict{Tuple{Vararg{Symbol}},Int}()
+    inst_counts = Dict{ParamKey,Int}()
     for inst in program
         key = get_instruction_key(inst, granularity)
         inst_counts[key] = get(inst_counts, key, 0) + 1
@@ -71,10 +71,18 @@ function load_params!(model::MeanModel, filename::String)
     params_dict = file_dict["parameters"]
 
     # Convert string keys to tuple keys
-    model.params = Dict{Tuple{Vararg{Symbol}},Float64}()
+    model.params = Dict{ParamKey,Float64}()
     for (key_str, mean_energy) in params_dict
-        key_parts = Symbol.(split(key_str, "_"))
-        param_key = tuple(key_parts...)
+        # Split by underscore and convert to appropriate types
+        key_parts = split(key_str, "_")
+        param_key = tuple(
+            [
+                let parsed = tryparse(Int, p)
+                    parsed !== nothing ? parsed : Symbol(p)
+                end for p in key_parts
+            ]...
+        )
+
         model.params[param_key] = Float64(mean_energy)
     end
 
@@ -93,8 +101,8 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
     )
 
     # Accumulate total energy and instruction count for each dominant key
-    total_energy = Dict{Tuple{Vararg{Symbol}},Float64}()
-    total_instructions = Dict{Tuple{Vararg{Symbol}},Int}()
+    total_energy = Dict{ParamKey,Float64}()
+    total_instructions = Dict{ParamKey,Int}()
 
     for (energy, program) in zip(training_data.energies, training_data.programs)
         dominant_key = get_dominant_key(program, model.granularity)
@@ -107,7 +115,7 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
     end
 
     # Compute mean energy per instruction (weighted average)
-    model.params = Dict{Tuple{Vararg{Symbol}},Float64}()
+    model.params = Dict{ParamKey,Float64}()
 
     for key in keys(total_energy)
         mean_energy = total_energy[key] / total_instructions[key]
@@ -157,7 +165,7 @@ function estimate_energy(
     )
 
     total_energy = 0.0
-    unknown_keys = Set{Tuple{Vararg{Symbol}}}()
+    unknown_keys = Set{ParamKey}()
     default_energy = 1.0  # Default 1nJ per instruction
 
     for inst in program

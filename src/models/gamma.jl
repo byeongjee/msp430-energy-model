@@ -14,7 +14,9 @@ struct GammaConfig <: ModelConfig
     n_samples::Int
     inference_algorithm::String
 
-    function GammaConfig(; n_samples::Int=1000, inference_algorithm::String="importance-sampling")
+    function GammaConfig(;
+        n_samples::Int=1000, inference_algorithm::String="importance-sampling"
+    )
         new(n_samples, inference_algorithm)
     end
 end
@@ -27,7 +29,7 @@ epsilon = 1e-12
 
 @gen function single_program_energy_model(
     instructions::Vector{Instruction},
-    params::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}},
+    params::Dict{ParamKey,Tuple{Float64,Float64}},
     granularity::ModelGranularity,
 )::Float64
     total_energy = 0.0
@@ -51,9 +53,9 @@ end
 
 @gen function all_programs_energy_model(
     training_data::TrainingData, granularity::ModelGranularity
-)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+)::Dict{ParamKey,Tuple{Float64,Float64}}
     # Prior distributions for gamma parameters
-    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
+    learned_params = Dict{ParamKey,Tuple{Float64,Float64}}()
 
     # Get all valid parameter keys from training data based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
@@ -110,9 +112,9 @@ end
 Compute posterior means from MCMC traces.
 """
 function compute_posterior_means(
-    traces::Vector, valid_keys::Set{Tuple{Vararg{Symbol}}}
-)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
-    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
+    traces::Vector, valid_keys::Set{ParamKey}
+)::Dict{ParamKey,Tuple{Float64,Float64}}
+    learned_params = Dict{ParamKey,Tuple{Float64,Float64}}()
 
     for param_key in valid_keys
         alphas = Float64[]
@@ -149,7 +151,7 @@ function learn_parameters_mcmc_blocked(
     granularity::ModelGranularity;
     n_samples::Int=1000,
     burn_in::Int=100,
-)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+)::Dict{ParamKey,Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
 
@@ -234,7 +236,7 @@ Learn parameters using importance sampling
 """
 function learn_parameters_importance_sampling(
     training_data::TrainingData, granularity::ModelGranularity; n_samples::Int=1000
-)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+)::Dict{ParamKey,Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
 
@@ -263,7 +265,7 @@ function learn_parameters_importance_sampling(
 
     @info "Importance sampling complete" effective_sample_size = round(ess; digits=2)
 
-    learned_params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
+    learned_params = Dict{ParamKey,Tuple{Float64,Float64}}()
 
     @info "Computing weighted parameter averages..."
     for param_key in valid_keys
@@ -317,7 +319,7 @@ function learn_parameters(
     granularity::ModelGranularity,
     algorithm::String;
     n_samples::Int,
-)::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+)::Dict{ParamKey,Tuple{Float64,Float64}}
     if algorithm == "importance-sampling"
         return learn_parameters_importance_sampling(
             training_data, granularity; n_samples=n_samples
@@ -343,12 +345,12 @@ Generic Gamma distribution model.
 Uses Gamma(alpha, beta) distributions for each instruction key based on specified granularity.
 """
 mutable struct GammaModel <: AbstractModel
-    params::Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}
+    params::Dict{ParamKey,Tuple{Float64,Float64}}
     granularity::ModelGranularity
     model_type::String
 
     function GammaModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}(), granularity, model_type)
+        new(Dict{ParamKey,Tuple{Float64,Float64}}(), granularity, model_type)
     end
 end
 
@@ -374,16 +376,25 @@ function load_params!(model::GammaModel, filename::String)
     params_dict = file_dict["parameters"]
 
     # Convert string keys to tuple keys
-    model.params = Dict{Tuple{Vararg{Symbol}},Tuple{Float64,Float64}}()
+    model.params = Dict{ParamKey,Tuple{Float64,Float64}}()
     for (key_str, param_dict) in params_dict
-        key_parts = Symbol.(split(key_str, "_"))
-        param_key = tuple(key_parts...)
+        # Split by underscore and convert to appropriate types
+        key_parts = split(key_str, "_")
+        param_key = tuple(
+            [
+                let parsed = tryparse(Int, p)
+                    parsed !== nothing ? parsed : Symbol(p)
+                end for p in key_parts
+            ]...
+        )
         alpha = param_dict["alpha"]
         beta = param_dict["beta"]
         model.params[param_key] = (alpha, beta)
     end
 
-    @info "Loaded Gamma model parameters" model_type = model.model_type num_parameters = length(model.params)
+    @info "Loaded Gamma model parameters" model_type = model.model_type num_parameters = length(
+        model.params
+    )
     return nothing
 end
 
@@ -391,13 +402,14 @@ end
 Learn parameters from training data using Gamma distributions
 """
 function learn_params!(model::GammaModel, training_data::TrainingData, config::GammaConfig)
-    @info "Learning Gamma model parameters" granularity = model.granularity n_samples = config.n_samples algorithm = config.inference_algorithm
+    @info "Learning Gamma model parameters" granularity = model.granularity n_samples =
+        config.n_samples algorithm = config.inference_algorithm
 
     model.params = learn_parameters(
         training_data,
         model.granularity,
         config.inference_algorithm;
-        n_samples=config.n_samples
+        n_samples=config.n_samples,
     )
 
     @info "Learned Gamma model parameters" num_parameters = length(model.params)
@@ -415,10 +427,7 @@ function save_params(model::GammaModel, filename::String)
         params_dict[key_str] = Dict("alpha" => alpha, "beta" => beta)
     end
 
-    output_dict = Dict{String,Any}(
-        "model" => model.model_type,
-        "parameters" => params_dict
-    )
+    output_dict = Dict{String,Any}("model" => model.model_type, "parameters" => params_dict)
 
     @info "Saving Gamma model parameters" path = filename model_type = model.model_type
     open(filename, "w") do f
@@ -432,12 +441,14 @@ end
 Estimate energy distribution for a program
 """
 function estimate_energy(
-    model::GammaModel,
-    program::Vector{Instruction},
-    config::GammaConfig
-)::NamedTuple{(:mean, :std, :min, :max, :samples), Tuple{Float64,Float64,Float64,Float64,Vector{Float64}}}
-
-    @info "Estimating energy with Gamma model" granularity = model.granularity num_instructions = length(program) n_samples = config.n_samples
+    model::GammaModel, program::Vector{Instruction}, config::GammaConfig
+)::NamedTuple{
+    (:mean, :std, :min, :max, :samples),
+    Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
+}
+    @info "Estimating energy with Gamma model" granularity = model.granularity num_instructions = length(
+        program
+    ) n_samples = config.n_samples
 
     # Default parameters for unknown instructions
     default_alpha = 1.0
@@ -454,13 +465,15 @@ function estimate_energy(
 
     if !isempty(missing_keys)
         missing_strs = [join(string.(k), "_") for k in missing_keys]
-        @warn "Unknown parameter keys. Using default Gamma(alpha=1.0, beta=3.0)" missing = join(sort(missing_strs), ", ")
+        @warn "Unknown parameter keys. Using default Gamma(alpha=1.0, beta=3.0)" missing = join(
+            sort(missing_strs), ", "
+        )
     end
 
     # Generate samples
     cost_samples = Vector{Float64}(undef, config.n_samples)
 
-    @threads for i in 1:config.n_samples
+    @threads for i in 1:(config.n_samples)
         total_cost = 0.0
         for inst in program
             param_key = get_instruction_key(inst, model.granularity)
@@ -477,7 +490,9 @@ function estimate_energy(
     min_cost = minimum(cost_samples)
     max_cost = maximum(cost_samples)
 
-    @info "Energy estimation complete" mean = round(mean_cost; digits=3) std = round(std_cost; digits=3)
+    @info "Energy estimation complete" mean = round(mean_cost; digits=3) std = round(
+        std_cost; digits=3
+    )
 
     return (mean=mean_cost, std=std_cost, min=min_cost, max=max_cost, samples=cost_samples)
 end

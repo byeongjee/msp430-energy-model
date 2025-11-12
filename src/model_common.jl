@@ -3,6 +3,14 @@
 using ..Types: Instruction, TrainingData
 
 """
+Type alias for parameter keys.
+Keys can contain symbols (opcodes, addressing modes) and integers (compile-time constants).
+"""
+const ParamKey = Tuple{Vararg{Union{Symbol,Int}}}
+
+const constant_aware_opcodes = [:rlam, :pushm, :popm]
+
+"""
 Granularity level for energy model parameters
 """
 @enum ModelGranularity begin
@@ -36,10 +44,10 @@ end
 """
 Get instruction key for parameter lookup based on granularity level.
 For dual-operand instructions with PerAddressingMode, uses source and destination modes.
+For instructions with compile-time constant immediates (rlam, pushm, popm),
+includes the constant value in the key.
 """
-function get_instruction_key(
-    inst::Instruction, granularity::ModelGranularity
-)::Tuple{Vararg{Symbol}}
+function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::ParamKey
     if granularity == PerOpcode
         # Simple: just the opcode
         return (inst.opcode,)
@@ -54,6 +62,15 @@ function get_instruction_key(
             # Dual operand (e.g., mov, add) - use src and dst modes
             src_mode = inst.operands[1].mode
             dst_mode = inst.operands[2].mode
+
+            # Special handling for instructions with compile-time constants
+            # These instructions have immediate values that significantly affect energy
+            if inst.opcode in constant_aware_opcodes && src_mode == :immediate
+                # Include the constant value in the key
+                constant_value = inst.operands[1].value
+                return (inst.opcode, src_mode, constant_value, dst_mode)
+            end
+
             return (inst.opcode, src_mode, dst_mode)
         end
     end
@@ -65,8 +82,8 @@ Only includes meaningful combinations.
 """
 function get_valid_param_keys(
     training_data::TrainingData, granularity::ModelGranularity
-)::Set{Tuple{Vararg{Symbol}}}
-    valid_keys = Set{Tuple{Vararg{Symbol}}}()
+)::Set{ParamKey}
+    valid_keys = Set{ParamKey}()
 
     for program in training_data.programs
         for inst in program
@@ -75,6 +92,7 @@ function get_valid_param_keys(
             # For PerAddressingMode, filter out meaningless combinations
             if granularity == PerAddressingMode && length(key) >= 2
                 # key is (opcode, mode) or (opcode, src_mode, dst_mode)
+                # or (opcode, src_mode, constant, dst_mode) for constant-aware instructions
                 if length(key) == 2
                     # Single operand: check if meaningful
                     if is_meaningful_combination(key[1], key[2])
