@@ -22,6 +22,7 @@ MODEL="gamma_per_instruction"
 INFERENCE="importance-sampling"
 KEEP_INTERMEDIATES=0
 TAG=""
+DEFINES=""  # Space-separated list of compiler macros
 
 # Required parameters (to be set via command line)
 TRAIN_FILES=""  # Semicolon-separated list of training files
@@ -64,6 +65,7 @@ Optional arguments:
   --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
   --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
   --inference ALG           Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)
+  --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
   --report-dir DIR          Directory for comparison report (default: ./report)
   --skip-reset              Skip device reset during measurement
   --keep-intermediates      Keep intermediate files and suggest resume commands
@@ -160,6 +162,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --inference)
             INFERENCE="$2"
+            shift 2
+            ;;
+        --defines)
+            DEFINES="$2"
             shift 2
             ;;
         --report-dir)
@@ -365,6 +371,12 @@ MODEL_FLAG="--model $MODEL"
 # Build INFERENCE_FLAG
 INFERENCE_FLAG="--inference $INFERENCE"
 
+# Process DEFINES variable
+DEFINE_FLAGS=$(process_defines "$DEFINES")
+if [[ -n "$DEFINES" ]]; then
+    log_info "Using compiler defines: $DEFINES"
+fi
+
 # Determine which steps to skip based on provided intermediate files
 SKIP_MEASUREMENT=0
 SKIP_ESTIMATION_MEASUREMENT=0
@@ -503,6 +515,7 @@ if [[ $SKIP_TRAINING -eq 0 ]] || [[ $SKIP_MEASUREMENT -eq 0 ]] || [[ $SKIP_PREPR
     [[ -n "$NUM_REPEAT" ]] && TRAIN_ARGS+=("--num-repeat" "$NUM_REPEAT")
     [[ -n "$MODEL" ]] && TRAIN_ARGS+=("--model" "$MODEL")
     [[ -n "$INFERENCE" ]] && TRAIN_ARGS+=("--inference" "$INFERENCE")
+    [[ -n "$DEFINES" ]] && TRAIN_ARGS+=("--defines" "$DEFINES")
     [[ -n "$SKIP_RESET" ]] && TRAIN_ARGS+=("--skip-reset")
     [[ $KEEP_INTERMEDIATES -eq 1 ]] && TRAIN_ARGS+=("--keep-intermediates")
 
@@ -518,7 +531,7 @@ if [[ $SKIP_ESTIMATION_MEASUREMENT -eq 0 ]]; then
     # Step 4: Compile estimation file for measurement
     log_step "Step 4/12: Compiling estimation file for measurement"
     log_info "Compiling with NUM_REPEAT=$NUM_REPEAT (for measurement)"
-    $CC $CFLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+    $CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=$NUM_REPEAT $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
     log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 
     # Step 5: Flash estimation file to device
@@ -559,7 +572,7 @@ fi
 # Step 10: Compile estimation file for estimation (NUM_REPEAT=1)
 log_step "Step 10/12: Compiling estimation file for estimation"
 log_info "Compiling with NUM_REPEAT=1 (estimation mode)"
-$CC $CFLAGS -DNUM_REPEAT=1 $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+$CC $CFLAGS $DEFINE_FLAGS -DNUM_REPEAT=1 $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
 log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 $OBJDUMP -d "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" > "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"

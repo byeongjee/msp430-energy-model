@@ -26,6 +26,15 @@ CFLAGS := -mmcu=$(DEVICE) -O0 -g -Wall
 ifdef DEBUG
 CFLAGS += -DDEBUG
 endif
+
+# Process DEFINES variable: space-separated list of macros (e.g., DEFINES="FOO=1 BAR ENABLE_FEATURE=value")
+# Each macro gets -D prefix automatically
+ifdef DEFINES
+DEFINE_FLAGS := $(addprefix -D,$(DEFINES))
+else
+DEFINE_FLAGS :=
+endif
+
 INCLUDES := -I$(MSP430GCC_SUPPORT_PATH)/include -I$(MEASUREMENT_INCLUDE_PATH)
 LDFLAGS := -L$(MSP430GCC_SUPPORT_PATH)/include
 
@@ -63,7 +72,7 @@ $(BUILD_DIR):
 $(ASM_DIR): | $(BUILD_DIR)
 	@mkdir -p $(ASM_DIR)
 
-compile: | $(BUILD_DIR) ## Compile C file to MSP430 binary (FILE=<file.c> [DEBUG=1] [NUM_REPEAT=<n>])
+compile: | $(BUILD_DIR) ## Compile C file to MSP430 binary (FILE=<file.c> [DEBUG=1] [NUM_REPEAT=<n>] [DEFINES="MACRO1=val MACRO2..."])
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif
@@ -74,7 +83,10 @@ endif
 		NUM_REPEAT_FLAG="-DNUM_REPEAT=$(NUM_REPEAT)"; \
 		echo "  NUM_REPEAT=$(NUM_REPEAT)"; \
 	fi; \
-	$(CC) $(CFLAGS) $$NUM_REPEAT_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
+	if [ -n "$(DEFINES)" ]; then \
+		echo "  DEFINES=$(DEFINES)"; \
+	fi; \
+	$(CC) $(CFLAGS) $(DEFINE_FLAGS) $$NUM_REPEAT_FLAG $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
 	@echo "✓ Compilation successful: $(BUILD_DIR)/$$(basename $(FILE) .c).elf"
 
 disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c>)
@@ -94,7 +106,7 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
 
 train: MODEL?=mean_per_addressing_mode
 train: INFERENCE?=importance-sampling
-train: ## Training pipeline: measure → preprocess → train (FILES=<pattern> [PARAMS=<output>] [TAG=<tag>] [options])
+train: ## Training pipeline: measure → preprocess → train (FILES=<pattern> [PARAMS=<output>] [TAG=<tag>] [DEFINES="..."] [options])
 ifndef FILES
 	$(error Please specify FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
@@ -110,6 +122,7 @@ endif
 	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
+	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train.sh "$${ARGS[@]}"
@@ -130,7 +143,7 @@ endif
 
 train_and_estimate: MODEL?=mean_per_addressing_mode
 train_and_estimate: INFERENCE?=importance-sampling
-train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<pattern> ESTIMATE_FILE=<file> [TAG=<tag>] [options])
+train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<pattern> ESTIMATE_FILE=<file> [TAG=<tag>] [DEFINES="..."] [options])
 ifndef TRAIN_FILES
 	$(error Please specify TRAIN_FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
@@ -151,11 +164,12 @@ endif
 	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
+	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train_and_estimate.sh "$${ARGS[@]}"
 
-analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [NUM_REPEAT=<n>] [options])
+analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [NUM_REPEAT=<n>] [DEFINES="..."] [options])
 ifndef FILES
 	$(error Please specify FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
@@ -165,6 +179,7 @@ endif
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
 	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
 	[ -n "$(REPORT_DIR)" ] && ARGS+=("--report-dir" "$(REPORT_DIR)"); \
+	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	./scripts/analyze_distribution.sh "$${ARGS[@]}"
 
@@ -186,7 +201,7 @@ test: ## Run Julia test suite ([PATTERN=<regex>])
 		julia --project=. test/runtests.jl; \
 	fi
 
-flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEBUG=1])
+flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEBUG=1] [DEFINES="..."])
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif
