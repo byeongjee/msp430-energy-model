@@ -21,6 +21,7 @@ MODEL="gamma_per_instruction"
 INFERENCE="importance-sampling"
 KEEP_INTERMEDIATES=0
 TAG=""
+TIMESTAMP=""  # Optional timestamp (if not provided, will be auto-generated)
 
 # Required parameters (to be set via command line)
 TRAIN_FILES=""  # Pattern for training files (supports glob patterns and brace expansion)
@@ -47,6 +48,7 @@ Optional arguments:
   --training-segments-csv PATTERN  Preprocessed segments CSV file(s) for training (semicolon-separated list or glob pattern; automatically matched to training files by basename)
   --params FILE             Model parameters JSON file (default: temp file)
   --tag TAG                 Tag for naming output files (default: process ID)
+  --timestamp TIMESTAMP     Timestamp to use for file naming (default: auto-generated)
   --voltage V               Voltage for measurement (default: 3.3)
   --max-current A           Max current for measurement (default: 0.01)
   --max-steps N             Maximum execution steps for training
@@ -99,6 +101,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --tag)
             TAG="$2"
+            shift 2
+            ;;
+        --timestamp)
+            TIMESTAMP="$2"
             shift 2
             ;;
         --voltage)
@@ -178,8 +184,10 @@ done
 # Setup temporary files if not provided
 mkdir -p "$TEMP_DIR"
 
-# Create timestamp
-TIMESTAMP=$(create_timestamp)
+# Create timestamp if not provided
+if [[ -z "$TIMESTAMP" ]]; then
+    TIMESTAMP=$(create_timestamp)
+fi
 
 # Determine file suffix (TAG_TIMESTAMP if TAG provided, otherwise just TIMESTAMP)
 if [[ -n "$TAG" ]]; then

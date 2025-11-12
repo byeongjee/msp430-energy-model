@@ -495,6 +495,7 @@ if [[ $SKIP_TRAINING -eq 0 ]] || [[ $SKIP_MEASUREMENT -eq 0 ]] || [[ $SKIP_PREPR
     [[ -n "$TRAINING_SEGMENTS_CSV" ]] && TRAIN_ARGS+=("--training-segments-csv" "$TRAINING_SEGMENTS_CSV")
     [[ -n "$PARAMS_FILE" ]] && TRAIN_ARGS+=("--params" "$PARAMS_FILE")
     [[ -n "$TAG" ]] && TRAIN_ARGS+=("--tag" "$TAG")
+    [[ -n "$TIMESTAMP" ]] && TRAIN_ARGS+=("--timestamp" "$TIMESTAMP")
     [[ -n "$VOLTAGE" ]] && TRAIN_ARGS+=("--voltage" "$VOLTAGE")
     [[ -n "$MAX_CURRENT" ]] && TRAIN_ARGS+=("--max-current" "$MAX_CURRENT")
     [[ -n "$MAX_STEPS" ]] && TRAIN_ARGS+=("--max-steps" "$MAX_STEPS")
