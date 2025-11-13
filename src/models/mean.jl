@@ -7,10 +7,7 @@ using Statistics
 Configuration for Mean-based models
 """
 struct MeanConfig <: ModelConfig
-    # Mean models don't need sampling configuration
-    function MeanConfig()
-        new()
-    end
+    inference_algorithm::String
 end
 
 """
@@ -93,13 +90,9 @@ function load_params!(model::MeanModel, filename::String)
 end
 
 """
-Learn parameters from training data using simple mean
+Learn parameters from training data using dominant-key inference algorithm
 """
-function learn_params!(model::MeanModel, training_data::TrainingData, config::MeanConfig)
-    @info "Learning Mean model parameters" granularity = model.granularity num_programs = length(
-        training_data.programs
-    )
-
+function learn_params_dominant_key!(model::MeanModel, training_data::TrainingData)
     # Accumulate total energy and instruction count for each dominant key
     total_energy = Dict{ParamKey,Float64}()
     total_instructions = Dict{ParamKey,Int}()
@@ -124,6 +117,23 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
         @debug "Learned mean energy per instruction" param_key = key mean_energy = round(
             mean_energy; digits=6
         ) total_insts = total_instructions[key]
+    end
+
+    return nothing
+end
+
+"""
+Learn parameters from training data using simple mean
+"""
+function learn_params!(model::MeanModel, training_data::TrainingData, config::MeanConfig)
+    @info "Learning Mean model parameters" granularity = model.granularity num_programs = length(
+        training_data.programs
+    ) inference_algorithm = config.inference_algorithm
+
+    if config.inference_algorithm == "dominant-key"
+        learn_params_dominant_key!(model, training_data)
+    else
+        error("Unknown inference algorithm for Mean model: $(config.inference_algorithm)")
     end
 
     @info "Learned Mean model parameters" num_parameters = length(model.params)
@@ -152,18 +162,14 @@ function save_params(model::MeanModel, filename::String)
 end
 
 """
-Estimate energy for a program (deterministic - just sums mean energies)
+Estimate energy for a program using dominant-key inference algorithm
 """
-function estimate_energy(
-    model::MeanModel, program::Vector{Instruction}, config::MeanConfig
+function estimate_energy_dominant_key(
+    model::MeanModel, program::Vector{Instruction}
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
-    @info "Estimating energy with Mean model" granularity = model.granularity num_instructions = length(
-        program
-    )
-
     total_energy = 0.0
     unknown_keys = Set{ParamKey}()
     default_energy = 1.0  # Default 1nJ per instruction
@@ -187,8 +193,6 @@ function estimate_energy(
         )
     end
 
-    @info "Energy estimation complete" total_energy = round(total_energy; digits=3)
-
     # Mean model is deterministic, so std=0 and min=max=mean
     return (
         mean=total_energy,
@@ -197,4 +201,27 @@ function estimate_energy(
         max=total_energy,
         samples=[total_energy],
     )
+end
+
+"""
+Estimate energy for a program (deterministic - just sums mean energies)
+"""
+function estimate_energy(
+    model::MeanModel, program::Vector{Instruction}, config::MeanConfig
+)::NamedTuple{
+    (:mean, :std, :min, :max, :samples),
+    Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
+}
+    @info "Estimating energy with Mean model" granularity = model.granularity num_instructions = length(
+        program
+    ) inference_algorithm = config.inference_algorithm
+
+    if config.inference_algorithm == "dominant-key"
+        result = estimate_energy_dominant_key(model, program)
+    else
+        error("Unknown inference algorithm for Mean model: $(config.inference_algorithm)")
+    end
+
+    @info "Energy estimation complete" total_energy = round(result.mean; digits=3)
+    return result
 end

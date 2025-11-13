@@ -102,7 +102,7 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
 	@echo "✓ Interpret completed!"
 
 train: MODEL?=mean_per_addressing_mode
-train: INFERENCE?=importance-sampling
+train: INFERENCE?=dominant-key
 train: ## Training pipeline: measure → preprocess → train (FILES=<pattern> [PARAMS=<output>] [TAG=<tag>] [DEFINES="..."] [options])
 ifndef FILES
 	$(error Please specify FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
