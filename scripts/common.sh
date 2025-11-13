@@ -140,6 +140,37 @@ extract_define() {
     echo "$result"
 }
 
+# Override a define value in a space-separated list of macros
+# Usage: override_define "FOO=1 BAR NUM_REPEAT=100" "NUM_REPEAT" "1"
+# Returns: "FOO=1 BAR NUM_REPEAT=1" (replaces existing value or adds if not present)
+override_define() {
+    local defines_str="$1"
+    local define_name="$2"
+    local new_value="$3"
+    local result=""
+    local found=0
+
+    # Process each define
+    for define in $defines_str; do
+        if [[ "$define" =~ ^${define_name}=(.+)$ ]]; then
+            # Found the define, replace it
+            result="$result ${define_name}=${new_value}"
+            found=1
+        else
+            # Keep other defines as-is
+            result="$result $define"
+        fi
+    done
+
+    # If the define wasn't found, add it
+    if [[ $found -eq 0 ]]; then
+        result="$result ${define_name}=${new_value}"
+    fi
+
+    # Trim leading/trailing spaces
+    echo "$result" | xargs
+}
+
 # ============================================================
 # DEFAULT VALUES
 # ============================================================

@@ -575,8 +575,13 @@ fi
 
 # Step 10: Compile estimation file for estimation
 log_step "Step 10/12: Compiling estimation file for estimation"
-log_info "Compiling for estimation"
-$CC $CFLAGS $ESTIMATE_DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
+log_info "Compiling for estimation (with NUM_REPEAT=1)"
+
+# Override NUM_REPEAT to 1 for estimation compilation
+ESTIMATE_DEFINES_FOR_ESTIMATION=$(override_define "$ESTIMATE_DEFINES" "NUM_REPEAT" "1")
+ESTIMATE_DEFINE_FLAGS_FOR_ESTIMATION=$(process_defines "$ESTIMATE_DEFINES_FOR_ESTIMATION")
+
+$CC $CFLAGS $ESTIMATE_DEFINE_FLAGS_FOR_ESTIMATION $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
 log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 $OBJDUMP -d "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" > "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"
