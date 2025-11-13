@@ -112,7 +112,7 @@ function create_model_config(model::AbstractModel, n_samples::Int, inference_alg
     if isa(model, GammaModel)
         return GammaConfig(n_samples=n_samples, inference_algorithm=inference_algorithm)
     elseif isa(model, MeanModel)
-        return MeanConfig()
+        return MeanConfig(inference_algorithm)
     else
         error("Unknown model type: $(typeof(model))")
     end
