@@ -16,7 +16,6 @@ TEMP_DIR="${TEMP_DIR_DEFAULT}"
 SKIP_RESET=""
 MAX_STEPS=""
 N_SAMPLES=""
-NUM_REPEAT=10
 MODEL="gamma_per_instruction"
 INFERENCE="importance-sampling"
 KEEP_INTERMEDIATES=0
@@ -54,7 +53,6 @@ Optional arguments:
   --max-current A           Max current for measurement (default: 0.01)
   --max-steps N             Maximum execution steps for training
   --n-samples N             Number of samples for inference (default: 100)
-  --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
   --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
   --inference ALG           Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)
   --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
@@ -123,10 +121,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --n-samples)
             N_SAMPLES="$2"
-            shift 2
-            ;;
-        --num-repeat)
-            NUM_REPEAT="$2"
             shift 2
             ;;
         --model)

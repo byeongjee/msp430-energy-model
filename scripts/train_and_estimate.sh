@@ -17,7 +17,6 @@ REPORT_DIR="${REPORT_DIR_DEFAULT}"
 SKIP_RESET=""
 MAX_STEPS=""
 N_SAMPLES=""
-NUM_REPEAT=10
 MODEL="gamma_per_instruction"
 INFERENCE="importance-sampling"
 KEEP_INTERMEDIATES=0
@@ -63,7 +62,6 @@ Optional arguments:
   --max-current A           Max current for measurement (default: 0.01)
   --max-steps N             Maximum execution steps for train/estimate
   --n-samples N             Number of samples for inference (default: 100)
-  --num-repeat N            NUM_REPEAT value for training compilation (default: 10)
   --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
   --inference ALG           Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)
   --train-defines "MACROS"  Space-separated compiler macros for training files (e.g., "FOO=1 BAR")
@@ -152,10 +150,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --n-samples)
             N_SAMPLES="$2"
-            shift 2
-            ;;
-        --num-repeat)
-            NUM_REPEAT="$2"
             shift 2
             ;;
         --model)
@@ -523,7 +517,6 @@ if [[ $SKIP_TRAINING -eq 0 ]] || [[ $SKIP_MEASUREMENT -eq 0 ]] || [[ $SKIP_PREPR
     [[ -n "$MAX_CURRENT" ]] && TRAIN_ARGS+=("--max-current" "$MAX_CURRENT")
     [[ -n "$MAX_STEPS" ]] && TRAIN_ARGS+=("--max-steps" "$MAX_STEPS")
     [[ -n "$N_SAMPLES" ]] && TRAIN_ARGS+=("--n-samples" "$N_SAMPLES")
-    [[ -n "$NUM_REPEAT" ]] && TRAIN_ARGS+=("--num-repeat" "$NUM_REPEAT")
     [[ -n "$MODEL" ]] && TRAIN_ARGS+=("--model" "$MODEL")
     [[ -n "$INFERENCE" ]] && TRAIN_ARGS+=("--inference" "$INFERENCE")
     [[ -n "$TRAIN_DEFINES" ]] && TRAIN_ARGS+=("--defines" "$TRAIN_DEFINES")
@@ -599,6 +592,17 @@ log_success "Estimation complete: $ESTIMATED_STATS_JSON"
 
 # Step 12: Generate comparison report
 log_step "Step 12/12: Generating comparison report"
+
+# Extract NUM_REPEAT from ESTIMATE_DEFINES
+NUM_REPEAT=$(extract_define "$ESTIMATE_DEFINES" "NUM_REPEAT")
+
+if [[ -z "$NUM_REPEAT" ]]; then
+    log_error "NUM_REPEAT not found in ESTIMATE_DEFINES. Please add NUM_REPEAT=<value> to --estimate-defines"
+    exit 1
+fi
+
+log_info "Using NUM_REPEAT=$NUM_REPEAT from estimation defines"
+
 python3 "$PROJECT_ROOT/scripts/generate_comparison_report.py" \
     --estimated-stats "$ESTIMATED_STATS_JSON" \
     --measured-data "$TEST_SEGMENTS_CSV" \

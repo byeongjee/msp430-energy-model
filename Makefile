@@ -111,7 +111,6 @@ endif
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
 	[ -n "$(MAX_STEPS)" ] && ARGS+=("--max-steps" "$(MAX_STEPS)"); \
 	[ -n "$(N_SAMPLES)" ] && ARGS+=("--n-samples" "$(N_SAMPLES)"); \
-	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
@@ -152,7 +151,6 @@ endif
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
 	[ -n "$(MAX_STEPS)" ] && ARGS+=("--max-steps" "$(MAX_STEPS)"); \
 	[ -n "$(N_SAMPLES)" ] && ARGS+=("--n-samples" "$(N_SAMPLES)"); \
-	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
 	[ -n "$(TRAIN_DEFINES)" ] && ARGS+=("--train-defines" "$(TRAIN_DEFINES)"); \
@@ -161,7 +159,7 @@ endif
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train_and_estimate.sh "$${ARGS[@]}"
 
-analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [NUM_REPEAT=<n>] [DEFINES="..."] [options])
+analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [DEFINES="..."] [options])
 ifndef FILES
 	$(error Please specify FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
@@ -169,7 +167,6 @@ endif
 	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
 	[ -n "$(VOLTAGE)" ] && ARGS+=("--voltage" "$(VOLTAGE)"); \
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
-	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
 	[ -n "$(REPORT_DIR)" ] && ARGS+=("--report-dir" "$(REPORT_DIR)"); \
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \

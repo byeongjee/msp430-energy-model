@@ -116,6 +116,30 @@ process_defines() {
     echo "$result"
 }
 
+# Extract a define value from a space-separated list of macros
+# Usage: extract_define "FOO=1 BAR NUM_REPEAT=100" "NUM_REPEAT"
+# Returns: "100" (or empty string if not found)
+extract_define() {
+    local defines_str="$1"
+    local define_name="$2"
+    local result=""
+
+    if [[ -z "$defines_str" ]]; then
+        echo ""
+        return
+    fi
+
+    # Search for the define in the list
+    for define in $defines_str; do
+        if [[ "$define" =~ ^${define_name}=(.+)$ ]]; then
+            result="${BASH_REMATCH[1]}"
+            break
+        fi
+    done
+
+    echo "$result"
+}
+
 # ============================================================
 # DEFAULT VALUES
 # ============================================================
