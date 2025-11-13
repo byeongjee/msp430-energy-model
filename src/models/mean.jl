@@ -2,6 +2,7 @@
 
 using JSON
 using Statistics
+using LinearAlgebra
 
 """
 Configuration for Mean-based models
@@ -123,6 +124,62 @@ function learn_params_dominant_key!(model::MeanModel, training_data::TrainingDat
 end
 
 """
+Learn parameters from training data using least-squares inference algorithm.
+Formulates the problem as finding x that minimizes ||Ax - B||^2 where:
+- A[i,j] = count of key j in program i
+- B[i] = measured energy of program i
+- x[j] = mean energy per instruction for key j
+"""
+function learn_params_least_squares!(model::MeanModel, training_data::TrainingData)
+    # Collect all unique instruction keys
+    all_keys = Set{ParamKey}()
+    for program in training_data.programs
+        for inst in program
+            key = get_instruction_key(inst, model.granularity)
+            push!(all_keys, key)
+        end
+    end
+
+    # Sort keys lexicographically for consistent ordering
+    sorted_keys = sort(collect(all_keys))
+    key_to_idx = Dict(key => i for (i, key) in enumerate(sorted_keys))
+
+    @info "Building least-squares system" num_programs = length(training_data.programs) num_keys = length(sorted_keys)
+
+    # Build matrix A where A[i,j] = count of key j in program i
+    num_programs = length(training_data.programs)
+    num_keys = length(sorted_keys)
+    A = zeros(Float64, num_programs, num_keys)
+
+    for (i, program) in enumerate(training_data.programs)
+        for inst in program
+            key = get_instruction_key(inst, model.granularity)
+            j = key_to_idx[key]
+            A[i, j] += 1.0
+        end
+    end
+
+    # Build vector B with measured energies
+    B = Vector{Float64}(training_data.energies)
+
+    # Solve least squares: minimize ||Ax - B||^2
+    @info "Solving least-squares system"
+    x = A \ B
+
+    # Store results in model.params
+    model.params = Dict{ParamKey,Float64}()
+    for (i, key) in enumerate(sorted_keys)
+        model.params[key] = x[i]
+
+        @debug "Learned mean energy per instruction (least-squares)" param_key = key mean_energy = round(
+            x[i]; digits=6
+        )
+    end
+
+    return nothing
+end
+
+"""
 Learn parameters from training data using simple mean
 """
 function learn_params!(model::MeanModel, training_data::TrainingData, config::MeanConfig)
@@ -132,6 +189,8 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
 
     if config.inference_algorithm == "dominant-key"
         learn_params_dominant_key!(model, training_data)
+    elseif config.inference_algorithm == "least-squares"
+        learn_params_least_squares!(model, training_data)
     else
         error("Unknown inference algorithm for Mean model: $(config.inference_algorithm)")
     end
@@ -162,9 +221,9 @@ function save_params(model::MeanModel, filename::String)
 end
 
 """
-Estimate energy for a program using dominant-key inference algorithm
+Estimate energy by summing mean energies from learned parameters
 """
-function estimate_energy_dominant_key(
+function estimate_energy_sum_means(
     model::MeanModel, program::Vector{Instruction}
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
@@ -217,7 +276,9 @@ function estimate_energy(
     ) inference_algorithm = config.inference_algorithm
 
     if config.inference_algorithm == "dominant-key"
-        result = estimate_energy_dominant_key(model, program)
+        result = estimate_energy_sum_means(model, program)
+    elseif config.inference_algorithm == "least-squares"
+        result = estimate_energy_sum_means(model, program)
     else
         error("Unknown inference algorithm for Mean model: $(config.inference_algorithm)")
     end
