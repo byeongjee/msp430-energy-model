@@ -134,7 +134,7 @@ endif
 
 train_and_estimate: MODEL?=mean_per_addressing_mode
 train_and_estimate: INFERENCE?=importance-sampling
-train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<pattern> ESTIMATE_FILE=<file> [TAG=<tag>] [DEFINES="..."] [options])
+train_and_estimate: ## Full pipeline: measure → train → estimate → compare (TRAIN_FILES=<pattern> ESTIMATE_FILE=<file> [TAG=<tag>] [TRAIN_DEFINES="..."] [ESTIMATE_DEFINES="..."] [options])
 ifndef TRAIN_FILES
 	$(error Please specify TRAIN_FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
@@ -155,7 +155,8 @@ endif
 	[ -n "$(NUM_REPEAT)" ] && ARGS+=("--num-repeat" "$(NUM_REPEAT)"); \
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
-	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
+	[ -n "$(TRAIN_DEFINES)" ] && ARGS+=("--train-defines" "$(TRAIN_DEFINES)"); \
+	[ -n "$(ESTIMATE_DEFINES)" ] && ARGS+=("--estimate-defines" "$(ESTIMATE_DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train_and_estimate.sh "$${ARGS[@]}"
