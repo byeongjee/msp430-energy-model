@@ -400,7 +400,7 @@ log_info "Output params file: $PARAMS_FILE"
 mkdir -p "$BUILD_DIR" "$ASM_DIR"
 cd "$PROJECT_ROOT"
 
-# Steps 1-3: Training measurement (compile, flash, measure each training file)
+# Training measurement (compile, flash, measure each training file)
 if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
     for i in "${!TRAIN_FILE_ARRAY[@]}"; do
         train_file="${TRAIN_FILE_ARRAY[$i]}"
@@ -410,19 +410,19 @@ if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
         log_info ""
         log_info "Training file $((i+1))/${#TRAIN_FILE_ARRAY[@]}: $train_file"
 
-        # Step 1: Compile training file
-        log_step "Step 1.$((i+1)): Compiling training file ($train_basename)"
+        # Compile training file
+        log_step "Compiling training file ($train_basename)"
         $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
         log_success "Compiled: $BUILD_DIR/${train_basename}.elf"
 
-        # Step 2: Flash training file to device
-        log_step "Step 2.$((i+1)): Flashing training file to device ($train_basename)"
+        # Flash training file to device
+        log_step "Flashing training file to device ($train_basename)"
         log_info "Flashing $BUILD_DIR/${train_basename}.elf..."
         mspdebug tilib "prog $BUILD_DIR/${train_basename}.elf" "exit"
         log_success "Flashed to device"
 
-        # Step 3: Measure training file energy
-        log_step "Step 3.$((i+1)): Measuring training file energy consumption ($train_basename)"
+        # Measure training file energy
+        log_step "Measuring training file energy consumption ($train_basename)"
         log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
         python3 "$MEASURE_PY" \
             --voltage "$VOLTAGE" \
@@ -432,14 +432,14 @@ if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
         log_success "Training raw measurement saved: $training_raw_csv"
     done
 else
-    log_step "Steps 1-3: SKIPPED (using existing training raw CSVs: ${#TRAINING_RAW_CSV_ARRAY[@]} files)"
+    log_step "Training measurement SKIPPED (using existing training raw CSVs: ${#TRAINING_RAW_CSV_ARRAY[@]} files)"
 fi
 
 echo ""
 log_info "==> Hardware no longer required - remaining steps can run offline"
 echo ""
 
-# Step 4: Preprocess training measurements
+# Preprocess training measurements
 if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
     for i in "${!TRAINING_RAW_CSV_ARRAY[@]}"; do
         training_raw_csv="${TRAINING_RAW_CSV_ARRAY[$i]}"
@@ -448,7 +448,7 @@ if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
         train_basename=$(basename "$train_file" .c)
         event_labels_json="${TRAINING_EVENT_LABELS_ARRAY[$i]}"
 
-        log_step "Step 4.$((i+1)): Preprocessing training measurements ($train_basename)"
+        log_step "Preprocessing training measurements ($train_basename)"
         python3 "$PREPROCESS_PY" \
             --input "$training_raw_csv" \
             --output "$training_segments_csv" \
@@ -456,12 +456,12 @@ if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
         log_success "Training segments saved: $training_segments_csv"
     done
 else
-    log_step "Step 4: SKIPPED (using existing training segments CSVs: ${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files)"
+    log_step "Preprocessing SKIPPED (using existing training segments CSVs: ${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files)"
 fi
 
-# Step 5: Train energy model
+# Train energy model
 if [[ $SKIP_TRAINING -eq 0 ]]; then
-    log_step "Step 5: Training energy model from ${#TRAIN_FILE_ARRAY[@]} file(s)"
+    log_step "Training energy model from ${#TRAIN_FILE_ARRAY[@]} file(s)"
 
     # Compile and disassemble all training files
     ASM_FILES=()
@@ -491,7 +491,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
         $INFERENCE_FLAG
     log_success "Model trained: $PARAMS_FILE"
 else
-    log_step "Step 5: SKIPPED (using existing params: $PARAMS_FILE)"
+    log_step "Training SKIPPED (using existing params: $PARAMS_FILE)"
 fi
 
 # Done

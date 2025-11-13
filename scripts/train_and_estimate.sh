@@ -501,10 +501,10 @@ log_info "Report directory: $REPORT_DIR_FULL"
 mkdir -p "$BUILD_DIR" "$ASM_DIR"
 cd "$PROJECT_ROOT"
 
-# Steps 1-3, 7, 9: Training pipeline (measurement, preprocessing, training)
+# Training pipeline (measurement, preprocessing, training)
 # Delegate to train.sh script
 if [[ $SKIP_TRAINING -eq 0 ]] || [[ $SKIP_MEASUREMENT -eq 0 ]] || [[ $SKIP_PREPROCESSING -eq 0 ]]; then
-    log_step "Steps 1-3, 7, 9: Training pipeline (via train.sh)"
+    log_step "Training pipeline (via train.sh)"
 
     # Build arguments for train.sh
     TRAIN_ARGS=("--train-files" "$TRAIN_FILES")
@@ -527,25 +527,25 @@ if [[ $SKIP_TRAINING -eq 0 ]] || [[ $SKIP_MEASUREMENT -eq 0 ]] || [[ $SKIP_PREPR
     "$SCRIPT_DIR/train.sh" "${TRAIN_ARGS[@]}"
     log_success "Training pipeline completed"
 else
-    log_step "Steps 1-3, 7, 9: SKIPPED (using existing params: $PARAMS_FILE)"
+    log_step "Training pipeline SKIPPED (using existing params: $PARAMS_FILE)"
 fi
 
-# Steps 4-6: Estimation measurement (compile estimation file, flash, measure)
+# Estimation measurement (compile estimation file, flash, measure)
 if [[ $SKIP_ESTIMATION_MEASUREMENT -eq 0 ]]; then
-    # Step 4: Compile estimation file for measurement
-    log_step "Step 4/12: Compiling estimation file for measurement"
+    # Compile estimation file for measurement
+    log_step "Compiling estimation file for measurement"
     log_info "Compiling for measurement"
     $CC $CFLAGS $ESTIMATE_DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
     log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 
-    # Step 5: Flash estimation file to device
-    log_step "Step 5/12: Flashing estimation file to device"
+    # Flash estimation file to device
+    log_step "Flashing estimation file to device"
     log_info "Flashing $BUILD_DIR/${ESTIMATE_BASENAME}.elf..."
     mspdebug tilib "prog $BUILD_DIR/${ESTIMATE_BASENAME}.elf" "exit"
     log_success "Flashed to device"
 
-    # Step 6: Measure estimation file energy
-    log_step "Step 6/12: Measuring estimation file energy consumption"
+    # Measure estimation file energy
+    log_step "Measuring estimation file energy consumption"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
@@ -554,27 +554,27 @@ if [[ $SKIP_ESTIMATION_MEASUREMENT -eq 0 ]]; then
         $SKIP_RESET
     log_success "Estimation raw measurement saved: $TEST_RAW_CSV"
 else
-    log_step "Steps 4-6: SKIPPED (using existing estimation raw CSV: $TEST_RAW_CSV)"
+    log_step "Estimation measurement SKIPPED (using existing estimation raw CSV: $TEST_RAW_CSV)"
 fi
 
 echo ""
 log_info "==> Hardware no longer required - remaining steps can run offline"
 echo ""
 
-# Step 8: Preprocess measured estimation data
+# Preprocess measured estimation data
 if [[ $SKIP_MEASURED_PREPROCESSING -eq 0 ]]; then
-    log_step "Step 8/12: Preprocessing measured estimation data"
+    log_step "Preprocessing measured estimation data"
     python3 "$PREPROCESS_PY" \
         --input "$TEST_RAW_CSV" \
         --output "$TEST_SEGMENTS_CSV" \
         --event-labels "$ESTIMATE_EVENT_LABELS_JSON"
     log_success "Measured estimation segments saved: $TEST_SEGMENTS_CSV"
 else
-    log_step "Step 8: SKIPPED (using existing test segments CSV: $TEST_SEGMENTS_CSV)"
+    log_step "Preprocessing SKIPPED (using existing test segments CSV: $TEST_SEGMENTS_CSV)"
 fi
 
-# Step 10: Compile estimation file for estimation
-log_step "Step 10/12: Compiling estimation file for estimation"
+# Compile estimation file for estimation
+log_step "Compiling estimation file for estimation"
 log_info "Compiling for estimation (with NUM_REPEAT=1)"
 
 # Override NUM_REPEAT to 1 for estimation compilation
@@ -586,8 +586,8 @@ log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
 $OBJDUMP -d "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" > "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"
 
-# Step 11: Estimate energy consumption
-log_step "Step 11/12: Estimating energy consumption"
+# Estimate energy consumption
+log_step "Estimating energy consumption"
 julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" estimate \
     --asm "$ASM_DIR/${ESTIMATE_BASENAME}.asm" \
     --params "$PARAMS_FILE" \
@@ -595,8 +595,8 @@ julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" estimate \
     $MAX_STEPS_FLAG
 log_success "Estimation complete: $ESTIMATED_STATS_JSON"
 
-# Step 12: Generate comparison report
-log_step "Step 12/12: Generating comparison report"
+# Generate comparison report
+log_step "Generating comparison report"
 
 # Extract NUM_REPEAT from ESTIMATE_DEFINES
 NUM_REPEAT=$(extract_define "$ESTIMATE_DEFINES" "NUM_REPEAT")

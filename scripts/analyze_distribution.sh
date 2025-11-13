@@ -178,8 +178,8 @@ cd "$PROJECT_ROOT"
 # Array to store individual segments CSV files
 SEGMENTS_CSV_ARRAY=()
 
-# Step 1: Extract event labels from all files
-log_step "Step 1: Extracting event labels from C source files"
+# Extract event labels from all files
+log_step "Extracting event labels from C source files"
 EVENT_LABELS_ARRAY=()
 for i in "${!FILE_ARRAY[@]}"; do
     FILE="${FILE_ARRAY[$i]}"
@@ -235,19 +235,19 @@ for i in "${!FILE_ARRAY[@]}"; do
     TRAINING_SEGMENTS_CSV="$TEMP_DIR/segments_${BASENAME}_${TIMESTAMP}.csv"
     EVENT_LABELS_JSON="${EVENT_LABELS_ARRAY[$i]}"
 
-    # Step 2: Compile
-    log_step "Step 2.$((i+1)): Compiling $FILE"
+    # Compile
+    log_step "Compiling $FILE"
     $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
     log_success "Compiled: $BUILD_DIR/${BASENAME}.elf"
 
-    # Step 3: Flash
-    log_step "Step 3.$((i+1)): Flashing binary to device"
+    # Flash
+    log_step "Flashing binary to device"
     log_info "Flashing $BUILD_DIR/${BASENAME}.elf..."
     mspdebug tilib "prog $BUILD_DIR/${BASENAME}.elf" "exit"
     log_success "Flashed to device"
 
-    # Step 4: Measure
-    log_step "Step 4.$((i+1)): Measuring energy consumption"
+    # Measure
+    log_step "Measuring energy consumption"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
@@ -256,8 +256,8 @@ for i in "${!FILE_ARRAY[@]}"; do
         $SKIP_RESET
     log_success "Raw measurement saved: $TRAINING_RAW_CSV"
 
-    # Step 5: Preprocess
-    log_step "Step 5.$((i+1)): Preprocessing measurements"
+    # Preprocess
+    log_step "Preprocessing measurements"
     python3 "$PREPROCESS_PY" \
         --input "$TRAINING_RAW_CSV" \
         --output "$TRAINING_SEGMENTS_CSV" \
@@ -272,8 +272,8 @@ for i in "${!FILE_ARRAY[@]}"; do
     log_info "Cleaned up temporary file: $TRAINING_RAW_CSV"
 done
 
-# Step 6: Combine all segments into single CSV
-log_step "Step 6: Combining segments from ${#FILE_ARRAY[@]} file(s)"
+# Combine all segments into single CSV
+log_step "Combining segments from ${#FILE_ARRAY[@]} file(s)"
 COMBINED_SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
 
 if [[ ${#SEGMENTS_CSV_ARRAY[@]} -eq 1 ]]; then
@@ -307,8 +307,8 @@ TOTAL_EVENTS=$((TOTAL_SEGMENTS / NUM_REPEAT))
 log_info "Total segments: $TOTAL_SEGMENTS"
 log_info "Total events: $TOTAL_EVENTS"
 
-# Step 7: Generate distribution analysis report
-log_step "Step 7: Generating combined distribution analysis report"
+# Generate distribution analysis report
+log_step "Generating combined distribution analysis report"
 
 # Create a file list string for the report
 FILE_LIST=""
