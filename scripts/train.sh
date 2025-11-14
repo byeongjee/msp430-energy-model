@@ -12,7 +12,7 @@ source "$SCRIPT_DIR/common.sh"
 # Default values (using common defaults where applicable)
 VOLTAGE="${VOLTAGE_DEFAULT}"
 MAX_CURRENT="${MAX_CURRENT_DEFAULT}"
-TEMP_DIR="${TEMP_DIR_DEFAULT}"
+TEMP_DIR="${TEMP_DIR:-${TEMP_DIR_DEFAULT}}"
 SKIP_RESET=""
 MAX_STEPS=""
 N_SAMPLES=""
