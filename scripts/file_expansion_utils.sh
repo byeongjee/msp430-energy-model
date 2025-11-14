@@ -136,3 +136,32 @@ match_files_by_basename() {
     # Output matched CSVs
     printf '%s\n' "${matched_csvs[@]}"
 }
+
+# Helper function to match a single file from a pattern
+# Usage: match_single_file csv_pattern [csv_type_description]
+# Returns: the single matched file path
+# Exits with error if 0 or more than 1 file is matched
+match_single_file() {
+    local csv_input="$1"
+    local csv_type="${2:-CSV}"  # Optional: description for error messages (e.g., "test segments CSV")
+
+    # Expand the pattern
+    local csv_pool=()
+    mapfile -t csv_pool < <(expand_file_input "$csv_input")
+
+    # Validate: expect exactly 1 match
+    if [[ ${#csv_pool[@]} -eq 0 ]]; then
+        echo "[ERROR] No $csv_type files found for pattern: $csv_input" >&2
+        exit 1
+    elif [[ ${#csv_pool[@]} -gt 1 ]]; then
+        echo "[ERROR] Expected exactly 1 $csv_type file, but found ${#csv_pool[@]} matches for pattern: $csv_input" >&2
+        echo "[ERROR] Matched files:" >&2
+        for file in "${csv_pool[@]}"; do
+            echo "[ERROR]   - $file" >&2
+        done
+        exit 1
+    fi
+
+    # Output the single matched file
+    echo "${csv_pool[0]}"
+}

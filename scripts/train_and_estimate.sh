@@ -320,6 +320,39 @@ if [[ -z "$TEST_SEGMENTS_CSV" ]]; then
     log_info "Using temporary test segments CSV: $TEST_SEGMENTS_CSV"
 fi
 
+# Expand patterns for test CSV files (if provided as patterns)
+if [[ -n "$TEST_RAW_CSV" ]] && [[ $USE_TEMP_TEST_RAW -eq 0 ]]; then
+    # Check if pattern contains wildcards
+    if [[ "$TEST_RAW_CSV" == *"*"* ]] || [[ "$TEST_RAW_CSV" == *"?"* ]] || [[ "$TEST_RAW_CSV" == *"{"* ]]; then
+        log_info "Expanding test raw CSV pattern: $TEST_RAW_CSV"
+        TEST_RAW_CSV=$(match_single_file "$TEST_RAW_CSV" "test raw CSV")
+        log_info "Matched test raw CSV: $TEST_RAW_CSV"
+    fi
+    # Verify file exists after expansion
+    if [[ -f "$TEST_RAW_CSV" ]]; then
+        log_info "✓ Test raw CSV exists: $TEST_RAW_CSV"
+    else
+        log_info "✗ Test raw CSV does not exist: $TEST_RAW_CSV"
+        log_info "Will proceed with measurement instead of skipping"
+    fi
+fi
+
+if [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ $USE_TEMP_TEST_SEGMENTS -eq 0 ]]; then
+    # Check if pattern contains wildcards
+    if [[ "$TEST_SEGMENTS_CSV" == *"*"* ]] || [[ "$TEST_SEGMENTS_CSV" == *"?"* ]] || [[ "$TEST_SEGMENTS_CSV" == *"{"* ]]; then
+        log_info "Expanding test segments CSV pattern: $TEST_SEGMENTS_CSV"
+        TEST_SEGMENTS_CSV=$(match_single_file "$TEST_SEGMENTS_CSV" "test segments CSV")
+        log_info "Matched test segments CSV: $TEST_SEGMENTS_CSV"
+    fi
+    # Verify file exists after expansion
+    if [[ -f "$TEST_SEGMENTS_CSV" ]]; then
+        log_info "✓ Test segments CSV exists: $TEST_SEGMENTS_CSV"
+    else
+        log_info "✗ Test segments CSV does not exist: $TEST_SEGMENTS_CSV"
+        log_info "Will proceed with measurement and preprocessing instead of skipping"
+    fi
+fi
+
 log_info "Report will be saved to: $REPORT_DIR_FULL"
 
 # Extract basenames
