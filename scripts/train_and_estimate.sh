@@ -306,18 +306,19 @@ fi
 # Setup temporary file for estimated stats (always temp)
 ESTIMATED_STATS_JSON="$TEMP_DIR/estimated_stats_${FILE_SUFFIX}.json"
 
-# Setup temporary file for test raw CSV if not provided
-if [[ -z "$TEST_RAW_CSV" ]]; then
-    TEST_RAW_CSV="$TEMP_DIR/measured_${FILE_SUFFIX}.csv"
-    USE_TEMP_TEST_RAW=1
-    log_info "Using temporary test raw CSV: $TEST_RAW_CSV"
-fi
-
 # Setup temporary file for test segments if not provided
 if [[ -z "$TEST_SEGMENTS_CSV" ]]; then
     TEST_SEGMENTS_CSV="$TEMP_DIR/measured_segments_${FILE_SUFFIX}.csv"
     USE_TEMP_TEST_SEGMENTS=1
     log_info "Using temporary test segments CSV: $TEST_SEGMENTS_CSV"
+fi
+
+# Setup temporary file for test raw CSV only if test segments is also temp
+# (if segments is provided, we don't need to measure, so no raw CSV needed)
+if [[ -z "$TEST_RAW_CSV" ]] && [[ $USE_TEMP_TEST_SEGMENTS -eq 1 ]]; then
+    TEST_RAW_CSV="$TEMP_DIR/measured_${FILE_SUFFIX}.csv"
+    USE_TEMP_TEST_RAW=1
+    log_info "Using temporary test raw CSV: $TEST_RAW_CSV"
 fi
 
 # Expand patterns for test CSV files (if provided as patterns)
