@@ -79,8 +79,10 @@ include("models/mean.jl")
 # Include specific model constructors
 include("models/gamma_per_instruction.jl")
 include("models/gamma_per_addressing_mode.jl")
+include("models/gamma_per_addressing_mode_constant.jl")
 include("models/mean_per_instruction.jl")
 include("models/mean_per_addressing_mode.jl")
+include("models/mean_per_addressing_mode_constant.jl")
 
 """
 Create a model instance based on the model name
@@ -90,12 +92,16 @@ function create_model(model_str::String)::AbstractModel
         return GammaPerInstruction()
     elseif model_str == "gamma_per_addressing_mode"
         return GammaPerAddressingMode()
+    elseif model_str == "gamma_per_addressing_mode_constant"
+        return GammaPerAddressingModeConstant()
     elseif model_str == "mean_per_instruction"
         return MeanPerInstruction()
     elseif model_str == "mean_per_addressing_mode"
         return MeanPerAddressingMode()
+    elseif model_str == "mean_per_addressing_mode_constant"
+        return MeanPerAddressingModeConstant()
     else
-        error("Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode")
+        error("Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant")
     end
 end
 

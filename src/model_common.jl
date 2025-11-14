@@ -14,8 +14,9 @@ const constant_aware_opcodes = [:rlam, :pushm, :popm]
 Granularity level for energy model parameters
 """
 @enum ModelGranularity begin
-    PerOpcode = 1              # One parameter per opcode (e.g., mov, add, sub)
-    PerAddressingMode = 2      # One parameter per (opcode, addressing_mode) combination
+    PerOpcode = 1                    # One parameter per opcode (e.g., mov, add, sub)
+    PerAddressingMode = 2            # One parameter per (opcode, addressing_mode) combination
+    PerAddressingModeConstant = 3    # Like PerAddressingMode but includes compile-time constants
 end
 
 """
@@ -44,14 +45,28 @@ end
 """
 Get instruction key for parameter lookup based on granularity level.
 For dual-operand instructions with PerAddressingMode, uses source and destination modes.
-For instructions with compile-time constant immediates (rlam, pushm, popm),
-includes the constant value in the key.
+For PerAddressingModeConstant, also includes compile-time constant values for specific instructions.
 """
 function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::ParamKey
     if granularity == PerOpcode
         # Simple: just the opcode
         return (inst.opcode,)
-    else  # PerAddressingMode
+    elseif granularity == PerAddressingMode
+        # Addressing mode aware, but no constant differentiation
+        if length(inst.operands) == 0
+            # No operands (e.g., ret, nop)
+            return (inst.opcode,)
+        elseif length(inst.operands) == 1
+            # Single operand (e.g., push R5, call, jmp)
+            return (inst.opcode, inst.operands[1].mode)
+        else
+            # Dual operand (e.g., mov, add) - use src and dst modes
+            src_mode = inst.operands[1].mode
+            dst_mode = inst.operands[2].mode
+            return (inst.opcode, src_mode, dst_mode)
+        end
+    else  # PerAddressingModeConstant
+        # Like PerAddressingMode but includes compile-time constants
         if length(inst.operands) == 0
             # No operands (e.g., ret, nop)
             return (inst.opcode,)
@@ -89,8 +104,8 @@ function get_valid_param_keys(
         for inst in program
             key = get_instruction_key(inst, granularity)
 
-            # For PerAddressingMode, filter out meaningless combinations
-            if granularity == PerAddressingMode && length(key) >= 2
+            # For PerAddressingMode and PerAddressingModeConstant, filter out meaningless combinations
+            if (granularity == PerAddressingMode || granularity == PerAddressingModeConstant) && length(key) >= 2
                 # key is (opcode, mode) or (opcode, src_mode, dst_mode)
                 # or (opcode, src_mode, constant, dst_mode) for constant-aware instructions
                 if length(key) == 2
