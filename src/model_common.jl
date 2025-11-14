@@ -81,8 +81,8 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
             # Special handling for instructions with compile-time constants
             # These instructions have immediate values that significantly affect energy
             if inst.opcode in constant_aware_opcodes && src_mode == :immediate
-                # Include the constant value in the key
-                constant_value = inst.operands[1].value
+                # Include the constant value in the key (convert to Int for type consistency)
+                constant_value = Int(inst.operands[1].value)
                 return (inst.opcode, src_mode, constant_value, dst_mode)
             end
 
