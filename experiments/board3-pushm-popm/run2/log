@@ -1,0 +1,1110 @@
+[0;34m[INFO][0m Found 9 training file(s) from pattern: training_data/addressing_mode/*.c
+[0;34m[INFO][0m Matching training segments CSVs by basename...
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_abs: experiments/board3-pushm-popm/run2/cmp_to_abs_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_idx: experiments/board3-pushm-popm/run2/cmp_to_idx_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_reg: experiments/board3-pushm-popm/run2/cmp_to_reg_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_sym: experiments/board3-pushm-popm/run2/cmp_to_sym_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_abs: experiments/board3-pushm-popm/run2/mov_to_abs_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_idx: experiments/board3-pushm-popm/run2/mov_to_idx_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_reg: experiments/board3-pushm-popm/run2/mov_to_reg_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_sym: experiments/board3-pushm-popm/run2/mov_to_sym_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for simple: experiments/board3-pushm-popm/run2/simple_segments_20251113_135820.csv
+[0;34m[INFO][0m Training files: 9
+[0;34m[INFO][0m   [1] training_data/addressing_mode/cmp_to_abs.c
+[0;34m[INFO][0m   [2] training_data/addressing_mode/cmp_to_idx.c
+[0;34m[INFO][0m   [3] training_data/addressing_mode/cmp_to_reg.c
+[0;34m[INFO][0m   [4] training_data/addressing_mode/cmp_to_sym.c
+[0;34m[INFO][0m   [5] training_data/addressing_mode/mov_to_abs.c
+[0;34m[INFO][0m   [6] training_data/addressing_mode/mov_to_idx.c
+[0;34m[INFO][0m   [7] training_data/addressing_mode/mov_to_reg.c
+[0;34m[INFO][0m   [8] training_data/addressing_mode/mov_to_sym.c
+[0;34m[INFO][0m   [9] training_data/addressing_mode/simple.c
+[0;34m[INFO][0m Using temporary params file: experiments/board3-pushm-popm/run2/params_20251114_120005.json
+[0;34m[INFO][0m Expanding test segments CSV pattern: experiments/board3-pushm-popm/run2/measured_segments_*.csv
+[0;34m[INFO][0m Matched test segments CSV: experiments/board3-pushm-popm/run2/measured_segments_20251113_135820.csv
+[0;34m[INFO][0m ✓ Test segments CSV exists: experiments/board3-pushm-popm/run2/measured_segments_20251113_135820.csv
+[0;34m[INFO][0m Report will be saved to: experiments/board3-pushm-popm/run2/report/20251114_120005
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_abs.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_abs.c
+  Event 1: bench_cmp_reg_to_abs
+  Event 2: bench_cmp_imm_to_abs
+  Event 3: bench_cmp_idx_to_abs
+  Event 4: bench_cmp_sym_to_abs
+  Event 5: bench_cmp_abs_to_abs
+  Event 6: bench_cmp_ind_to_abs
+  Event 7: bench_cmp_aut_to_abs
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_abs_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_idx.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_idx.c
+  Event 1: bench_cmp_reg_to_idx
+  Event 2: bench_cmp_imm_to_idx
+  Event 3: bench_cmp_idx_to_idx
+  Event 4: bench_cmp_sym_to_idx
+  Event 5: bench_cmp_abs_to_idx
+  Event 6: bench_cmp_ind_to_idx
+  Event 7: bench_cmp_aut_to_idx
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_idx_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_reg.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_reg.c
+  Event 1: bench_cmp_reg_to_reg
+  Event 2: bench_cmp_imm_to_reg
+  Event 3: bench_cmp_idx_to_reg
+  Event 4: bench_cmp_sym_to_reg
+  Event 5: bench_cmp_abs_to_reg
+  Event 6: bench_cmp_ind_to_reg
+  Event 7: bench_cmp_aut_to_reg
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_reg_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_sym.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_sym.c
+  Event 1: bench_cmp_reg_to_sym
+  Event 2: bench_cmp_imm_to_sym
+  Event 3: bench_cmp_idx_to_sym
+  Event 4: bench_cmp_sym_to_sym
+  Event 5: bench_cmp_abs_to_sym
+  Event 6: bench_cmp_ind_to_sym
+  Event 7: bench_cmp_aut_to_sym
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_sym_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_abs.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_abs.c
+  Event 1: bench_mov_reg_to_abs
+  Event 2: bench_mov_imm_to_abs
+  Event 3: bench_mov_idx_to_abs
+  Event 4: bench_mov_sym_to_abs
+  Event 5: bench_mov_abs_to_abs
+  Event 6: bench_mov_ind_to_abs
+  Event 7: bench_mov_aut_to_abs
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_abs_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_idx.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_idx.c
+  Event 1: bench_mov_reg_to_idx
+  Event 2: bench_mov_imm_to_idx
+  Event 3: bench_mov_idx_to_idx
+  Event 4: bench_mov_sym_to_idx
+  Event 5: bench_mov_abs_to_idx
+  Event 6: bench_mov_ind_to_idx
+  Event 7: bench_mov_aut_to_idx
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_idx_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_reg.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_reg.c
+  Event 1: bench_mov_reg_to_reg
+  Event 2: bench_mov_imm_to_reg
+  Event 3: bench_mov_idx_to_reg
+  Event 4: bench_mov_sym_to_reg
+  Event 5: bench_mov_abs_to_reg
+  Event 6: bench_mov_ind_to_reg
+  Event 7: bench_mov_aut_to_reg
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_reg_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_sym.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_sym.c
+  Event 1: bench_mov_reg_to_sym
+  Event 2: bench_mov_imm_to_sym
+  Event 3: bench_mov_idx_to_sym
+  Event 4: bench_mov_sym_to_sym
+  Event 5: bench_mov_abs_to_sym
+  Event 6: bench_mov_ind_to_sym
+  Event 7: bench_mov_aut_to_sym
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_sym_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/simple.c...
+Extracted 21 event labels from training_data/addressing_mode/simple.c
+  Event 1: bench_add_reg_reg
+  Event 2: bench_add_imm_reg
+  Event 3: bench_add_idx_reg
+  Event 4: bench_add_sym_reg
+  Event 5: bench_add_abs_reg
+  Event 6: bench_add_ind_reg
+  Event 7: bench_add_aut_reg
+  Event 8: bench_add_reg_idx
+  Event 9: bench_add_reg_sym
+  Event 10: bench_add_reg_abs
+  Event 11: bench_inc_reg
+  Event 12: bench_inc_idx
+  Event 13: bench_inc_sym
+  Event 14: bench_inc_abs
+  Event 15: bench_rlam_1_reg
+  Event 16: bench_rlam_2_reg
+  Event 17: bench_rlam_3_reg
+  Event 18: bench_rlam_4_reg
+  Event 19: bench_jge_not_taken
+  Event 20: bench_jge_taken
+  Event 21: bench_jmp
+Saved to experiments/board3-pushm-popm/run2/labels_simple_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from examples/c_programs/test.c...
+Warning: No BENCH() macros found in examples/c_programs/test.c
+Saved to experiments/board3-pushm-popm/run2/labels_test_20251114_120005.json
+[0;34m[INFO][0m Using training compiler defines: NUM_REPEAT=100 TEXTUAL_REPT=100 INNER_REPT=100
+[0;34m[INFO][0m Using estimation compiler defines: NUM_REPEAT=100 TEXTUAL_REPT=100 INNER_REPT=100
+[0;34m[INFO][0m Using existing training segments (9 files) - skipping training measurement and preprocessing
+[0;34m[INFO][0m Using existing test segments CSV: experiments/board3-pushm-popm/run2/measured_segments_20251113_135820.csv - skipping test measurement and preprocessing
+
+[1;33m======================================[0m
+[1;33mPIPELINE START[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Training files: 9
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_abs.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_idx.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_reg.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_sym.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_abs.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_idx.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_reg.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_sym.c
+[0;34m[INFO][0m   - training_data/addressing_mode/simple.c
+[0;34m[INFO][0m Estimate file: examples/c_programs/test.c
+[0;34m[INFO][0m Report directory: experiments/board3-pushm-popm/run2/report/20251114_120005
+
+[1;33m======================================[0m
+[1;33mTraining pipeline (via train.sh)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Found 9 training file(s) from pattern: training_data/addressing_mode/*.c
+[0;34m[INFO][0m Matching training segments CSVs by basename...
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_abs: experiments/board3-pushm-popm/run2/cmp_to_abs_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_idx: experiments/board3-pushm-popm/run2/cmp_to_idx_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_reg: experiments/board3-pushm-popm/run2/cmp_to_reg_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for cmp_to_sym: experiments/board3-pushm-popm/run2/cmp_to_sym_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_abs: experiments/board3-pushm-popm/run2/mov_to_abs_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_idx: experiments/board3-pushm-popm/run2/mov_to_idx_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_reg: experiments/board3-pushm-popm/run2/mov_to_reg_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for mov_to_sym: experiments/board3-pushm-popm/run2/mov_to_sym_segments_20251113_135820.csv
+[0;34m[INFO][0m   Matched segments CSV for simple: experiments/board3-pushm-popm/run2/simple_segments_20251113_135820.csv
+[0;34m[INFO][0m Training files: 9
+[0;34m[INFO][0m   [1] training_data/addressing_mode/cmp_to_abs.c
+[0;34m[INFO][0m   [2] training_data/addressing_mode/cmp_to_idx.c
+[0;34m[INFO][0m   [3] training_data/addressing_mode/cmp_to_reg.c
+[0;34m[INFO][0m   [4] training_data/addressing_mode/cmp_to_sym.c
+[0;34m[INFO][0m   [5] training_data/addressing_mode/mov_to_abs.c
+[0;34m[INFO][0m   [6] training_data/addressing_mode/mov_to_idx.c
+[0;34m[INFO][0m   [7] training_data/addressing_mode/mov_to_reg.c
+[0;34m[INFO][0m   [8] training_data/addressing_mode/mov_to_sym.c
+[0;34m[INFO][0m   [9] training_data/addressing_mode/simple.c
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_abs.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_abs.c
+  Event 1: bench_cmp_reg_to_abs
+  Event 2: bench_cmp_imm_to_abs
+  Event 3: bench_cmp_idx_to_abs
+  Event 4: bench_cmp_sym_to_abs
+  Event 5: bench_cmp_abs_to_abs
+  Event 6: bench_cmp_ind_to_abs
+  Event 7: bench_cmp_aut_to_abs
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_abs_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_idx.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_idx.c
+  Event 1: bench_cmp_reg_to_idx
+  Event 2: bench_cmp_imm_to_idx
+  Event 3: bench_cmp_idx_to_idx
+  Event 4: bench_cmp_sym_to_idx
+  Event 5: bench_cmp_abs_to_idx
+  Event 6: bench_cmp_ind_to_idx
+  Event 7: bench_cmp_aut_to_idx
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_idx_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_reg.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_reg.c
+  Event 1: bench_cmp_reg_to_reg
+  Event 2: bench_cmp_imm_to_reg
+  Event 3: bench_cmp_idx_to_reg
+  Event 4: bench_cmp_sym_to_reg
+  Event 5: bench_cmp_abs_to_reg
+  Event 6: bench_cmp_ind_to_reg
+  Event 7: bench_cmp_aut_to_reg
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_reg_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_sym.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_sym.c
+  Event 1: bench_cmp_reg_to_sym
+  Event 2: bench_cmp_imm_to_sym
+  Event 3: bench_cmp_idx_to_sym
+  Event 4: bench_cmp_sym_to_sym
+  Event 5: bench_cmp_abs_to_sym
+  Event 6: bench_cmp_ind_to_sym
+  Event 7: bench_cmp_aut_to_sym
+Saved to experiments/board3-pushm-popm/run2/labels_cmp_to_sym_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_abs.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_abs.c
+  Event 1: bench_mov_reg_to_abs
+  Event 2: bench_mov_imm_to_abs
+  Event 3: bench_mov_idx_to_abs
+  Event 4: bench_mov_sym_to_abs
+  Event 5: bench_mov_abs_to_abs
+  Event 6: bench_mov_ind_to_abs
+  Event 7: bench_mov_aut_to_abs
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_abs_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_idx.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_idx.c
+  Event 1: bench_mov_reg_to_idx
+  Event 2: bench_mov_imm_to_idx
+  Event 3: bench_mov_idx_to_idx
+  Event 4: bench_mov_sym_to_idx
+  Event 5: bench_mov_abs_to_idx
+  Event 6: bench_mov_ind_to_idx
+  Event 7: bench_mov_aut_to_idx
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_idx_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_reg.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_reg.c
+  Event 1: bench_mov_reg_to_reg
+  Event 2: bench_mov_imm_to_reg
+  Event 3: bench_mov_idx_to_reg
+  Event 4: bench_mov_sym_to_reg
+  Event 5: bench_mov_abs_to_reg
+  Event 6: bench_mov_ind_to_reg
+  Event 7: bench_mov_aut_to_reg
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_reg_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_sym.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_sym.c
+  Event 1: bench_mov_reg_to_sym
+  Event 2: bench_mov_imm_to_sym
+  Event 3: bench_mov_idx_to_sym
+  Event 4: bench_mov_sym_to_sym
+  Event 5: bench_mov_abs_to_sym
+  Event 6: bench_mov_ind_to_sym
+  Event 7: bench_mov_aut_to_sym
+Saved to experiments/board3-pushm-popm/run2/labels_mov_to_sym_20251114_120005.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/simple.c...
+Extracted 21 event labels from training_data/addressing_mode/simple.c
+  Event 1: bench_add_reg_reg
+  Event 2: bench_add_imm_reg
+  Event 3: bench_add_idx_reg
+  Event 4: bench_add_sym_reg
+  Event 5: bench_add_abs_reg
+  Event 6: bench_add_ind_reg
+  Event 7: bench_add_aut_reg
+  Event 8: bench_add_reg_idx
+  Event 9: bench_add_reg_sym
+  Event 10: bench_add_reg_abs
+  Event 11: bench_inc_reg
+  Event 12: bench_inc_idx
+  Event 13: bench_inc_sym
+  Event 14: bench_inc_abs
+  Event 15: bench_rlam_1_reg
+  Event 16: bench_rlam_2_reg
+  Event 17: bench_rlam_3_reg
+  Event 18: bench_rlam_4_reg
+  Event 19: bench_jge_not_taken
+  Event 20: bench_jge_taken
+  Event 21: bench_jmp
+Saved to experiments/board3-pushm-popm/run2/labels_simple_20251114_120005.json
+[0;34m[INFO][0m Using compiler defines: NUM_REPEAT=100 TEXTUAL_REPT=100 INNER_REPT=100
+[0;34m[INFO][0m Using existing training segments (9 files) - skipping measurement and preprocessing
+
+[1;33m======================================[0m
+[1;33mTRAINING PIPELINE START[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Training files: 9
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_abs.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_idx.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_reg.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_sym.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_abs.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_idx.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_reg.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_sym.c
+[0;34m[INFO][0m   - training_data/addressing_mode/simple.c
+[0;34m[INFO][0m Output params file: experiments/board3-pushm-popm/run2/params_20251114_120005.json
+
+[1;33m======================================[0m
+[1;33mTraining measurement SKIPPED (using existing training raw CSVs: 9 files)[0m
+[1;33m======================================[0m
+
+[0;34m[INFO][0m ==> Hardware no longer required - remaining steps can run offline
+
+
+[1;33m======================================[0m
+[1;33mPreprocessing SKIPPED (using existing training segments CSVs: 9 files)[0m
+[1;33m======================================[0m
+
+[1;33m======================================[0m
+[1;33mTraining energy model from 9 file(s)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Compiling cmp_to_abs
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_abs.asm
+[0;34m[INFO][0m Compiling cmp_to_idx
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_idx.asm
+[0;34m[INFO][0m Compiling cmp_to_reg
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_reg.asm
+[0;34m[INFO][0m Compiling cmp_to_sym
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_sym.asm
+[0;34m[INFO][0m Compiling mov_to_abs
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_abs.asm
+[0;34m[INFO][0m Compiling mov_to_idx
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_idx.asm
+[0;34m[INFO][0m Compiling mov_to_reg
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_reg.asm
+[0;34m[INFO][0m Compiling mov_to_sym
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_sym.asm
+[0;34m[INFO][0m Compiling simple
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/simple.asm
+[ Info: Running in TRAIN mode
+┌ Info: Number of training files
+└   n_files = 9
+┌ Info: Model type
+└   model = "mean_per_addressing_mode_constant"
+┌ Info: Output file
+└   path = "experiments/board3-pushm-popm/run2/params_20251114_120005.json"
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_abs.asm"
+└   data = "experiments/board3-pushm-popm/run2/cmp_to_abs_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_abs.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 990
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 990
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.2787160873413086
+└   steps = 1473556
+┌ Info: Final machine state
+└   pc = "5148"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5148 value_dec=20808
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_idx.asm"
+└   data = "experiments/board3-pushm-popm/run2/cmp_to_idx_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_idx.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 998
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 998
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 2.0835890769958496
+└   steps = 1487656
+┌ Info: Final machine state
+└   pc = "5176"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5176 value_dec=20854
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c40 value_dec=7232
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_reg.asm"
+└   data = "experiments/board3-pushm-popm/run2/cmp_to_reg_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_reg.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 998
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 998
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.205104112625122
+└   steps = 1487656
+┌ Info: Final machine state
+└   pc = "4bfe"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4bfe value_dec=19454
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1d08 value_dec=7432
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_sym.asm"
+└   data = "experiments/board3-pushm-popm/run2/cmp_to_sym_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_sym.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 984
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 984
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.7492718696594238
+└   steps = 1472956
+┌ Info: Final machine state
+└   pc = "5130"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5130 value_dec=20784
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_abs.asm"
+└   data = "experiments/board3-pushm-popm/run2/mov_to_abs_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_abs.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 990
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 990
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.208578109741211
+└   steps = 1473556
+┌ Info: Final machine state
+└   pc = "5148"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5148 value_dec=20808
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_idx.asm"
+└   data = "experiments/board3-pushm-popm/run2/mov_to_idx_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_idx.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 998
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 998
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 2.6078028678894043
+└   steps = 1487656
+┌ Info: Final machine state
+└   pc = "5176"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5176 value_dec=20854
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c40 value_dec=7232
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_reg.asm"
+└   data = "experiments/board3-pushm-popm/run2/mov_to_reg_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_reg.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 1005
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 1005
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.233793020248413
+└   steps = 1501656
+┌ Info: Final machine state
+└   pc = "4c1a"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4c1a value_dec=19482
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1d08 value_dec=7432
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_sym.asm"
+└   data = "experiments/board3-pushm-popm/run2/mov_to_sym_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_sym.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 984
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 984
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.6710469722747803
+└   steps = 1472956
+┌ Info: Final machine state
+└   pc = "5130"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5130 value_dec=20784
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/simple.asm"
+└   data = "experiments/board3-pushm-popm/run2/simple_segments_20251113_135820.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/simple.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 2854
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 2854
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 4.124773025512695
+└   steps = 4478126
+┌ Info: Final machine state
+└   pc = "60b4"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x60b4 value_dec=24756
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x0001 value_dec=1
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 2100
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 2100
+┌ Info: Creating combined training data
+└   total_samples = 7700
+[ Info: Training data created successfully
+┌ Info: Learning Mean model parameters
+│   granularity = PerAddressingModeConstant::ModelGranularity = 3
+└   num_programs = 7700
+┌ Info: Learned Mean model parameters
+└   num_parameters = 76
+┌ Info: Saving Mean model parameters
+│   path = "experiments/board3-pushm-popm/run2/params_20251114_120005.json"
+└   model_type = "mean_per_addressing_mode_constant"
+[ Info: Parameters saved successfully
+[0;32m[SUCCESS][0m Model trained: experiments/board3-pushm-popm/run2/params_20251114_120005.json
+
+[1;33m======================================[0m
+[1;33mTRAINING PIPELINE COMPLETE[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Training completed successfully!
+
+[0;34m[INFO][0m Output files:
+  - Training Segments CSVs (9 files):
+      experiments/board3-pushm-popm/run2/cmp_to_abs_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/cmp_to_idx_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/cmp_to_reg_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/cmp_to_sym_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_abs_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_idx_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_reg_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_sym_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/simple_segments_20251113_135820.csv
+  - Parameters: experiments/board3-pushm-popm/run2/params_20251114_120005.json
+
+[0;34m[INFO][0m To reuse these outputs, run:
+  /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/train.sh \
+    --train-files "training_data/addressing_mode/*.c" \
+    --training-segments-csv "experiments/board3-pushm-popm/run2/cmp_to_abs_segments_20251113_135820.csv" \
+    --params "experiments/board3-pushm-popm/run2/params_20251114_120005.json"
+[0;32m[SUCCESS][0m Training pipeline completed
+
+[1;33m======================================[0m
+[1;33mEstimation measurement SKIPPED (using existing estimation raw CSV: )[0m
+[1;33m======================================[0m
+
+[0;34m[INFO][0m ==> Hardware no longer required - remaining steps can run offline
+
+
+[1;33m======================================[0m
+[1;33mPreprocessing SKIPPED (using existing test segments CSV: experiments/board3-pushm-popm/run2/measured_segments_20251113_135820.csv)[0m
+[1;33m======================================[0m
+
+[1;33m======================================[0m
+[1;33mCompiling estimation file for estimation[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Compiling for estimation (with NUM_REPEAT=1)
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/test.elf
+[0;32m[SUCCESS][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/test.asm
+
+[1;33m======================================[0m
+[1;33mEstimating energy consumption[0m
+[1;33m======================================[0m
+[ Info: Running in ESTIMATE mode
+┌ Info: Assembly file
+└   path = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/test.asm"
+┌ Info: Energy parameters
+└   path = "experiments/board3-pushm-popm/run2/params_20251114_120005.json"
+┌ Info: Statistics output file
+└   path = "experiments/board3-pushm-popm/run2/estimated_stats_20251114_120005.json"
+┌ Info: Detected model type
+└   model = "mean_per_addressing_mode_constant"
+┌ Info: Loaded Mean model parameters
+│   model_type = "mean_per_addressing_mode_constant"
+└   num_parameters = 76
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/test.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 171
+└   base_address = "4002"
+[ Info: Executing program to get event sequences
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4102"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4050"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40b2"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40da"
+┌ Info: begin_event found in assembly file
+└   address = "0x4062"
+┌ Info: end_event found in assembly file
+└   address = "0x408a"
+┌ Info: instruction_count
+└   count = 171
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 0.4010460376739502
+└   steps = 275528
+┌ Info: Final machine state
+└   pc = "420c"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x420c value_dec=16908
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x1055 value_dec=4181
+│ R13 value_hex=0x7902 value_dec=30978
+│ R14 value_hex=0x2bfe value_dec=11262
+│ R15 value_hex=0x0000 value_dec=0
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 1
+┌ Info: Event sequence
+└   length = 275505
+┌ Info: Estimating energy with Mean model
+│   granularity = PerAddressingModeConstant::ModelGranularity = 3
+└   num_instructions = 275505
+┌ Info: Energy estimation complete
+└   total_energy = 374025.331
+[ Info: ============================================================
+[ Info: ESTIMATION COMPLETE
+[ Info: ============================================================
+┌ Info: Inference time
+└   time_seconds = 0.849
+┌ Info: Saving estimation statistics
+│   path = "experiments/board3-pushm-popm/run2/estimated_stats_20251114_120005.json"
+└   num_events = 1
+[ Info: Statistics saved successfully
+[0;32m[SUCCESS][0m Estimation complete: experiments/board3-pushm-popm/run2/estimated_stats_20251114_120005.json
+
+[1;33m======================================[0m
+[1;33mGenerating comparison report[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Using NUM_REPEAT=100 from estimation defines
+============================================================
+Generating Comparison Report
+============================================================
+Estimated stats: experiments/board3-pushm-popm/run2/estimated_stats_20251114_120005.json
+Measured data:   experiments/board3-pushm-popm/run2/measured_segments_20251113_135820.csv
+Report dir:      experiments/board3-pushm-popm/run2/report/20251114_120005
+NUM_REPEAT:      100
+
+Loading data...
+  Number of events: 1
+  NUM_REPEAT: 100
+  Total measurements expected: 100
+  Total measurements found: 100
+
+Processing events...
+
+  Event 1 (1/1)
+    Estimated: 1 samples, mean=374025.33 nJ
+    Measured:  100 samples, mean=403624.33 nJ
+  - Saved: experiments/board3-pushm-popm/run2/report/20251114_120005/event_1_estimated.png
+  - Saved: experiments/board3-pushm-popm/run2/report/20251114_120005/event_1_measured.png
+  - Saved: experiments/board3-pushm-popm/run2/report/20251114_120005/event_1_comparison.png
+  - Saved: experiments/board3-pushm-popm/run2/report/20251114_120005/comparison.md
+
+============================================================
+COMPARISON COMPLETE
+============================================================
+Report location: experiments/board3-pushm-popm/run2/report/20251114_120005
+Average absolute error: 7.33%
+============================================================
+[0;32m[SUCCESS][0m Comparison report generated: experiments/board3-pushm-popm/run2/report/20251114_120005
+
+[1;33m======================================[0m
+[1;33mPIPELINE COMPLETE[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m All steps completed successfully!
+
+[0;34m[INFO][0m Output files:
+  - Comparison Report: experiments/board3-pushm-popm/run2/report/20251114_120005/
+    - comparison.md (detailed markdown report with all events)
+    - event_N_estimated.png (per-event estimated distributions)
+    - event_N_measured.png (per-event measured distributions)
+    - event_N_comparison.png (per-event comparisons)
+  - Test Raw CSV: 
+  - Training Segments CSVs (9 files):
+      experiments/board3-pushm-popm/run2/cmp_to_abs_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/cmp_to_idx_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/cmp_to_reg_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/cmp_to_sym_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_abs_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_idx_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_reg_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/mov_to_sym_segments_20251113_135820.csv
+      experiments/board3-pushm-popm/run2/simple_segments_20251113_135820.csv
+  - Test Segments CSV: experiments/board3-pushm-popm/run2/measured_segments_20251113_135820.csv
