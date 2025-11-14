@@ -1,0 +1,169 @@
+[0;34m[INFO][0m Found 1 file(s) from pattern: examples/c_programs/test.c
+[0;34m[INFO][0m Using compiler defines: NUM_REPEAT=100
+
+[1;33m======================================[0m
+[1;33mANALYZE DISTRIBUTION START[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Files: 1
+[0;34m[INFO][0m   - examples/c_programs/test.c
+[0;34m[INFO][0m Report directory: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716
+
+[1;33m======================================[0m
+[1;33mExtracting event labels from C source files[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Extracting labels from examples/c_programs/test.c...
+Warning: No BENCH() macros found in examples/c_programs/test.c
+Saved to experiments/board1234-test/board4/labels_test_20251114_165716.json
+[0;34m[INFO][0m Combining event labels from 1 file(s)...
+Combined 0 event labels
+[0;32m[SUCCESS][0m Event labels combined: experiments/board1234-test/board4/combined_labels_20251114_165716.json
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Processing file 1/1: examples/c_programs/test.c
+
+[1;33m======================================[0m
+[1;33mCompiling examples/c_programs/test.c[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/test.elf
+
+[1;33m======================================[0m
+[1;33mFlashing binary to device[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/test.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem11201
+MSP430_Initialize: usbmodem11201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .upper.data]...
+Writing  526 bytes at 4002 [section: .text]...
+Done, 530 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring energy consumption[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+16:57:22 | INFO    | Starting measurement
+16:57:22 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-test/board4/raw_test_20251114_165716.csv, chunk=50000
+16:57:22 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+16:57:23 | INFO    | otii_server is ready
+16:57:24 | INFO    | Connected to Otii server
+16:57:24 | INFO    | Using device_id=221104200320
+16:57:24 | INFO    | MAIN enabled; voltage set
+16:57:24 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+16:57:30 | INFO    | Target reset issued
+16:57:30 | INFO    | Recording started
+16:57:30 | INFO    | Waiting for GPI1 falling edge (to close window)
+16:58:14 | INFO    | Detected GPI1 falling edge at t=43.867540000
+16:58:14 | INFO    | Recording stopped
+16:58:14 | INFO    | Analog samples: mc=2193600, mp=2193600
+16:58:14 | INFO    | Window: [0.000000000, 43.867540000] (duration 43.867540 s)
+16:58:14 | INFO    | Index window: [0, 2193376] (N=2193377)
+16:58:14 | INFO    | GPI2 edges in window: kept=201, collisions=0
+16:58:14 | INFO    | Exporting to experiments/board1234-test/board4/raw_test_20251114_165716.csv (chunk=50000)
+16:58:19 | INFO    | Export complete: experiments/board1234-test/board4/raw_test_20251114_165716.csv (rows=2193377, time=5.32s)
+16:58:19 | INFO    | GPI1 state changes applied during export: 1
+16:58:19 | INFO    | Done
+16:58:19 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Raw measurement saved: experiments/board1234-test/board4/raw_test_20251114_165716.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing measurements[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 0 event labels from experiments/board1234-test/board4/labels_test_20251114_165716.json
+Processed 100 segments
+Output saved to experiments/board1234-test/board4/segments_test_20251114_165716.csv
+
+Preprocessed data:
+    t_start_s   t_end_s  duration_s      energy_nJ
+0     9.78984   9.93216     0.14232  458452.173201
+1    10.13162  10.27396     0.14234  458218.164940
+2    10.47340  10.61572     0.14232  458211.305093
+3    10.81518  10.95750     0.14232  458060.973228
+4    11.15696  11.29928     0.14232  458182.591030
+..        ...       ...         ...            ...
+95   42.25840  42.40072     0.14232  458748.911519
+96   42.60016  42.74250     0.14234  458698.836297
+97   42.94194  43.08428     0.14234  458849.195670
+98   43.28372  43.42604     0.14232  458624.140867
+99   43.62548  43.76780     0.14232  458717.950529
+
+[100 rows x 4 columns]
+[0;32m[SUCCESS][0m Segments saved: experiments/board1234-test/board4/segments_test_20251114_165716.csv
+[0;34m[INFO][0m Cleaned up temporary file: experiments/board1234-test/board4/raw_test_20251114_165716.csv
+
+[1;33m======================================[0m
+[1;33mCombining segments from 1 file(s)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Segments saved: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/segments.csv
+[0;34m[INFO][0m Total segments: 100
+[0;34m[INFO][0m Total events: 1
+
+[1;33m======================================[0m
+[1;33mGenerating combined distribution analysis report[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/.venv/lib/python3.13/site-packages/numpy/_core/_methods.py:222: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/.venv/lib/python3.13/site-packages/numpy/_core/_methods.py:214: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+Generating distribution analysis report...
+  Segments CSV: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/segments.csv
+  NUM_REPEAT: 100
+  Report directory: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716
+  No event labels found in CSV, using numeric indices
+  Total samples: 100
+  Number of events: 1
+
+  Processing Event 1 (1/1)
+    Mean: 458350.52 nJ, Std: 461.38 nJ
+
+✓ Report generated: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/distribution_analysis.md
+✓ Summary CSV saved: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/distribution_summary.csv
+✓ 1 distribution plots generated
+
+Report generation complete!
+[0;32m[SUCCESS][0m Distribution analysis report generated
+
+[1;33m======================================[0m
+[1;33mANALYSIS COMPLETE[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m All steps completed successfully!
+
+[0;34m[INFO][0m Output files:
+  - Report directory: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716
+  - Markdown Report: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/distribution_analysis.md
+  - Segments CSV: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/segments.csv
+  - Summary CSV: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/distribution_summary.csv
+  - Distribution plots: experiments/board1234-test/board4/report/analyze_distribution/20251114_165716/event_*_distribution.png
+
+[0;34m[INFO][0m Files analyzed: 1
+  1. examples/c_programs/test.c
