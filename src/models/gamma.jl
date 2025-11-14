@@ -8,17 +8,18 @@ using Gen
 using Logging
 
 """
-Configuration for Gamma-based models
+Training configuration for Gamma-based models
 """
-struct GammaConfig <: ModelConfig
+struct GammaTrainingConfig <: TrainingConfig
     n_samples::Int
     inference_algorithm::String
+end
 
-    function GammaConfig(;
-        n_samples::Int=1000, inference_algorithm::String="importance-sampling"
-    )
-        new(n_samples, inference_algorithm)
-    end
+"""
+Estimation configuration for Gamma-based models
+"""
+struct GammaEstimationConfig <: EstimationConfig
+    n_samples::Int
 end
 
 # ============================================================================
@@ -401,7 +402,7 @@ end
 """
 Learn parameters from training data using Gamma distributions
 """
-function learn_params!(model::GammaModel, training_data::TrainingData, config::GammaConfig)
+function learn_params!(model::GammaModel, training_data::TrainingData, config::GammaTrainingConfig)
     @info "Learning Gamma model parameters" granularity = model.granularity n_samples =
         config.n_samples algorithm = config.inference_algorithm
 
@@ -441,7 +442,7 @@ end
 Estimate energy distribution for a program
 """
 function estimate_energy(
-    model::GammaModel, program::Vector{Instruction}, config::GammaConfig
+    model::GammaModel, program::Vector{Instruction}, config::GammaEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
@@ -455,7 +456,7 @@ function estimate_energy(
     default_beta = 3.0
 
     # Check for missing instructions
-    missing_keys = Set{Tuple{Vararg{Symbol}}}()
+    missing_keys = Set{ParamKey}()
     for inst in program
         param_key = get_instruction_key(inst, model.granularity)
         if !haskey(model.params, param_key)

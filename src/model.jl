@@ -2,25 +2,30 @@
 
 module Model
 
-export AbstractModel, ModelConfig
+export AbstractModel, TrainingConfig, EstimationConfig
 export load_params!, learn_params!, save_params, estimate_energy
-export create_model, create_model_config
+export create_model, create_training_config, create_estimation_config
 
 """
 Abstract base type for all energy models.
 
 All models must implement the following interface:
 - load_params!(model::AbstractModel, filename::String)
-- learn_params!(model::AbstractModel, training_data::TrainingData, config::ModelConfig)
+- learn_params!(model::AbstractModel, training_data::TrainingData, config::TrainingConfig)
 - save_params(model::AbstractModel, filename::String)
-- estimate_energy(model::AbstractModel, program::Vector{Instruction}, config::ModelConfig)
+- estimate_energy(model::AbstractModel, program::Vector{Instruction}, config::EstimationConfig)
 """
 abstract type AbstractModel end
 
 """
-Abstract base type for model configurations
+Abstract base type for training configurations
 """
-abstract type ModelConfig end
+abstract type TrainingConfig end
+
+"""
+Abstract base type for estimation configurations
+"""
+abstract type EstimationConfig end
 
 """
 Load parameters from a file into the model.
@@ -37,7 +42,7 @@ Learn parameters from training data.
 # Arguments
 - `model::AbstractModel`: The model to train
 - `training_data::TrainingData`: Training data containing programs and energy measurements
-- `config::ModelConfig`: Configuration for learning (e.g., number of samples, inference algorithm)
+- `config::TrainingConfig`: Configuration for training (e.g., inference algorithm)
 
 # Returns
 Nothing (modifies model in-place)
@@ -62,7 +67,7 @@ Estimate energy consumption for a program.
 # Arguments
 - `model::AbstractModel`: The trained model
 - `program::Vector{Instruction}`: Sequence of instructions
-- `config::ModelConfig`: Configuration for estimation (e.g., number of samples)
+- `config::EstimationConfig`: Configuration for estimation (e.g., number of samples for probabilistic models)
 
 # Returns
 Energy statistics (mean, std, min, max, samples) as a NamedTuple
@@ -106,13 +111,26 @@ function create_model(model_str::String)::AbstractModel
 end
 
 """
-Create model configuration based on model type
+Create training configuration based on model type
 """
-function create_model_config(model::AbstractModel, n_samples::Int, inference_algorithm::String)::ModelConfig
+function create_training_config(model::AbstractModel, n_samples::Int, inference_algorithm::String)::TrainingConfig
     if isa(model, GammaModel)
-        return GammaConfig(n_samples=n_samples, inference_algorithm=inference_algorithm)
+        return GammaTrainingConfig(n_samples, inference_algorithm)
     elseif isa(model, MeanModel)
-        return MeanConfig(inference_algorithm)
+        return MeanTrainingConfig(inference_algorithm)
+    else
+        error("Unknown model type: $(typeof(model))")
+    end
+end
+
+"""
+Create estimation configuration based on model type
+"""
+function create_estimation_config(model::AbstractModel, n_samples::Int)::EstimationConfig
+    if isa(model, GammaModel)
+        return GammaEstimationConfig(n_samples)
+    elseif isa(model, MeanModel)
+        return MeanEstimationConfig()
     else
         error("Unknown model type: $(typeof(model))")
     end

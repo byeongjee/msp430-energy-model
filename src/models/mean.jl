@@ -5,10 +5,16 @@ using Statistics
 using LinearAlgebra
 
 """
-Configuration for Mean-based models
+Training configuration for Mean-based models
 """
-struct MeanConfig <: ModelConfig
+struct MeanTrainingConfig <: TrainingConfig
     inference_algorithm::String
+end
+
+"""
+Estimation configuration for Mean-based models
+"""
+struct MeanEstimationConfig <: EstimationConfig
 end
 
 """
@@ -180,9 +186,9 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
 end
 
 """
-Learn parameters from training data using simple mean
+Learn parameters from training data
 """
-function learn_params!(model::MeanModel, training_data::TrainingData, config::MeanConfig)
+function learn_params!(model::MeanModel, training_data::TrainingData, config::MeanTrainingConfig)
     @info "Learning Mean model parameters" granularity = model.granularity num_programs = length(
         training_data.programs
     ) inference_algorithm = config.inference_algorithm
@@ -266,22 +272,16 @@ end
 Estimate energy for a program (deterministic - just sums mean energies)
 """
 function estimate_energy(
-    model::MeanModel, program::Vector{Instruction}, config::MeanConfig
+    model::MeanModel, program::Vector{Instruction}, config::MeanEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
     @info "Estimating energy with Mean model" granularity = model.granularity num_instructions = length(
         program
-    ) inference_algorithm = config.inference_algorithm
+    )
 
-    if config.inference_algorithm == "dominant-key"
-        result = estimate_energy_sum_means(model, program)
-    elseif config.inference_algorithm == "least-squares"
-        result = estimate_energy_sum_means(model, program)
-    else
-        error("Unknown inference algorithm for Mean model: $(config.inference_algorithm)")
-    end
+    result = estimate_energy_sum_means(model, program)
 
     @info "Energy estimation complete" total_energy = round(result.mean; digits=3)
     return result

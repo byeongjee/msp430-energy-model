@@ -98,7 +98,7 @@ function run_train(
 
     @info "Training data created successfully"
 
-    config = Model.create_model_config(model, n_samples, inference_str)
+    config = Model.create_training_config(model, n_samples, inference_str)
     Model.learn_params!(model, training_data, config)
 
     if !isnothing(output_file)

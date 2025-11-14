@@ -60,7 +60,7 @@ function run_estimate(
         Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
     }[]
 
-    config = Model.create_model_config(model, n_samples, "importance-sampling")
+    config = Model.create_estimation_config(model, n_samples)
 
     for event_sequence in event_sequences
         @info "Event sequence" length = length(event_sequence)
