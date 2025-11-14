@@ -15,7 +15,6 @@ MAX_CURRENT="${MAX_CURRENT_DEFAULT}"
 TEMP_DIR="${TEMP_DIR:-${TEMP_DIR_DEFAULT}}"
 REPORT_DIR="${REPORT_DIR:-${REPORT_DIR_DEFAULT}}"
 SKIP_RESET=""
-NUM_REPEAT=10
 TAG=""
 DEFINES=""  # Space-separated list of compiler macros
 
@@ -38,7 +37,6 @@ Optional arguments:
   --tag TAG                 Tag for naming output files (default: none)
   --voltage V               Voltage for measurement (default: 3.3)
   --max-current A           Max current for measurement (default: 0.01)
-  --num-repeat N            NUM_REPEAT value for compilation (default: 10)
   --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
   --report-dir DIR          Directory for report (default: ./report)
   --skip-reset              Skip device reset during measurement
@@ -84,10 +82,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --max-current)
             MAX_CURRENT="$2"
-            shift 2
-            ;;
-        --num-repeat)
-            NUM_REPEAT="$2"
             shift 2
             ;;
         --defines)
@@ -300,6 +294,8 @@ else
     done
 fi
 
+NUM_REPEAT=$(extract_define "$DEFINES" "NUM_REPEAT")
+
 # Calculate total number of events across all files
 TOTAL_SEGMENTS=$(tail -n +2 "$COMBINED_SEGMENTS_CSV" | wc -l | tr -d ' ')
 TOTAL_EVENTS=$((TOTAL_SEGMENTS / NUM_REPEAT))
@@ -316,6 +312,7 @@ for file in "${FILE_ARRAY[@]}"; do
     FILE_LIST="${FILE_LIST}${file}, "
 done
 FILE_LIST="${FILE_LIST%, }"  # Remove trailing comma and space
+
 
 python3 "$GENERATE_REPORT_PY" \
     --segments-csv "$COMBINED_SEGMENTS_CSV" \
