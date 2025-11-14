@@ -39,7 +39,10 @@ LDFLAGS := -L$(MSP430GCC_SUPPORT_PATH)/include
 SRC_DIR := examples/c_programs
 BUILD_DIR := build
 ASM_DIR := $(BUILD_DIR)/asm
-TEMP_DIR := ./tmp
+TEMP_DIR ?= ./tmp
+REPORT_DIR ?= ./report
+export TEMP_DIR
+export REPORT_DIR
 
 # Julia thread configuration
 # Default: 'auto' uses all available cores (Julia 1.5+)
@@ -58,6 +61,8 @@ help: ## Show this help message
 	@echo ""
 	@echo "Configuration:"
 	@echo "  JULIA_NUM_THREADS=$(JULIA_NUM_THREADS) (override with JULIA_NUM_THREADS=N)"
+	@echo "  TEMP_DIR=$(TEMP_DIR) (override with TEMP_DIR=/path/to/tmp)"
+	@echo "  REPORT_DIR=$(REPORT_DIR) (override with REPORT_DIR=/path/to/report)"
 	@echo ""
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-30s %s\n", $$1, $$2}'
