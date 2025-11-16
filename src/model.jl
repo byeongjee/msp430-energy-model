@@ -80,6 +80,7 @@ include("model_common.jl")
 # Include base model implementations (only once!)
 include("models/gamma.jl")
 include("models/mean.jl")
+include("models/mean_pair.jl")
 
 # Include specific model constructors
 include("models/gamma_per_instruction.jl")
@@ -88,6 +89,7 @@ include("models/gamma_per_addressing_mode_constant.jl")
 include("models/mean_per_instruction.jl")
 include("models/mean_per_addressing_mode.jl")
 include("models/mean_per_addressing_mode_constant.jl")
+include("models/mean_per_pair_addressing_mode_constant.jl")
 
 """
 Create a model instance based on the model name
@@ -105,8 +107,10 @@ function create_model(model_str::String)::AbstractModel
         return MeanPerAddressingMode()
     elseif model_str == "mean_per_addressing_mode_constant"
         return MeanPerAddressingModeConstant()
+    elseif model_str == "mean_per_pair_addressing_mode_constant"
+        return MeanPerPairAddressingModeConstant()
     else
-        error("Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant")
+        error("Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant, mean_per_pair_addressing_mode_constant")
     end
 end
 
@@ -117,6 +121,8 @@ function create_training_config(model::AbstractModel, n_samples::Int, inference_
     if isa(model, GammaModel)
         return GammaTrainingConfig(n_samples, inference_algorithm)
     elseif isa(model, MeanModel)
+        return MeanTrainingConfig(inference_algorithm)
+    elseif isa(model, MeanPairModel)
         return MeanTrainingConfig(inference_algorithm)
     else
         error("Unknown model type: $(typeof(model))")
@@ -130,6 +136,8 @@ function create_estimation_config(model::AbstractModel, n_samples::Int)::Estimat
     if isa(model, GammaModel)
         return GammaEstimationConfig(n_samples)
     elseif isa(model, MeanModel)
+        return MeanEstimationConfig()
+    elseif isa(model, MeanPairModel)
         return MeanEstimationConfig()
     else
         error("Unknown model type: $(typeof(model))")
