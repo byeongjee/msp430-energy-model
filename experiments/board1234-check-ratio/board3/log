@@ -1,0 +1,1695 @@
+[0;34m[INFO][0m Found 9 training file(s) from pattern: training_data/addressing_mode/*.c
+[0;34m[INFO][0m Training files: 9
+[0;34m[INFO][0m   [1] training_data/addressing_mode/cmp_to_abs.c
+[0;34m[INFO][0m   [2] training_data/addressing_mode/cmp_to_idx.c
+[0;34m[INFO][0m   [3] training_data/addressing_mode/cmp_to_reg.c
+[0;34m[INFO][0m   [4] training_data/addressing_mode/cmp_to_sym.c
+[0;34m[INFO][0m   [5] training_data/addressing_mode/mov_to_abs.c
+[0;34m[INFO][0m   [6] training_data/addressing_mode/mov_to_idx.c
+[0;34m[INFO][0m   [7] training_data/addressing_mode/mov_to_reg.c
+[0;34m[INFO][0m   [8] training_data/addressing_mode/mov_to_sym.c
+[0;34m[INFO][0m   [9] training_data/addressing_mode/simple.c
+[0;34m[INFO][0m Using temporary params file: experiments/board1234-check-ratio/board3/params_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_abs.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_abs.c
+  Event 1: bench_cmp_reg_to_abs
+  Event 2: bench_cmp_imm_to_abs
+  Event 3: bench_cmp_idx_to_abs
+  Event 4: bench_cmp_sym_to_abs
+  Event 5: bench_cmp_abs_to_abs
+  Event 6: bench_cmp_ind_to_abs
+  Event 7: bench_cmp_aut_to_abs
+Saved to experiments/board1234-check-ratio/board3/labels_cmp_to_abs_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_idx.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_idx.c
+  Event 1: bench_cmp_reg_to_idx
+  Event 2: bench_cmp_imm_to_idx
+  Event 3: bench_cmp_idx_to_idx
+  Event 4: bench_cmp_sym_to_idx
+  Event 5: bench_cmp_abs_to_idx
+  Event 6: bench_cmp_ind_to_idx
+  Event 7: bench_cmp_aut_to_idx
+Saved to experiments/board1234-check-ratio/board3/labels_cmp_to_idx_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_reg.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_reg.c
+  Event 1: bench_cmp_reg_to_reg
+  Event 2: bench_cmp_imm_to_reg
+  Event 3: bench_cmp_idx_to_reg
+  Event 4: bench_cmp_sym_to_reg
+  Event 5: bench_cmp_abs_to_reg
+  Event 6: bench_cmp_ind_to_reg
+  Event 7: bench_cmp_aut_to_reg
+Saved to experiments/board1234-check-ratio/board3/labels_cmp_to_reg_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/cmp_to_sym.c...
+Extracted 7 event labels from training_data/addressing_mode/cmp_to_sym.c
+  Event 1: bench_cmp_reg_to_sym
+  Event 2: bench_cmp_imm_to_sym
+  Event 3: bench_cmp_idx_to_sym
+  Event 4: bench_cmp_sym_to_sym
+  Event 5: bench_cmp_abs_to_sym
+  Event 6: bench_cmp_ind_to_sym
+  Event 7: bench_cmp_aut_to_sym
+Saved to experiments/board1234-check-ratio/board3/labels_cmp_to_sym_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_abs.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_abs.c
+  Event 1: bench_mov_reg_to_abs
+  Event 2: bench_mov_imm_to_abs
+  Event 3: bench_mov_idx_to_abs
+  Event 4: bench_mov_sym_to_abs
+  Event 5: bench_mov_abs_to_abs
+  Event 6: bench_mov_ind_to_abs
+  Event 7: bench_mov_aut_to_abs
+Saved to experiments/board1234-check-ratio/board3/labels_mov_to_abs_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_idx.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_idx.c
+  Event 1: bench_mov_reg_to_idx
+  Event 2: bench_mov_imm_to_idx
+  Event 3: bench_mov_idx_to_idx
+  Event 4: bench_mov_sym_to_idx
+  Event 5: bench_mov_abs_to_idx
+  Event 6: bench_mov_ind_to_idx
+  Event 7: bench_mov_aut_to_idx
+Saved to experiments/board1234-check-ratio/board3/labels_mov_to_idx_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_reg.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_reg.c
+  Event 1: bench_mov_reg_to_reg
+  Event 2: bench_mov_imm_to_reg
+  Event 3: bench_mov_idx_to_reg
+  Event 4: bench_mov_sym_to_reg
+  Event 5: bench_mov_abs_to_reg
+  Event 6: bench_mov_ind_to_reg
+  Event 7: bench_mov_aut_to_reg
+Saved to experiments/board1234-check-ratio/board3/labels_mov_to_reg_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/mov_to_sym.c...
+Extracted 7 event labels from training_data/addressing_mode/mov_to_sym.c
+  Event 1: bench_mov_reg_to_sym
+  Event 2: bench_mov_imm_to_sym
+  Event 3: bench_mov_idx_to_sym
+  Event 4: bench_mov_sym_to_sym
+  Event 5: bench_mov_abs_to_sym
+  Event 6: bench_mov_ind_to_sym
+  Event 7: bench_mov_aut_to_sym
+Saved to experiments/board1234-check-ratio/board3/labels_mov_to_sym_20251115_203315.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode/simple.c...
+Extracted 21 event labels from training_data/addressing_mode/simple.c
+  Event 1: bench_add_reg_reg
+  Event 2: bench_add_imm_reg
+  Event 3: bench_add_idx_reg
+  Event 4: bench_add_sym_reg
+  Event 5: bench_add_abs_reg
+  Event 6: bench_add_ind_reg
+  Event 7: bench_add_aut_reg
+  Event 8: bench_add_reg_idx
+  Event 9: bench_add_reg_sym
+  Event 10: bench_add_reg_abs
+  Event 11: bench_inc_reg
+  Event 12: bench_inc_idx
+  Event 13: bench_inc_sym
+  Event 14: bench_inc_abs
+  Event 15: bench_rlam_1_reg
+  Event 16: bench_rlam_2_reg
+  Event 17: bench_rlam_3_reg
+  Event 18: bench_rlam_4_reg
+  Event 19: bench_jge_not_taken
+  Event 20: bench_jge_taken
+  Event 21: bench_jmp
+Saved to experiments/board1234-check-ratio/board3/labels_simple_20251115_203315.json
+[0;34m[INFO][0m Using compiler defines: NUM_REPEAT=100 TEXTUAL_REPT=100 INNER_REPT=100
+
+[1;33m======================================[0m
+[1;33mTRAINING PIPELINE START[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Training files: 9
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_abs.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_idx.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_reg.c
+[0;34m[INFO][0m   - training_data/addressing_mode/cmp_to_sym.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_abs.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_idx.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_reg.c
+[0;34m[INFO][0m   - training_data/addressing_mode/mov_to_sym.c
+[0;34m[INFO][0m   - training_data/addressing_mode/simple.c
+[0;34m[INFO][0m Output params file: experiments/board1234-check-ratio/board3/params_20251115_203315.json
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 1/9: training_data/addressing_mode/cmp_to_abs.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (cmp_to_abs)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_abs.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (cmp_to_abs)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_abs.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 4096 bytes at 4004 [section: .text]...
+Writing  404 bytes at 5004 [section: .text]...
+Done, 4506 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (cmp_to_abs)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:33:22 | INFO    | Starting measurement
+20:33:22 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/cmp_to_abs_20251115_203315.csv, chunk=50000
+20:33:22 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:33:23 | INFO    | otii_server is ready
+20:33:24 | INFO    | Connected to Otii server
+20:33:24 | INFO    | Using device_id=221104200320
+20:33:24 | INFO    | MAIN enabled; voltage set
+20:33:24 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:33:30 | INFO    | Target reset issued
+20:33:30 | INFO    | Recording started
+20:33:30 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:36:01 | INFO    | Detected GPI1 falling edge at t=151.157000000
+20:36:01 | INFO    | Recording stopped
+20:36:01 | INFO    | Analog samples: mc=7558250, mp=7558250
+20:36:01 | INFO    | Window: [0.000000000, 151.157000000] (duration 151.157000 s)
+20:36:01 | INFO    | Index window: [0, 7557850] (N=7557851)
+20:36:01 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:36:01 | INFO    | Exporting to experiments/board1234-check-ratio/board3/cmp_to_abs_20251115_203315.csv (chunk=50000)
+20:36:19 | INFO    | Export complete: experiments/board1234-check-ratio/board3/cmp_to_abs_20251115_203315.csv (rows=7557851, time=18.33s)
+20:36:19 | INFO    | GPI1 state changes applied during export: 2
+20:36:19 | INFO    | Done
+20:36:19 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/cmp_to_abs_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 2/9: training_data/addressing_mode/cmp_to_idx.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (cmp_to_idx)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_idx.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (cmp_to_idx)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_idx.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 4096 bytes at 4004 [section: .text]...
+Writing  450 bytes at 5004 [section: .text]...
+Done, 4552 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (cmp_to_idx)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:36:24 | INFO    | Starting measurement
+20:36:24 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/cmp_to_idx_20251115_203315.csv, chunk=50000
+20:36:24 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:36:24 | INFO    | otii_server is ready
+20:36:26 | INFO    | Connected to Otii server
+20:36:26 | INFO    | Using device_id=221104200320
+20:36:26 | INFO    | MAIN enabled; voltage set
+20:36:26 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:36:30 | INFO    | Target reset issued
+20:36:30 | INFO    | Recording started
+20:36:30 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:39:01 | INFO    | Detected GPI1 falling edge at t=151.165680000
+20:39:01 | INFO    | Recording stopped
+20:39:01 | INFO    | Analog samples: mc=7558600, mp=7558600
+20:39:01 | INFO    | Window: [0.000000000, 151.165680000] (duration 151.165680 s)
+20:39:01 | INFO    | Index window: [0, 7558284] (N=7558285)
+20:39:01 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:39:01 | INFO    | Exporting to experiments/board1234-check-ratio/board3/cmp_to_idx_20251115_203315.csv (chunk=50000)
+20:39:19 | INFO    | Export complete: experiments/board1234-check-ratio/board3/cmp_to_idx_20251115_203315.csv (rows=7558285, time=18.40s)
+20:39:19 | INFO    | GPI1 state changes applied during export: 2
+20:39:19 | INFO    | Done
+20:39:19 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/cmp_to_idx_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 3/9: training_data/addressing_mode/cmp_to_reg.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (cmp_to_reg)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_reg.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (cmp_to_reg)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_reg.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 3146 bytes at 4004 [section: .text]...
+Done, 3152 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (cmp_to_reg)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:39:24 | INFO    | Starting measurement
+20:39:24 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/cmp_to_reg_20251115_203315.csv, chunk=50000
+20:39:24 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:39:24 | INFO    | otii_server is ready
+20:39:25 | INFO    | Connected to Otii server
+20:39:26 | INFO    | Using device_id=221104200320
+20:39:26 | INFO    | MAIN enabled; voltage set
+20:39:26 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:39:30 | INFO    | Target reset issued
+20:39:30 | INFO    | Recording started
+20:39:30 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:42:00 | INFO    | Detected GPI1 falling edge at t=150.661520000
+20:42:00 | INFO    | Recording stopped
+20:42:00 | INFO    | Analog samples: mc=7533600, mp=7533600
+20:42:00 | INFO    | Window: [0.000000000, 150.661520000] (duration 150.661520 s)
+20:42:00 | INFO    | Index window: [0, 7533075] (N=7533076)
+20:42:00 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:42:00 | INFO    | Exporting to experiments/board1234-check-ratio/board3/cmp_to_reg_20251115_203315.csv (chunk=50000)
+20:42:20 | INFO    | Export complete: experiments/board1234-check-ratio/board3/cmp_to_reg_20251115_203315.csv (rows=7533076, time=19.54s)
+20:42:20 | INFO    | GPI1 state changes applied during export: 1
+20:42:20 | INFO    | Done
+20:42:20 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/cmp_to_reg_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 4/9: training_data/addressing_mode/cmp_to_sym.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (cmp_to_sym)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_sym.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (cmp_to_sym)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/cmp_to_sym.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 4096 bytes at 4004 [section: .text]...
+Writing  380 bytes at 5004 [section: .text]...
+Done, 4482 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (cmp_to_sym)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:42:25 | INFO    | Starting measurement
+20:42:25 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/cmp_to_sym_20251115_203315.csv, chunk=50000
+20:42:25 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:42:25 | INFO    | otii_server is ready
+20:42:26 | INFO    | Connected to Otii server
+20:42:27 | INFO    | Using device_id=221104200320
+20:42:27 | INFO    | MAIN enabled; voltage set
+20:42:27 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:42:30 | INFO    | Target reset issued
+20:42:30 | INFO    | Recording started
+20:42:30 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:45:01 | INFO    | Detected GPI1 falling edge at t=151.164220000
+20:45:02 | INFO    | Recording stopped
+20:45:02 | INFO    | Analog samples: mc=7558600, mp=7558600
+20:45:02 | INFO    | Window: [0.000000000, 151.164220000] (duration 151.164220 s)
+20:45:02 | INFO    | Index window: [0, 7558210] (N=7558211)
+20:45:02 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:45:02 | INFO    | Exporting to experiments/board1234-check-ratio/board3/cmp_to_sym_20251115_203315.csv (chunk=50000)
+20:45:21 | INFO    | Export complete: experiments/board1234-check-ratio/board3/cmp_to_sym_20251115_203315.csv (rows=7558211, time=19.42s)
+20:45:21 | INFO    | GPI1 state changes applied during export: 1
+20:45:21 | INFO    | Done
+20:45:21 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/cmp_to_sym_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 5/9: training_data/addressing_mode/mov_to_abs.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (mov_to_abs)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_abs.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (mov_to_abs)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_abs.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 4096 bytes at 4004 [section: .text]...
+Writing  404 bytes at 5004 [section: .text]...
+Done, 4506 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (mov_to_abs)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:45:26 | INFO    | Starting measurement
+20:45:26 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/mov_to_abs_20251115_203315.csv, chunk=50000
+20:45:26 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:45:26 | INFO    | otii_server is ready
+20:45:28 | INFO    | Connected to Otii server
+20:45:28 | INFO    | Using device_id=221104200320
+20:45:28 | INFO    | MAIN enabled; voltage set
+20:45:28 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:45:32 | INFO    | Target reset issued
+20:45:32 | INFO    | Recording started
+20:45:32 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:48:03 | INFO    | Detected GPI1 falling edge at t=151.163420000
+20:48:03 | INFO    | Recording stopped
+20:48:03 | INFO    | Analog samples: mc=7558500, mp=7558500
+20:48:03 | INFO    | Window: [0.000000000, 151.163420000] (duration 151.163420 s)
+20:48:03 | INFO    | Index window: [0, 7558170] (N=7558171)
+20:48:03 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:48:03 | INFO    | Exporting to experiments/board1234-check-ratio/board3/mov_to_abs_20251115_203315.csv (chunk=50000)
+20:48:22 | INFO    | Export complete: experiments/board1234-check-ratio/board3/mov_to_abs_20251115_203315.csv (rows=7558171, time=18.80s)
+20:48:22 | INFO    | GPI1 state changes applied during export: 1
+20:48:22 | INFO    | Done
+20:48:22 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/mov_to_abs_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 6/9: training_data/addressing_mode/mov_to_idx.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (mov_to_idx)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_idx.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (mov_to_idx)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_idx.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 4096 bytes at 4004 [section: .text]...
+Writing  450 bytes at 5004 [section: .text]...
+Done, 4552 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (mov_to_idx)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:48:27 | INFO    | Starting measurement
+20:48:27 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/mov_to_idx_20251115_203315.csv, chunk=50000
+20:48:27 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:48:27 | INFO    | otii_server is ready
+20:48:28 | INFO    | Connected to Otii server
+20:48:29 | INFO    | Using device_id=221104200320
+20:48:29 | INFO    | MAIN enabled; voltage set
+20:48:29 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:48:32 | INFO    | Target reset issued
+20:48:32 | INFO    | Recording started
+20:48:32 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:51:03 | INFO    | Detected GPI1 falling edge at t=151.165600000
+20:51:03 | INFO    | Recording stopped
+20:51:03 | INFO    | Analog samples: mc=7558650, mp=7558650
+20:51:03 | INFO    | Window: [0.000000000, 151.165600000] (duration 151.165600 s)
+20:51:03 | INFO    | Index window: [0, 7558280] (N=7558281)
+20:51:03 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:51:03 | INFO    | Exporting to experiments/board1234-check-ratio/board3/mov_to_idx_20251115_203315.csv (chunk=50000)
+20:51:22 | INFO    | Export complete: experiments/board1234-check-ratio/board3/mov_to_idx_20251115_203315.csv (rows=7558281, time=19.06s)
+20:51:22 | INFO    | GPI1 state changes applied during export: 2
+20:51:22 | INFO    | Done
+20:51:22 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/mov_to_idx_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 7/9: training_data/addressing_mode/mov_to_reg.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (mov_to_reg)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_reg.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (mov_to_reg)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_reg.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 3174 bytes at 4004 [section: .text]...
+Done, 3180 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (mov_to_reg)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:51:27 | INFO    | Starting measurement
+20:51:27 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/mov_to_reg_20251115_203315.csv, chunk=50000
+20:51:27 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:51:28 | INFO    | otii_server is ready
+20:51:29 | INFO    | Connected to Otii server
+20:51:30 | INFO    | Using device_id=221104200320
+20:51:30 | INFO    | MAIN enabled; voltage set
+20:51:30 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:51:33 | INFO    | Target reset issued
+20:51:33 | INFO    | Recording started
+20:51:33 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:54:04 | INFO    | Detected GPI1 falling edge at t=150.677300000
+20:54:04 | INFO    | Recording stopped
+20:54:04 | INFO    | Analog samples: mc=7534250, mp=7534250
+20:54:04 | INFO    | Window: [0.000000000, 150.677300000] (duration 150.677300 s)
+20:54:04 | INFO    | Index window: [0, 7533864] (N=7533865)
+20:54:04 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:54:04 | INFO    | Exporting to experiments/board1234-check-ratio/board3/mov_to_reg_20251115_203315.csv (chunk=50000)
+20:54:23 | INFO    | Export complete: experiments/board1234-check-ratio/board3/mov_to_reg_20251115_203315.csv (rows=7533865, time=18.98s)
+20:54:23 | INFO    | GPI1 state changes applied during export: 1
+20:54:23 | INFO    | Done
+20:54:23 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/mov_to_reg_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 8/9: training_data/addressing_mode/mov_to_sym.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (mov_to_sym)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_sym.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (mov_to_sym)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/mov_to_sym.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 4096 bytes at 4004 [section: .text]...
+Writing  380 bytes at 5004 [section: .text]...
+Done, 4482 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (mov_to_sym)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:54:28 | INFO    | Starting measurement
+20:54:28 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/mov_to_sym_20251115_203315.csv, chunk=50000
+20:54:28 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:54:28 | INFO    | otii_server is ready
+20:54:29 | INFO    | Connected to Otii server
+20:54:30 | INFO    | Using device_id=221104200320
+20:54:30 | INFO    | MAIN enabled; voltage set
+20:54:30 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:54:33 | INFO    | Target reset issued
+20:54:33 | INFO    | Recording started
+20:54:33 | INFO    | Waiting for GPI1 falling edge (to close window)
+20:57:05 | INFO    | Detected GPI1 falling edge at t=151.159300000
+20:57:05 | INFO    | Recording stopped
+20:57:05 | INFO    | Analog samples: mc=7558350, mp=7558350
+20:57:05 | INFO    | Window: [0.000000000, 151.159300000] (duration 151.159300 s)
+20:57:05 | INFO    | Index window: [0, 7557964] (N=7557965)
+20:57:05 | INFO    | GPI2 edges in window: kept=1401, collisions=0
+20:57:05 | INFO    | Exporting to experiments/board1234-check-ratio/board3/mov_to_sym_20251115_203315.csv (chunk=50000)
+20:57:24 | INFO    | Export complete: experiments/board1234-check-ratio/board3/mov_to_sym_20251115_203315.csv (rows=7557965, time=19.17s)
+20:57:24 | INFO    | GPI1 state changes applied during export: 1
+20:57:24 | INFO    | Done
+20:57:24 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/mov_to_sym_20251115_203315.csv
+[0;34m[INFO][0m 
+[0;34m[INFO][0m Training file 9/9: training_data/addressing_mode/simple.c
+
+[1;33m======================================[0m
+[1;33mCompiling training file (simple)[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/simple.elf
+
+[1;33m======================================[0m
+[1;33mFlashing training file to device (simple)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/simple.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem111201
+MSP430_Initialize: usbmodem111201
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .data]...
+Writing    2 bytes at 4002 [section: .upper.data]...
+Writing 4096 bytes at 4004 [section: .text]...
+Writing 4096 bytes at 5004 [section: .text]...
+Writing  256 bytes at 6004 [section: .text]...
+Done, 8454 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring training file energy consumption (simple)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+20:57:29 | INFO    | Starting measurement
+20:57:29 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board1234-check-ratio/board3/simple_20251115_203315.csv, chunk=50000
+20:57:29 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+20:57:30 | INFO    | otii_server is ready
+20:57:31 | INFO    | Connected to Otii server
+20:57:31 | INFO    | Using device_id=221104200320
+20:57:31 | INFO    | MAIN enabled; voltage set
+20:57:31 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+20:57:35 | INFO    | Target reset issued
+20:57:35 | INFO    | Recording started
+20:57:35 | INFO    | Waiting for GPI1 falling edge (to close window)
+21:04:47 | INFO    | Detected GPI1 falling edge at t=432.636800000
+21:04:47 | INFO    | Recording stopped
+21:04:47 | INFO    | Analog samples: mc=21632550, mp=21632550
+21:04:47 | INFO    | Window: [0.000000000, 432.636800000] (duration 432.636800 s)
+21:04:47 | INFO    | Index window: [0, 21631839] (N=21631840)
+21:04:47 | INFO    | GPI2 edges in window: kept=4201, collisions=0
+21:04:47 | INFO    | Exporting to experiments/board1234-check-ratio/board3/simple_20251115_203315.csv (chunk=50000)
+21:05:42 | INFO    | Export complete: experiments/board1234-check-ratio/board3/simple_20251115_203315.csv (rows=21631840, time=54.97s)
+21:05:42 | INFO    | GPI1 state changes applied during export: 1
+21:05:42 | INFO    | Done
+21:05:42 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Training raw measurement saved: experiments/board1234-check-ratio/board3/simple_20251115_203315.csv
+
+[0;34m[INFO][0m ==> Hardware no longer required - remaining steps can run offline
+
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (cmp_to_abs)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_cmp_to_abs_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/cmp_to_abs_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.83498    9.83638      0.0014  3936.772712  bench_cmp_reg_to_abs
+1     10.03662   10.03802      0.0014  3918.458095  bench_cmp_reg_to_abs
+2     10.23824   10.23964      0.0014  3916.570996  bench_cmp_reg_to_abs
+3     10.43988   10.44128      0.0014  3906.487036  bench_cmp_reg_to_abs
+4     10.64150   10.64290      0.0014  3907.797325  bench_cmp_reg_to_abs
+..         ...        ...         ...          ...                   ...
+695  150.24842  150.24992      0.0015  4576.264790  bench_cmp_aut_to_abs
+696  150.45016  150.45166      0.0015  4583.940646  bench_cmp_aut_to_abs
+697  150.65190  150.65340      0.0015  4548.748990  bench_cmp_aut_to_abs
+698  150.85364  150.85514      0.0015  4546.306555  bench_cmp_aut_to_abs
+699  151.05538  151.05688      0.0015  4573.940008  bench_cmp_aut_to_abs
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/cmp_to_abs_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (cmp_to_idx)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_cmp_to_idx_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/cmp_to_idx_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.83292    9.83430     0.00138  3923.103751  bench_cmp_reg_to_idx
+1     10.03454   10.03592     0.00138  3931.301110  bench_cmp_reg_to_idx
+2     10.23614   10.23754     0.00140  3978.306314  bench_cmp_reg_to_idx
+3     10.43776   10.43914     0.00138  3920.313253  bench_cmp_reg_to_idx
+4     10.63938   10.64076     0.00138  3914.705249  bench_cmp_reg_to_idx
+..         ...        ...         ...          ...                   ...
+695  150.25708  150.25858     0.00150  4557.654629  bench_cmp_aut_to_idx
+696  150.45882  150.46032     0.00150  4578.452168  bench_cmp_aut_to_idx
+697  150.66056  150.66206     0.00150  4584.845195  bench_cmp_aut_to_idx
+698  150.86230  150.86380     0.00150  4596.115183  bench_cmp_aut_to_idx
+699  151.06404  151.06554     0.00150  4576.472277  bench_cmp_aut_to_idx
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/cmp_to_idx_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (cmp_to_reg)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_cmp_to_reg_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/cmp_to_reg_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.83392    9.83458     0.00066  1625.010550  bench_cmp_reg_to_reg
+1     10.03482   10.03550     0.00068  1681.055031  bench_cmp_reg_to_reg
+2     10.23572   10.23640     0.00068  1679.460066  bench_cmp_reg_to_reg
+3     10.43662   10.43728     0.00066  1638.122213  bench_cmp_reg_to_reg
+4     10.63752   10.63820     0.00068  1693.446324  bench_cmp_reg_to_reg
+..         ...        ...         ...          ...                   ...
+695  149.75658  149.75736     0.00078  2464.323221  bench_cmp_aut_to_reg
+696  149.95758  149.95836     0.00078  2461.326085  bench_cmp_aut_to_reg
+697  150.15860  150.15938     0.00078  2454.976824  bench_cmp_aut_to_reg
+698  150.35960  150.36038     0.00078  2450.293973  bench_cmp_aut_to_reg
+699  150.56060  150.56140     0.00080  2522.551974  bench_cmp_aut_to_reg
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/cmp_to_reg_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (cmp_to_sym)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_cmp_to_sym_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/cmp_to_sym_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.84482    9.84620     0.00138  3912.023241  bench_cmp_reg_to_sym
+1     10.04644   10.04782     0.00138  3901.849189  bench_cmp_reg_to_sym
+2     10.24804   10.24942     0.00138  3884.301225  bench_cmp_reg_to_sym
+3     10.44964   10.45102     0.00138  3880.977400  bench_cmp_reg_to_sym
+4     10.65126   10.65264     0.00138  3887.616729  bench_cmp_reg_to_sym
+..         ...        ...         ...          ...                   ...
+695  150.25570  150.25720     0.00150  4648.848993  bench_cmp_aut_to_sym
+696  150.45742  150.45892     0.00150  4667.410064  bench_cmp_aut_to_sym
+697  150.65914  150.66064     0.00150  4675.321151  bench_cmp_aut_to_sym
+698  150.86086  150.86236     0.00150  4670.264712  bench_cmp_aut_to_sym
+699  151.06260  151.06410     0.00150  4695.197097  bench_cmp_aut_to_sym
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/cmp_to_sym_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (mov_to_abs)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_mov_to_abs_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/mov_to_abs_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.84470    9.84610     0.00140  3787.933798  bench_mov_reg_to_abs
+1     10.04632   10.04772     0.00140  3793.365161  bench_mov_reg_to_abs
+2     10.24792   10.24932     0.00140  3809.515582  bench_mov_reg_to_abs
+3     10.44954   10.45094     0.00140  3799.830645  bench_mov_reg_to_abs
+4     10.65114   10.65254     0.00140  3796.353138  bench_mov_reg_to_abs
+..         ...        ...         ...          ...                   ...
+695  150.25490  150.25640     0.00150  4506.572497  bench_mov_aut_to_abs
+696  150.45662  150.45812     0.00150  4493.082597  bench_mov_aut_to_abs
+697  150.65834  150.65984     0.00150  4496.668677  bench_mov_aut_to_abs
+698  150.86006  150.86158     0.00152  4552.293266  bench_mov_aut_to_abs
+699  151.06180  151.06330     0.00150  4488.248944  bench_mov_aut_to_abs
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/mov_to_abs_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (mov_to_idx)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_mov_to_idx_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/mov_to_idx_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.84250    9.84388     0.00138  3782.190750  bench_mov_reg_to_idx
+1     10.04412   10.04550     0.00138  3796.724819  bench_mov_reg_to_idx
+2     10.24572   10.24712     0.00140  3852.216601  bench_mov_reg_to_idx
+3     10.44734   10.44872     0.00138  3791.692068  bench_mov_reg_to_idx
+4     10.64896   10.65034     0.00138  3776.728178  bench_mov_reg_to_idx
+..         ...        ...         ...          ...                   ...
+695  150.25710  150.25862     0.00152  4555.175062  bench_mov_aut_to_idx
+696  150.45882  150.46034     0.00152  4556.384482  bench_mov_aut_to_idx
+697  150.66054  150.66204     0.00150  4494.517853  bench_mov_aut_to_idx
+698  150.86226  150.86376     0.00150  4488.236143  bench_mov_aut_to_idx
+699  151.06398  151.06548     0.00150  4464.285735  bench_mov_aut_to_idx
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/mov_to_idx_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (mov_to_reg)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_mov_to_reg_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/mov_to_reg_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.84400    9.84468     0.00068  1680.280741  bench_mov_reg_to_reg
+1     10.04490   10.04558     0.00068  1671.872200  bench_mov_reg_to_reg
+2     10.24578   10.24648     0.00070  1721.460316  bench_mov_reg_to_reg
+3     10.44668   10.44736     0.00068  1666.126235  bench_mov_reg_to_reg
+4     10.64758   10.64826     0.00068  1667.176692  bench_mov_reg_to_reg
+..         ...        ...         ...          ...                   ...
+695  149.77222  149.77302     0.00080  2492.046440  bench_mov_aut_to_reg
+696  149.97326  149.97408     0.00082  2548.048000  bench_mov_aut_to_reg
+697  150.17430  150.17512     0.00082  2549.965540  bench_mov_aut_to_reg
+698  150.37534  150.37614     0.00080  2486.079540  bench_mov_aut_to_reg
+699  150.57636  150.57718     0.00082  2561.463143  bench_mov_aut_to_reg
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/mov_to_reg_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (mov_to_sym)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 7 event labels from experiments/board1234-check-ratio/board3/labels_mov_to_sym_20251115_203315.json
+Added event labels: 7 events, 100 segments per event
+Processed 700 segments
+Output saved to experiments/board1234-check-ratio/board3/mov_to_sym_segments_20251115_203315.csv
+
+Preprocessed data:
+     t_start_s    t_end_s  duration_s    energy_nJ           event_label
+0      9.84360    9.84498     0.00138  3826.642365  bench_mov_reg_to_sym
+1     10.04522   10.04660     0.00138  3817.036026  bench_mov_reg_to_sym
+2     10.24680   10.24818     0.00138  3808.552108  bench_mov_reg_to_sym
+3     10.44840   10.44978     0.00138  3809.998191  bench_mov_reg_to_sym
+4     10.65000   10.65138     0.00138  3810.117689  bench_mov_reg_to_sym
+..         ...        ...         ...          ...                   ...
+695  150.25074  150.25226     0.00152  4617.221290  bench_mov_aut_to_sym
+696  150.45248  150.45398     0.00150  4557.862449  bench_mov_aut_to_sym
+697  150.65422  150.65572     0.00150  4542.094236  bench_mov_aut_to_sym
+698  150.85594  150.85746     0.00152  4600.368824  bench_mov_aut_to_sym
+699  151.05768  151.05918     0.00150  4553.321395  bench_mov_aut_to_sym
+
+[700 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/mov_to_sym_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mPreprocessing training measurements (simple)[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 21 event labels from experiments/board1234-check-ratio/board3/labels_simple_20251115_203315.json
+Added event labels: 21 events, 100 segments per event
+Processed 2100 segments
+Output saved to experiments/board1234-check-ratio/board3/simple_segments_20251115_203315.csv
+
+Preprocessed data:
+      t_start_s    t_end_s  duration_s    energy_nJ        event_label
+0       9.84414    9.84482     0.00068  1702.324564  bench_add_reg_reg
+1      10.04504   10.04572     0.00068  1705.706064  bench_add_reg_reg
+2      10.24594   10.24662     0.00068  1708.532956  bench_add_reg_reg
+3      10.44684   10.44752     0.00068  1707.254772  bench_add_reg_reg
+4      10.64774   10.64844     0.00070  1747.715718  bench_add_reg_reg
+...         ...        ...         ...          ...                ...
+2095  431.73200  431.73276     0.00076  1873.628625          bench_jmp
+2096  431.93298  431.93374     0.00076  1850.465483          bench_jmp
+2097  432.13396  432.13472     0.00076  1866.674854          bench_jmp
+2098  432.33494  432.33570     0.00076  1871.700399          bench_jmp
+2099  432.53592  432.53668     0.00076  1851.147732          bench_jmp
+
+[2100 rows x 5 columns]
+[0;32m[SUCCESS][0m Training segments saved: experiments/board1234-check-ratio/board3/simple_segments_20251115_203315.csv
+
+[1;33m======================================[0m
+[1;33mTraining energy model from 9 file(s)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_abs.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_idx.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_reg.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_sym.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_abs.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_idx.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_reg.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_sym.asm
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/simple.asm
+[ Info: Running in TRAIN mode
+┌ Info: Number of training files
+└   n_files = 9
+┌ Info: Model type
+└   model = "mean_per_addressing_mode_constant"
+┌ Info: Output file
+└   path = "experiments/board1234-check-ratio/board3/params_20251115_203315.json"
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_abs.asm"
+└   data = "experiments/board1234-check-ratio/board3/cmp_to_abs_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_abs.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 990
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 990
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.3904938697814941
+└   steps = 1473556
+┌ Info: Final machine state
+└   pc = "5148"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5148 value_dec=20808
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_idx.asm"
+└   data = "experiments/board1234-check-ratio/board3/cmp_to_idx_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_idx.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 998
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 998
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 2.294461965560913
+└   steps = 1487656
+┌ Info: Final machine state
+└   pc = "5176"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5176 value_dec=20854
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c40 value_dec=7232
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_reg.asm"
+└   data = "experiments/board1234-check-ratio/board3/cmp_to_reg_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_reg.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 998
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 998
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.2600841522216797
+└   steps = 1487656
+┌ Info: Final machine state
+└   pc = "4bfe"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4bfe value_dec=19454
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1d08 value_dec=7432
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_sym.asm"
+└   data = "experiments/board1234-check-ratio/board3/cmp_to_sym_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/cmp_to_sym.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 984
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 984
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.8239707946777344
+└   steps = 1472956
+┌ Info: Final machine state
+└   pc = "5130"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5130 value_dec=20784
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_abs.asm"
+└   data = "experiments/board1234-check-ratio/board3/mov_to_abs_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_abs.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 990
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 990
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.2901530265808105
+└   steps = 1473556
+┌ Info: Final machine state
+└   pc = "5148"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5148 value_dec=20808
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_idx.asm"
+└   data = "experiments/board1234-check-ratio/board3/mov_to_idx_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_idx.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 998
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 998
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 2.7859580516815186
+└   steps = 1487656
+┌ Info: Final machine state
+└   pc = "5176"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5176 value_dec=20854
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c40 value_dec=7232
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_reg.asm"
+└   data = "experiments/board1234-check-ratio/board3/mov_to_reg_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_reg.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 1005
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 1005
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.301541805267334
+└   steps = 1501656
+┌ Info: Final machine state
+└   pc = "4c1a"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4c1a value_dec=19482
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1d08 value_dec=7432
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_sym.asm"
+└   data = "experiments/board1234-check-ratio/board3/mov_to_sym_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/mov_to_sym.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 984
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 984
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.8165919780731201
+└   steps = 1472956
+┌ Info: Final machine state
+└   pc = "5130"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x5130 value_dec=20784
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 700
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 700
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/simple.asm"
+└   data = "experiments/board1234-check-ratio/board3/simple_segments_20251115_203315.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/simple.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 2854
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 2854
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 4.453992128372192
+└   steps = 4478126
+┌ Info: Final machine state
+└   pc = "60b4"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x60b4 value_dec=24756
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x0001 value_dec=1
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 2100
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 2100
+┌ Info: Creating combined training data
+└   total_samples = 7700
+[ Info: Training data created successfully
+┌ Info: Learning Mean model parameters
+│   granularity = PerAddressingModeConstant::ModelGranularity = 3
+│   num_programs = 7700
+└   inference_algorithm = "least-squares"
+┌ Info: Building least-squares system
+│   num_programs = 7700
+└   num_keys = 77
+[ Info: Solving least-squares system
+┌ Info: Learned Mean model parameters
+└   num_parameters = 77
+┌ Info: Saving Mean model parameters
+│   path = "experiments/board1234-check-ratio/board3/params_20251115_203315.json"
+└   model_type = "mean_per_addressing_mode_constant"
+[ Info: Parameters saved successfully
+[0;32m[SUCCESS][0m Model trained: experiments/board1234-check-ratio/board3/params_20251115_203315.json
+
+[1;33m======================================[0m
+[1;33mTRAINING PIPELINE COMPLETE[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Training completed successfully!
+
+[0;34m[INFO][0m Output files:
+
+[0;34m[INFO][0m To reuse these outputs, run:
+  ./scripts/train.sh \
+    --train-files "training_data/addressing_mode/*.c" \
