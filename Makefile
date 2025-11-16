@@ -187,13 +187,16 @@ endif
 	@echo "Creating test fixture..."
 	@./test/scripts/create_fixture.sh $(FILE) $(NAME)
 
-test: ## Run Julia test suite ([PATTERN=<regex>])
+test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	@echo "Running Julia test suite..."
 	@if [ -n "$(PATTERN)" ]; then \
 		julia --project=. test/runtests.jl "$(PATTERN)"; \
 	else \
 		julia --project=. test/runtests.jl; \
 	fi
+	@echo ""
+	@echo "Running Python test suite..."
+	@uv run python scripts/test_generate_pair_benchmarks.py
 
 flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEFINES="..."])
 ifndef FILE
