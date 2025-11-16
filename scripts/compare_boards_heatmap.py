@@ -43,15 +43,23 @@ def main():
         type=str,
         choices=["none", "mean", "anchor"],
         default="mean",
-        help="Normalization mode: none, mean (divide by per-board mean of common keys), "
-             "or anchor (divide by a specific key per board). Default: mean.",
+        help=(
+            "Normalization mode: none, mean (divide by per-board mean of common keys), "
+            "or anchor (divide by a specific key per board). Default: mean."
+        ),
     )
     parser.add_argument(
         "--anchor-key",
         type=str,
         default=None,
         help="Instruction key to use as anchor when --norm=anchor "
-             "(e.g., 'add_register_register').",
+        "(e.g., 'add_register_register').",
+    )
+    parser.add_argument(
+        "--fmt",
+        type=str,
+        default=".2f",
+        help="Format string for cell text (default: .2f)",
     )
 
     args = parser.parse_args()
@@ -78,7 +86,6 @@ def main():
             #     print("  ", k)
 
     # Build a matrix: rows = instructions, cols = boards
-    # Start with raw values
     raw_matrix = np.zeros((len(common_keys), len(args.json_files)))
     for j, params in enumerate(all_params):
         raw_matrix[:, j] = np.array([params[k] for k in common_keys])
@@ -87,7 +94,6 @@ def main():
     matrix = raw_matrix.copy()
 
     if args.norm == "mean":
-        # Divide each column by its mean (over common keys)
         means = matrix.mean(axis=0)
         print("Per-board means (used for normalization):")
         for path, m in zip(args.json_files, means):
@@ -113,20 +119,20 @@ def main():
     else:
         print("Normalization: none (using raw parameter values).")
 
-    # Optional: you could also log-transform if dynamic range is huge, e.g.:
-    # matrix = np.log(matrix)
+    n_instr, n_boards = matrix.shape
 
     # Figure size: scale with number of boards and instructions for readability
-    n_instr, n_boards = matrix.shape
     fig_width = max(8, 1.5 * n_boards)
     fig_height = max(10, 0.25 * n_instr)
 
     plt.figure(figsize=(fig_width, fig_height))
 
+    # Draw heatmap
     im = plt.imshow(matrix, aspect="auto")
-    plt.colorbar(im, label="Normalized cost" if args.norm != "none" else "Cost")
+    cbar_label = "Normalized cost" if args.norm != "none" else "Cost"
+    plt.colorbar(im, label=cbar_label)
 
-    # Axis labels
+    # Axis ticks/labels
     plt.xticks(
         ticks=np.arange(n_boards),
         labels=[p.name for p in args.json_files],
@@ -139,6 +145,31 @@ def main():
         fontsize=8,
     )
 
+    # Add numeric value in each cell
+    # Choose text color based on background intensity for readability
+    vmin, vmax = float(np.nanmin(matrix)), float(np.nanmax(matrix))
+    vcenter = (vmin + vmax) / 2.0 if np.isfinite(vmin) and np.isfinite(vmax) else 0.0
+
+    for i in range(n_instr):
+        for j in range(n_boards):
+            val = matrix[i, j]
+            # Protect against NaN just in case
+            if np.isnan(val):
+                text_str = "nan"
+            else:
+                text_str = format(val, args.fmt)
+            color = "white" if val > vcenter else "black"
+            plt.text(
+                j,
+                i,
+                text_str,
+                ha="center",
+                va="center",
+                fontsize=7,
+                color=color,
+            )
+
+    # Title
     if args.title:
         plt.title(args.title)
     else:
@@ -157,4 +188,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
