@@ -84,7 +84,10 @@ function run_interpret(asm_file::String, max_steps::Int)
     @info "Number of events" count = length(event_sequences)
 
     for (i, event) in enumerate(event_sequences)
-        @info "Event $i" instructions = length(event)
+        unique_opcodes = unique([string(inst.opcode) for inst in event])
+        sort!(unique_opcodes)
+        opcodes_str = join(unique_opcodes, " ")
+        @info "Event $i" instructions = length(event) unique_opcodes = opcodes_str
     end
 
     return final_state
