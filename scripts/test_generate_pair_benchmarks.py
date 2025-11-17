@@ -313,28 +313,30 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         """Verify we have the expected number of instruction specs
 
         Expected breakdown:
-        - add: 7 variants (reg->reg, imm->reg, idx->reg, sym->reg, abs->reg, ind->reg, aut->reg)
-        - mov: 7 variants (same as add)
-        - cmp: 7 variants (same as add)
+        - add: 28 variants (7 src modes × 4 dst modes)
+        - mov: 28 variants (7 src modes × 4 dst modes)
+        - cmp: 28 variants (7 src modes × 4 dst modes)
         - inc: 4 variants (reg, idx, sym, abs)
         - rlam: 4 variants (constants 1, 2, 3, 4)
         - jmp: 1 variant
-        Total: 30 instruction keys
+        - jge: 1 variant
+        Total: 3×28 + 4 + 4 + 1 + 1 = 94 instruction keys
         """
         specs = get_all_instruction_specs()
-        self.assertEqual(len(specs), 30)
+        self.assertEqual(len(specs), 94)
 
         # Count by opcode
         opcode_counts = {}
         for spec in specs:
             opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
 
-        self.assertEqual(opcode_counts["add"], 7)
-        self.assertEqual(opcode_counts["mov"], 7)
-        self.assertEqual(opcode_counts["cmp"], 7)
+        self.assertEqual(opcode_counts["add"], 28)
+        self.assertEqual(opcode_counts["mov"], 28)
+        self.assertEqual(opcode_counts["cmp"], 28)
         self.assertEqual(opcode_counts["inc"], 4)
         self.assertEqual(opcode_counts["rlam"], 4)
         self.assertEqual(opcode_counts["jmp"], 1)
+        self.assertEqual(opcode_counts["jge"], 1)
 
 
 class TestKeyGeneration(unittest.TestCase):
