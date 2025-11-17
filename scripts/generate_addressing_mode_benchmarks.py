@@ -101,104 +101,86 @@ class InstructionSpec:
 def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     """Create instruction specs for dual-operand instructions (add, mov, cmp, etc.)
 
-    Generates all 28 combinations: 7 source modes × 4 destination modes
+    Generates all combinations of:
+    - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, indirect_auto
+    - 4 destination modes: register, indexed, symbolic, absolute
+    Total: 7 × 4 = 28 variants per opcode
     """
     specs = []
 
-    # All source/destination combinations
-    src_configs = [
-        ("register", "%[src]",
-         [{"name": "src", "type": "uint16_t", "value": "0x5678"}],
-         '[src] "r"(src)', '"cc"'),
+    # Define all source and destination modes
+    src_modes = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "indirect_auto"]
+    dst_modes = ["register", "indexed", "symbolic", "absolute"]
 
-        ("immediate", "#0x1357",
-         [],
-         '', '"cc"'),
+    # Helper function to generate assembly template and variables/constraints
+    def create_spec(src_mode: str, dst_mode: str) -> InstructionSpec:
+        variables = []
+        constraints = {"outputs": "", "inputs": "", "clobbers": '"cc"'}
 
-        ("indexed", "%c[src_offs](%[src_base])",
-         [{"name": "src_base", "type": "uint16_t*", "value": "BASE_PTR"}],
-         '[src_base] "r"(src_base), [src_offs] "i"(OFFS)', '"cc", "memory"'),
+        # Build source operand
+        if src_mode == "register":
+            src_asm = "%[src]"
+            variables.append({"name": "src", "type": "uint16_t", "value": "0x5678"})
+            constraints["inputs"] = '[src] "r"(src)'
+        elif src_mode == "immediate":
+            src_asm = "#0x1357"
+        elif src_mode == "indexed":
+            src_asm = "%c[offs_src](%[base_src])"
+            variables.append({"name": "base_src", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[base_src] "r"(base_src), [offs_src] "i"(OFFS)'
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "symbolic":
+            src_asm = "sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "absolute":
+            src_asm = "&sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "indirect":
+            src_asm = "@%[psrc]"
+            variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[psrc] "r"(psrc)'
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "indirect_auto":
+            src_asm = "@%[psrc]+"
+            variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[psrc] "r"(psrc)'
+            constraints["clobbers"] = '"cc", "memory"'
 
-        ("symbolic", "sym_data",
-         [],
-         '', '"cc", "memory"'),
+        # Build destination operand
+        if dst_mode == "register":
+            dst_asm = "%[dst]"
+            variables.append({"name": "dst", "type": "uint16_t", "value": "0x1234"})
+            constraints["outputs"] = '[dst] "+r"(dst)'
+        elif dst_mode == "indexed":
+            dst_asm = "%c[offs_dst](%[base_dst])"
+            variables.append({"name": "base_dst", "type": "uint16_t*", "value": "BASE_PTR + 8"})
+            # Merge inputs
+            if constraints["inputs"]:
+                constraints["inputs"] += ", "
+            constraints["inputs"] += '[base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)'
+            constraints["clobbers"] = '"cc", "memory"'
+        elif dst_mode == "symbolic":
+            dst_asm = "sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
+        elif dst_mode == "absolute":
+            dst_asm = "&sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
 
-        ("absolute", "&sym_data",
-         [],
-         '', '"cc", "memory"'),
+        asm_template = f"{opcode}.w {src_asm}, {dst_asm}"
 
-        ("indirect", "@%[psrc]",
-         [{"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"}],
-         '[psrc] "r"(psrc)', '"cc", "memory"'),
-
-        ("indirect_auto", "@%[psrc]+",
-         [{"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"}],
-         '[psrc] "r"(psrc)', '"cc", "memory"'),
-    ]
-
-    dst_configs = [
-        ("register", "%[dst]",
-         [{"name": "dst", "type": "uint16_t", "value": "0x1234"}],
-         '[dst] "+r"(dst)', ''),
-
-        ("indexed", "%c[dst_offs](%[dst_base])",
-         [{"name": "dst_base", "type": "uint16_t*", "value": "BASE_PTR"}],
-         '', '[dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)'),
-
-        ("symbolic", "sym_data",
-         [],
-         '', ''),
-
-        ("absolute", "&sym_data",
-         [],
-         '', ''),
-    ]
+        return InstructionSpec(
+            opcode=opcode,
+            src_mode=src_mode,
+            dst_mode=dst_mode,
+            asm_template=asm_template,
+            variables=variables,
+            constraints=constraints,
+        )
 
     # Generate all combinations
-    for src_mode, src_asm, src_vars, src_inputs, src_clobbers in src_configs:
-        for dst_mode, dst_asm, dst_vars, dst_outputs, dst_inputs in dst_configs:
-            # Merge variables
-            variables = []
-            var_names = set()
-            for var in dst_vars + src_vars:
-                if var["name"] not in var_names:
-                    variables.append(var)
-                    var_names.add(var["name"])
-
-            # Merge inputs
-            inputs_parts = []
-            if dst_inputs:
-                inputs_parts.append(dst_inputs)
-            if src_inputs:
-                inputs_parts.append(src_inputs)
-            inputs = ', '.join(inputs_parts)
-
-            # Merge clobbers
-            clobbers_set = set()
-            for c_str in [src_clobbers]:
-                # Parse clobber string like '"cc"' or '"cc", "memory"'
-                for item in c_str.split(", "):
-                    cleaned = item.strip().strip('"')
-                    if cleaned:
-                        clobbers_set.add(cleaned)
-            # Always include cc
-            clobbers_set.add("cc")
-            clobbers = ', '.join(f'"{c}"' for c in sorted(clobbers_set))
-
-            specs.append(
-                InstructionSpec(
-                    opcode=opcode,
-                    src_mode=src_mode,
-                    dst_mode=dst_mode,
-                    asm_template=f"{opcode}.w {src_asm}, {dst_asm}",
-                    variables=variables,
-                    constraints={
-                        "outputs": dst_outputs,
-                        "inputs": inputs,
-                        "clobbers": clobbers,
-                    },
-                )
-            )
+    for src_mode in src_modes:
+        for dst_mode in dst_modes:
+            specs.append(create_spec(src_mode, dst_mode))
 
     return specs
 
