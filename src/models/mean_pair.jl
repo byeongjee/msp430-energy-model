@@ -140,6 +140,26 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
         )
     end
 
+    # Calculate goodness-of-fit metrics
+    B_pred = A * x  # Predicted energies
+    residuals = B .- B_pred
+
+    # R² (coefficient of determination)
+    ss_tot = sum((B .- mean(B)).^2)
+    ss_res = sum(residuals.^2)
+    r_squared = 1 - (ss_res / ss_tot)
+
+    # RMSE (Root Mean Squared Error)
+    rmse = sqrt(mean(residuals.^2))
+
+    # MAE (Mean Absolute Error)
+    mae = mean(abs.(residuals))
+
+    # Max absolute error
+    max_error = maximum(abs.(residuals))
+
+    @info "Goodness of fit metrics" R²=round(r_squared, digits=6) RMSE=round(rmse, digits=3) MAE=round(mae, digits=3) Max_Error=round(max_error, digits=3)
+
     return nothing
 end
 
