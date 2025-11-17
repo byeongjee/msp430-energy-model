@@ -9,14 +9,14 @@ static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
 
 
 INLINE void bench_add_immediate_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w #0x1357, %c[dst_offs](%[dst_base])\n"
+      "  add.w #0x1357, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
-      : "cc"));
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : "cc", "memory"));
 }
 
 INLINE void bench_add_immediate_symbolic(void) {
@@ -26,7 +26,7 @@ INLINE void bench_add_immediate_symbolic(void) {
       ".endr\n"
       : 
       : 
-      : "cc"));
+      : "cc", "memory"));
 }
 
 INLINE void bench_add_immediate_absolute(void) {
@@ -36,30 +36,30 @@ INLINE void bench_add_immediate_absolute(void) {
       ".endr\n"
       : 
       : 
-      : "cc"));
+      : "cc", "memory"));
 }
 
 INLINE void bench_add_indexed_register(void) {
+  uint16_t* base_src = BASE_PTR;
   uint16_t dst = 0x1234;
-  uint16_t* src_base = BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w %c[src_offs](%[src_base]), %[dst]\n"
+      "  add.w %c[offs_src](%[base_src]), %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
-      : [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_add_indexed_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
-  uint16_t* src_base = BASE_PTR;
+  uint16_t* base_src = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w %c[src_offs](%[src_base]), %c[dst_offs](%[dst_base])\n"
+      "  add.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS), [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 

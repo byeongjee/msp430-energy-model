@@ -20,13 +20,13 @@ INLINE void bench_mov_symbolic_register(void) {
 }
 
 INLINE void bench_mov_symbolic_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w sym_data, %c[dst_offs](%[dst_base])\n"
+      "  mov.w sym_data, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -62,13 +62,13 @@ INLINE void bench_mov_absolute_register(void) {
 }
 
 INLINE void bench_mov_absolute_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w &sym_data, %c[dst_offs](%[dst_base])\n"
+      "  mov.w &sym_data, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -93,8 +93,8 @@ INLINE void bench_mov_absolute_absolute(void) {
 }
 
 INLINE void bench_mov_indirect_register(void) {
-  uint16_t dst = 0x1234;
   uint16_t* psrc = BASE_PTR;
+  uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  mov.w @%[psrc], %[dst]\n"
@@ -105,14 +105,14 @@ INLINE void bench_mov_indirect_register(void) {
 }
 
 INLINE void bench_mov_indirect_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
   uint16_t* psrc = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w @%[psrc], %c[dst_offs](%[dst_base])\n"
+      "  mov.w @%[psrc], %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS), [psrc] "r"(psrc)
+      : [psrc] "r"(psrc), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -139,8 +139,8 @@ INLINE void bench_mov_indirect_absolute(void) {
 }
 
 INLINE void bench_mov_indirect_auto_register(void) {
-  uint16_t dst = 0x1234;
   uint16_t* psrc = BASE_PTR;
+  uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  mov.w @%[psrc]+, %[dst]\n"
@@ -151,14 +151,14 @@ INLINE void bench_mov_indirect_auto_register(void) {
 }
 
 INLINE void bench_mov_indirect_auto_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
   uint16_t* psrc = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w @%[psrc]+, %c[dst_offs](%[dst_base])\n"
+      "  mov.w @%[psrc]+, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS), [psrc] "r"(psrc)
+      : [psrc] "r"(psrc), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -185,8 +185,8 @@ INLINE void bench_mov_indirect_auto_absolute(void) {
 }
 
 INLINE void bench_cmp_register_register(void) {
-  uint16_t dst = 0x1234;
   uint16_t src = 0x5678;
+  uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  cmp.w %[src], %[dst]\n"
@@ -197,15 +197,15 @@ INLINE void bench_cmp_register_register(void) {
 }
 
 INLINE void bench_cmp_register_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
   uint16_t src = 0x5678;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %[src], %c[dst_offs](%[dst_base])\n"
+      "  cmp.w %[src], %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS), [src] "r"(src)
-      : "cc"));
+      : [src] "r"(src), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : "cc", "memory"));
 }
 
 INLINE void bench_cmp_register_symbolic(void) {
@@ -216,7 +216,7 @@ INLINE void bench_cmp_register_symbolic(void) {
       ".endr\n"
       : 
       : [src] "r"(src)
-      : "cc"));
+      : "cc", "memory"));
 }
 
 INLINE void bench_cmp_register_absolute(void) {
@@ -227,7 +227,7 @@ INLINE void bench_cmp_register_absolute(void) {
       ".endr\n"
       : 
       : [src] "r"(src)
-      : "cc"));
+      : "cc", "memory"));
 }
 
 int main(void) {
