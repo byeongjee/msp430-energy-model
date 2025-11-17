@@ -118,223 +118,88 @@ class InstructionSpec:
 
 
 def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
-    """Create instruction specs for dual-operand instructions (add, mov, cmp, etc.)"""
+    """Create instruction specs for dual-operand instructions (add, mov, cmp, etc.)
+
+    Generates all combinations of:
+    - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, indirect_auto
+    - 4 destination modes: register, indexed, symbolic, absolute
+    Total: 7 × 4 = 28 variants per opcode
+    """
     specs = []
 
-    # ========== Destination: register ==========
-    # reg -> reg
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="register",
-            dst_mode="register",
-            asm_template=f"{opcode}.w %[src], %[dst]",
-            variables=[
-                {"name": "dst", "type": "uint16_t", "value": "0x1234"},
-                {"name": "src", "type": "uint16_t", "value": "0x5678"},
-            ],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": '[src] "r"(src)',
-                "clobbers": '"cc"',
-            },
-        )
-    )
+    # Define all source and destination modes
+    src_modes = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "indirect_auto"]
+    dst_modes = ["register", "indexed", "symbolic", "absolute"]
 
-    # imm -> reg
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="immediate",
-            dst_mode="register",
-            asm_template=f"{opcode}.w #0x1357, %[dst]",
-            variables=[{"name": "dst", "type": "uint16_t", "value": "0x1234"}],
-            constraints={"outputs": '[dst] "+r"(dst)', "inputs": "", "clobbers": '"cc"'},
-        )
-    )
+    # Helper function to generate assembly template and variables/constraints
+    def create_spec(src_mode: str, dst_mode: str) -> InstructionSpec:
+        variables = []
+        constraints = {"outputs": "", "inputs": "", "clobbers": '"cc"'}
 
-    # idx -> reg
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="indexed",
-            dst_mode="register",
-            asm_template=f"{opcode}.w %c[offs](%[base]), %[dst]",
-            variables=[
-                {"name": "dst", "type": "uint16_t", "value": "0x1234"},
-                {"name": "base", "type": "uint16_t*", "value": "BASE_PTR"},
-            ],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": '[base] "r"(base), [offs] "i"(OFFS)',
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
+        # Build source operand
+        if src_mode == "register":
+            src_asm = "%[src]"
+            variables.append({"name": "src", "type": "uint16_t", "value": "0x5678"})
+            constraints["inputs"] = '[src] "r"(src)'
+        elif src_mode == "immediate":
+            src_asm = "#0x1357"
+        elif src_mode == "indexed":
+            src_asm = "%c[offs_src](%[base_src])"
+            variables.append({"name": "base_src", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[base_src] "r"(base_src), [offs_src] "i"(OFFS)'
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "symbolic":
+            src_asm = "sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "absolute":
+            src_asm = "&sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "indirect":
+            src_asm = "@%[psrc]"
+            variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[psrc] "r"(psrc)'
+            constraints["clobbers"] = '"cc", "memory"'
+        elif src_mode == "indirect_auto":
+            src_asm = "@%[psrc]+"
+            variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[psrc] "r"(psrc)'
+            constraints["clobbers"] = '"cc", "memory"'
 
-    # sym -> reg
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="symbolic",
-            dst_mode="register",
-            asm_template=f"{opcode}.w sym_data, %[dst]",
-            variables=[{"name": "dst", "type": "uint16_t", "value": "0x1234"}],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": "",
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
+        # Build destination operand
+        if dst_mode == "register":
+            dst_asm = "%[dst]"
+            variables.append({"name": "dst", "type": "uint16_t", "value": "0x1234"})
+            constraints["outputs"] = '[dst] "+r"(dst)'
+        elif dst_mode == "indexed":
+            dst_asm = "%c[offs_dst](%[base_dst])"
+            variables.append({"name": "base_dst", "type": "uint16_t*", "value": "BASE_PTR + 8"})
+            # Merge inputs
+            if constraints["inputs"]:
+                constraints["inputs"] += ", "
+            constraints["inputs"] += '[base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)'
+            constraints["clobbers"] = '"cc", "memory"'
+        elif dst_mode == "symbolic":
+            dst_asm = "sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
+        elif dst_mode == "absolute":
+            dst_asm = "&sym_data"
+            constraints["clobbers"] = '"cc", "memory"'
 
-    # abs -> reg
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="absolute",
-            dst_mode="register",
-            asm_template=f"{opcode}.w &sym_data, %[dst]",
-            variables=[{"name": "dst", "type": "uint16_t", "value": "0x1234"}],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": "",
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
+        asm_template = f"{opcode}.w {src_asm}, {dst_asm}"
 
-    # ind -> reg
-    specs.append(
-        InstructionSpec(
+        return InstructionSpec(
             opcode=opcode,
-            src_mode="indirect",
-            dst_mode="register",
-            asm_template=f"{opcode}.w @%[psrc], %[dst]",
-            variables=[
-                {"name": "dst", "type": "uint16_t", "value": "0x1234"},
-                {"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"},
-            ],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": '[psrc] "r"(psrc)',
-                "clobbers": '"cc", "memory"',
-            },
+            src_mode=src_mode,
+            dst_mode=dst_mode,
+            asm_template=asm_template,
+            variables=variables,
+            constraints=constraints,
         )
-    )
 
-    # aut -> reg (indirect autoincrement)
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="indirect_auto",
-            dst_mode="register",
-            asm_template=f"{opcode}.w @%[psrc]+, %[dst]",
-            variables=[
-                {"name": "dst", "type": "uint16_t", "value": "0x1234"},
-                {"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"},
-            ],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": '[psrc] "r"(psrc)',
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
-
-    # ========== Destination: indexed ==========
-    # imm -> idx
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="immediate",
-            dst_mode="indexed",
-            asm_template=f"{opcode}.w #0x1357, %c[offs](%[base])",
-            variables=[{"name": "base", "type": "uint16_t*", "value": "BASE_PTR"}],
-            constraints={
-                "outputs": "",
-                "inputs": '[base] "r"(base), [offs] "i"(OFFS)',
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
-
-    # reg -> idx
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="register",
-            dst_mode="indexed",
-            asm_template=f"{opcode}.w %[src], %c[offs](%[base])",
-            variables=[
-                {"name": "src", "type": "uint16_t", "value": "0x5678"},
-                {"name": "base", "type": "uint16_t*", "value": "BASE_PTR"},
-            ],
-            constraints={
-                "outputs": "",
-                "inputs": '[src] "r"(src), [base] "r"(base), [offs] "i"(OFFS)',
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
-
-    # ========== Destination: symbolic ==========
-    # imm -> sym
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="immediate",
-            dst_mode="symbolic",
-            asm_template=f"{opcode}.w #0x1357, sym_data",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
-        )
-    )
-
-    # reg -> sym
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="register",
-            dst_mode="symbolic",
-            asm_template=f"{opcode}.w %[src], sym_data",
-            variables=[{"name": "src", "type": "uint16_t", "value": "0x5678"}],
-            constraints={
-                "outputs": "",
-                "inputs": '[src] "r"(src)',
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
-
-    # ========== Destination: absolute ==========
-    # imm -> abs
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="immediate",
-            dst_mode="absolute",
-            asm_template=f"{opcode}.w #0x1357, &sym_data",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
-        )
-    )
-
-    # reg -> abs
-    specs.append(
-        InstructionSpec(
-            opcode=opcode,
-            src_mode="register",
-            dst_mode="absolute",
-            asm_template=f"{opcode}.w %[src], &sym_data",
-            variables=[{"name": "src", "type": "uint16_t", "value": "0x5678"}],
-            constraints={
-                "outputs": "",
-                "inputs": '[src] "r"(src)',
-                "clobbers": '"cc", "memory"',
-            },
-        )
-    )
+    # Generate all combinations
+    for src_mode in src_modes:
+        for dst_mode in dst_modes:
+            specs.append(create_spec(src_mode, dst_mode))
 
     return specs
 
