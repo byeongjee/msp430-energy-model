@@ -197,6 +197,7 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	@echo ""
 	@echo "Running Python test suite..."
 	@uv run python scripts/test_generate_pair_benchmarks.py
+	@uv run python scripts/test_generate_addressing_mode_benchmarks.py
 
 flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEFINES="..."])
 ifndef FILE
