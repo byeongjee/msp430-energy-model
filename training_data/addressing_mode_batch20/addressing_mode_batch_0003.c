@@ -20,14 +20,14 @@ INLINE void bench_cmp_immediate_register(void) {
 }
 
 INLINE void bench_cmp_immediate_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w #0x1357, %c[dst_offs](%[dst_base])\n"
+      "  cmp.w #0x1357, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
-      : "cc"));
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : "cc", "memory"));
 }
 
 INLINE void bench_cmp_immediate_symbolic(void) {
@@ -37,7 +37,7 @@ INLINE void bench_cmp_immediate_symbolic(void) {
       ".endr\n"
       : 
       : 
-      : "cc"));
+      : "cc", "memory"));
 }
 
 INLINE void bench_cmp_immediate_absolute(void) {
@@ -47,52 +47,52 @@ INLINE void bench_cmp_immediate_absolute(void) {
       ".endr\n"
       : 
       : 
-      : "cc"));
+      : "cc", "memory"));
 }
 
 INLINE void bench_cmp_indexed_register(void) {
+  uint16_t* base_src = BASE_PTR;
   uint16_t dst = 0x1234;
-  uint16_t* src_base = BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %c[src_offs](%[src_base]), %[dst]\n"
+      "  cmp.w %c[offs_src](%[base_src]), %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
-      : [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_cmp_indexed_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
-  uint16_t* src_base = BASE_PTR;
+  uint16_t* base_src = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %c[src_offs](%[src_base]), %c[dst_offs](%[dst_base])\n"
+      "  cmp.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS), [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_cmp_indexed_symbolic(void) {
-  uint16_t* src_base = BASE_PTR;
+  uint16_t* base_src = BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %c[src_offs](%[src_base]), sym_data\n"
+      "  cmp.w %c[offs_src](%[base_src]), sym_data\n"
       ".endr\n"
       : 
-      : [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_cmp_indexed_absolute(void) {
-  uint16_t* src_base = BASE_PTR;
+  uint16_t* base_src = BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %c[src_offs](%[src_base]), &sym_data\n"
+      "  cmp.w %c[offs_src](%[base_src]), &sym_data\n"
       ".endr\n"
       : 
-      : [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -108,13 +108,13 @@ INLINE void bench_cmp_symbolic_register(void) {
 }
 
 INLINE void bench_cmp_symbolic_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w sym_data, %c[dst_offs](%[dst_base])\n"
+      "  cmp.w sym_data, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -150,13 +150,13 @@ INLINE void bench_cmp_absolute_register(void) {
 }
 
 INLINE void bench_cmp_absolute_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w &sym_data, %c[dst_offs](%[dst_base])\n"
+      "  cmp.w &sym_data, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -181,8 +181,8 @@ INLINE void bench_cmp_absolute_absolute(void) {
 }
 
 INLINE void bench_cmp_indirect_register(void) {
-  uint16_t dst = 0x1234;
   uint16_t* psrc = BASE_PTR;
+  uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  cmp.w @%[psrc], %[dst]\n"
@@ -193,14 +193,14 @@ INLINE void bench_cmp_indirect_register(void) {
 }
 
 INLINE void bench_cmp_indirect_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
   uint16_t* psrc = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w @%[psrc], %c[dst_offs](%[dst_base])\n"
+      "  cmp.w @%[psrc], %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS), [psrc] "r"(psrc)
+      : [psrc] "r"(psrc), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 

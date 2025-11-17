@@ -9,24 +9,24 @@ static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
 
 
 INLINE void bench_add_indexed_symbolic(void) {
-  uint16_t* src_base = BASE_PTR;
+  uint16_t* base_src = BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w %c[src_offs](%[src_base]), sym_data\n"
+      "  add.w %c[offs_src](%[base_src]), sym_data\n"
       ".endr\n"
       : 
-      : [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_add_indexed_absolute(void) {
-  uint16_t* src_base = BASE_PTR;
+  uint16_t* base_src = BASE_PTR;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w %c[src_offs](%[src_base]), &sym_data\n"
+      "  add.w %c[offs_src](%[base_src]), &sym_data\n"
       ".endr\n"
       : 
-      : [src_base] "r"(src_base), [src_offs] "i"(OFFS)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -42,13 +42,13 @@ INLINE void bench_add_symbolic_register(void) {
 }
 
 INLINE void bench_add_symbolic_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w sym_data, %c[dst_offs](%[dst_base])\n"
+      "  add.w sym_data, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 

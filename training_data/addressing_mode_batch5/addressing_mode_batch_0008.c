@@ -20,13 +20,13 @@ INLINE void bench_mov_symbolic_register(void) {
 }
 
 INLINE void bench_mov_symbolic_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w sym_data, %c[dst_offs](%[dst_base])\n"
+      "  mov.w sym_data, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS)
+      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 

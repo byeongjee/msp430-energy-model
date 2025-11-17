@@ -9,8 +9,8 @@ static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
 
 
 INLINE void bench_cmp_indirect_auto_register(void) {
-  uint16_t dst = 0x1234;
   uint16_t* psrc = BASE_PTR;
+  uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  cmp.w @%[psrc]+, %[dst]\n"
@@ -21,14 +21,14 @@ INLINE void bench_cmp_indirect_auto_register(void) {
 }
 
 INLINE void bench_cmp_indirect_auto_indexed(void) {
-  uint16_t* dst_base = BASE_PTR;
   uint16_t* psrc = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w @%[psrc]+, %c[dst_offs](%[dst_base])\n"
+      "  cmp.w @%[psrc]+, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [dst_base] "r"(dst_base), [dst_offs] "i"(OFFS), [psrc] "r"(psrc)
+      : [psrc] "r"(psrc), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
