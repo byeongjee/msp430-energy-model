@@ -3,6 +3,7 @@
 using JSON
 using Statistics
 using LinearAlgebra
+using NonNegLeastSquares
 
 """
 Generic Mean-based model for instruction pairs.
@@ -126,9 +127,10 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     # Build vector B with measured energies
     B = Vector{Float64}(training_data.energies)
 
-    # Solve least squares: minimize ||Ax - B||^2
-    @info "Solving least-squares system for pairs"
-    x = A \ B
+    # Solve non-negative least squares: minimize ||Ax - B||^2 subject to x >= 0
+    # Using :fnnls (Fast NNLS) algorithm which is much faster than default :nnls
+    @info "Solving non-negative least-squares system for pairs (using Fast NNLS algorithm)"
+    x = nonneg_lsq(A, B; alg=:fnnls)
 
     # Store results in model.params
     model.params = Dict{Tuple{ParamKey,ParamKey},Float64}()
