@@ -121,6 +121,7 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     """Create instruction specs for dual-operand instructions (add, mov, cmp, etc.)"""
     specs = []
 
+    # ========== Destination: register ==========
     # reg -> reg
     specs.append(
         InstructionSpec(
@@ -236,6 +237,100 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
             constraints={
                 "outputs": '[dst] "+r"(dst)',
                 "inputs": '[psrc] "r"(psrc)',
+                "clobbers": '"cc", "memory"',
+            },
+        )
+    )
+
+    # ========== Destination: indexed ==========
+    # imm -> idx
+    specs.append(
+        InstructionSpec(
+            opcode=opcode,
+            src_mode="immediate",
+            dst_mode="indexed",
+            asm_template=f"{opcode}.w #0x1357, %c[offs](%[base])",
+            variables=[{"name": "base", "type": "uint16_t*", "value": "BASE_PTR"}],
+            constraints={
+                "outputs": "",
+                "inputs": '[base] "r"(base), [offs] "i"(OFFS)',
+                "clobbers": '"cc", "memory"',
+            },
+        )
+    )
+
+    # reg -> idx
+    specs.append(
+        InstructionSpec(
+            opcode=opcode,
+            src_mode="register",
+            dst_mode="indexed",
+            asm_template=f"{opcode}.w %[src], %c[offs](%[base])",
+            variables=[
+                {"name": "src", "type": "uint16_t", "value": "0x5678"},
+                {"name": "base", "type": "uint16_t*", "value": "BASE_PTR"},
+            ],
+            constraints={
+                "outputs": "",
+                "inputs": '[src] "r"(src), [base] "r"(base), [offs] "i"(OFFS)',
+                "clobbers": '"cc", "memory"',
+            },
+        )
+    )
+
+    # ========== Destination: symbolic ==========
+    # imm -> sym
+    specs.append(
+        InstructionSpec(
+            opcode=opcode,
+            src_mode="immediate",
+            dst_mode="symbolic",
+            asm_template=f"{opcode}.w #0x1357, sym_data",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
+        )
+    )
+
+    # reg -> sym
+    specs.append(
+        InstructionSpec(
+            opcode=opcode,
+            src_mode="register",
+            dst_mode="symbolic",
+            asm_template=f"{opcode}.w %[src], sym_data",
+            variables=[{"name": "src", "type": "uint16_t", "value": "0x5678"}],
+            constraints={
+                "outputs": "",
+                "inputs": '[src] "r"(src)',
+                "clobbers": '"cc", "memory"',
+            },
+        )
+    )
+
+    # ========== Destination: absolute ==========
+    # imm -> abs
+    specs.append(
+        InstructionSpec(
+            opcode=opcode,
+            src_mode="immediate",
+            dst_mode="absolute",
+            asm_template=f"{opcode}.w #0x1357, &sym_data",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
+        )
+    )
+
+    # reg -> abs
+    specs.append(
+        InstructionSpec(
+            opcode=opcode,
+            src_mode="register",
+            dst_mode="absolute",
+            asm_template=f"{opcode}.w %[src], &sym_data",
+            variables=[{"name": "src", "type": "uint16_t", "value": "0x5678"}],
+            constraints={
+                "outputs": "",
+                "inputs": '[src] "r"(src)',
                 "clobbers": '"cc", "memory"',
             },
         )
@@ -497,9 +592,13 @@ def generate_all_pairs(specs: List[InstructionSpec]) -> List[Dict[str, Any]]:
         specs: List of instruction specifications
 
     Returns:
-        List of pair benchmarks for all unordered pairs (A,B) where A != B
+        List of pair benchmarks for all pairs including same-instruction pairs (A,A)
     """
     benchmarks = []
+
+    # Generate same-instruction pairs (A,A)
+    for spec in specs:
+        benchmarks.append(generate_pair_benchmark(spec, spec))
 
     # Generate unordered pairs (A,B) where A != B
     for spec1, spec2 in combinations(specs, 2):
