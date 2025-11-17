@@ -149,7 +149,7 @@ void initialize(void) {
 }
 
 #ifndef NUM_REPEAT
-#define NUM_REPEAT 10
+#define NUM_REPEAT 1
 #endif
 
 #define BENCH(X)                                                               \
