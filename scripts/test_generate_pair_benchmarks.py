@@ -16,11 +16,10 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
+from benchmark_common import InstructionSpec, FILE_TEMPLATE
 from generate_pair_benchmarks import (
-    InstructionSpec,
     generate_pair_benchmark,
     get_all_instruction_specs,
-    FILE_TEMPLATE,
 )
 
 
