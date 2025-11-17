@@ -1,0 +1,2033 @@
+[0;34m[INFO][0m Found 19 training file(s) from pattern: training_data/addressing_mode_batch5/*.c
+[0;34m[INFO][0m Matching training segments CSVs by basename...
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0000: experiments/board3-batch5/addressing_mode_batch_0000_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0001: experiments/board3-batch5/addressing_mode_batch_0001_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0002: experiments/board3-batch5/addressing_mode_batch_0002_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0003: experiments/board3-batch5/addressing_mode_batch_0003_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0004: experiments/board3-batch5/addressing_mode_batch_0004_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0005: experiments/board3-batch5/addressing_mode_batch_0005_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0006: experiments/board3-batch5/addressing_mode_batch_0006_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0007: experiments/board3-batch5/addressing_mode_batch_0007_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0008: experiments/board3-batch5/addressing_mode_batch_0008_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0009: experiments/board3-batch5/addressing_mode_batch_0009_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0010: experiments/board3-batch5/addressing_mode_batch_0010_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0011: experiments/board3-batch5/addressing_mode_batch_0011_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0012: experiments/board3-batch5/addressing_mode_batch_0012_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0013: experiments/board3-batch5/addressing_mode_batch_0013_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0014: experiments/board3-batch5/addressing_mode_batch_0014_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0015: experiments/board3-batch5/addressing_mode_batch_0015_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0016: experiments/board3-batch5/addressing_mode_batch_0016_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0017: experiments/board3-batch5/addressing_mode_batch_0017_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0018: experiments/board3-batch5/addressing_mode_batch_0018_segments_20251117_111553.csv
+[0;34m[INFO][0m Training files: 19
+[0;34m[INFO][0m   [1] training_data/addressing_mode_batch5/addressing_mode_batch_0000.c
+[0;34m[INFO][0m   [2] training_data/addressing_mode_batch5/addressing_mode_batch_0001.c
+[0;34m[INFO][0m   [3] training_data/addressing_mode_batch5/addressing_mode_batch_0002.c
+[0;34m[INFO][0m   [4] training_data/addressing_mode_batch5/addressing_mode_batch_0003.c
+[0;34m[INFO][0m   [5] training_data/addressing_mode_batch5/addressing_mode_batch_0004.c
+[0;34m[INFO][0m   [6] training_data/addressing_mode_batch5/addressing_mode_batch_0005.c
+[0;34m[INFO][0m   [7] training_data/addressing_mode_batch5/addressing_mode_batch_0006.c
+[0;34m[INFO][0m   [8] training_data/addressing_mode_batch5/addressing_mode_batch_0007.c
+[0;34m[INFO][0m   [9] training_data/addressing_mode_batch5/addressing_mode_batch_0008.c
+[0;34m[INFO][0m   [10] training_data/addressing_mode_batch5/addressing_mode_batch_0009.c
+[0;34m[INFO][0m   [11] training_data/addressing_mode_batch5/addressing_mode_batch_0010.c
+[0;34m[INFO][0m   [12] training_data/addressing_mode_batch5/addressing_mode_batch_0011.c
+[0;34m[INFO][0m   [13] training_data/addressing_mode_batch5/addressing_mode_batch_0012.c
+[0;34m[INFO][0m   [14] training_data/addressing_mode_batch5/addressing_mode_batch_0013.c
+[0;34m[INFO][0m   [15] training_data/addressing_mode_batch5/addressing_mode_batch_0014.c
+[0;34m[INFO][0m   [16] training_data/addressing_mode_batch5/addressing_mode_batch_0015.c
+[0;34m[INFO][0m   [17] training_data/addressing_mode_batch5/addressing_mode_batch_0016.c
+[0;34m[INFO][0m   [18] training_data/addressing_mode_batch5/addressing_mode_batch_0017.c
+[0;34m[INFO][0m   [19] training_data/addressing_mode_batch5/addressing_mode_batch_0018.c
+[0;34m[INFO][0m Using temporary params file: experiments/board3-batch5/params_20251117_135440.json
+[0;34m[INFO][0m Using temporary test segments CSV: experiments/board3-batch5/measured_segments_20251117_135440.csv
+[0;34m[INFO][0m Using temporary test raw CSV: experiments/board3-batch5/measured_20251117_135440.csv
+[0;34m[INFO][0m Report will be saved to: experiments/board3-batch5/report/20251117_135440
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0000.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0000.c
+  Event 1: bench_add_register_register
+  Event 2: bench_add_register_indexed
+  Event 3: bench_add_register_symbolic
+  Event 4: bench_add_register_absolute
+  Event 5: bench_add_immediate_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0000_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0001.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0001.c
+  Event 1: bench_add_immediate_indexed
+  Event 2: bench_add_immediate_symbolic
+  Event 3: bench_add_immediate_absolute
+  Event 4: bench_add_indexed_register
+  Event 5: bench_add_indexed_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0001_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0002.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0002.c
+  Event 1: bench_add_indexed_symbolic
+  Event 2: bench_add_indexed_absolute
+  Event 3: bench_add_symbolic_register
+  Event 4: bench_add_symbolic_indexed
+  Event 5: bench_add_symbolic_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0002_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0003.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0003.c
+  Event 1: bench_add_symbolic_absolute
+  Event 2: bench_add_absolute_register
+  Event 3: bench_add_absolute_indexed
+  Event 4: bench_add_absolute_symbolic
+  Event 5: bench_add_absolute_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0003_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0004.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0004.c
+  Event 1: bench_add_indirect_register
+  Event 2: bench_add_indirect_indexed
+  Event 3: bench_add_indirect_symbolic
+  Event 4: bench_add_indirect_absolute
+  Event 5: bench_add_indirect_auto_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0004_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0005.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0005.c
+  Event 1: bench_add_indirect_auto_indexed
+  Event 2: bench_add_indirect_auto_symbolic
+  Event 3: bench_add_indirect_auto_absolute
+  Event 4: bench_mov_register_register
+  Event 5: bench_mov_register_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0005_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0006.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0006.c
+  Event 1: bench_mov_register_symbolic
+  Event 2: bench_mov_register_absolute
+  Event 3: bench_mov_immediate_register
+  Event 4: bench_mov_immediate_indexed
+  Event 5: bench_mov_immediate_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0006_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0007.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0007.c
+  Event 1: bench_mov_immediate_absolute
+  Event 2: bench_mov_indexed_register
+  Event 3: bench_mov_indexed_indexed
+  Event 4: bench_mov_indexed_symbolic
+  Event 5: bench_mov_indexed_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0007_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0008.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0008.c
+  Event 1: bench_mov_symbolic_register
+  Event 2: bench_mov_symbolic_indexed
+  Event 3: bench_mov_symbolic_symbolic
+  Event 4: bench_mov_symbolic_absolute
+  Event 5: bench_mov_absolute_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0008_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0009.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0009.c
+  Event 1: bench_mov_absolute_indexed
+  Event 2: bench_mov_absolute_symbolic
+  Event 3: bench_mov_absolute_absolute
+  Event 4: bench_mov_indirect_register
+  Event 5: bench_mov_indirect_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0009_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0010.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0010.c
+  Event 1: bench_mov_indirect_symbolic
+  Event 2: bench_mov_indirect_absolute
+  Event 3: bench_mov_indirect_auto_register
+  Event 4: bench_mov_indirect_auto_indexed
+  Event 5: bench_mov_indirect_auto_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0010_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0011.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0011.c
+  Event 1: bench_mov_indirect_auto_absolute
+  Event 2: bench_cmp_register_register
+  Event 3: bench_cmp_register_indexed
+  Event 4: bench_cmp_register_symbolic
+  Event 5: bench_cmp_register_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0011_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0012.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0012.c
+  Event 1: bench_cmp_immediate_register
+  Event 2: bench_cmp_immediate_indexed
+  Event 3: bench_cmp_immediate_symbolic
+  Event 4: bench_cmp_immediate_absolute
+  Event 5: bench_cmp_indexed_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0012_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0013.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0013.c
+  Event 1: bench_cmp_indexed_indexed
+  Event 2: bench_cmp_indexed_symbolic
+  Event 3: bench_cmp_indexed_absolute
+  Event 4: bench_cmp_symbolic_register
+  Event 5: bench_cmp_symbolic_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0013_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0014.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0014.c
+  Event 1: bench_cmp_symbolic_symbolic
+  Event 2: bench_cmp_symbolic_absolute
+  Event 3: bench_cmp_absolute_register
+  Event 4: bench_cmp_absolute_indexed
+  Event 5: bench_cmp_absolute_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0014_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0015.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0015.c
+  Event 1: bench_cmp_absolute_absolute
+  Event 2: bench_cmp_indirect_register
+  Event 3: bench_cmp_indirect_indexed
+  Event 4: bench_cmp_indirect_symbolic
+  Event 5: bench_cmp_indirect_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0015_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0016.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0016.c
+  Event 1: bench_cmp_indirect_auto_register
+  Event 2: bench_cmp_indirect_auto_indexed
+  Event 3: bench_cmp_indirect_auto_symbolic
+  Event 4: bench_cmp_indirect_auto_absolute
+  Event 5: bench_inc_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0016_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0017.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0017.c
+  Event 1: bench_inc_indexed
+  Event 2: bench_inc_symbolic
+  Event 3: bench_inc_absolute
+  Event 4: bench_rlam_immediate_1_register
+  Event 5: bench_rlam_immediate_2_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0017_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0018.c...
+Extracted 4 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0018.c
+  Event 1: bench_rlam_immediate_3_register
+  Event 2: bench_rlam_immediate_4_register
+  Event 3: bench_jmp_symbolic
+  Event 4: bench_jge_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0018_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from examples/c_programs/test.c...
+Warning: No BENCH() macros found in examples/c_programs/test.c
+Saved to experiments/board3-batch5/labels_test_20251117_135440.json
+[0;34m[INFO][0m Using training compiler defines: NUM_REPEAT=100 TEXTUAL_REPT=100 INNER_REPT=100
+[0;34m[INFO][0m Using estimation compiler defines: NUM_REPEAT=100 TEXTUAL_REPT=100 INNER_REPT=100
+[0;34m[INFO][0m Using existing training segments (19 files) - skipping training measurement and preprocessing
+
+[1;33m======================================[0m
+[1;33mPIPELINE START[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Training files: 19
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0000.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0001.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0002.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0003.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0004.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0005.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0006.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0007.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0008.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0009.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0010.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0011.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0012.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0013.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0014.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0015.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0016.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0017.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0018.c
+[0;34m[INFO][0m Estimate file: examples/c_programs/test.c
+[0;34m[INFO][0m Report directory: experiments/board3-batch5/report/20251117_135440
+
+[1;33m======================================[0m
+[1;33mTraining pipeline (via train.sh)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Found 19 training file(s) from pattern: training_data/addressing_mode_batch5/*.c
+[0;34m[INFO][0m Matching training segments CSVs by basename...
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0000: experiments/board3-batch5/addressing_mode_batch_0000_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0001: experiments/board3-batch5/addressing_mode_batch_0001_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0002: experiments/board3-batch5/addressing_mode_batch_0002_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0003: experiments/board3-batch5/addressing_mode_batch_0003_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0004: experiments/board3-batch5/addressing_mode_batch_0004_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0005: experiments/board3-batch5/addressing_mode_batch_0005_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0006: experiments/board3-batch5/addressing_mode_batch_0006_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0007: experiments/board3-batch5/addressing_mode_batch_0007_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0008: experiments/board3-batch5/addressing_mode_batch_0008_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0009: experiments/board3-batch5/addressing_mode_batch_0009_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0010: experiments/board3-batch5/addressing_mode_batch_0010_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0011: experiments/board3-batch5/addressing_mode_batch_0011_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0012: experiments/board3-batch5/addressing_mode_batch_0012_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0013: experiments/board3-batch5/addressing_mode_batch_0013_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0014: experiments/board3-batch5/addressing_mode_batch_0014_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0015: experiments/board3-batch5/addressing_mode_batch_0015_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0016: experiments/board3-batch5/addressing_mode_batch_0016_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0017: experiments/board3-batch5/addressing_mode_batch_0017_segments_20251117_111553.csv
+[0;34m[INFO][0m   Matched segments CSV for addressing_mode_batch_0018: experiments/board3-batch5/addressing_mode_batch_0018_segments_20251117_111553.csv
+[0;34m[INFO][0m Training files: 19
+[0;34m[INFO][0m   [1] training_data/addressing_mode_batch5/addressing_mode_batch_0000.c
+[0;34m[INFO][0m   [2] training_data/addressing_mode_batch5/addressing_mode_batch_0001.c
+[0;34m[INFO][0m   [3] training_data/addressing_mode_batch5/addressing_mode_batch_0002.c
+[0;34m[INFO][0m   [4] training_data/addressing_mode_batch5/addressing_mode_batch_0003.c
+[0;34m[INFO][0m   [5] training_data/addressing_mode_batch5/addressing_mode_batch_0004.c
+[0;34m[INFO][0m   [6] training_data/addressing_mode_batch5/addressing_mode_batch_0005.c
+[0;34m[INFO][0m   [7] training_data/addressing_mode_batch5/addressing_mode_batch_0006.c
+[0;34m[INFO][0m   [8] training_data/addressing_mode_batch5/addressing_mode_batch_0007.c
+[0;34m[INFO][0m   [9] training_data/addressing_mode_batch5/addressing_mode_batch_0008.c
+[0;34m[INFO][0m   [10] training_data/addressing_mode_batch5/addressing_mode_batch_0009.c
+[0;34m[INFO][0m   [11] training_data/addressing_mode_batch5/addressing_mode_batch_0010.c
+[0;34m[INFO][0m   [12] training_data/addressing_mode_batch5/addressing_mode_batch_0011.c
+[0;34m[INFO][0m   [13] training_data/addressing_mode_batch5/addressing_mode_batch_0012.c
+[0;34m[INFO][0m   [14] training_data/addressing_mode_batch5/addressing_mode_batch_0013.c
+[0;34m[INFO][0m   [15] training_data/addressing_mode_batch5/addressing_mode_batch_0014.c
+[0;34m[INFO][0m   [16] training_data/addressing_mode_batch5/addressing_mode_batch_0015.c
+[0;34m[INFO][0m   [17] training_data/addressing_mode_batch5/addressing_mode_batch_0016.c
+[0;34m[INFO][0m   [18] training_data/addressing_mode_batch5/addressing_mode_batch_0017.c
+[0;34m[INFO][0m   [19] training_data/addressing_mode_batch5/addressing_mode_batch_0018.c
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0000.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0000.c
+  Event 1: bench_add_register_register
+  Event 2: bench_add_register_indexed
+  Event 3: bench_add_register_symbolic
+  Event 4: bench_add_register_absolute
+  Event 5: bench_add_immediate_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0000_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0001.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0001.c
+  Event 1: bench_add_immediate_indexed
+  Event 2: bench_add_immediate_symbolic
+  Event 3: bench_add_immediate_absolute
+  Event 4: bench_add_indexed_register
+  Event 5: bench_add_indexed_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0001_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0002.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0002.c
+  Event 1: bench_add_indexed_symbolic
+  Event 2: bench_add_indexed_absolute
+  Event 3: bench_add_symbolic_register
+  Event 4: bench_add_symbolic_indexed
+  Event 5: bench_add_symbolic_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0002_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0003.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0003.c
+  Event 1: bench_add_symbolic_absolute
+  Event 2: bench_add_absolute_register
+  Event 3: bench_add_absolute_indexed
+  Event 4: bench_add_absolute_symbolic
+  Event 5: bench_add_absolute_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0003_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0004.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0004.c
+  Event 1: bench_add_indirect_register
+  Event 2: bench_add_indirect_indexed
+  Event 3: bench_add_indirect_symbolic
+  Event 4: bench_add_indirect_absolute
+  Event 5: bench_add_indirect_auto_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0004_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0005.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0005.c
+  Event 1: bench_add_indirect_auto_indexed
+  Event 2: bench_add_indirect_auto_symbolic
+  Event 3: bench_add_indirect_auto_absolute
+  Event 4: bench_mov_register_register
+  Event 5: bench_mov_register_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0005_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0006.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0006.c
+  Event 1: bench_mov_register_symbolic
+  Event 2: bench_mov_register_absolute
+  Event 3: bench_mov_immediate_register
+  Event 4: bench_mov_immediate_indexed
+  Event 5: bench_mov_immediate_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0006_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0007.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0007.c
+  Event 1: bench_mov_immediate_absolute
+  Event 2: bench_mov_indexed_register
+  Event 3: bench_mov_indexed_indexed
+  Event 4: bench_mov_indexed_symbolic
+  Event 5: bench_mov_indexed_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0007_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0008.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0008.c
+  Event 1: bench_mov_symbolic_register
+  Event 2: bench_mov_symbolic_indexed
+  Event 3: bench_mov_symbolic_symbolic
+  Event 4: bench_mov_symbolic_absolute
+  Event 5: bench_mov_absolute_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0008_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0009.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0009.c
+  Event 1: bench_mov_absolute_indexed
+  Event 2: bench_mov_absolute_symbolic
+  Event 3: bench_mov_absolute_absolute
+  Event 4: bench_mov_indirect_register
+  Event 5: bench_mov_indirect_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0009_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0010.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0010.c
+  Event 1: bench_mov_indirect_symbolic
+  Event 2: bench_mov_indirect_absolute
+  Event 3: bench_mov_indirect_auto_register
+  Event 4: bench_mov_indirect_auto_indexed
+  Event 5: bench_mov_indirect_auto_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0010_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0011.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0011.c
+  Event 1: bench_mov_indirect_auto_absolute
+  Event 2: bench_cmp_register_register
+  Event 3: bench_cmp_register_indexed
+  Event 4: bench_cmp_register_symbolic
+  Event 5: bench_cmp_register_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0011_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0012.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0012.c
+  Event 1: bench_cmp_immediate_register
+  Event 2: bench_cmp_immediate_indexed
+  Event 3: bench_cmp_immediate_symbolic
+  Event 4: bench_cmp_immediate_absolute
+  Event 5: bench_cmp_indexed_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0012_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0013.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0013.c
+  Event 1: bench_cmp_indexed_indexed
+  Event 2: bench_cmp_indexed_symbolic
+  Event 3: bench_cmp_indexed_absolute
+  Event 4: bench_cmp_symbolic_register
+  Event 5: bench_cmp_symbolic_indexed
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0013_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0014.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0014.c
+  Event 1: bench_cmp_symbolic_symbolic
+  Event 2: bench_cmp_symbolic_absolute
+  Event 3: bench_cmp_absolute_register
+  Event 4: bench_cmp_absolute_indexed
+  Event 5: bench_cmp_absolute_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0014_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0015.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0015.c
+  Event 1: bench_cmp_absolute_absolute
+  Event 2: bench_cmp_indirect_register
+  Event 3: bench_cmp_indirect_indexed
+  Event 4: bench_cmp_indirect_symbolic
+  Event 5: bench_cmp_indirect_absolute
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0015_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0016.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0016.c
+  Event 1: bench_cmp_indirect_auto_register
+  Event 2: bench_cmp_indirect_auto_indexed
+  Event 3: bench_cmp_indirect_auto_symbolic
+  Event 4: bench_cmp_indirect_auto_absolute
+  Event 5: bench_inc_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0016_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0017.c...
+Extracted 5 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0017.c
+  Event 1: bench_inc_indexed
+  Event 2: bench_inc_symbolic
+  Event 3: bench_inc_absolute
+  Event 4: bench_rlam_immediate_1_register
+  Event 5: bench_rlam_immediate_2_register
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0017_20251117_135440.json
+[0;34m[INFO][0m Extracting event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0018.c...
+Extracted 4 event labels from training_data/addressing_mode_batch5/addressing_mode_batch_0018.c
+  Event 1: bench_rlam_immediate_3_register
+  Event 2: bench_rlam_immediate_4_register
+  Event 3: bench_jmp_symbolic
+  Event 4: bench_jge_symbolic
+Saved to experiments/board3-batch5/labels_addressing_mode_batch_0018_20251117_135440.json
+[0;34m[INFO][0m Using compiler defines: NUM_REPEAT=100 TEXTUAL_REPT=100 INNER_REPT=100
+[0;34m[INFO][0m Using existing training segments (19 files) - skipping measurement and preprocessing
+
+[1;33m======================================[0m
+[1;33mTRAINING PIPELINE START[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Training files: 19
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0000.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0001.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0002.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0003.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0004.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0005.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0006.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0007.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0008.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0009.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0010.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0011.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0012.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0013.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0014.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0015.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0016.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0017.c
+[0;34m[INFO][0m   - training_data/addressing_mode_batch5/addressing_mode_batch_0018.c
+[0;34m[INFO][0m Output params file: experiments/board3-batch5/params_20251117_135440.json
+
+[1;33m======================================[0m
+[1;33mTraining measurement SKIPPED (using existing training raw CSVs: 19 files)[0m
+[1;33m======================================[0m
+
+[0;34m[INFO][0m ==> Hardware no longer required - remaining steps can run offline
+
+
+[1;33m======================================[0m
+[1;33mPreprocessing SKIPPED (using existing training segments CSVs: 19 files)[0m
+[1;33m======================================[0m
+
+[1;33m======================================[0m
+[1;33mTraining energy model from 19 file(s)[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Compiling addressing_mode_batch_0000
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0000.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0001
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0001.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0002
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0002.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0003
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0003.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0004
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0004.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0005
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0005.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0006
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0006.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0007
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0007.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0008
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0008.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0009
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0009.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0010
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0010.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0011
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0011.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0012
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0012.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0013
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0013.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0014
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0014.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0015
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0015.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0016
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0016.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0017
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0017.asm
+[0;34m[INFO][0m Compiling addressing_mode_batch_0018
+[0;34m[INFO][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0018.asm
+[ Info: Running in TRAIN mode
+┌ Info: Number of training files
+└   n_files = 19
+┌ Info: Model type
+└   model = "mean_per_addressing_mode_constant"
+┌ Info: Output file
+└   path = "experiments/board3-batch5/params_20251117_135440.json"
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0000.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0000_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0000.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 761
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 761
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.1990711688995361
+└   steps = 1064746
+┌ Info: Final machine state
+└   pc = "49e6"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x49e6 value_dec=18918
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0100 value_dec=256
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0001.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0001_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0001.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 756
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 756
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.4890398979187012
+└   steps = 1058546
+┌ Info: Final machine state
+└   pc = "4db6"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4db6 value_dec=19894
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0100 value_dec=256
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0002.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0002_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0002.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 754
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 754
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.4895131587982178
+└   steps = 1056446
+┌ Info: Final machine state
+└   pc = "4dac"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4dac value_dec=19884
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0003.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0003_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0003.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 750
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 750
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.13969087600708
+└   steps = 1052246
+┌ Info: Final machine state
+└   pc = "4d98"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4d98 value_dec=19864
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0004.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0004_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0004.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 763
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 763
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.654231071472168
+└   steps = 1066846
+┌ Info: Final machine state
+└   pc = "4928"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4928 value_dec=18728
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1d08 value_dec=7432
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0005.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0005_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0005.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 762
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 762
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.431359052658081
+└   steps = 1064846
+┌ Info: Final machine state
+└   pc = "49ec"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x49ec value_dec=18924
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0006.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0006_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0006.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 754
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 754
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.0120489597320557
+└   steps = 1056446
+┌ Info: Final machine state
+└   pc = "4c1c"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4c1c value_dec=19484
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0007.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0007_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0007.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 758
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 758
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.2730798721313477
+└   steps = 1060646
+┌ Info: Final machine state
+└   pc = "4dc0"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4dc0 value_dec=19904
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0008.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0008_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0008.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 753
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 753
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.3234548568725586
+└   steps = 1056346
+┌ Info: Final machine state
+└   pc = "4cde"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4cde value_dec=19678
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0009.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0009_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0009.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 756
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 756
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.3283319473266602
+└   steps = 1058546
+┌ Info: Final machine state
+└   pc = "4c26"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4c26 value_dec=19494
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0010.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0010_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0010.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 760
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 760
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.4914779663085938
+└   steps = 1062746
+┌ Info: Final machine state
+└   pc = "49e2"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x49e2 value_dec=18914
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0011.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0011_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0011.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 760
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 760
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 0.9597280025482178
+└   steps = 1062746
+┌ Info: Final machine state
+└   pc = "49e2"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x49e2 value_dec=18914
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0012.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0012_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0012.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 755
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 755
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 0.975161075592041
+└   steps = 1058446
+┌ Info: Final machine state
+└   pc = "4ce8"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4ce8 value_dec=19688
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c40 value_dec=7232
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0013.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0013_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0013.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 758
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 758
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.347653865814209
+└   steps = 1060646
+┌ Info: Final machine state
+└   pc = "4dc0"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4dc0 value_dec=19904
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0014.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0014_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0014.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 750
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 750
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.0715031623840332
+└   steps = 1052246
+┌ Info: Final machine state
+└   pc = "4d98"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4d98 value_dec=19864
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0015.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0015_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0015.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 758
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 758
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.4693639278411865
+└   steps = 1060646
+┌ Info: Final machine state
+└   pc = "4aa0"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x4aa0 value_dec=19104
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0016.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0016_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0016.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 761
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 761
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 1.078542947769165
+└   steps = 1064746
+┌ Info: Final machine state
+└   pc = "491e"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x491e value_dec=18718
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x1c50 value_dec=7248
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0017.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0017_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0017.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 753
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 753
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 0.987199068069458
+└   steps = 1056346
+┌ Info: Final machine state
+└   pc = "48f6"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x48f6 value_dec=18678
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 500
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 500
+┌ Info: Processing training file
+│   asm = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0018.asm"
+└   data = "experiments/board3-batch5/addressing_mode_batch_0018_segments_20251117_111553.csv"
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/addressing_mode_batch_0018.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 636
+└   base_address = "4004"
+┌ Info: begin_event and end_event found in assembly file
+│   begin_event_addr = "0x4086"
+└   end_event_addr = "0x40ae"
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4126"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4074"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40d6"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40fe"
+┌ Info: begin_event found in assembly file
+└   address = "0x4086"
+┌ Info: end_event found in assembly file
+└   address = "0x40ae"
+┌ Info: instruction_count
+└   count = 636
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 0.8015811443328857
+└   steps = 845041
+┌ Info: Final machine state
+└   pc = "459a"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x459a value_dec=17818
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x0000 value_dec=0
+│ R13 value_hex=0x4002 value_dec=16386
+│ R14 value_hex=0x1c02 value_dec=7170
+│ R15 value_hex=0x4002 value_dec=16386
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 400
+[ Info: Reading measurement data from CSV
+┌ Info: File processed successfully
+└   num_events = 400
+┌ Info: Creating combined training data
+└   total_samples = 9400
+[ Info: Training data created successfully
+┌ Info: Learning Mean model parameters
+│   granularity = PerAddressingModeConstant::ModelGranularity = 3
+│   num_programs = 9400
+└   inference_algorithm = "least-squares"
+┌ Info: Building least-squares system
+│   num_programs = 9400
+└   num_keys = 95
+[ Info: Solving least-squares system
+┌ Info: Goodness of fit metrics
+│   R² = 0.999664
+│   RMSE = 35.804
+│   MAE = 27.829
+└   Max_Error = 426.223
+┌ Info: Learned Mean model parameters
+└   num_parameters = 95
+┌ Info: Saving Mean model parameters
+│   path = "experiments/board3-batch5/params_20251117_135440.json"
+└   model_type = "mean_per_addressing_mode_constant"
+[ Info: Parameters saved successfully
+[0;32m[SUCCESS][0m Model trained: experiments/board3-batch5/params_20251117_135440.json
+
+[1;33m======================================[0m
+[1;33mTRAINING PIPELINE COMPLETE[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m Training completed successfully!
+
+[0;34m[INFO][0m Output files:
+  - Training Segments CSVs (19 files):
+      experiments/board3-batch5/addressing_mode_batch_0000_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0001_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0002_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0003_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0004_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0005_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0006_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0007_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0008_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0009_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0010_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0011_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0012_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0013_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0014_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0015_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0016_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0017_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0018_segments_20251117_111553.csv
+  - Parameters: experiments/board3-batch5/params_20251117_135440.json
+
+[0;34m[INFO][0m To reuse these outputs, run:
+  /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/train.sh \
+    --train-files "training_data/addressing_mode_batch5/*.c" \
+    --training-segments-csv "experiments/board3-batch5/addressing_mode_batch_0000_segments_20251117_111553.csv" \
+    --params "experiments/board3-batch5/params_20251117_135440.json"
+[0;32m[SUCCESS][0m Training pipeline completed
+
+[1;33m======================================[0m
+[1;33mCompiling estimation file for measurement[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Compiling for measurement
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/test.elf
+
+[1;33m======================================[0m
+[1;33mFlashing estimation file to device[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Flashing /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/test.elf...
+MSPDebug version 0.25 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2017 Daniel Beer <dlbeer@gmail.com>
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Chip info database from MSP430.dll v3.3.1.4 Copyright (C) 2013 TI, Inc.
+
+Using new (SLAC460L+) API
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: usbmodem211401
+MSP430_Initialize: usbmodem211401
+Firmware version is 31501001
+MSP430_VCC: 3000 mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5994 (id = 0x01e9)
+3 breakpoints available
+MSP430_EEM_Init
+Chip ID data:
+  ver_id:         82a1
+  ver_sub_id:     0000
+  revision:       21
+  fab:            55
+  self:           5555
+  config:         10
+  fuses:          55
+warning: unknown chip
+Erasing...
+Programming...
+Writing    2 bytes at fffe [section: __reset_vector]...
+Writing    2 bytes at 4000 [section: .upper.data]...
+Writing  526 bytes at 4002 [section: .text]...
+Done, 530 bytes total
+MSP430_Run
+MSP430_Close
+[0;32m[SUCCESS][0m Flashed to device
+
+[1;33m======================================[0m
+[1;33mMeasuring estimation file energy consumption[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Voltage: 3.3 V, Max current: 0.01 A
+13:55:38 | INFO    | Starting measurement
+13:55:38 | INFO    | Config: V=3.300 V, Imax=0.010 A, outfile=experiments/board3-batch5/measured_20251117_135440.csv, chunk=50000
+13:55:38 | INFO    | Starting otii_server: /Applications/Otii 3.app/Contents/Resources/otii_server (host=127.0.0.1, port=1905)
+13:55:38 | INFO    | otii_server is ready
+13:55:39 | INFO    | Connected to Otii server
+13:55:40 | INFO    | Using device_id=221104200320
+13:55:40 | INFO    | MAIN enabled; voltage set
+13:55:40 | INFO    | Reset command: /bin/sh -lc mspdebug tilib 'reset' 'exit'
+13:55:45 | INFO    | Target reset issued
+13:55:45 | INFO    | Recording started
+13:55:45 | INFO    | Waiting for GPI1 falling edge (to close window)
+13:56:29 | INFO    | Detected GPI1 falling edge at t=44.055560000
+13:56:29 | INFO    | Recording stopped
+13:56:29 | INFO    | Analog samples: mc=2203050, mp=2203050
+13:56:29 | INFO    | Window: [0.000000000, 44.055560000] (duration 44.055560 s)
+13:56:29 | INFO    | Index window: [0, 2202778] (N=2202779)
+13:56:29 | INFO    | GPI2 edges in window: kept=201, collisions=0
+13:56:29 | INFO    | Exporting to experiments/board3-batch5/measured_20251117_135440.csv (chunk=50000)
+13:56:35 | INFO    | Export complete: experiments/board3-batch5/measured_20251117_135440.csv (rows=2202779, time=5.62s)
+13:56:35 | INFO    | GPI1 state changes applied during export: 2
+13:56:35 | INFO    | Done
+13:56:35 | INFO    | Stopping otii_server...
+[0;32m[SUCCESS][0m Estimation raw measurement saved: experiments/board3-batch5/measured_20251117_135440.csv
+
+[0;34m[INFO][0m ==> Hardware no longer required - remaining steps can run offline
+
+
+[1;33m======================================[0m
+[1;33mPreprocessing measured estimation data[0m
+[1;33m======================================[0m
+/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/scripts/preprocess.py:19: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  df["gpi2"] = df["gpi2"].fillna(method="ffill")
+Loaded 0 event labels from experiments/board3-batch5/labels_test_20251117_135440.json
+Processed 100 segments
+Output saved to experiments/board3-batch5/measured_segments_20251117_135440.csv
+
+Preprocessed data:
+    t_start_s   t_end_s  duration_s      energy_nJ
+0     9.84180   9.98468     0.14288  539320.723836
+1    10.18492  10.32782     0.14290  539252.366959
+2    10.52806  10.67096     0.14290  539661.596175
+3    10.87120  11.01410     0.14290  539827.596988
+4    11.21436  11.35724     0.14288  539736.977003
+..        ...       ...         ...            ...
+95   42.43996  42.58286     0.14290  540112.392846
+96   42.78310  42.92600     0.14290  540121.677623
+97   43.12624  43.26914     0.14290  540089.143396
+98   43.46938  43.61228     0.14290  540057.417704
+99   43.81252  43.95542     0.14290  540105.055808
+
+[100 rows x 4 columns]
+[0;32m[SUCCESS][0m Measured estimation segments saved: experiments/board3-batch5/measured_segments_20251117_135440.csv
+
+[1;33m======================================[0m
+[1;33mCompiling estimation file for estimation[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Compiling for estimation (with NUM_REPEAT=1)
+[0;32m[SUCCESS][0m Compiled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/test.elf
+[0;32m[SUCCESS][0m Disassembled: /Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/test.asm
+
+[1;33m======================================[0m
+[1;33mEstimating energy consumption[0m
+[1;33m======================================[0m
+[ Info: Running in ESTIMATE mode
+┌ Info: Assembly file
+└   path = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/test.asm"
+┌ Info: Energy parameters
+└   path = "experiments/board3-batch5/params_20251117_135440.json"
+┌ Info: Statistics output file
+└   path = "experiments/board3-batch5/estimated_stats_20251117_135440.json"
+┌ Info: Detected model type
+└   model = "mean_per_addressing_mode_constant"
+┌ Info: Loaded Mean model parameters
+│   model_type = "mean_per_addressing_mode_constant"
+└   num_parameters = 95
+┌ Info: Parsing assembly file
+└   filename = "/Users/byeongjee/migration/probabilistic-energy-modeling-measurement/build/asm/test.asm"
+┌ Info: Successfully parsed MSP430 instructions
+│   count = 171
+└   base_address = "4002"
+[ Info: Executing program to get event sequences
+[ Info: ============================================================
+[ Info: Interpret Program
+[ Info: ============================================================
+┌ Info: initialize found in assembly file
+└   address = "0x4102"
+┌ Info: toggle_gpio found in assembly file
+└   address = "0x4050"
+┌ Info: begin_measurement_window found in assembly file
+└   address = "0x40b2"
+┌ Info: end_measurement_window found in assembly file
+└   address = "0x40da"
+┌ Info: begin_event found in assembly file
+└   address = "0x4062"
+┌ Info: end_event found in assembly file
+└   address = "0x408a"
+┌ Info: instruction_count
+└   count = 171
+[ Info: Program terminated
+┌ Info: Execution completed
+│   time = 0.3755640983581543
+└   steps = 275528
+┌ Info: Final machine state
+└   pc = "420c"
+┌ Info: --- MSP430 Register State ---
+│ PC  value_hex=0x420c value_dec=16908
+│ SP  value_hex=0x2bfe value_dec=11262
+│ SR  value_hex=0x0000 value_dec=0
+│ R3  value_hex=0x0000 value_dec=0
+│ R4  value_hex=0x0000 value_dec=0
+│ R5  value_hex=0x0000 value_dec=0
+│ R6  value_hex=0x0000 value_dec=0
+│ R7  value_hex=0x0000 value_dec=0
+│ R8  value_hex=0x0000 value_dec=0
+│ R9  value_hex=0x0000 value_dec=0
+│ R10 value_hex=0x0000 value_dec=0
+│ R11 value_hex=0x0000 value_dec=0
+│ R12 value_hex=0x1055 value_dec=4181
+│ R13 value_hex=0x7902 value_dec=30978
+│ R14 value_hex=0x2bfe value_dec=11262
+│ R15 value_hex=0x0000 value_dec=0
+│ flags = Dict{Symbol, Bool}(:Z => 0, :N => 0, :V => 0, :C => 0)
+└ -----------------------------
+┌ Info: Flags
+│   V = false
+│   N = false
+│   Z = false
+└   C = false
+┌ Info: Event sequences collected
+└   count = 1
+┌ Info: Event sequence
+└   length = 275505
+┌ Info: Estimating energy with Mean model
+│   granularity = PerAddressingModeConstant::ModelGranularity = 3
+└   num_instructions = 275505
+┌ Info: Energy estimation complete
+└   total_energy = 494624.135
+[ Info: ============================================================
+[ Info: ESTIMATION COMPLETE
+[ Info: ============================================================
+┌ Info: Inference time
+└   time_seconds = 0.834
+┌ Info: Saving estimation statistics
+│   path = "experiments/board3-batch5/estimated_stats_20251117_135440.json"
+└   num_events = 1
+[ Info: Statistics saved successfully
+[0;32m[SUCCESS][0m Estimation complete: experiments/board3-batch5/estimated_stats_20251117_135440.json
+
+[1;33m======================================[0m
+[1;33mGenerating comparison report[0m
+[1;33m======================================[0m
+[0;34m[INFO][0m Using NUM_REPEAT=100 from estimation defines
+============================================================
+Generating Comparison Report
+============================================================
+Estimated stats: experiments/board3-batch5/estimated_stats_20251117_135440.json
+Measured data:   experiments/board3-batch5/measured_segments_20251117_135440.csv
+Report dir:      experiments/board3-batch5/report/20251117_135440
+NUM_REPEAT:      100
+
+Loading data...
+  Number of events: 1
+  NUM_REPEAT: 100
+  Total measurements expected: 100
+  Total measurements found: 100
+
+Processing events...
+
+  Event 1 (1/1)
+    Estimated: 1 samples, mean=494624.14 nJ
+    Measured:  100 samples, mean=540061.14 nJ
+  - Saved: experiments/board3-batch5/report/20251117_135440/event_1_estimated.png
+  - Saved: experiments/board3-batch5/report/20251117_135440/event_1_measured.png
+  - Saved: experiments/board3-batch5/report/20251117_135440/event_1_comparison.png
+  - Saved: experiments/board3-batch5/report/20251117_135440/comparison.md
+
+============================================================
+COMPARISON COMPLETE
+============================================================
+Report location: experiments/board3-batch5/report/20251117_135440
+Average absolute error: 8.41%
+============================================================
+[0;32m[SUCCESS][0m Comparison report generated: experiments/board3-batch5/report/20251117_135440
+
+[1;33m======================================[0m
+[1;33mPIPELINE COMPLETE[0m
+[1;33m======================================[0m
+[0;32m[SUCCESS][0m All steps completed successfully!
+
+[0;34m[INFO][0m Output files:
+  - Comparison Report: experiments/board3-batch5/report/20251117_135440/
+    - comparison.md (detailed markdown report with all events)
+    - event_N_estimated.png (per-event estimated distributions)
+    - event_N_measured.png (per-event measured distributions)
+    - event_N_comparison.png (per-event comparisons)
+  - Training Segments CSVs (19 files):
+      experiments/board3-batch5/addressing_mode_batch_0000_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0001_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0002_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0003_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0004_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0005_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0006_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0007_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0008_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0009_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0010_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0011_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0012_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0013_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0014_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0015_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0016_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0017_segments_20251117_111553.csv
+      experiments/board3-batch5/addressing_mode_batch_0018_segments_20251117_111553.csv
