@@ -377,19 +377,27 @@ function execute!(state::MachineState, ::RrcHandler, ops::Vector{Operand}, data_
     return nothing
 end
 
-# RRCM - Rotate right through carry multiple times (20-bit only)
+# RRCM - Rotate right through carry multiple times
+# Supports 16-bit (.w) and 20-bit (.a) operands
+# RRCM.W clears bits 19:16 of the destination register
 function execute!(state::MachineState, ::RrcmHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
-    @assert data_size == :address "rrcm only supports 20-bit (.a) operands"
     if length(ops) < 2
         return nothing
     end
     shift_count = get_operand_value(state, ops[1], data_size)
     dst_val = get_operand_value(state, ops[2], data_size)
 
+    # Determine the MSB position based on data size
+    msb_mask = if data_size == :address
+        0x80000  # 20-bit: bit 19
+    else  # :word
+        0x8000   # 16-bit: bit 15
+    end
+
     result = dst_val
     for i in 1:shift_count
         new_carry = (result & 0x0001) != 0
-        result = UInt32((result >> 1) | (state.flags[:C] ? 0x8000 : 0x0000))
+        result = UInt32((result >> 1) | (state.flags[:C] ? msb_mask : 0x0000))
         state.flags[:C] = new_carry
     end
 
