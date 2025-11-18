@@ -57,6 +57,7 @@ struct AndHandler <: DualOperandHandler end
 
 # Single operand handlers
 struct RrcHandler <: SingleOperandHandler end
+struct RrcmHandler <: SingleOperandHandler end
 struct SwpbHandler <: SingleOperandHandler end
 struct RraHandler <: SingleOperandHandler end
 struct SxtHandler <: SingleOperandHandler end
@@ -114,6 +115,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :and => AndHandler(),
     # Single operand instructions
     :rrc => RrcHandler(),
+    :rrcm => RrcmHandler(),
     :swpb => SwpbHandler(),
     :rra => RraHandler(),
     :sxt => SxtHandler(),
@@ -372,6 +374,27 @@ function execute!(state::MachineState, ::RrcHandler, ops::Vector{Operand}, data_
     state.flags[:C] = new_carry
     update_flags_simple!(state, result, data_size)
     set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
+# RRCM - Rotate right through carry multiple times (20-bit only)
+function execute!(state::MachineState, ::RrcmHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    @assert data_size == :address "rrcm only supports 20-bit (.a) operands"
+    if length(ops) < 2
+        return nothing
+    end
+    shift_count = get_operand_value(state, ops[1], data_size)
+    dst_val = get_operand_value(state, ops[2], data_size)
+
+    result = dst_val
+    for i in 1:shift_count
+        new_carry = (result & 0x0001) != 0
+        result = UInt32((result >> 1) | (state.flags[:C] ? 0x8000 : 0x0000))
+        state.flags[:C] = new_carry
+    end
+
+    update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[2], result, data_size)
     return nothing
 end
 
