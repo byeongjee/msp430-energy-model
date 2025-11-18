@@ -55,7 +55,7 @@ function parse_commandline()
         arg_type = String
         default = "gamma_per_instruction"
         "--inference"
-        help = "Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling, only for Gamma models)"
+        help = "Inference algorithm: importance-sampling, mcmc-blocked (for Gamma models), dominant-key (for Mean models), least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls (for Mean/MeanPair models)"
         arg_type = String
         default = "importance-sampling"
     end

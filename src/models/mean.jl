@@ -3,6 +3,7 @@
 using JSON
 using Statistics
 using LinearAlgebra
+using NonNegLeastSquares
 
 """
 Training configuration for Mean-based models
@@ -135,8 +136,14 @@ Formulates the problem as finding x that minimizes ||Ax - B||^2 where:
 - A[i,j] = count of key j in program i
 - B[i] = measured energy of program i
 - x[j] = mean energy per instruction for key j
+
+Supports multiple least-squares algorithms:
+- "least-squares": Standard unconstrained LS using A \\ B
+- "least-squares-nnpivot": Non-negative LS using pivot method
+- "least-squares-nnls": Non-negative LS using NNLS algorithm
+- "least-squares-fnnls": Non-negative LS using Fast NNLS algorithm
 """
-function learn_params_least_squares!(model::MeanModel, training_data::TrainingData)
+function learn_params_least_squares!(model::MeanModel, training_data::TrainingData, inference_algorithm::String)
     # Collect all unique instruction keys
     all_keys = Set{ParamKey}()
     for program in training_data.programs
@@ -150,7 +157,7 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     sorted_keys = sort(collect(all_keys))
     key_to_idx = Dict(key => i for (i, key) in enumerate(sorted_keys))
 
-    @info "Building least-squares system" num_programs = length(training_data.programs) num_keys = length(sorted_keys)
+    @info "Building least-squares system" num_programs = length(training_data.programs) num_keys = length(sorted_keys) algorithm = inference_algorithm
 
     # Build matrix A where A[i,j] = count of key j in program i
     num_programs = length(training_data.programs)
@@ -168,9 +175,19 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     # Build vector B with measured energies
     B = Vector{Float64}(training_data.energies)
 
-    # Solve least squares: minimize ||Ax - B||^2
-    @info "Solving least-squares system"
-    x = A \ B
+    # Solve least squares based on the specified algorithm
+    @info "Solving least-squares system" algorithm = inference_algorithm
+    x = if inference_algorithm == "least-squares"
+        A \ B
+    elseif inference_algorithm == "least-squares-nnpivot"
+        nonneg_lsq(A, B; alg=:pivot)
+    elseif inference_algorithm == "least-squares-nnls"
+        nonneg_lsq(A, B; alg=:nnls)
+    elseif inference_algorithm == "least-squares-fnnls"
+        nonneg_lsq(A, B; alg=:fnnls)
+    else
+        error("Unknown least-squares algorithm: $inference_algorithm. Must be one of: least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls")
+    end
 
     # Store results in model.params
     model.params = Dict{ParamKey,Float64}()
@@ -215,8 +232,8 @@ function learn_params!(model::MeanModel, training_data::TrainingData, config::Me
 
     if config.inference_algorithm == "dominant-key"
         learn_params_dominant_key!(model, training_data)
-    elseif config.inference_algorithm == "least-squares"
-        learn_params_least_squares!(model, training_data)
+    elseif startswith(config.inference_algorithm, "least-squares")
+        learn_params_least_squares!(model, training_data, config.inference_algorithm)
     else
         error("Unknown inference algorithm for Mean model: $(config.inference_algorithm)")
     end

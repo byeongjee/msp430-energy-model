@@ -85,8 +85,14 @@ Formulates the problem as finding x that minimizes ||Ax - B||^2 where:
 - A[i,j] = count of pair j in program i
 - B[i] = measured energy of program i
 - x[j] = mean energy per pair for pair j
+
+Supports multiple least-squares algorithms:
+- "least-squares": Standard unconstrained LS using A \\ B
+- "least-squares-nnpivot": Non-negative LS using pivot method
+- "least-squares-nnls": Non-negative LS using NNLS algorithm
+- "least-squares-fnnls": Non-negative LS using Fast NNLS algorithm
 """
-function learn_params_least_squares!(model::MeanPairModel, training_data::TrainingData)
+function learn_params_least_squares!(model::MeanPairModel, training_data::TrainingData, inference_algorithm::String)
     # Collect all unique instruction pairs
     all_pairs = Set{Tuple{ParamKey,ParamKey}}()
     for program in training_data.programs
@@ -104,7 +110,7 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     sorted_pairs = sort(collect(all_pairs))
     pair_to_idx = Dict(pair => i for (i, pair) in enumerate(sorted_pairs))
 
-    @info "Building least-squares system for pairs" num_programs = length(training_data.programs) num_pairs = length(sorted_pairs)
+    @info "Building least-squares system for pairs" num_programs = length(training_data.programs) num_pairs = length(sorted_pairs) algorithm = inference_algorithm
 
     # Build matrix A where A[i,j] = count of pair j in program i
     num_programs = length(training_data.programs)
@@ -127,10 +133,19 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     # Build vector B with measured energies
     B = Vector{Float64}(training_data.energies)
 
-    # Solve non-negative least squares: minimize ||Ax - B||^2 subject to x >= 0
-    # Using :fnnls (Fast NNLS) algorithm which is much faster than default :nnls
-    @info "Solving non-negative least-squares system for pairs (using Fast NNLS algorithm)"
-    x = nonneg_lsq(A, B; alg=:fnnls)
+    # Solve least squares based on the specified algorithm
+    @info "Solving least-squares system for pairs" algorithm = inference_algorithm
+    x = if inference_algorithm == "least-squares"
+        A \ B
+    elseif inference_algorithm == "least-squares-nnpivot"
+        nonneg_lsq(A, B; alg=:pivot)
+    elseif inference_algorithm == "least-squares-nnls"
+        nonneg_lsq(A, B; alg=:nnls)
+    elseif inference_algorithm == "least-squares-fnnls"
+        nonneg_lsq(A, B; alg=:fnnls)
+    else
+        error("Unknown least-squares algorithm: $inference_algorithm. Must be one of: least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls")
+    end
 
     # Store results in model.params
     model.params = Dict{Tuple{ParamKey,ParamKey},Float64}()
@@ -173,8 +188,8 @@ function learn_params!(model::MeanPairModel, training_data::TrainingData, config
         training_data.programs
     ) inference_algorithm = config.inference_algorithm
 
-    if config.inference_algorithm == "least-squares"
-        learn_params_least_squares!(model, training_data)
+    if startswith(config.inference_algorithm, "least-squares")
+        learn_params_least_squares!(model, training_data, config.inference_algorithm)
     else
         error("Unknown inference algorithm for MeanPair model: $(config.inference_algorithm)")
     end
