@@ -94,11 +94,21 @@ match_files_by_basename() {
         for source_file in "${source_files_ref[@]}"; do
             local basename=$(basename "$source_file" .c)
             # Substitute {filename} with the actual basename
-            local csv_path="${csv_input//\{filename\}/$basename}"
+            local csv_pattern="${csv_input//\{filename\}/$basename}"
 
-            # Check if the file exists
-            if [[ -f "$csv_path" ]]; then
-                matched_csvs+=("$csv_path")
+            # Expand the pattern (may contain wildcards)
+            local expanded_files=()
+            shopt -s nullglob
+            expanded_files=($csv_pattern)
+            shopt -u nullglob
+
+            # Check if any files matched
+            if [[ ${#expanded_files[@]} -gt 0 ]]; then
+                # Use the first match if multiple files found
+                matched_csvs+=("${expanded_files[0]}")
+                if [[ ${#expanded_files[@]} -gt 1 ]]; then
+                    echo "[WARNING] Multiple matches for $basename, using: ${expanded_files[0]}" >&2
+                fi
             else
                 matched_csvs+=("")
                 failed_matches+=("$source_file")
@@ -141,17 +151,16 @@ match_files_by_basename() {
         done
     fi
 
-    # Validate: error if any matches failed
+    # Report failed matches as warnings (not errors - files may not have CSVs yet)
     if [[ ${#failed_matches[@]} -gt 0 ]]; then
-        echo "[ERROR] Failed to match $csv_type files for the following source files:" >&2
+        echo "[WARNING] No matching $csv_type files found for ${#failed_matches[@]} source file(s) (will be measured):" >&2
         for file in "${failed_matches[@]}"; do
-            echo "[ERROR]   - $file" >&2
+            local basename=$(basename "$file" .c)
+            echo "[WARNING]   - $basename" >&2
         done
-        echo "[ERROR] Pattern provided: $csv_input" >&2
-        exit 1
     fi
 
-    # Output matched CSVs
+    # Output matched CSVs (empty strings for files without matches)
     printf '%s\n' "${matched_csvs[@]}"
 }
 
