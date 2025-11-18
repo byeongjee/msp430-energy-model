@@ -84,44 +84,62 @@ match_files_by_basename() {
     local csv_input="$2"
     local csv_type="${3:-CSV}"  # Optional: description for error messages (e.g., "training raw CSV")
 
-    # Build pool of CSV files
-    local csv_pool=()
-    if [[ -n "$csv_input" ]]; then
-        # Check if semicolon-separated or glob pattern
-        if [[ "$csv_input" == *";"* ]]; then
-            # Parse semicolon-separated list
-            IFS=';' read -ra csv_pool <<< "$csv_input"
-        else
-            # Expand glob pattern
-            mapfile -t csv_pool < <(expand_file_input "$csv_input")
-        fi
-    fi
-
     # Match each source file to a CSV by basename
     local matched_csvs=()
     local failed_matches=()
 
-    for source_file in "${source_files_ref[@]}"; do
-        local basename=$(basename "$source_file" .c)
-        local matched_csv=""
+    # Check if the pattern contains {filename} placeholder
+    if [[ "$csv_input" == *"{filename}"* ]]; then
+        # Pattern-based matching: substitute {filename} with each source basename
+        for source_file in "${source_files_ref[@]}"; do
+            local basename=$(basename "$source_file" .c)
+            # Substitute {filename} with the actual basename
+            local csv_path="${csv_input//\{filename\}/$basename}"
 
-        # Search for matching CSV
-        if [[ ${#csv_pool[@]} -gt 0 ]]; then
-            for csv in "${csv_pool[@]}"; do
-                local csv_basename=$(basename "$csv")
-                if [[ "$csv_basename" == *"$basename"* ]]; then
-                    matched_csv="$csv"
-                    break
-                fi
-            done
+            # Check if the file exists
+            if [[ -f "$csv_path" ]]; then
+                matched_csvs+=("$csv_path")
+            else
+                matched_csvs+=("")
+                failed_matches+=("$source_file")
+            fi
+        done
+    else
+        # Legacy behavior: Build pool of CSV files and match by substring
+        local csv_pool=()
+        if [[ -n "$csv_input" ]]; then
+            # Check if semicolon-separated or glob pattern
+            if [[ "$csv_input" == *";"* ]]; then
+                # Parse semicolon-separated list
+                IFS=';' read -ra csv_pool <<< "$csv_input"
+            else
+                # Expand glob pattern
+                mapfile -t csv_pool < <(expand_file_input "$csv_input")
+            fi
         fi
 
-        # Track results
-        if [[ -z "$matched_csv" ]]; then
-            failed_matches+=("$source_file")
-        fi
-        matched_csvs+=("$matched_csv")
-    done
+        for source_file in "${source_files_ref[@]}"; do
+            local basename=$(basename "$source_file" .c)
+            local matched_csv=""
+
+            # Search for matching CSV
+            if [[ ${#csv_pool[@]} -gt 0 ]]; then
+                for csv in "${csv_pool[@]}"; do
+                    local csv_basename=$(basename "$csv")
+                    if [[ "$csv_basename" == *"$basename"* ]]; then
+                        matched_csv="$csv"
+                        break
+                    fi
+                done
+            fi
+
+            # Track results
+            if [[ -z "$matched_csv" ]]; then
+                failed_matches+=("$source_file")
+            fi
+            matched_csvs+=("$matched_csv")
+        done
+    fi
 
     # Validate: error if any matches failed
     if [[ ${#failed_matches[@]} -gt 0 ]]; then
