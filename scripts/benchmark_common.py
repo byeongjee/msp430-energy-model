@@ -253,6 +253,84 @@ def create_jge_specs() -> List[InstructionSpec]:
     ]
 
 
+def create_jl_specs() -> List[InstructionSpec]:
+    """Create instruction specs for jl (jump if less)"""
+    return [
+        InstructionSpec(
+            opcode="jl",
+            src_mode="symbolic",
+            asm_template="jl 1f\\n1:",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
+def create_jnz_specs() -> List[InstructionSpec]:
+    """Create instruction specs for jnz (jump if not zero)"""
+    return [
+        InstructionSpec(
+            opcode="jnz",
+            src_mode="symbolic",
+            asm_template="jnz 1f\\n1:",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
+def create_jz_specs() -> List[InstructionSpec]:
+    """Create instruction specs for jz (jump if zero)"""
+    return [
+        InstructionSpec(
+            opcode="jz",
+            src_mode="symbolic",
+            asm_template="jz 1f\\n1:",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
+def create_jnc_specs() -> List[InstructionSpec]:
+    """Create instruction specs for jnc (jump if no carry)"""
+    return [
+        InstructionSpec(
+            opcode="jnc",
+            src_mode="symbolic",
+            asm_template="jnc 1f\\n1:",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
+def create_jc_specs() -> List[InstructionSpec]:
+    """Create instruction specs for jc (jump if carry)"""
+    return [
+        InstructionSpec(
+            opcode="jc",
+            src_mode="symbolic",
+            asm_template="jc 1f\\n1:",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
+def create_jn_specs() -> List[InstructionSpec]:
+    """Create instruction specs for jn (jump if negative)"""
+    return [
+        InstructionSpec(
+            opcode="jn",
+            src_mode="symbolic",
+            asm_template="jn 1f\\n1:",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
 # ============================================================================
 # Jinja2 Templates
 # ============================================================================
@@ -301,7 +379,8 @@ def generate_batched_files(
     benchmarks: List[Dict[str, Any]],
     output_dir: Path,
     batch_size: int,
-    file_prefix: str = "batch"
+    file_prefix: str = "batch",
+    start_batch: int = 0
 ):
     """Generate C files with specified number of benchmarks per file
 
@@ -310,6 +389,7 @@ def generate_batched_files(
         output_dir: Directory to write files to
         batch_size: Number of benchmarks per file
         file_prefix: Prefix for batch filenames (default: "batch")
+        start_batch: Starting batch number for incremental generation (default: 0)
     """
     for i in range(0, len(benchmarks), batch_size):
         batch = benchmarks[i : i + batch_size]
@@ -319,8 +399,8 @@ def generate_batched_files(
             # One file per benchmark - use benchmark name
             filename = f"{batch[0]['name']}.c"
         else:
-            # Multiple per file - use batch number
-            batch_num = i // batch_size
+            # Multiple per file - use batch number (offset by start_batch)
+            batch_num = (i // batch_size) + start_batch
             filename = f"{file_prefix}_{batch_num:04d}.c"
 
         filepath = output_dir / filename
