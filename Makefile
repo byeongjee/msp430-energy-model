@@ -22,7 +22,7 @@ MEASUREMENT_INCLUDE_PATH := $(MKFILE_DIR)/include
 
 
 # Compiler flags
-CFLAGS := -mmcu=$(DEVICE) -O0 -g -Wall
+CFLAGS := -mmcu=$(DEVICE) -O0 -Wall
 
 # Process DEFINES variable: space-separated list of macros (e.g., DEFINES="FOO=1 BAR ENABLE_FEATURE=value")
 # Each macro gets -D prefix automatically
