@@ -125,12 +125,25 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     sorted_pairs = sort(collect(all_pairs))
     pair_to_idx = Dict(pair => i for (i, pair) in enumerate(sorted_pairs))
 
-    @info "Building least-squares system for pairs" num_programs = length(training_data.programs) num_pairs = length(sorted_pairs) algorithm = inference_algorithm
+    # Analyze which opcodes appear in the data
+    all_opcodes = Set{Symbol}()
+    for (key1, key2) in all_pairs
+        push!(all_opcodes, key1[1])
+        push!(all_opcodes, key2[1])
+    end
+    expected_opcodes = Set([:add, :mov, :cmp, :inc, :rlam, :jmp, :jge, :jl])
+    unexpected_opcodes = setdiff(all_opcodes, expected_opcodes)
 
-    # Build matrix A where A[i,j] = count of pair j in program i
+    if !isempty(unexpected_opcodes)
+        @warn "Found unexpected opcodes in training data (compiler-generated):" opcodes=sort(collect(unexpected_opcodes))
+    end
+
+    @info "Building least-squares system for unordered pairs (before filtering)" num_programs = length(training_data.programs) num_pairs = length(sorted_pairs) algorithm = inference_algorithm total_opcodes = length(all_opcodes) unexpected_opcodes_count = length(unexpected_opcodes)
+
+    # Build initial matrix A where A[i,j] = count of pair j in program i
     num_programs = length(training_data.programs)
     num_pairs = length(sorted_pairs)
-    A = zeros(Float64, num_programs, num_pairs)
+    A_full = zeros(Float64, num_programs, num_pairs)
 
     for (i, program) in enumerate(training_data.programs)
         if length(program) < 2
@@ -139,11 +152,33 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
         for k in 1:(length(program)-1)
             key1 = get_instruction_key(program[k], model.granularity)
             key2 = get_instruction_key(program[k+1], model.granularity)
-            pair_key = (key1, key2)
+            # Normalize to unordered pair
+            pair_key = normalize_pair(key1, key2)
             j = pair_to_idx[pair_key]
-            A[i, j] += 1.0
+            A_full[i, j] += 1.0
         end
     end
+
+    # Filter out pairs that include loop/auxiliary instructions
+    EXCLUDED_OPCODES = Set([:br, :mova, :nop, :rla])  # Hardcoded: loop-related, not main benchmark instructions
+
+    pairs_to_keep_idx = Int[]
+    for (idx, (key1, key2)) in enumerate(sorted_pairs)
+        opcode1 = key1[1]
+        opcode2 = key2[1]
+        # Keep pair only if neither opcode is in the excluded list
+        if !(opcode1 in EXCLUDED_OPCODES || opcode2 in EXCLUDED_OPCODES)
+            push!(pairs_to_keep_idx, idx)
+        end
+    end
+
+    @info "Filtering pairs with excluded opcodes" excluded_opcodes=sort(collect(EXCLUDED_OPCODES)) pairs_before=length(sorted_pairs) pairs_after=length(pairs_to_keep_idx) pairs_removed=length(sorted_pairs)-length(pairs_to_keep_idx)
+
+    # Create filtered matrix and pair list
+    A = A_full[:, pairs_to_keep_idx]
+    filtered_pairs = sorted_pairs[pairs_to_keep_idx]
+
+    @info "Building least-squares system for unordered pairs (after filtering)" num_programs = num_programs num_pairs = length(filtered_pairs) algorithm = inference_algorithm
 
     # Build vector B with measured energies
     B = Vector{Float64}(training_data.energies)
@@ -164,7 +199,7 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
 
     # Store results in model.params
     model.params = Dict{Tuple{ParamKey,ParamKey},Float64}()
-    for (i, pair_key) in enumerate(sorted_pairs)
+    for (i, pair_key) in enumerate(filtered_pairs)
         model.params[pair_key] = x[i]
 
         @debug "Learned mean energy per pair (least-squares)" pair_key = pair_key mean_energy = round(
