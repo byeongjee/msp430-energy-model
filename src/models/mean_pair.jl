@@ -19,6 +19,44 @@ function normalize_pair(key1::ParamKey, key2::ParamKey)::Tuple{ParamKey,ParamKey
 end
 
 """
+Get dominant instruction pair from a program (most frequent consecutive pair).
+Used for microbenchmarks where one pair type dominates.
+"""
+function get_dominant_pair(
+    program::Vector{Instruction}, granularity::ModelGranularity
+)::Tuple{ParamKey,ParamKey}
+    if length(program) < 2
+        error("Program must have at least 2 instructions to determine dominant pair")
+    end
+
+    # Count instruction pairs
+    pair_counts = Dict{Tuple{ParamKey,ParamKey},Int}()
+    for i in 1:(length(program)-1)
+        key1 = get_instruction_key(program[i], granularity)
+        key2 = get_instruction_key(program[i+1], granularity)
+        # Normalize to unordered pair
+        pair_key = normalize_pair(key1, key2)
+        pair_counts[pair_key] = get(pair_counts, pair_key, 0) + 1
+    end
+
+    # nop pairs should not be considered
+    # in microbenchmarks, nop is not expected to be executed (they are skipped
+    # by jmp instructions)
+    pairs_to_delete = Tuple{ParamKey,ParamKey}[]
+    for (pair_key, _) in pair_counts
+        if pair_key[1] == (:nop,) || pair_key[2] == (:nop,)
+            push!(pairs_to_delete, pair_key)
+        end
+    end
+    for pair_key in pairs_to_delete
+        delete!(pair_counts, pair_key)
+    end
+
+    # Return pair with maximum count
+    return argmax(pair_counts)
+end
+
+"""
 Generic Mean-based model for instruction pairs.
 Uses simple mean energy per consecutive instruction pair based on specified granularity.
 """
@@ -32,6 +70,45 @@ mutable struct MeanPairModel <: AbstractModel
     end
 end
 
+
+"""
+Learn parameters from training data using dominant-pair inference algorithm
+"""
+function learn_params_dominant_key!(model::MeanPairModel, training_data::TrainingData)
+    # Accumulate total energy and pair count for each dominant pair
+    total_energy = Dict{Tuple{ParamKey,ParamKey},Float64}()
+    total_pairs = Dict{Tuple{ParamKey,ParamKey},Int}()
+
+    for (energy, program) in zip(training_data.energies, training_data.programs)
+        if length(program) < 2
+            @warn "Skipping program with less than 2 instructions"
+            continue
+        end
+
+        dominant_pair = get_dominant_pair(program, model.granularity)
+
+        # Accumulate for this pair
+        num_pairs = length(program) - 1
+        total_energy[dominant_pair] = get(total_energy, dominant_pair, 0.0) + energy
+        total_pairs[dominant_pair] = get(total_pairs, dominant_pair, 0) + num_pairs
+    end
+
+    # Compute mean energy per pair (weighted average)
+    model.params = Dict{Tuple{ParamKey,ParamKey},Float64}()
+
+    for pair_key in keys(total_energy)
+        mean_energy = total_energy[pair_key] / total_pairs[pair_key]
+        model.params[pair_key] = mean_energy
+
+        key1_str = join(string.(pair_key[1]), "_")
+        key2_str = join(string.(pair_key[2]), "_")
+        @debug "Learned mean energy per pair" pair = "$key1_str -> $key2_str" mean_energy = round(
+            mean_energy; digits=6
+        ) total_pairs = total_pairs[pair_key]
+    end
+
+    return nothing
+end
 
 """
 Load parameters from JSON file for MeanPair model
@@ -427,7 +504,9 @@ function learn_params!(model::MeanPairModel, training_data::TrainingData, config
         training_data.programs
     ) inference_algorithm = config.inference_algorithm
 
-    if startswith(config.inference_algorithm, "least-squares")
+    if config.inference_algorithm == "dominant-key"
+        learn_params_dominant_key!(model, training_data)
+    elseif startswith(config.inference_algorithm, "least-squares")
         learn_params_least_squares!(model, training_data, config.inference_algorithm)
     else
         error("Unknown inference algorithm for MeanPair model: $(config.inference_algorithm)")
