@@ -17,6 +17,7 @@ REPORT_DIR="${REPORT_DIR:-${REPORT_DIR_DEFAULT}}"
 SKIP_RESET=""
 TAG=""
 DEFINES=""  # Space-separated list of compiler macros
+SEGMENTS_CSV=""  # Pre-measured segments CSV files (optional, for resuming)
 
 # Required parameters (to be set via command line)
 FILES=""  # Semicolon-separated list of files
@@ -34,6 +35,7 @@ Required arguments:
   --files PATTERN           C file(s) to analyze (supports glob patterns and brace expansion)
 
 Optional arguments:
+  --segments-csv PATTERN    Preprocessed segments CSV file(s) (semicolon-separated list or glob pattern; automatically matched to files by basename)
   --tag TAG                 Tag for naming output files (default: none)
   --voltage V               Voltage for measurement (default: 3.3)
   --max-current A           Max current for measurement (default: 0.01)
@@ -62,6 +64,10 @@ Examples:
   $0 --files "examples/c_programs/*.c" \\
      --voltage 3.0 \\
      --max-current 0.02
+
+  # Resume with existing segments CSV (matched by basename)
+  $0 --files "examples/c_programs/*.c" \\
+     --segments-csv "./tmp/*_segments.csv"
 EOF
 }
 
@@ -70,6 +76,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --files)
             FILES="$2"
+            shift 2
+            ;;
+        --segments-csv)
+            SEGMENTS_CSV="$2"
             shift 2
             ;;
         --tag)
@@ -157,6 +167,33 @@ fi
 mkdir -p "$REPORT_DIR_FULL"
 
 # ============================================================
+# MATCH SEGMENTS CSV FILES BY BASENAME
+# ============================================================
+
+# Array to store individual segments CSV files
+SEGMENTS_CSV_ARRAY=()
+
+# Match segments CSV files to C files by basename (if provided)
+if [[ -n "$SEGMENTS_CSV" ]]; then
+    log_info "Matching segments CSVs by basename..."
+    csv_matches=$(match_files_by_basename "FILE_ARRAY" "$SEGMENTS_CSV" "segments CSV")
+    mapfile -t SEGMENTS_CSV_ARRAY <<< "$csv_matches"
+fi
+
+# Create temp file paths for files without matched CSVs
+for i in "${!FILE_ARRAY[@]}"; do
+    file="${FILE_ARRAY[$i]}"
+    basename=$(basename "$file" .c)
+
+    # Segments CSV - use temp file if no match found
+    if [[ -z "${SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
+        SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/segments_${basename}_${TIMESTAMP}.csv"
+    else
+        log_info "  Matched segments CSV for $basename: ${SEGMENTS_CSV_ARRAY[$i]}"
+    fi
+done
+
+# ============================================================
 # MAIN PIPELINE
 # ============================================================
 
@@ -168,9 +205,6 @@ done
 log_info "Report directory: $REPORT_DIR_FULL"
 
 cd "$PROJECT_ROOT"
-
-# Array to store individual segments CSV files
-SEGMENTS_CSV_ARRAY=()
 
 # Extract event labels from all files
 log_step "Extracting event labels from C source files"
@@ -225,9 +259,15 @@ for i in "${!FILE_ARRAY[@]}"; do
     log_info "Processing file $((i+1))/${#FILE_ARRAY[@]}: $FILE"
 
     # Setup file paths for this file
-    TRAINING_RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
-    TRAINING_SEGMENTS_CSV="$TEMP_DIR/segments_${BASENAME}_${TIMESTAMP}.csv"
+    RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
+    SEGMENTS_CSV_FILE="${SEGMENTS_CSV_ARRAY[$i]}"
     EVENT_LABELS_JSON="${EVENT_LABELS_ARRAY[$i]}"
+
+    # Check if segments CSV already exists for this file
+    if [[ -f "$SEGMENTS_CSV_FILE" ]]; then
+        log_info "✓ Segments CSV already exists: $SEGMENTS_CSV_FILE - SKIPPING measurement"
+        continue
+    fi
 
     # Compile
     log_step "Compiling $FILE"
@@ -246,24 +286,21 @@ for i in "${!FILE_ARRAY[@]}"; do
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
         --max_current "$MAX_CURRENT" \
-        --outfile "$TRAINING_RAW_CSV" \
+        --outfile "$RAW_CSV" \
         $SKIP_RESET
-    log_success "Raw measurement saved: $TRAINING_RAW_CSV"
+    log_success "Raw measurement saved: $RAW_CSV"
 
     # Preprocess
     log_step "Preprocessing measurements"
     python3 "$PREPROCESS_PY" \
-        --input "$TRAINING_RAW_CSV" \
-        --output "$TRAINING_SEGMENTS_CSV" \
+        --input "$RAW_CSV" \
+        --output "$SEGMENTS_CSV_FILE" \
         --event-labels "$EVENT_LABELS_JSON"
-    log_success "Segments saved: $TRAINING_SEGMENTS_CSV"
-
-    # Add to segments array
-    SEGMENTS_CSV_ARRAY+=("$TRAINING_SEGMENTS_CSV")
+    log_success "Segments saved: $SEGMENTS_CSV_FILE"
 
     # Cleanup temporary raw CSV
-    rm -f "$TRAINING_RAW_CSV"
-    log_info "Cleaned up temporary file: $TRAINING_RAW_CSV"
+    rm -f "$RAW_CSV"
+    log_info "Cleaned up temporary file: $RAW_CSV"
 done
 
 # Combine all segments into single CSV
@@ -271,8 +308,8 @@ log_step "Combining segments from ${#FILE_ARRAY[@]} file(s)"
 COMBINED_SEGMENTS_CSV="$REPORT_DIR_FULL/segments.csv"
 
 if [[ ${#SEGMENTS_CSV_ARRAY[@]} -eq 1 ]]; then
-    # Single file: just move it
-    mv "${SEGMENTS_CSV_ARRAY[0]}" "$COMBINED_SEGMENTS_CSV"
+    # Single file: copy it
+    cat "${SEGMENTS_CSV_ARRAY[0]}" > "$COMBINED_SEGMENTS_CSV"
     log_success "Segments saved: $COMBINED_SEGMENTS_CSV"
 else
     # Multiple files: concatenate them
@@ -287,12 +324,16 @@ else
     done
 
     log_success "Combined ${#SEGMENTS_CSV_ARRAY[@]} segment files into: $COMBINED_SEGMENTS_CSV"
-
-    # Cleanup individual segment files
-    for csv in "${SEGMENTS_CSV_ARRAY[@]}"; do
-        rm -f "$csv"
-    done
 fi
+
+# Cleanup individual segment files (only temp files in TEMP_DIR)
+for csv in "${SEGMENTS_CSV_ARRAY[@]}"; do
+    # Only delete if file is in TEMP_DIR
+    if [[ "$csv" == "$TEMP_DIR"* ]]; then
+        rm -f "$csv"
+        log_info "Cleaned up temporary segments file: $csv"
+    fi
+done
 
 NUM_REPEAT=$(extract_define "$DEFINES" "NUM_REPEAT")
 

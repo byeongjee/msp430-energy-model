@@ -164,12 +164,13 @@ endif
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train_and_estimate.sh "$${ARGS[@]}"
 
-analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [DEFINES="..."] [options])
+analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [SEGMENTS_CSV=<pattern>] [DEFINES="..."] [options])
 ifndef FILES
 	$(error Please specify FILES=<pattern> (supports glob patterns: *.c, **/*.c, {a,b,c}.c))
 endif
 	@ARGS=("--files" "$(FILES)"); \
 	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
+	[ -n "$(SEGMENTS_CSV)" ] && ARGS+=("--segments-csv" "$(SEGMENTS_CSV)"); \
 	[ -n "$(VOLTAGE)" ] && ARGS+=("--voltage" "$(VOLTAGE)"); \
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
 	[ -n "$(REPORT_DIR)" ] && ARGS+=("--report-dir" "$(REPORT_DIR)"); \
