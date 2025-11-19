@@ -6,6 +6,19 @@ using LinearAlgebra
 using NonNegLeastSquares
 
 """
+Helper function to normalize pair to unordered form (canonical order).
+Returns pairs in lexicographically sorted order so (A,B) and (B,A) map to same pair.
+"""
+function normalize_pair(key1::ParamKey, key2::ParamKey)::Tuple{ParamKey,ParamKey}
+    # Sort lexicographically to create canonical unordered pair
+    if key1 <= key2
+        return (key1, key2)
+    else
+        return (key2, key1)
+    end
+end
+
+"""
 Generic Mean-based model for instruction pairs.
 Uses simple mean energy per consecutive instruction pair based on specified granularity.
 """
@@ -93,7 +106,7 @@ Supports multiple least-squares algorithms:
 - "least-squares-fnnls": Non-negative LS using Fast NNLS algorithm
 """
 function learn_params_least_squares!(model::MeanPairModel, training_data::TrainingData, inference_algorithm::String)
-    # Collect all unique instruction pairs
+    # Collect all unique instruction pairs (as unordered pairs)
     all_pairs = Set{Tuple{ParamKey,ParamKey}}()
     for program in training_data.programs
         if length(program) < 2
@@ -102,7 +115,9 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
         for i in 1:(length(program)-1)
             key1 = get_instruction_key(program[i], model.granularity)
             key2 = get_instruction_key(program[i+1], model.granularity)
-            push!(all_pairs, (key1, key2))
+            # Normalize to unordered pair
+            unordered_pair = normalize_pair(key1, key2)
+            push!(all_pairs, unordered_pair)
         end
     end
 
@@ -242,7 +257,8 @@ function estimate_energy_sum_pair_means(
     for i in 1:(length(program)-1)
         key1 = get_instruction_key(program[i], model.granularity)
         key2 = get_instruction_key(program[i+1], model.granularity)
-        pair_key = (key1, key2)
+        # Normalize to unordered pair
+        pair_key = normalize_pair(key1, key2)
 
         if haskey(model.params, pair_key)
             total_energy += model.params[pair_key]
