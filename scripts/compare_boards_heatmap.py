@@ -61,6 +61,12 @@ def main():
         default=".2f",
         help="Format string for cell text (default: .2f)",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Optional output file path to save the plot (e.g., heatmap.png)",
+    )
 
     args = parser.parse_args()
 
@@ -183,7 +189,12 @@ def main():
             plt.title("Instruction cost heatmap (raw values)")
 
     plt.tight_layout()
-    plt.show()
+
+    if args.output:
+        plt.savefig(args.output, dpi=300, bbox_inches="tight")
+        print(f"Plot saved to {args.output}")
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
