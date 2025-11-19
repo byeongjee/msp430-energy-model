@@ -45,6 +45,12 @@ def main():
         default=1.0,
         help="Residual standard deviations used to mark outliers (default: 1.0)",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Optional output file path to save the plot (e.g., scatter.png)",
+    )
 
     args = parser.parse_args()
 
@@ -173,7 +179,12 @@ def main():
             )
 
     plt.tight_layout()
-    plt.show()
+
+    if args.output:
+        plt.savefig(args.output, dpi=300, bbox_inches="tight")
+        print(f"Plot saved to {args.output}")
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
