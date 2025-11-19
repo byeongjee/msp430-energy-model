@@ -84,56 +84,83 @@ match_files_by_basename() {
     local csv_input="$2"
     local csv_type="${3:-CSV}"  # Optional: description for error messages (e.g., "training raw CSV")
 
-    # Build pool of CSV files
-    local csv_pool=()
-    if [[ -n "$csv_input" ]]; then
-        # Check if semicolon-separated or glob pattern
-        if [[ "$csv_input" == *";"* ]]; then
-            # Parse semicolon-separated list
-            IFS=';' read -ra csv_pool <<< "$csv_input"
-        else
-            # Expand glob pattern
-            mapfile -t csv_pool < <(expand_file_input "$csv_input")
-        fi
-    fi
-
     # Match each source file to a CSV by basename
     local matched_csvs=()
     local failed_matches=()
 
-    for source_file in "${source_files_ref[@]}"; do
-        local basename=$(basename "$source_file" .c)
-        local matched_csv=""
+    # Check if the pattern contains {filename} placeholder
+    if [[ "$csv_input" == *"{filename}"* ]]; then
+        # Pattern-based matching: substitute {filename} with each source basename
+        for source_file in "${source_files_ref[@]}"; do
+            local basename=$(basename "$source_file" .c)
+            # Substitute {filename} with the actual basename
+            local csv_pattern="${csv_input//\{filename\}/$basename}"
 
-        # Search for matching CSV
-        if [[ ${#csv_pool[@]} -gt 0 ]]; then
-            for csv in "${csv_pool[@]}"; do
-                local csv_basename=$(basename "$csv")
-                if [[ "$csv_basename" == *"$basename"* ]]; then
-                    matched_csv="$csv"
-                    break
+            # Expand the pattern (may contain wildcards)
+            local expanded_files=()
+            shopt -s nullglob
+            expanded_files=($csv_pattern)
+            shopt -u nullglob
+
+            # Check if any files matched
+            if [[ ${#expanded_files[@]} -gt 0 ]]; then
+                # Use the first match if multiple files found
+                matched_csvs+=("${expanded_files[0]}")
+                if [[ ${#expanded_files[@]} -gt 1 ]]; then
+                    echo "[WARNING] Multiple matches for $basename, using: ${expanded_files[0]}" >&2
                 fi
-            done
-        fi
-
-        # Track results
-        if [[ -z "$matched_csv" ]]; then
-            failed_matches+=("$source_file")
-        fi
-        matched_csvs+=("$matched_csv")
-    done
-
-    # Validate: error if any matches failed
-    if [[ ${#failed_matches[@]} -gt 0 ]]; then
-        echo "[ERROR] Failed to match $csv_type files for the following source files:" >&2
-        for file in "${failed_matches[@]}"; do
-            echo "[ERROR]   - $file" >&2
+            else
+                matched_csvs+=("")
+                failed_matches+=("$source_file")
+            fi
         done
-        echo "[ERROR] Pattern provided: $csv_input" >&2
-        exit 1
+    else
+        # Legacy behavior: Build pool of CSV files and match by substring
+        local csv_pool=()
+        if [[ -n "$csv_input" ]]; then
+            # Check if semicolon-separated or glob pattern
+            if [[ "$csv_input" == *";"* ]]; then
+                # Parse semicolon-separated list
+                IFS=';' read -ra csv_pool <<< "$csv_input"
+            else
+                # Expand glob pattern
+                mapfile -t csv_pool < <(expand_file_input "$csv_input")
+            fi
+        fi
+
+        for source_file in "${source_files_ref[@]}"; do
+            local basename=$(basename "$source_file" .c)
+            local matched_csv=""
+
+            # Search for matching CSV
+            if [[ ${#csv_pool[@]} -gt 0 ]]; then
+                for csv in "${csv_pool[@]}"; do
+                    local csv_basename=$(basename "$csv")
+                    if [[ "$csv_basename" == *"$basename"* ]]; then
+                        matched_csv="$csv"
+                        break
+                    fi
+                done
+            fi
+
+            # Track results
+            if [[ -z "$matched_csv" ]]; then
+                failed_matches+=("$source_file")
+            fi
+            matched_csvs+=("$matched_csv")
+        done
     fi
 
-    # Output matched CSVs
+    # Report failed matches as warnings (not errors - files may not have CSVs yet)
+    if [[ ${#failed_matches[@]} -gt 0 ]]; then
+        echo "[WARNING] No matching $csv_type files found for ${#failed_matches[@]} source file(s) (will be measured):" >&2
+        for file in "${failed_matches[@]}"; do
+            local basename=$(basename "$file" .c)
+            echo "[WARNING]   - $basename" >&2
+        done
+    fi
+
+    # Output matched CSVs (empty strings for files without matches)
     printf '%s\n' "${matched_csvs[@]}"
 }
 
