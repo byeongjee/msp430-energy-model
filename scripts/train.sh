@@ -535,20 +535,3 @@ fi
 if [[ $USE_TEMP_PARAMS -eq 0 ]]; then
     echo "  - Parameters: $PARAMS_FILE"
 fi
-
-# Suggest resume command if keeping intermediates
-if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
-    echo ""
-    log_info "To reuse these outputs, run:"
-    echo "  $0 \\"
-    echo "    --train-files \"$TRAIN_FILES\" \\"
-    if [[ $USE_TEMP_TRAINING_RAW -eq 0 ]]; then
-        echo "    --training-raw-csv \"${TRAINING_RAW_CSV_ARRAY[0]}\" \\"
-    fi
-    if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 0 ]]; then
-        echo "    --training-segments-csv \"${TRAINING_SEGMENTS_CSV_ARRAY[0]}\" \\"
-    fi
-    if [[ $USE_TEMP_PARAMS -eq 0 ]]; then
-        echo "    --params \"$PARAMS_FILE\""
-    fi
-fi
