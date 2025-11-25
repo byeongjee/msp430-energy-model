@@ -69,6 +69,10 @@ struct RetHandler <: SingleOperandHandler end
 struct IncHandler <: SingleOperandHandler end
 struct DecHandler <: SingleOperandHandler end
 struct DintHandler <: SingleOperandHandler end
+struct EintHandler <: SingleOperandHandler end
+struct SetcHandler <: SingleOperandHandler end
+struct ClrcHandler <: SingleOperandHandler end
+struct RlcHandler <: SingleOperandHandler end
 struct NopHandler <: SingleOperandHandler end
 struct BrHandler <: SingleOperandHandler end
 struct PushmHandler <: SingleOperandHandler end
@@ -127,6 +131,10 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :inc => IncHandler(),
     :dec => DecHandler(),
     :dint => DintHandler(),
+    :eint => EintHandler(),
+    :setc => SetcHandler(),
+    :clrc => ClrcHandler(),
+    :rlc => RlcHandler(),
     :nop => NopHandler(),
     :br => BrHandler(),
     :pushm => PushmHandler(),
@@ -530,6 +538,53 @@ end
 # DINT - Disable interrupt
 function execute!(state::MachineState, ::DintHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
     state.registers[:SR] = state.registers[:SR] & ~0x0008  # Clear GIE bit (bit 3)
+    return nothing
+end
+
+# EINT - Enable interrupt
+function execute!(state::MachineState, ::EintHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    state.registers[:SR] = state.registers[:SR] | 0x0008  # Set GIE bit (bit 3)
+    return nothing
+end
+
+# SETC - Set carry flag
+function execute!(state::MachineState, ::SetcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    state.registers[:SR] = state.registers[:SR] | 0x0001  # Set C bit (bit 0)
+    return nothing
+end
+
+# CLRC - Clear carry flag
+function execute!(state::MachineState, ::ClrcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    state.registers[:SR] = state.registers[:SR] & ~0x0001  # Clear C bit (bit 0)
+    return nothing
+end
+
+# RLC - Rotate left through carry
+function execute!(state::MachineState, ::RlcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    # RLC is equivalent to ADDC dst, dst (add with carry to itself)
+    # This rotates left and shifts carry into LSB
+    dst_val = get_operand_value(state, ops[1], data_size)
+    carry = (state.registers[:SR] & 0x0001) != 0 ? UInt32(1) : UInt32(0)
+
+    # Shift left and add carry
+    result = (dst_val << 1) | carry
+
+    # Update carry flag with the bit that was shifted out
+    old_msb = if data_size == :byte
+        (dst_val & 0x80) != 0
+    else  # :word
+        (dst_val & 0x8000) != 0
+    end
+
+    if old_msb
+        state.registers[:SR] = state.registers[:SR] | 0x0001  # Set carry
+    else
+        state.registers[:SR] = state.registers[:SR] & ~0x0001  # Clear carry
+    end
+
+    # Update other flags
+    update_flags!(state, result, dst_val, carry, false, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
 
