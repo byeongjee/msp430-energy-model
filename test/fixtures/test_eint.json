@@ -1,11 +1,12 @@
 {
   "test_name": "test_eint",
   "asm_file": "test/fixtures/test_eint.asm",
+  "_comment": "SR manually adjusted from GDB value (0x0000) to correct value (0x0008). GDB simulator does not track GIE (Global Interrupt Enable) bit set by eint instruction.",
   "gdb_result": {
   "registers": {
     "PC": 16746,
     "SP": 11262,
-    "SR": 0,
+    "SR": 8,
     "R3": 0,
     "R4": 0,
     "R5": 0,
