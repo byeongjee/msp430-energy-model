@@ -1,7 +1,6 @@
 #include "setup.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 // --- Hardware & Configuration ---
@@ -68,10 +67,6 @@ unsigned sqrt16(unsigned long n) {
   }
 }
 
-void delay(uint32_t cycles) {
-  while (cycles--)
-    __delay_cycles(1);
-}
 
 // --- Sensor Abstraction (Mock Data) ---
 
@@ -195,7 +190,7 @@ class_t classify(features_t *features, model_t *model) {
 void warmup_sensor() {
   unsigned discarded = 0;
   accelReading sample;
-  printf("Warmup...\n");
+  DEBUG_PRINTF("Warmup...\n");
   while (discarded++ < NUM_WARMUP_SAMPLES) {
     accel_sample(&sample);
   }
@@ -216,10 +211,10 @@ void train(features_t *classModel) {
 
     // Blink LED1 during training
     P1OUT ^= LED1_PIN;
-    delay(SEC_TO_CYCLES / 20);
+    __delay_cycles(SEC_TO_CYCLES / 20);
   }
   P1OUT &= ~LED1_PIN; // LED off
-  printf("Train done. MeanMag: %u StdMag: %u\n", features.meanmag,
+  DEBUG_PRINTF("Train done. MeanMag: %u StdMag: %u\n", features.meanmag,
          features.stddevmag);
 }
 
@@ -230,12 +225,12 @@ void recognize_loop(model_t *model) {
   class_t class;
   unsigned i;
 
-  printf("Starting Recognition Loop...\n");
+  DEBUG_PRINTF("Starting Recognition Loop...\n");
 
   for (i = 0; i < SAMPLES_TO_COLLECT; ++i) {
     // Toggle Mock Scenario halfway through to prove it works
     if (i == SAMPLES_TO_COLLECT / 2) {
-      printf("\n--- SWITCHING MOCK MOVEMENT ---\n");
+      DEBUG_PRINTF("\n--- SWITCHING MOCK MOVEMENT ---\n");
       mock_scenario = !mock_scenario;
     }
 
@@ -256,10 +251,10 @@ void recognize_loop(model_t *model) {
     }
 
     // Brief delay so we can see the LEDs toggle
-    delay(SEC_TO_CYCLES / 10);
+    __delay_cycles(SEC_TO_CYCLES / 10);
   }
 
-  printf("\nStats: Stationary: %u | Moving: %u | Total: %u\n",
+  DEBUG_PRINTF("\nStats: Stationary: %u | Moving: %u | Total: %u\n",
          stats.stationaryCount, stats.movingCount, stats.totalCount);
 }
 
@@ -278,30 +273,30 @@ int main() {
 
   __enable_interrupt();
 
-  printf("\n\n--- Activity Recognition Demo ---\n");
+  DEBUG_PRINTF("\n\n--- Activity Recognition Demo ---\n");
 
   // 1. Train "Stationary"
   // We set mock_scenario to 0 (Stationary)
-  printf("\n[Mode] Training Stationary Class...\n");
+  DEBUG_PRINTF("\n[Mode] Training Stationary Class...\n");
   mock_scenario = 0;
   train(global_model.stationary);
-  delay(SEC_TO_CYCLES);
+  __delay_cycles(SEC_TO_CYCLES);
 
   // 2. Train "Moving"
   // We set mock_scenario to 1 (Moving)
-  printf("\n[Mode] Training Moving Class...\n");
+  DEBUG_PRINTF("\n[Mode] Training Moving Class...\n");
   mock_scenario = 1;
   train(global_model.moving);
-  delay(SEC_TO_CYCLES);
+  __delay_cycles(SEC_TO_CYCLES);
 
   // 3. Recognize
   // We reset mock to 0, but recognize_loop will flip it halfway
-  printf("\n[Mode] Recognition...\n");
+  DEBUG_PRINTF("\n[Mode] Recognition...\n");
   mock_scenario = 0;
 
   while (1) {
     recognize_loop(&global_model);
-    delay(SEC_TO_CYCLES);
+    __delay_cycles(SEC_TO_CYCLES);
   }
 
   return 0;

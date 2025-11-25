@@ -1,7 +1,6 @@
 #include "setup.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #define NUM_BUCKETS 256 // must be a power of 2
@@ -25,10 +24,6 @@ typedef uint16_t index_t; // bucket index
 // Storage for the filter (Zero initialized by startup code or explicit loop)
 static fingerprint_t filter[NUM_BUCKETS];
 
-void delay_cycles(uint32_t c) {
-  while (c--)
-    __delay_cycles(1);
-}
 
 // --- Core Cuckoo Logic ---
 
@@ -112,7 +107,7 @@ static bool insert(fingerprint_t *filter, value_t key) {
   } while (fp_victim != 0 && relocation_count < MAX_RELOCATIONS);
 
   if (fp_victim != 0) {
-    printf("FAILED: Max relocations (%u) reached. Dropped FP: %04x\n",
+    DEBUG_PRINTF("FAILED: Max relocations (%u) reached. Dropped FP: %04x\n",
            MAX_RELOCATIONS, fp_victim);
     return false;
   }
@@ -136,21 +131,21 @@ static bool lookup(fingerprint_t *filter, value_t key) {
 // --- Visualization ---
 
 void print_filter(fingerprint_t *f) {
-  printf("\n--- Filter State (Partial View) ---\n");
+  DEBUG_PRINTF("\n--- Filter State (Partial View) ---\n");
   int occupied = 0;
   // Only printing first 64 buckets to save UART time, or all if you prefer
   for (int i = 0; i < NUM_BUCKETS; i++) {
     if (f[i] != 0) {
       occupied++;
       if (i < 32) { // Just print first 32 non-empty slots to keep log clean
-        printf("[%03u]: %04x  ", i, f[i]);
+        DEBUG_PRINTF("[%03u]: %04x  ", i, f[i]);
         if (occupied % 4 == 0)
-          printf("\r\n");
+          DEBUG_PRINTF("\r\n");
       }
     }
   }
-  printf("\nTotal Occupied: %u / %u\n", occupied, NUM_BUCKETS);
-  printf("--------------------\n");
+  DEBUG_PRINTF("\nTotal Occupied: %u / %u\n", occupied, NUM_BUCKETS);
+  DEBUG_PRINTF("--------------------\n");
 }
 
 // --- Main ---
@@ -164,15 +159,15 @@ int main() {
   for (int i = 0; i < NUM_BUCKETS; i++)
     filter[i] = 0;
 
-  printf("\n\n=== Cuckoo Filter Demo (Updated) ===\n");
-  printf("Buckets: %u, Relocation Limit: %u\n", NUM_BUCKETS, MAX_RELOCATIONS);
-  printf("Attempting to insert %u keys...\n", NUM_KEYS);
+  DEBUG_PRINTF("\n\n=== Cuckoo Filter Demo (Updated) ===\n");
+  DEBUG_PRINTF("Buckets: %u, Relocation Limit: %u\n", NUM_BUCKETS, MAX_RELOCATIONS);
+  DEBUG_PRINTF("Attempting to insert %u keys...\n", NUM_KEYS);
 
   value_t key = INIT_KEY;
   unsigned inserts = 0;
 
   // 1. Insertion Phase
-  printf("\n[Phase 1] Inserting...\n");
+  DEBUG_PRINTF("\n[Phase 1] Inserting...\n");
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool success = insert(filter, key);
@@ -182,14 +177,14 @@ int main() {
 
     // Blink Red LED on success
     P1OUT ^= LED1_PIN;
-    delay_cycles(5000);
+    __delay_cycles(5000);
   }
 
   print_filter(filter);
-  printf("Insert Success Rate: %u / %u\n", inserts, NUM_KEYS);
+  DEBUG_PRINTF("Insert Success Rate: %u / %u\n", inserts, NUM_KEYS);
 
   // 2. Verification Phase
-  printf("\n[Phase 2] Verifying...\n");
+  DEBUG_PRINTF("\n[Phase 2] Verifying...\n");
   key = INIT_KEY; // Reset key generator
   unsigned found = 0;
 
@@ -206,11 +201,11 @@ int main() {
 
     // Blink Green LED on check
     P1OUT ^= LED2_PIN;
-    delay_cycles(5000);
+    __delay_cycles(5000);
   }
 
-  printf("Lookup Success Rate: %u / %u\n", found, NUM_KEYS);
-  printf("Demo Complete.\n");
+  DEBUG_PRINTF("Lookup Success Rate: %u / %u\n", found, NUM_KEYS);
+  DEBUG_PRINTF("Demo Complete.\n");
 
   while (1)
     ;

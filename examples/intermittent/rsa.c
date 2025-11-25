@@ -1,7 +1,6 @@
 #include "setup.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 
 // --- Configuration & Constants ---
 
@@ -60,27 +59,22 @@ unsigned g_cyphertext_len = 0;
 
 // --- Helper Functions ---
 
-void delay(uint32_t cycles) {
-  unsigned i;
-  for (i = 0; i < cycles / (1U << 15); ++i)
-    __delay_cycles(1U << 15);
-}
 
 void print_hex_ascii(const uint8_t *m, unsigned len) {
   int i, j;
   for (i = 0; i < len; i += PRINT_HEX_ASCII_COLS) {
     for (j = 0; j < PRINT_HEX_ASCII_COLS && i + j < len; ++j)
-      printf("%02x ", m[i + j]);
+      DEBUG_PRINTF("%02x ", m[i + j]);
     for (; j < PRINT_HEX_ASCII_COLS; ++j)
-      printf("   ");
-    printf(" ");
+      DEBUG_PRINTF("   ");
+    DEBUG_PRINTF(" ");
     for (j = 0; j < PRINT_HEX_ASCII_COLS && i + j < len; ++j) {
       char c = m[i + j];
       if (!(32 <= c && c <= 127))
         c = '.';
-      printf("%c", c);
+      DEBUG_PRINTF("%c", c);
     }
-    printf("\r\n");
+    DEBUG_PRINTF("\r\n");
   }
 }
 
@@ -325,14 +319,14 @@ int main(void) {
 
   __enable_interrupt();
 
-  printf(".Init.\r\n");
+  DEBUG_PRINTF(".Init.\r\n");
 
   // --- Original Task: task_init (Logic) ---
   unsigned message_length = sizeof(PLAINTEXT) - 1;
 
-  printf("Message:\r\n");
+  DEBUG_PRINTF("Message:\r\n");
   print_hex_ascii(PLAINTEXT, message_length);
-  printf("Public key: exp = 0x%x  N = \r\n", pubkey.e);
+  DEBUG_PRINTF("Public key: exp = 0x%x  N = \r\n", pubkey.e);
   print_hex_ascii(pubkey.n, NUM_DIGITS);
 
   unsigned block_offset = 0;
@@ -341,7 +335,7 @@ int main(void) {
   while (block_offset < message_length) {
 
     // --- Original Task: task_pad ---
-    printf("pad: len=%u offset=%u\r\n", message_length, block_offset);
+    DEBUG_PRINTF("pad: len=%u offset=%u\r\n", message_length, block_offset);
 
     // Construct the base for this block
     int i;
@@ -364,7 +358,7 @@ int main(void) {
 
     // --- Original Task: task_exp (Modular Exponentiation) ---
     // Loops through bits of exponent
-    printf("exp: e=%x\r\n", e);
+    DEBUG_PRINTF("exp: e=%x\r\n", e);
 
     while (e > 0) {
       bool multiply = e & 0x1;
@@ -405,34 +399,34 @@ int main(void) {
         g_cyphertext[g_cyphertext_len++] = g_block[i];
       }
     } else {
-      printf("WARN: block dropped: cyphertext overflow\r\n");
+      DEBUG_PRINTF("WARN: block dropped: cyphertext overflow\r\n");
     }
 
     PORT_LED_1 ^= (1 << PIN_LED_1); // Toggle LED to show progress
   }
 
   // --- Original Task: task_print_cyphertext ---
-  printf("Cyphertext:\r\n");
+  DEBUG_PRINTF("Cyphertext:\r\n");
   char line[PRINT_HEX_ASCII_COLS];
   int j = 0;
 
   for (int i = 0; i < g_cyphertext_len; ++i) {
     digit_t c = g_cyphertext[i];
-    printf("%02x ", c);
+    DEBUG_PRINTF("%02x ", c);
     line[j++] = c;
     if ((i + 1) % PRINT_HEX_ASCII_COLS == 0) {
-      printf(" ");
+      DEBUG_PRINTF(" ");
       for (int k = 0; k < PRINT_HEX_ASCII_COLS; ++k) {
         char ch = line[k];
         if (!(32 <= ch && ch <= 127))
           ch = '.';
-        printf("%c", ch);
+        DEBUG_PRINTF("%c", ch);
       }
       j = 0;
-      printf("\r\n");
+      DEBUG_PRINTF("\r\n");
     }
   }
-  printf("\r\n");
+  DEBUG_PRINTF("\r\n");
 
   // End of program
   while (1)

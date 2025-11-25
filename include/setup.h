@@ -125,6 +125,12 @@ int putchar(int c) {
 }
 #endif // DEBUG
 
+#ifdef DEBUG
+#define DEBUG_PRINTF(...) printf(__VA_ARGS__)
+#else
+#define DEBUG_PRINTF(...) ((void)0)
+#endif
+
 void initialize(void) {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
   PM5CTL0 &= ~LOCKLPM5;     // Unlock I/O (FRAM parts)
