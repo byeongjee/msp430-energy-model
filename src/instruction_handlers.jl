@@ -624,29 +624,53 @@ end
 
 # RLC - Rotate left through carry
 function execute!(state::MachineState, ::RlcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
-    # RLC is equivalent to ADDC dst, dst (add with carry to itself)
-    # This rotates left and shifts carry into LSB
+    # RLC rotates left through carry: shifts left and inserts carry into LSB
     dst_val = get_operand_value(state, ops[1], data_size)
     carry = (state.registers[:SR] & 0x0001) != 0 ? UInt32(1) : UInt32(0)
 
     # Shift left and add carry
     result = (dst_val << 1) | carry
 
-    # Update carry flag with the bit that was shifted out
+    # Mask to data size
+    if data_size == :byte
+        result = result & 0xFF
+    elseif data_size == :word
+        result = result & 0xFFFF
+    else  # :address
+        result = result & 0xFFFFF
+    end
+
+    # Update C flag with the bit that was shifted out
     old_msb = if data_size == :byte
         (dst_val & 0x80) != 0
-    else  # :word
+    elseif data_size == :word
         (dst_val & 0x8000) != 0
+    else  # :address
+        (dst_val & 0x80000) != 0
     end
 
-    if old_msb
-        state.registers[:SR] = state.registers[:SR] | 0x0001  # Set carry
-    else
-        state.registers[:SR] = state.registers[:SR] & ~0x0001  # Clear carry
+    state.flags[:C] = old_msb
+
+    # Update Z and N flags based on result
+    # V flag is NOT affected by RLC per MSP430 spec
+    msb_bit = if data_size == :byte
+        UInt32(0x80)
+    elseif data_size == :word
+        UInt32(0x8000)
+    else  # :address
+        UInt32(0x80000)
     end
 
-    # Update other flags
-    update_flags!(state, result, dst_val, carry, false, data_size)
+    state.flags[:Z] = (result == 0)
+    state.flags[:N] = (result & msb_bit) != 0
+
+    # Update SR with flags (preserve V flag, update C/Z/N)
+    state.registers[:SR] =
+        (state.registers[:SR] & 0x0108) |  # Preserve V (bit 8) and GIE (bit 3)
+        (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
+
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
