@@ -110,7 +110,6 @@ endif
 	@ARGS=("--train-files" "$(FILES)"); \
 	[ -n "$(PARAMS)" ] && ARGS+=("--params" "$(PARAMS)"); \
 	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
-	[ -n "$(TRAINING_RAW_CSV)" ] && ARGS+=("--training-raw-csv" "$(TRAINING_RAW_CSV)"); \
 	[ -n "$(TRAINING_SEGMENTS_CSV)" ] && ARGS+=("--training-segments-csv" "$(TRAINING_SEGMENTS_CSV)"); \
 	[ -n "$(VOLTAGE)" ] && ARGS+=("--voltage" "$(VOLTAGE)"); \
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
@@ -147,8 +146,6 @@ ifndef ESTIMATE_FILE
 endif
 	@ARGS=("--train-files" "$(TRAIN_FILES)" "--estimate-file" "$(ESTIMATE_FILE)"); \
 	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
-	[ -n "$(TRAINING_RAW_CSV)" ] && ARGS+=("--training-raw-csv" "$(TRAINING_RAW_CSV)"); \
-	[ -n "$(TEST_RAW_CSV)" ] && ARGS+=("--test-raw-csv" "$(TEST_RAW_CSV)"); \
 	[ -n "$(TRAINING_SEGMENTS_CSV)" ] && ARGS+=("--training-segments-csv" "$(TRAINING_SEGMENTS_CSV)"); \
 	[ -n "$(TEST_SEGMENTS_CSV)" ] && ARGS+=("--test-segments-csv" "$(TEST_SEGMENTS_CSV)"); \
 	[ -n "$(PARAMS)" ] && ARGS+=("--params" "$(PARAMS)"); \
