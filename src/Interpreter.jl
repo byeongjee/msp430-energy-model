@@ -105,10 +105,27 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
             end
 
             # Parse the instruction string with current address for relative jump resolution
-            parsed_instr = Parser.parse_line(String(instr_str), addr)
-            if !isnothing(parsed_instr)
-                push!(instructions, parsed_instr)
-                push!(addresses, addr)
+            # Special case: RPT instruction contains two instructions on one line
+            if contains(instr_str, "{")
+                # Parse RPT: "rpt #N { instruction"
+                rpt_instr = Parser.parse_rpt_instruction(String(instr_str), addr)
+                if !isnothing(rpt_instr)
+                    push!(instructions, rpt_instr)
+                    push!(addresses, addr)
+                end
+
+                # Parse the nested instruction at addr+2
+                nested_instr = Parser.parse_rpt_nested_instruction(String(instr_str), UInt32(addr + 2))
+                if !isnothing(nested_instr)
+                    push!(instructions, nested_instr)
+                    push!(addresses, addr + 2)
+                end
+            else
+                parsed_instr = Parser.parse_line(String(instr_str), addr)
+                if !isnothing(parsed_instr)
+                    push!(instructions, parsed_instr)
+                    push!(addresses, addr)
+                end
             end
         end
     end
