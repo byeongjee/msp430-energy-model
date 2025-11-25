@@ -60,6 +60,8 @@ struct RrcHandler <: SingleOperandHandler end
 struct RrcmHandler <: SingleOperandHandler end
 struct SwpbHandler <: SingleOperandHandler end
 struct RraHandler <: SingleOperandHandler end
+struct RraxHandler <: SingleOperandHandler end
+struct RruxHandler <: SingleOperandHandler end
 struct SxtHandler <: SingleOperandHandler end
 struct PushHandler <: SingleOperandHandler end
 struct CallHandler <: SingleOperandHandler end
@@ -83,6 +85,7 @@ struct SbcHandler <: SingleOperandHandler end
 struct AdcHandler <: SingleOperandHandler end
 struct DecdHandler <: SingleOperandHandler end
 struct IncdHandler <: SingleOperandHandler end
+struct RptHandler <: SingleOperandHandler end
 
 # Jump handlers
 struct JnzHandler <: JumpHandler end
@@ -122,6 +125,8 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :rrcm => RrcmHandler(),
     :swpb => SwpbHandler(),
     :rra => RraHandler(),
+    :rrax => RraxHandler(),
+    :rrux => RruxHandler(),
     :sxt => SxtHandler(),
     :push => PushHandler(),
     :call => CallHandler(),
@@ -145,6 +150,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :adc => AdcHandler(),
     :decd => DecdHandler(),
     :incd => IncdHandler(),
+    :rpt => RptHandler(),
     # Jump instructions
     :jnz => JnzHandler(),
     :jz => JzHandler(),
@@ -438,6 +444,63 @@ function execute!(state::MachineState, ::RraHandler, ops::Vector{Operand}, data_
     return nothing
 end
 
+# RRAX - Arithmetic right shift extended (MSP430X, supports 20-bit addressing)
+function execute!(state::MachineState, ::RraxHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    if length(ops) < 1
+        return nothing
+    end
+    operand_val = get_operand_value(state, ops[1], data_size)
+
+    # Arithmetic right shift (sign-extended)
+    # We need to handle sign extension carefully to avoid overflow
+    if data_size == :byte
+        # Sign extend from bit 7
+        is_negative = (operand_val & 0x80) != 0
+        result = operand_val >> 1
+        if is_negative
+            result = result | 0x80  # Set MSB (bit 7)
+        end
+        result = result & 0xFF
+    elseif data_size == :address
+        # 20-bit: sign extend from bit 19
+        is_negative = (operand_val & 0x80000) != 0
+        result = operand_val >> 1
+        if is_negative
+            result = result | 0x80000  # Set MSB (bit 19)
+        end
+        result = result & 0xFFFFF
+    else  # :word
+        # Sign extend from bit 15
+        is_negative = (operand_val & 0x8000) != 0
+        result = operand_val >> 1
+        if is_negative
+            result = result | 0x8000  # Set MSB (bit 15)
+        end
+        result = result & 0xFFFF
+    end
+
+    state.flags[:C] = (operand_val & 0x0001) != 0
+    update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
+# RRUX - Logical right shift extended (MSP430X, no sign extension)
+function execute!(state::MachineState, ::RruxHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    if length(ops) < 1
+        return nothing
+    end
+    operand_val = get_operand_value(state, ops[1], data_size)
+
+    # Logical right shift (zero fill)
+    result = operand_val >> 1
+
+    state.flags[:C] = (operand_val & 0x0001) != 0
+    update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
 # SXT - Sign extend byte to word
 function execute!(state::MachineState, ::SxtHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
     if length(ops) < 1
@@ -624,6 +687,16 @@ function execute!(state::MachineState, ::IncdHandler, ops::Vector{Operand}, data
     result = UInt32(operand_val + 2)
     update_flags!(state, result, operand_val, UInt32(2), true, data_size)
     set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
+# RPT - Repeat next instruction N times
+function execute!(state::MachineState, ::RptHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+    # Get repeat count from immediate operand
+    count = get_operand_value(state, ops[1], data_size)
+    # Set repeat counter to N-1 because the instruction executes once normally,
+    # then repeats (N-1) more times
+    state.repeat_counter = Int(count) - 1
     return nothing
 end
 

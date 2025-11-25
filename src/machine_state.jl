@@ -30,6 +30,7 @@ function MachineState()::MachineState
         registers,
         Dict{UInt32,UInt16}(),  # Empty memory. Each cell is 16 bits.
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
+        0  # repeat_counter initialized to 0
     )
 end
 
@@ -49,6 +50,14 @@ function execute_instruction!(
 
     # Execute instruction using multiple dispatch
     execute!(state, handler, inst.operands, inst.data_size, addresses, current_idx)
+
+    # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
+    # unless it's the RPT instruction itself (which sets the counter)
+    if state.repeat_counter > 0 && inst.opcode != :rpt
+        state.repeat_counter -= 1
+        # Don't advance PC - re-execute same instruction
+        return nothing
+    end
 
     # Centralized PC update logic
     if should_advance_pc(handler, state, inst.operands) && current_idx < length(addresses)

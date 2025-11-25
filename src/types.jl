@@ -43,6 +43,7 @@ mutable struct MachineState
     registers::Dict{Symbol,UInt32}  # All stored as UInt32, masked per register capabilities
     memory::Dict{UInt32,UInt16}     # 20-bit address space, 16-bit words
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
+    repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
 end
 
 """
