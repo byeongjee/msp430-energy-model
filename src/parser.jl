@@ -39,6 +39,12 @@ function parse_line(line::String, current_addr::UInt32)::Union{Instruction,Nothi
         return nothing
     end
 
+    # Skip RPT instructions (contains curly brace) - temporary workaround
+    # TODO: properly implement RPT instruction support
+    if contains(line, "{")
+        return nothing
+    end
+
     parts = split(line)
 
     # Parse opcode and data size suffix
