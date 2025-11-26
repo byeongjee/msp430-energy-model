@@ -41,7 +41,7 @@ GDB_OUTPUT=$("$GDB" "$ELF_FILE" -batch \
     -ex 'printf "REGISTERS_START\n"' \
     -ex 'printf "PC:0x%04x\n", $pc' \
     -ex 'printf "SP:0x%04x\n", $sp' \
-    -ex 'printf "SR:0x%04x\n", $r2' \
+    -ex 'printf "SR:0x%04x\n", $sr' \
     -ex 'printf "R3:0x%04x\n", $r3' \
     -ex 'printf "R4:0x%04x\n", $r4' \
     -ex 'printf "R5:0x%04x\n", $r5' \
