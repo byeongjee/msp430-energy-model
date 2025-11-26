@@ -30,7 +30,7 @@ function MachineState()::MachineState
         registers,
         Dict{UInt32,UInt16}(),  # Empty memory. Each cell is 16 bits.
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
-        0  # repeat_counter initialized to 0
+        0,  # repeat_counter initialized to 0
     )
 end
 
@@ -141,9 +141,78 @@ function get_memory_value(state::MachineState, addr::UInt32, data_size::Symbol):
     end
 end
 
+"""
+Debug output memory-mapped addresses for interpreter visibility.
+Programs can write to these addresses to output debug information.
+Using 0x1BF0 region: reserved space between peripherals and RAM on MSP430FR5994.
+"""
+const DEBUG_OUT_U16 = UInt32(0x1BF0)  # Write 16-bit unsigned value
+const DEBUG_OUT_I16 = UInt32(0x1BF2)  # Write 16-bit signed value
+const DEBUG_OUT_HEX = UInt32(0x1BF4)  # Write 16-bit hex value
+const DEBUG_OUT_CHAR = UInt32(0x1BF6) # Write single character
+const DEBUG_OUT_U32 = UInt32(0x1BF8)  # Write 32-bit unsigned (write LSW then MSW)
+
+# Global state to track partial 32-bit writes
+mutable struct DebugState
+    u32_lsw::Union{Nothing,UInt16}
+    u32_write_count::Int
+end
+const DEBUG_STATE = DebugState(nothing, 0)
+
+function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
+    # Check for debug output addresses
+    if addr == DEBUG_OUT_U16
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(stderr, "u16: $(value & 0xFFFF)")
+        return nothing
+    elseif addr == DEBUG_OUT_I16
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        # Convert to signed 16-bit (handle two's complement)
+        unsigned_val = UInt16(value & 0xFFFF)
+        signed_val = reinterpret(Int16, unsigned_val)
+        println(stderr, "i16: $signed_val")
+        return nothing
+    elseif addr == DEBUG_OUT_HEX
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(stderr, "hex: 0x$(string(value & 0xFFFF, base=16, pad=4))")
+        return nothing
+    elseif addr == DEBUG_OUT_CHAR
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        char_val = Char(value & 0xFF)
+        if char_val == '\n'
+            println(stderr)
+        else
+            print(stderr, "char: '$char_val'\n")
+        end
+        return nothing
+    elseif addr == DEBUG_OUT_U32
+        # 32-bit writes require two 16-bit operations: LSW then MSW
+        if DEBUG_STATE.u32_write_count == 0
+            # First write: store LSW
+            DEBUG_STATE.u32_lsw = UInt16(value & 0xFFFF)
+            DEBUG_STATE.u32_write_count = 1
+        else
+            # Second write: combine MSW with stored LSW
+            lsw = DEBUG_STATE.u32_lsw
+            msw = UInt16(value & 0xFFFF)
+            full_value = UInt32(lsw) | (UInt32(msw) << 16)
+            printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+            println(stderr, "u32: $full_value")
+            # Reset for next 32-bit write
+            DEBUG_STATE.u32_lsw = nothing
+            DEBUG_STATE.u32_write_count = 0
+        end
+        return nothing
+    end
+    return nothing
+end
+
 function set_memory_value!(
     state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
 )::Nothing
+    handle_debug_memory_write!(addr, value)
+
+    # Normal memory write
     if data_size == :word
         # Write 16-bit word to memory
         state.memory[addr] = UInt16(value & 0xFFFF)
