@@ -2,27 +2,56 @@
 """
 Generate C benchmark files from a filtered pairs JSON list.
 
-Takes a JSON file containing pair specifications (from list_all_pairs.py)
+Takes a JSON file containing pair specifications (from gen_pairs_for_benchmarks.py)
 and generates the corresponding C benchmark files.
 
+OVERVIEW:
+    Generates C microbenchmarks that isolate consecutive instruction pairs.
+    Each benchmark repeats the pattern: keyA ; keyB ; keyA ; keyB ; ...
+
+WHY PAIRS:
+    For N instruction keys, generates N choose 2 unordered pairs.
+    The pattern A;B;A;B;... contains the same A→B and B→A transitions as B;A;B;A;...,
+    so one microbenchmark effectively measures both (A,B) and (B,A) pairs.
+
 USAGE:
-    # Generate from filtered pairs list
-    python generate_from_pairs_list.py \\
-        --input jl_pairs.json \\
-        --output-dir training_data/pairs \\
-        --batch 10 \\
+    # Generate from filtered pairs list (batched)
+    python populate_pairs_benchmarks.py \
+        --input jl_pairs.json \
+        --output-dir training_data/pairs \
+        --batch 10 \
         --start-batch 447
 
     # Generate single file
-    python generate_from_pairs_list.py \\
-        --input jl_pairs.json \\
+    python populate_pairs_benchmarks.py \
+        --input jl_pairs.json \
         --output jl_benchmarks.c
+
+WORKFLOW:
+    1. gen_pairs_for_benchmarks.py generates JSON list of all pairs
+    2. Use jq to filter pairs (e.g., only pairs with specific opcode)
+    3. This script takes filtered JSON and generates C benchmark files
+
+INSTRUCTION KEYS:
+    - add/mov/cmp: 28 variants each (7 src modes × 4 dst modes)
+    - inc: 4 variants (reg, idx, sym, abs)
+    - rlam: 4 variants (constants 1, 2, 3, 4)
+    - jmp/jge/jl/jnz/jz/jnc/jc/jn: 1 variant each (symbolic)
+
+ADDING INSTRUCTIONS:
+    1. Update benchmark_common.py to add new instruction specs
+    2. Update get_all_instruction_specs() to include new specs
+    3. Run tests: make test
+
+TESTS:
+    See test_generate_pair_benchmarks.py for snapshot tests showing expected C output.
 """
 
 import argparse
 import json
 from pathlib import Path
 from typing import List, Dict, Any
+from jinja2 import Template
 
 from benchmark_common import (
     InstructionSpec,
@@ -41,9 +70,102 @@ from benchmark_common import (
     generate_batched_files,
 )
 
-from generate_pair_benchmarks import (
-    generate_pair_benchmark,
+
+# ============================================================================
+# Jinja2 Templates
+# ============================================================================
+
+BENCHMARK_FUNCTION_TEMPLATE = Template(
+    """
+INLINE void bench_{{ name }}(void) {
+{%- for var in variables %}
+  {{ var.type }} {{ var.name }} = {{ var.value }};
+{%- endfor %}
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\\n"
+{%- for inst in instructions %}
+      "  {{ inst }}\\n"
+{%- endfor %}
+      ".endr\\n"
+      : {{ constraints.outputs }}
+      : {{ constraints.inputs }}
+      : {{ constraints.clobbers }}));
+}
+"""
 )
+
+
+# ============================================================================
+# Pair Generation
+# ============================================================================
+
+
+def merge_variables(vars1: List[Dict], vars2: List[Dict]) -> List[Dict]:
+    """Merge variable lists, avoiding duplicates"""
+    merged = {}
+    for var in vars1 + vars2:
+        name = var["name"]
+        if name not in merged:
+            merged[name] = var
+    return list(merged.values())
+
+
+def merge_constraints(c1: Dict[str, str], c2: Dict[str, str]) -> Dict[str, str]:
+    """Merge constraints from two instructions"""
+    # For outputs, combine but avoid duplicates
+    outputs_set = set()
+    for c in [c1["outputs"], c2["outputs"]]:
+        if c:
+            for item in c.split(","):
+                outputs_set.add(item.strip())
+
+    # For inputs, combine but avoid duplicates
+    inputs_set = set()
+    for c in [c1["inputs"], c2["inputs"]]:
+        if c:
+            for item in c.split(","):
+                inputs_set.add(item.strip())
+
+    # For clobbers, union
+    clobbers_set = set()
+    for c in [c1["clobbers"], c2["clobbers"]]:
+        for item in c.split(","):
+            clobbers_set.add(item.strip())
+
+    return {
+        "outputs": ", ".join(sorted(outputs_set)) if outputs_set else "",
+        "inputs": ", ".join(sorted(inputs_set)) if inputs_set else "",
+        "clobbers": ", ".join(sorted(clobbers_set)),
+    }
+
+
+def generate_pair_benchmark(
+    spec1: InstructionSpec, spec2: InstructionSpec
+) -> Dict[str, Any]:
+    """Generate a benchmark for a pair of instructions"""
+    name = f"{spec1.get_key_str()}__{spec2.get_key_str()}"
+
+    # Merge variables and constraints
+    variables = merge_variables(spec1.variables, spec2.variables)
+    constraints = merge_constraints(spec1.constraints, spec2.constraints)
+
+    # Create instruction list (alternating pattern)
+    instructions = [spec1.asm_template, spec2.asm_template]
+
+    # Generate function code
+    code = BENCHMARK_FUNCTION_TEMPLATE.render(
+        name=name,
+        variables=variables,
+        instructions=instructions,
+        constraints=constraints,
+    )
+
+    return {
+        "name": name,
+        "code": code,
+        "key1": spec1.get_key(),
+        "key2": spec2.get_key(),
+    }
 
 
 def get_all_instruction_specs() -> List[InstructionSpec]:
