@@ -115,7 +115,9 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
                 end
 
                 # Parse the nested instruction at addr+2
-                nested_instr = Parser.parse_rpt_nested_instruction(String(instr_str), UInt32(addr + 2))
+                nested_instr = Parser.parse_rpt_nested_instruction(
+                    String(instr_str), UInt32(addr + 2)
+                )
                 if !isnothing(nested_instr)
                     push!(instructions, nested_instr)
                     push!(addresses, addr + 2)
