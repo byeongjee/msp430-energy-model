@@ -271,8 +271,28 @@ function get_operand_value(
         addr = get_register_value(state, reg_name)
         val = get_memory_value(state, addr, data_size)
         # Increment register after reading (by 2 for word, 1 for byte)
-        increment = data_size == :byte ? UInt32(1) : UInt32(2)
-        state.registers[reg_name] = UInt32((addr + increment) & get_register_mask(reg_name))
+        increment = if data_size == :byte
+            UInt32(1)
+        elseif data_size == :address
+            UInt32(4)  # 20-bit values span two words
+        else
+            UInt32(2)
+        end
+
+        # For byte/word operations, MSP430 updates only the lower 16 bits and
+        # does not carry into the upper extension bits. Keep full width for
+        # PC/SP and address-sized operations.
+        mask = if data_size == :address || reg_name in (:PC, :SP)
+            get_register_mask(reg_name)
+        else
+            UInt32(0xFFFF)
+        end
+        new_val = UInt32((addr + increment) & mask)
+        @debug "Autoincrement" reg = reg_name addr = string(addr; base=16, pad=4) increment mask =
+            string(mask; base=16, pad=5) data_size = data_size new_val = string(
+                new_val; base=16, pad=4
+            )
+        state.registers[reg_name] = new_val
         val
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand

@@ -34,6 +34,37 @@ end
 function _memory_op_debug_msg(
     state::MachineState, inst::Instruction, old_regs::Dict{Symbol,UInt32}
 )::Union{String,Nothing}
+    # Use a side-effect-free read of operand values using the pre-execution register snapshot
+    function _peek_operand_value(operand::Operand, data_size::Symbol)::UInt32
+        if operand.mode == :immediate
+            return apply_data_size_mask(UInt32(operand.value), data_size)
+        elseif operand.mode == :register
+            return apply_data_size_mask(get(old_regs, operand.value, UInt32(0)), data_size)
+        elseif operand.mode == :indirect
+            operand_str = string(operand.value)
+            reg_name = Symbol(operand_str[2:end])
+            addr = get(old_regs, reg_name, UInt32(0))
+            return get_memory_value(state, addr, data_size)
+        elseif operand.mode == :autoincrement
+            operand_str = string(operand.value)
+            reg_name = Symbol(operand_str[2:end])
+            addr = get(old_regs, reg_name, UInt32(0))
+            return get_memory_value(state, addr, data_size)
+        elseif operand.mode == :indexed || operand.mode == :symbolic
+            offset, reg = operand.value
+            base_addr = get(old_regs, reg, UInt32(0))
+            if operand.mode == :symbolic
+                base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
+            end
+            addr = UInt32((base_addr + offset) & get_register_mask(reg))
+            return get_memory_value(state, addr, data_size)
+        elseif operand.mode == :absolute
+            return get_memory_value(state, UInt32(operand.value), data_size)
+        else
+            return UInt32(0)
+        end
+    end
+
     # Only create a message if we can recognize a memory read/write
     if length(inst.operands) >= 2
         # Case 1: memory writes — indexed addressing on the destination
@@ -43,7 +74,7 @@ function _memory_op_debug_msg(
             base_addr = get(old_regs, reg, UInt32(0))
             addr = UInt32((base_addr + offset) & 0xFFFFF)
             if inst.opcode == :mov
-                src_val = get_operand_value(state, inst.operands[1])
+                src_val = _peek_operand_value(inst.operands[1], inst.data_size)
                 return "    Memory[0x$(string(addr, base=16, pad=5))] = $src_val"
             end
         end
@@ -332,6 +363,10 @@ function interpret_program(
 
         try
             old_pc = state.registers[:PC]
+            debug_enabled = Logging.shouldlog(
+                current_logger(), Logging.Debug, @__MODULE__, "", nothing
+            )
+            old_regs = debug_enabled ? copy(state.registers) : nothing
 
             # Pre-check if this is a call instruction to avoid multiple function checks
             is_call = inst.opcode == :call
@@ -377,7 +412,7 @@ function interpret_program(
                 end
             end
 
-            # Try fast-path optimization for common library functions
+            # Try fast-path optimization for common library functions 
             if is_call && try_fast_path_call!(
                 state, call_target, func_addrs, addresses, current_addr_idx
             )
@@ -395,9 +430,7 @@ function interpret_program(
             end
 
             # Debug logging only when needed
-            if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
-                # Only copy registers when debug logging is active
-                old_regs = copy(state.registers)
+            if debug_enabled && old_regs !== nothing
                 if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
                     @debug msg
                 end
