@@ -24,6 +24,22 @@ typedef uint16_t index_t; // bucket index
 // Storage for the filter (Zero initialized by startup code or explicit loop)
 static fingerprint_t filter[NUM_BUCKETS];
 
+// this should be initialized to a random value
+// we don't do it here because currently my interpreter
+// doesn't support initializing variables from data section
+static uint16_t lfsr_state;
+
+static uint16_t simple_rand(void) {
+  // If the last bit is 1, shift and XOR. If 0, just shift.
+  // 0xB400 is the tap configuration for a 16-bit maximal-length LFSR
+  if (lfsr_state & 1) {
+    lfsr_state = (lfsr_state >> 1) ^ 0xB400u;
+  } else {
+    lfsr_state >>= 1;
+  }
+  return lfsr_state;
+}
+
 // --- Core Cuckoo Logic ---
 
 static hash_t djb_hash(uint8_t *data, unsigned len) {
@@ -85,7 +101,7 @@ static bool insert(fingerprint_t *filter, value_t key) {
 
   // Both slots full. Evict a victim.
   // Randomly choose index1 or index2 to start the kicking chain
-  index_victim = (rand() & 0x80) ? index1 : index2;
+  index_victim = (simple_rand() & 0x80) ? index1 : index2;
   fp_victim = filter[index_victim];
   filter[index_victim] = fp; // Place new item, holding victim in hand
 
@@ -165,6 +181,8 @@ int main() {
   initialize();
 
   __enable_interrupt();
+
+  lfsr_state = 0xACE1u;
 
   // Clear Filter
   for (int i = 0; i < NUM_BUCKETS; i++)
