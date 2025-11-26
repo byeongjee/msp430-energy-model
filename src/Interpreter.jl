@@ -150,6 +150,7 @@ FUNCTIONS_TO_SKIP = [
     "end_measurement_window",
     "begin_event",
     "end_event",
+    "delay",
 ]
 
 """
