@@ -62,6 +62,7 @@ struct SwpbHandler <: SingleOperandHandler end
 struct RraHandler <: SingleOperandHandler end
 struct RraxHandler <: SingleOperandHandler end
 struct RruxHandler <: SingleOperandHandler end
+struct RrumHandler <: SingleOperandHandler end
 struct SxtHandler <: SingleOperandHandler end
 struct PushHandler <: SingleOperandHandler end
 struct CallHandler <: SingleOperandHandler end
@@ -127,6 +128,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :rra => RraHandler(),
     :rrax => RraxHandler(),
     :rrux => RruxHandler(),
+    :rrum => RrumHandler(),
     :sxt => SxtHandler(),
     :push => PushHandler(),
     :call => CallHandler(),
@@ -635,6 +637,48 @@ function execute!(
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
     set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
+# RRUM - Rotate right unsigned multiple times
+# Supports 16-bit (.w) and 20-bit (.a) operands
+# RRUM.W clears bits 19:16 of the destination register
+# Performs logical right shifts (zero fill) multiple times
+function execute!(
+    state::MachineState,
+    ::RrumHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    if length(ops) < 2
+        return nothing
+    end
+    shift_count = get_operand_value(state, ops[1], data_size)
+    dst_val = get_operand_value(state, ops[2], data_size)
+
+    # The carry flag is set to the bit that gets shifted out after n shifts
+    # For n shifts, this is bit (n-1) of the original value
+    # For n=1: bit 0, n=2: bit 1, n=3: bit 2, n=4: bit 3
+    carry_bit_pos = shift_count - 1
+    carry_bit_mask = UInt32(1) << carry_bit_pos
+    state.flags[:C] = (dst_val & carry_bit_mask) != 0
+
+    # Logical right shift (zero fill) multiple times
+    result = dst_val >> shift_count
+
+    # Mask to data size (clears bits 19:16 for .w operations)
+    if data_size == :byte
+        result = result & 0xFF
+    elseif data_size == :word
+        result = result & 0xFFFF  # Clears bits 19:16
+    else  # :address
+        result = result & 0xFFFFF
+    end
+
+    update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[2], result, data_size)
     return nothing
 end
 
