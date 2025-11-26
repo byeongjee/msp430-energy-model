@@ -4,9 +4,80 @@
 // 16 MHz
 #define CLOCK_HZ 16000000UL
 
+// ============================================================================
+// Unified Debug Output System
+// ============================================================================
+// Usage:
+//   make interpret FILE=foo.c                - No debug output
+//   make interpret FILE=foo.c DEFINES=DEBUG=1  - Board UART/printf debug
+//   make interpret FILE=foo.c DEFINES=DEBUG=2  - Interpreter memory-mapped
+//   debug
+//
+// Macros:
+//   DEBUG_OUT_U16(val)  - Print 16-bit unsigned
+//   DEBUG_OUT_I16(val)  - Print 16-bit signed
+//   DEBUG_OUT_HEX(val)  - Print 16-bit hex
+//   DEBUG_OUT_CHAR(c)   - Print single character
+//   DEBUG_OUT_U32(val)  - Print 32-bit unsigned
+//   DEBUG_OUT_STR(str)  - Print null-terminated string
+// ============================================================================
+
+// Memory-mapped addresses for interpreter mode (DEBUG=2)
+// Using 0x1BF0 region: reserved space between peripherals (0x0FFF) and RAM
+// (0x1C00) This is safe for ALL MSP430FR5994 programs
+#define _DEBUG_INTERP_U16_ADDR ((volatile uint16_t *)0x1BF0)
+#define _DEBUG_INTERP_I16_ADDR ((volatile uint16_t *)0x1BF2)
+#define _DEBUG_INTERP_HEX_ADDR ((volatile uint16_t *)0x1BF4)
+#define _DEBUG_INTERP_CHAR_ADDR ((volatile uint16_t *)0x1BF6)
+#define _DEBUG_INTERP_U32_ADDR ((volatile uint16_t *)0x1BF8)
+
+#if defined(DEBUG) && (DEBUG == 2)
+// Interpreter mode: use memory-mapped debug addresses
+#define DEBUG_OUT_U16(val) (*_DEBUG_INTERP_U16_ADDR = (uint16_t)(val))
+#define DEBUG_OUT_I16(val) (*_DEBUG_INTERP_I16_ADDR = (uint16_t)(val))
+#define DEBUG_OUT_HEX(val) (*_DEBUG_INTERP_HEX_ADDR = (uint16_t)(val))
+#define DEBUG_OUT_CHAR(c) (*_DEBUG_INTERP_CHAR_ADDR = (uint16_t)(c))
+#define DEBUG_OUT_U32(val)                                                     \
+  do {                                                                         \
+    uint32_t _tmp = (val);                                                     \
+    *_DEBUG_INTERP_U32_ADDR = (uint16_t)(_tmp);                                \
+    *_DEBUG_INTERP_U32_ADDR = (uint16_t)(_tmp >> 16);                          \
+  } while (0)
+#define DEBUG_OUT_STR(str)                                                     \
+  do {                                                                         \
+    const char *_s = (str);                                                    \
+    while (*_s) {                                                              \
+      DEBUG_OUT_CHAR(*_s);                                                     \
+      _s++;                                                                    \
+    }                                                                          \
+  } while (0)
+
+#elif defined(DEBUG) && (DEBUG == 1)
+// Board mode: use printf (requires UART initialization)
+#include <stdio.h>
+#define DEBUG_OUT_U16(val) printf("[DEBUG] u16: %u\n", (unsigned int)(val))
+#define DEBUG_OUT_I16(val) printf("[DEBUG] i16: %d\n", (int)(val))
+#define DEBUG_OUT_HEX(val) printf("[DEBUG] hex: 0x%04x\n", (unsigned int)(val))
+#define DEBUG_OUT_CHAR(c) printf("[DEBUG] char: %c\n", (char)(c))
+#define DEBUG_OUT_U32(val) printf("[DEBUG] u32: %lu\n", (unsigned long)(val))
+#define DEBUG_OUT_STR(str) printf("[DEBUG] str: %s\n", (str))
+
+#else
+// No debug mode: all macros are no-ops
+#define DEBUG_OUT_U16(val) ((void)0)
+#define DEBUG_OUT_I16(val) ((void)0)
+#define DEBUG_OUT_HEX(val) ((void)0)
+#define DEBUG_OUT_CHAR(c) ((void)0)
+#define DEBUG_OUT_U32(val) ((void)0)
+#define DEBUG_OUT_STR(str) ((void)0)
+#endif
+
 // For debugging
 #define BAUD 9600
 // or 115200
+
+#define NOINLINE __attribute__((noinline))
+#define INLINE static inline __attribute__((always_inline))
 
 void clockSetup(void) {
   CSCTL0_H = CSKEY_H; // Unlock CS registers
@@ -50,6 +121,12 @@ void end_measurement_window() {
   __delay_cycles(CLOCK_HZ * 5);
 }
 
+NOINLINE void delay(uint32_t cycles) {
+  while (--cycles > 0) {
+    __delay_cycles(1);
+  }
+}
+
 // Setup for printf over UART. For debugging.
 #ifdef DEBUG
 #include <reent.h>
@@ -68,16 +145,16 @@ static void uart_init_uca0_16mhz(void) {
   P2SEL0 &= ~(BIT0 | BIT1);
   P2SEL1 |= (BIT0 | BIT1);
 
-  UCA0CTLW0 =
-      UCSWRST |
-      UCSSEL__SMCLK; // Hold reset; BRCLK=SMCLK (16 MHz)
+  UCA0CTLW0 = UCSWRST | UCSSEL__SMCLK; // Hold reset; BRCLK=SMCLK (16 MHz)
 
 #if BAUD == 9600
-                     // 16e6 / (16*9600) = 104.1667 -> BRW=104, UCBRF=3, UCBRS=0
+                                       // 16e6 / (16*9600) = 104.1667 ->
+                                       // BRW=104, UCBRF=3, UCBRS=0
   UCA0BRW = 104;
   UCA0MCTLW = UCOS16 | UCBRF_3 | (0x00 << 8);
 #elif BAUD == 115200
-                     // 16e6 / (16*115200) = 8.6806 -> BRW=8, UCBRF=11, UCBRS=0
+                                       // 16e6 / (16*115200) = 8.6806 ->
+                                       // BRW=8, UCBRF=11, UCBRS=0
   UCA0BRW = 8;
   UCA0MCTLW = UCOS16 | UCBRF_11 | (0x00 << 8);
 #else
@@ -124,12 +201,6 @@ int putchar(int c) {
   return c;
 }
 #endif // DEBUG
-
-#ifdef DEBUG
-#define DEBUG_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define DEBUG_PRINTF(...) ((void)0)
-#endif
 
 void initialize(void) {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
@@ -182,5 +253,3 @@ void initialize(void) {
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
-
-#define INLINE static inline __attribute__((always_inline))
