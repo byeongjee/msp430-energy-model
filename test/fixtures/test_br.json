@@ -5,7 +5,7 @@
   "registers": {
     "PC": 16464,
     "SP": 11262,
-    "SR": 0,
+    "SR": 3,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -21,8 +21,8 @@
     "R15": 7172
   },
   "flags": {
-    "C": false,
-    "Z": false,
+    "C": true,
+    "Z": true,
     "N": false,
     "V": false
   },
