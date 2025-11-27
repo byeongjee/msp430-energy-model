@@ -325,18 +325,19 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         Total: 3×28 + 4 + 4 + 8×1 = 100 instruction keys
         """
         specs = get_all_instruction_specs(granularity="addressing_mode_pair")
-        self.assertEqual(len(specs), 297)
+        self.assertEqual(len(specs), 353)
 
-        # Count by opcode
         opcode_counts = {}
         for spec in specs:
             opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
 
-        for opcode in ["add", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+        for opcode in ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
             self.assertEqual(opcode_counts[opcode], 28)
-        for opcode in ["inc", "dec"]:
+        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]:
             self.assertEqual(opcode_counts[opcode], 4)
-        self.assertEqual(opcode_counts["rlam"], 1)
+        for opcode in ["rlam", "rrum", "pushm", "popm"]:
+            self.assertEqual(opcode_counts[opcode], 1)
+        self.assertEqual(opcode_counts["call"], 4)
         self.assertEqual(opcode_counts["jmp"], 1)
         self.assertEqual(opcode_counts["jge"], 1)
         self.assertEqual(opcode_counts["jl"], 1)
@@ -345,6 +346,7 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         self.assertEqual(opcode_counts["jnc"], 1)
         self.assertEqual(opcode_counts["jc"], 1)
         self.assertEqual(opcode_counts["jn"], 1)
+        self.assertEqual(opcode_counts["ret"], 1)
 
 
 class TestKeyGeneration(unittest.TestCase):

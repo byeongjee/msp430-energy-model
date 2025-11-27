@@ -209,22 +209,18 @@ def create_single_operand_specs(opcode: str) -> List[InstructionSpec]:
     return specs
 
 
-def create_rlam_specs(include_constant: bool = True) -> List[InstructionSpec]:
-    """Create instruction specs for rlam (constant-aware instruction)
-
-    When include_constant is False, returns a single representative spec without
-    encoding the constant in the key (used for PerAddressingMode granularity).
-    """
+def create_constant_imm_to_reg_specs(opcode: str, include_constant: bool = True) -> List[InstructionSpec]:
+    """Create constant-aware instruction specs of the form: opcode #const, reg"""
     specs = []
     constants = [1, 2, 3, 4] if include_constant else [1]
     for constant in constants:
         specs.append(
             InstructionSpec(
-                opcode="rlam",
+                opcode=opcode,
                 src_mode="immediate",
                 dst_mode="register",
                 constant=constant if include_constant else None,
-                asm_template=f"rlam #{constant}, %[dst]",
+                asm_template=f"{opcode} #{constant}, %[dst]",
                 variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
                 constraints={"outputs": '[dst] "+r"(dst)', "inputs": "", "clobbers": '"cc"'},
             )
@@ -336,12 +332,60 @@ def create_jn_specs() -> List[InstructionSpec]:
     ]
 
 
+def create_call_specs() -> List[InstructionSpec]:
+    """Create instruction specs for call (single operand)"""
+    specs = []
+    modes = ["register", "indexed", "symbolic", "absolute"]
+
+    for mode in modes:
+        variables: List[Dict[str, Any]] = []
+        constraints = {"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'}
+
+        if mode == "register":
+            op_asm = "%[target]"
+            variables.append({"name": "target", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[target] "r"(target)'
+        elif mode == "indexed":
+            op_asm = "%c[offs](%[base])"
+            variables.append({"name": "base", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[base] "r"(base), [offs] "i"(OFFS)'
+        elif mode == "symbolic":
+            op_asm = "sym_data"
+        elif mode == "absolute":
+            op_asm = "&sym_data"
+
+        specs.append(
+            InstructionSpec(
+                opcode="call",
+                src_mode=mode,
+                asm_template=f"call {op_asm}",
+                variables=variables,
+                constraints=constraints,
+            )
+        )
+
+    return specs
+
+
+def create_no_operand_specs(opcode: str) -> List[InstructionSpec]:
+    """Create spec for no-operand instructions (e.g., ret)"""
+    return [
+        InstructionSpec(
+            opcode=opcode,
+            src_mode=None,
+            asm_template=f"{opcode}",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
 def create_opcode_specs() -> List[InstructionSpec]:
     """Create one representative spec per opcode (granularity: opcode)"""
     specs = []
 
-    # Dual-operand opcodes use register->register
-    for opcode in ["add", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+    dual_opcodes = ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
+    for opcode in dual_opcodes:
         specs.append(
             InstructionSpec(
                 opcode=opcode,
@@ -360,8 +404,8 @@ def create_opcode_specs() -> List[InstructionSpec]:
             )
         )
 
-    # Single-operand opcodes use register
-    for opcode in ["inc", "dec"]:
+    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]
+    for opcode in single_opcodes:
         specs.append(
             InstructionSpec(
                 opcode=opcode,
@@ -376,23 +420,29 @@ def create_opcode_specs() -> List[InstructionSpec]:
             )
         )
 
-    # Constant-aware opcode representative
-    specs.append(
-        InstructionSpec(
-            opcode="rlam",
-            src_mode=None,
-            asm_template="rlam #1, %[dst]",
-            variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": "",
-                "clobbers": '"cc"',
-            },
+    constant_opcodes = ["rlam", "rrum", "pushm", "popm"]
+    for opcode in constant_opcodes:
+        specs.append(
+            InstructionSpec(
+                opcode=opcode,
+                src_mode=None,
+                asm_template=f"{opcode} #1, %[dst]",
+                variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
+                constraints={
+                    "outputs": '[dst] "+r"(dst)',
+                    "inputs": "",
+                    "clobbers": '"cc"',
+                },
+            )
         )
-    )
 
-    # Jump opcode representative
-    for opcode in ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]:
+    specs.extend(create_call_specs())
+
+    for opcode in ["ret"]:
+        specs.extend(create_no_operand_specs(opcode))
+
+    jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
+    for opcode in jump_opcodes:
         specs.append(
             InstructionSpec(
                 opcode=opcode,
@@ -410,13 +460,23 @@ def create_addressing_mode_specs(include_constant: bool = False) -> List[Instruc
     """Create specs for addressing-mode-based granularities"""
     specs: List[InstructionSpec] = []
 
-    for opcode in ["add", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+    dual_opcodes = ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
+    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]
+    jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
+    no_operand_opcodes = ["ret"]
+
+    for opcode in dual_opcodes:
         specs.extend(create_dual_operand_specs(opcode))
 
-    for opcode in ["inc", "dec"]:
+    for opcode in single_opcodes:
         specs.extend(create_single_operand_specs(opcode))
 
-    specs.extend(create_rlam_specs(include_constant=include_constant))
+    specs.extend(create_constant_imm_to_reg_specs("rlam", include_constant=include_constant))
+    specs.extend(create_constant_imm_to_reg_specs("rrum", include_constant=include_constant))
+    specs.extend(create_constant_imm_to_reg_specs("pushm", include_constant=include_constant))
+    specs.extend(create_constant_imm_to_reg_specs("popm", include_constant=include_constant))
+
+    specs.extend(create_call_specs())
 
     specs.extend(create_jmp_specs())
     specs.extend(create_jge_specs())
@@ -426,6 +486,9 @@ def create_addressing_mode_specs(include_constant: bool = False) -> List[Instruc
     specs.extend(create_jnc_specs())
     specs.extend(create_jc_specs())
     specs.extend(create_jn_specs())
+
+    for opcode in no_operand_opcodes:
+        specs.extend(create_no_operand_specs(opcode))
 
     return specs
 

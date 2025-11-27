@@ -8,7 +8,7 @@ Keys can contain symbols (opcodes, addressing modes) and integers (compile-time 
 """
 const ParamKey = Tuple{Vararg{Union{Symbol,Int}}}
 
-const constant_aware_opcodes = [:rlam, :pushm, :popm]
+const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm]
 
 """
 Granularity level for energy model parameters
