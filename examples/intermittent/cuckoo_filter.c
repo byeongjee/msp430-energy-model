@@ -233,8 +233,8 @@ int main() {
 
   // 2. Verification Phase
   DEBUG_OUT_STR("\n[Phase 2] Verifying...\n");
-  key = INIT_KEY; // Reset key generator
-  unsigned found = 0;
+  key = INIT_KEY;              // Reset key generator
+  volatile unsigned found = 0; // volatile to prevent optimization
 
   begin_event();
   for (int i = 0; i < NUM_KEYS; ++i) {

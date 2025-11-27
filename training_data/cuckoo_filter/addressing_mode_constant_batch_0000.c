@@ -31,15 +31,15 @@ INLINE void bench_add_immediate_register(void) {
       : "cc"));
 }
 
-INLINE void bench_add_indirect_register(void) {
-  uint16_t* psrc = BASE_PTR;
+INLINE void bench_add_indexed_register(void) {
+  uint16_t* base_src = BASE_PTR;
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w @%[psrc], %[dst]\n"
+      "  add.w %c[offs_src](%[base_src]), %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
-      : [psrc] "r"(psrc)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -168,6 +168,18 @@ INLINE void bench_cmp_immediate_indexed(void) {
       : "cc", "memory"));
 }
 
+INLINE void bench_cmp_indexed_register(void) {
+  uint16_t* base_src = BASE_PTR;
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  cmp.w %c[offs_src](%[base_src]), %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
+      : "cc", "memory"));
+}
+
 INLINE void bench_and_immediate_register(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -224,17 +236,6 @@ INLINE void bench_inc_register(void) {
       : "cc"));
 }
 
-INLINE void bench_clr_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  clr.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
@@ -242,7 +243,7 @@ int main(void) {
 
   BENCH(bench_add_register_register());
   BENCH(bench_add_immediate_register());
-  BENCH(bench_add_indirect_register());
+  BENCH(bench_add_indexed_register());
   BENCH(bench_addc_immediate_register());
   BENCH(bench_mov_register_register());
   BENCH(bench_mov_register_indexed());
@@ -254,12 +255,12 @@ int main(void) {
   BENCH(bench_mov_indirect_register());
   BENCH(bench_cmp_immediate_register());
   BENCH(bench_cmp_immediate_indexed());
+  BENCH(bench_cmp_indexed_register());
   BENCH(bench_and_immediate_register());
   BENCH(bench_xor_register_register());
   BENCH(bench_xor_immediate_register());
   BENCH(bench_bit_immediate_indexed());
   BENCH(bench_inc_register());
-  BENCH(bench_clr_register());
 
   end_measurement_window();
 

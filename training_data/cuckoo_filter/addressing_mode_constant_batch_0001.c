@@ -8,6 +8,28 @@ static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_inc_indexed(void) {
+  uint16_t* base = BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  inc.w %c[offs](%[base])\n"
+      ".endr\n"
+      : 
+      : [base] "r"(base), [offs] "i"(OFFS)
+      : "cc", "memory"));
+}
+
+INLINE void bench_clr_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  clr.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
 INLINE void bench_rla_register(void) {
   uint16_t dst = 0x2222;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -98,6 +120,8 @@ int main(void) {
   begin_measurement_window();
 
 
+  BENCH(bench_inc_indexed());
+  BENCH(bench_clr_register());
   BENCH(bench_rla_register());
   BENCH(bench_rlc_register());
   BENCH(bench_rlam_immediate_1_register());
