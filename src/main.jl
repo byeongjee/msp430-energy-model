@@ -32,6 +32,10 @@ function parse_commandline()
         required = false
         arg_type = String
         nargs = '+'
+        "--data-dump"
+        help = "Path to objdump -s data dump (used for memory preload in interpret/estimate)"
+        required = false
+        arg_type = String
         "--data"
         help = "Path(s) to energy measurement data (space-separated, required for train mode)"
         arg_type = String
@@ -66,15 +70,20 @@ end
 """
 Interpret mode: Run interpreter on assembly file
 """
-function run_interpret(asm_file::String, max_steps::Int)
+function run_interpret(
+    asm_file::String, max_steps::Int; data_dump::Union{String,Nothing}=nothing
+)
     @info "Running in INTERPRET mode"
     @info "Assembly file" path = asm_file
+    if !isnothing(data_dump)
+        @info "Data dump" path = data_dump
+    end
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
     func_addrs = Parser.find_functions(asm_file)
 
     final_state, event_sequences = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps
+        instructions, addresses, func_addrs, max_steps; data_file=data_dump
     )
 
     @info "="^60
@@ -93,8 +102,6 @@ function run_interpret(asm_file::String, max_steps::Int)
     return final_state
 end
 
-
-
 """
 Main function
 """
@@ -107,16 +114,18 @@ function main()
     try
         if mode == "interpret"
             asm_files = args["asm"]
+            data_dump = args["data-dump"]
             if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for interpret mode")
             end
             if length(asm_files) > 1
                 error("interpret mode only supports a single assembly file")
             end
-            run_interpret(asm_files[1], max_steps)
+            run_interpret(asm_files[1], max_steps; data_dump=data_dump)
 
         elseif mode == "train"
             asm_files = args["asm"]
+            data_dump = args["data-dump"]
             if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for train mode")
             end
@@ -140,6 +149,7 @@ function main()
 
         elseif mode == "estimate"
             asm_files = args["asm"]
+            data_dump = args["data-dump"]
             if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for estimate mode")
             end
@@ -152,7 +162,9 @@ function main()
             end
             output_file = args["output"]
             n_samples = args["n-samples"]
-            Estimation.run_estimate(asm_files[1], params_file, max_steps, n_samples, output_file)
+            Estimation.run_estimate(
+                asm_files[1], params_file, max_steps, n_samples, output_file, data_dump
+            )
 
         else
             error("Invalid mode: $mode. Must be one of: interpret, train, estimate")

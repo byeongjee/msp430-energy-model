@@ -9,6 +9,74 @@ using ..Parser
 
 include("machine_state.jl")
 
+const _HEX_CHARS = Set("0123456789abcdefABCDEF")
+
+"""
+Load bytes from an objdump -s data dump file into machine memory.
+Returns true if any bytes were written.
+"""
+function load_memory_dump!(state::MachineState, data_file::String)::Bool
+    if !isfile(data_file)
+        @warn "Data dump file not found; skipping memory preload" data_file
+        return false
+    end
+
+    bytes_written = 0
+    current_section = nothing
+
+    for raw_line in eachline(data_file)
+        if startswith(raw_line, "Contents of section ")
+            m = match(r"Contents of section (\S+):", raw_line)
+            current_section = isnothing(m) ? nothing : m.captures[1]
+            continue
+        end
+
+        if isnothing(current_section)
+            continue
+        end
+
+        line = strip(raw_line)
+        isempty(line) && continue
+
+        parts = split(line)
+        isempty(parts) && continue
+
+        addr_str = parts[1]
+        if !all(c -> c in _HEX_CHARS, addr_str)
+            continue
+        end
+
+        addr = parse(UInt32, addr_str; base=16)
+
+        hex_tokens = String[]
+        for token in parts[2:end]
+            # Stop once ASCII column appears; only accept even-length hex tokens
+            if iseven(length(token)) && all(c -> c in _HEX_CHARS, token)
+                push!(hex_tokens, token)
+            else
+                break  # Stop when ASCII column starts
+            end
+        end
+
+        isempty(hex_tokens) && continue
+
+        hex_str = join(hex_tokens, "")
+        for i in 1:2:length(hex_str)
+            byte_val = parse(UInt8, hex_str[i:(i + 1)]; base=16)
+            set_memory_value!(state, addr + UInt32(div(i - 1, 2)), UInt32(byte_val), :byte)
+            bytes_written += 1
+        end
+    end
+
+    if bytes_written == 0
+        @warn "No bytes loaded from data dump" data_file
+        return false
+    end
+
+    @info "Preloaded memory from data dump" data_file bytes = bytes_written
+    return true
+end
+
 """
 Format all register values in a formatted way for MSP430
 """
@@ -191,7 +259,8 @@ function interpret_program(
     instructions::Vector{Instruction},
     addresses::Vector{UInt32},
     func_addrs::Dict{String,UInt32},
-    max_steps::Int,
+    max_steps::Int;
+    data_file::Union{String,Nothing}=nothing,
 )::Tuple{MachineState,Vector{Vector{Instruction}}}
     @info "="^60
     @info "Interpret Program"
@@ -229,6 +298,10 @@ function interpret_program(
 
     state = MachineState()
     state.registers[:PC] = addresses[1]  # Start at the first instruction address
+
+    if !isnothing(data_file)
+        load_memory_dump!(state, data_file)
+    end
 
     @debug "Initial machine state" pc = string(state.registers[:PC]; base=16, pad=4) sp = string(
         state.registers[:SP]; base=16, pad=4
