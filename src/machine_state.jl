@@ -144,13 +144,15 @@ end
 """
 Debug output memory-mapped addresses for interpreter visibility.
 Programs can write to these addresses to output debug information.
-Using 0x1BF0 region: reserved space between peripherals and RAM on MSP430FR5994.
+
+We park these in the top of HIFRAM (0x43FE0 region) to avoid colliding with
+auto-generated benchmarks that exercise RAM around 0x1C00 and the stack.
 """
-const DEBUG_OUT_U16 = UInt32(0x1BF0)  # Write 16-bit unsigned value
-const DEBUG_OUT_I16 = UInt32(0x1BF2)  # Write 16-bit signed value
-const DEBUG_OUT_HEX = UInt32(0x1BF4)  # Write 16-bit hex value
-const DEBUG_OUT_CHAR = UInt32(0x1BF6) # Write single character
-const DEBUG_OUT_U32 = UInt32(0x1BF8)  # Write 32-bit unsigned (write LSW then MSW)
+const DEBUG_OUT_U16 = UInt32(0x43FE0)  # Write 16-bit unsigned value
+const DEBUG_OUT_I16 = UInt32(0x43FE2)  # Write 16-bit signed value
+const DEBUG_OUT_HEX = UInt32(0x43FE4)  # Write 16-bit hex value
+const DEBUG_OUT_CHAR = UInt32(0x43FE6) # Write single character
+const DEBUG_OUT_U32 = UInt32(0x43FE8)  # Write 32-bit unsigned (write LSW then MSW)
 
 # Global state to track partial 32-bit writes
 mutable struct DebugState

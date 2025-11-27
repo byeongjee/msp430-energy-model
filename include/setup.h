@@ -23,13 +23,13 @@
 // ============================================================================
 
 // Memory-mapped addresses for interpreter mode (DEBUG=2)
-// Using 0x1BF0 region: reserved space between peripherals (0x0FFF) and RAM
-// (0x1C00) This is safe for ALL MSP430FR5994 programs
-#define _DEBUG_INTERP_U16_ADDR ((volatile uint16_t *)0x1BF0)
-#define _DEBUG_INTERP_I16_ADDR ((volatile uint16_t *)0x1BF2)
-#define _DEBUG_INTERP_HEX_ADDR ((volatile uint16_t *)0x1BF4)
-#define _DEBUG_INTERP_CHAR_ADDR ((volatile uint16_t *)0x1BF6)
-#define _DEBUG_INTERP_U32_ADDR ((volatile uint16_t *)0x1BF8)
+// Use the top of HIFRAM to avoid colliding with RAM/stack used by benchmarks
+// (0x43FE0 - 0x43FE8 are inside HIFRAM and well away from program data)
+#define _DEBUG_INTERP_U16_ADDR ((volatile uint16_t *)0x43FE0)
+#define _DEBUG_INTERP_I16_ADDR ((volatile uint16_t *)0x43FE2)
+#define _DEBUG_INTERP_HEX_ADDR ((volatile uint16_t *)0x43FE4)
+#define _DEBUG_INTERP_CHAR_ADDR ((volatile uint16_t *)0x43FE6)
+#define _DEBUG_INTERP_U32_ADDR ((volatile uint16_t *)0x43FE8)
 
 #if defined(DEBUG) && (DEBUG == 2)
 // Interpreter mode: use memory-mapped debug addresses
