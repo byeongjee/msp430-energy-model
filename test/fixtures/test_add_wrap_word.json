@@ -1,0 +1,31 @@
+{
+  "test_name": "test_add_wrap_word",
+  "asm_file": "test/fixtures/test_add_wrap_word.asm",
+  "gdb_result": {
+  "registers": {
+    "PC": 16408,
+    "SP": 11262,
+    "SR": 3,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 0,
+    "R13": 0,
+    "R14": 0,
+    "R15": 0
+  },
+  "flags": {
+    "C": true,
+    "Z": true,
+    "N": false,
+    "V": false
+  },
+  "pc": 16408
+}
+}

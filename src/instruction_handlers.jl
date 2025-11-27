@@ -44,6 +44,7 @@ abstract type JumpHandler <: AbstractInstructionHandler end
 struct MovHandler <: DualOperandHandler end
 struct MovaHandler <: DualOperandHandler end
 struct AddHandler <: DualOperandHandler end
+struct AddaHandler <: DualOperandHandler end
 struct AddcHandler <: DualOperandHandler end
 struct SubHandler <: DualOperandHandler end
 struct SubcHandler <: DualOperandHandler end
@@ -111,6 +112,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :mov => MovHandler(),
     :mova => MovaHandler(),
     :add => AddHandler(),
+    :adda => AddaHandler(),
     :addc => AddcHandler(),
     :sub => SubHandler(),
     :subc => SubcHandler(),
@@ -256,6 +258,26 @@ end
 function execute!(
     state::MachineState,
     ::AddHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    if length(ops) < 2
+        return nothing
+    end
+    src_val = get_operand_value(state, ops[1], data_size)
+    dst_val = get_operand_value(state, ops[2], data_size)
+    result = UInt32(dst_val + src_val)
+    update_flags!(state, result, dst_val, src_val, true, data_size)
+    set_operand_value!(state, ops[2], result, data_size)
+    return nothing
+end
+
+# ADDA - Add address-sized source to destination
+function execute!(
+    state::MachineState,
+    ::AddaHandler,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{UInt32},
@@ -718,8 +740,14 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    state.registers[:SP] = state.registers[:SP] - 2
-    state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
+    bytes_per_val = data_size == :address ? UInt32(4) : UInt32(2)
+    state.registers[:SP] =
+        UInt32((state.registers[:SP] - bytes_per_val) & get_register_mask(:SP))
+    if data_size == :address
+        set_memory_value!(state, state.registers[:SP], operand_val, :address)
+    else
+        state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
+    end
     return nothing
 end
 
@@ -748,7 +776,8 @@ function execute!(
             "CALL instruction cannot handle return address 0x$(string(return_addr, base=16)) > 0xFFFF. Use CALLA for 20-bit addresses.",
         )
     end
-    state.registers[:SP] = state.registers[:SP] - 2
+    state.registers[:SP] =
+        UInt32((state.registers[:SP] - UInt32(2)) & get_register_mask(:SP))
     state.memory[state.registers[:SP]] = UInt16(return_addr)
     state.registers[:PC] = operand_val
     return nothing
@@ -765,7 +794,8 @@ function execute!(
 )::Nothing
     return_addr = get(state.memory, state.registers[:SP], UInt16(0))
     state.registers[:PC] = return_addr
-    state.registers[:SP] = state.registers[:SP] + 2
+    state.registers[:SP] =
+        UInt32((state.registers[:SP] + UInt32(2)) & get_register_mask(:SP))
     return nothing
 end
 
@@ -779,9 +809,11 @@ function execute!(
     ::Int,
 )::Nothing
     state.registers[:SR] = state.memory[state.registers[:SP]]
-    state.registers[:SP] = state.registers[:SP] + 2
+    state.registers[:SP] =
+        UInt32((state.registers[:SP] + UInt32(2)) & get_register_mask(:SP))
     state.registers[:PC] = state.memory[state.registers[:SP]]
-    state.registers[:SP] = state.registers[:SP] + 2
+    state.registers[:SP] =
+        UInt32((state.registers[:SP] + UInt32(2)) & get_register_mask(:SP))
     return nothing
 end
 
@@ -814,7 +846,7 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val + 1)
+    result = operand_val + UInt32(1)
     update_flags!(state, result, operand_val, UInt32(1), true, data_size)
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
@@ -833,7 +865,7 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val - 1)
+    result = operand_val - UInt32(1)
     update_flags!(state, result, operand_val, UInt32(1), false, data_size)
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
@@ -995,7 +1027,7 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val - 2)
+    result = operand_val - UInt32(2)
     update_flags!(state, result, operand_val, UInt32(2), false, data_size)
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
@@ -1014,7 +1046,7 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val + 2)
+    result = operand_val + UInt32(2)
     update_flags!(state, result, operand_val, UInt32(2), true, data_size)
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
@@ -1137,14 +1169,14 @@ function execute!(
     if length(ops) < 2
         return nothing
     end
-    n = get_operand_value(state, ops[1], data_size)
+    n = Int(get_operand_value(state, ops[1], data_size))
     dst_reg = ops[2].value
     dst_num = Parser.reg_symbol_to_num(dst_reg)
 
     bytes_per_reg = if data_size == :address
-        4  # 20-bit = 2 words = 4 bytes
+        UInt32(4)  # 20-bit = 2 words = 4 bytes
     else
-        2  # 16-bit = 1 word = 2 bytes
+        UInt32(2)  # 16-bit = 1 word = 2 bytes
     end
 
     for i in (dst_num - n + 1):dst_num
@@ -1152,7 +1184,8 @@ function execute!(
             reg_sym = Parser.reg_num_to_symbol(i)
             reg_val = get_register_value(state, reg_sym)
 
-            state.registers[:SP] = state.registers[:SP] - bytes_per_reg
+            state.registers[:SP] =
+                UInt32((state.registers[:SP] - bytes_per_reg) & get_register_mask(:SP))
 
             if data_size == :address
                 set_memory_value!(state, state.registers[:SP], reg_val, :address)
@@ -1176,14 +1209,14 @@ function execute!(
     if length(ops) < 2
         return nothing
     end
-    n = get_operand_value(state, ops[1], data_size)
+    n = Int(get_operand_value(state, ops[1], data_size))
     dst_reg = ops[2].value
     dst_num = Parser.reg_symbol_to_num(dst_reg)
 
     bytes_per_reg = if data_size == :address
-        4  # 20-bit = 2 words = 4 bytes
+        UInt32(4)  # 20-bit = 2 words = 4 bytes
     else
-        2  # 16-bit = 1 word = 2 bytes
+        UInt32(2)  # 16-bit = 1 word = 2 bytes
     end
 
     for i in dst_num:-1:(dst_num - n + 1)
@@ -1197,7 +1230,8 @@ function execute!(
             end
 
             set_register_value!(state, reg_sym, reg_val)
-            state.registers[:SP] = state.registers[:SP] + bytes_per_reg
+            state.registers[:SP] =
+                UInt32((state.registers[:SP] + bytes_per_reg) & get_register_mask(:SP))
         end
     end
     return nothing

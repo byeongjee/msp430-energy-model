@@ -3,6 +3,8 @@
 
 // 16 MHz
 #define CLOCK_HZ 16000000UL
+#define NOINLINE __attribute__((noinline))
+#define INLINE static inline __attribute__((always_inline))
 
 // ============================================================================
 // Unified Debug Output System
@@ -22,35 +24,36 @@
 //   DEBUG_OUT_STR(str)  - Print null-terminated string
 // ============================================================================
 
-// Memory-mapped addresses for interpreter mode (DEBUG=2)
-// Using 0x1BF0 region: reserved space between peripherals (0x0FFF) and RAM
-// (0x1C00) This is safe for ALL MSP430FR5994 programs
-#define _DEBUG_INTERP_U16_ADDR ((volatile uint16_t *)0x1BF0)
-#define _DEBUG_INTERP_I16_ADDR ((volatile uint16_t *)0x1BF2)
-#define _DEBUG_INTERP_HEX_ADDR ((volatile uint16_t *)0x1BF4)
-#define _DEBUG_INTERP_CHAR_ADDR ((volatile uint16_t *)0x1BF6)
-#define _DEBUG_INTERP_U32_ADDR ((volatile uint16_t *)0x1BF8)
-
 #if defined(DEBUG) && (DEBUG == 2)
-// Interpreter mode: use memory-mapped debug addresses
-#define DEBUG_OUT_U16(val) (*_DEBUG_INTERP_U16_ADDR = (uint16_t)(val))
-#define DEBUG_OUT_I16(val) (*_DEBUG_INTERP_I16_ADDR = (uint16_t)(val))
-#define DEBUG_OUT_HEX(val) (*_DEBUG_INTERP_HEX_ADDR = (uint16_t)(val))
-#define DEBUG_OUT_CHAR(c) (*_DEBUG_INTERP_CHAR_ADDR = (uint16_t)(c))
-#define DEBUG_OUT_U32(val)                                                     \
-  do {                                                                         \
-    uint32_t _tmp = (val);                                                     \
-    *_DEBUG_INTERP_U32_ADDR = (uint16_t)(_tmp);                                \
-    *_DEBUG_INTERP_U32_ADDR = (uint16_t)(_tmp >> 16);                          \
-  } while (0)
-#define DEBUG_OUT_STR(str)                                                     \
-  do {                                                                         \
-    const char *_s = (str);                                                    \
-    while (*_s) {                                                              \
-      DEBUG_OUT_CHAR(*_s);                                                     \
-      _s++;                                                                    \
-    }                                                                          \
-  } while (0)
+// Interpreter mode: emit calls that the interpreter can intercept.
+// Functions are defined as noinline with a dummy asm to keep them from being
+// optimized away, but they have no effect on-device.
+NOINLINE __attribute__((used)) void debug_out_u16(uint16_t val) {
+  __asm__ volatile("" ::"r"(val) : "memory");
+}
+NOINLINE __attribute__((used)) void debug_out_i16(int16_t val) {
+  __asm__ volatile("" ::"r"(val) : "memory");
+}
+NOINLINE __attribute__((used)) void debug_out_hex(uint16_t val) {
+  __asm__ volatile("" ::"r"(val) : "memory");
+}
+NOINLINE __attribute__((used)) void debug_out_char(uint16_t c) {
+  __asm__ volatile("" ::"r"(c) : "memory");
+}
+NOINLINE __attribute__((used)) void debug_out_u32(uint32_t val) {
+  __asm__ volatile("" ::"r"(val) : "memory");
+}
+NOINLINE __attribute__((used)) void debug_out_str(const char *str) {
+  __asm__ volatile("" ::"r"(str) : "memory");
+}
+
+// Macros map directly to the debug_out_* function calls.
+#define DEBUG_OUT_U16(val) debug_out_u16((uint16_t)(val))
+#define DEBUG_OUT_I16(val) debug_out_i16((int16_t)(val))
+#define DEBUG_OUT_HEX(val) debug_out_hex((uint16_t)(val))
+#define DEBUG_OUT_CHAR(c) debug_out_char((uint16_t)(c))
+#define DEBUG_OUT_U32(val) debug_out_u32((uint32_t)(val))
+#define DEBUG_OUT_STR(str) debug_out_str((const char *)(str))
 
 #elif defined(DEBUG) && (DEBUG == 1)
 // Board mode: use printf (requires UART initialization)
@@ -75,9 +78,6 @@
 // For debugging
 #define BAUD 9600
 // or 115200
-
-#define NOINLINE __attribute__((noinline))
-#define INLINE static inline __attribute__((always_inline))
 
 void clockSetup(void) {
   CSCTL0_H = CSKEY_H; // Unlock CS registers

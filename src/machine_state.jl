@@ -141,80 +141,93 @@ function get_memory_value(state::MachineState, addr::UInt32, data_size::Symbol):
     end
 end
 
-"""
-Debug output memory-mapped addresses for interpreter visibility.
-Programs can write to these addresses to output debug information.
-Using 0x1BF0 region: reserved space between peripherals and RAM on MSP430FR5994.
-"""
-const DEBUG_OUT_U16 = UInt32(0x1BF0)  # Write 16-bit unsigned value
-const DEBUG_OUT_I16 = UInt32(0x1BF2)  # Write 16-bit signed value
-const DEBUG_OUT_HEX = UInt32(0x1BF4)  # Write 16-bit hex value
-const DEBUG_OUT_CHAR = UInt32(0x1BF6) # Write single character
-const DEBUG_OUT_U32 = UInt32(0x1BF8)  # Write 32-bit unsigned (write LSW then MSW)
-
-# Global state to track partial 32-bit writes
-mutable struct DebugState
-    u32_lsw::Union{Nothing,UInt16}
-    u32_write_count::Int
-end
-const DEBUG_STATE = DebugState(nothing, 0)
 const DEBUG_CHAR_BUFFER = IOBuffer()
 
-function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
-    # Check for debug output addresses
-    if addr == DEBUG_OUT_U16
+"""
+Read a null-terminated C string from memory starting at `addr`.
+"""
+function read_c_string(state::MachineState, addr::UInt32)::String
+    io = IOBuffer()
+    current = addr
+    while true
+        byte_val = UInt8(get_memory_value(state, current, :byte) & 0xFF)
+        if byte_val == 0x00
+            break
+        end
+        write(io, Char(byte_val))
+        current += UInt32(1)
+    end
+    return String(take!(io))
+end
+
+"""
+Handle interpreter-visible debug function calls (DEBUG=2).
+These functions are no-ops on-device; the interpreter reads arguments from
+calling-convention registers and emits debug output when enabled.
+"""
+function handle_debug_function_call!(
+    state::MachineState, func_name::Symbol, pc::UInt32
+)::Nothing
+    sp = state.registers[:SP]
+    if func_name == :debug_out_u16
+        val = get_register_value(state, :R12) & 0xFFFF
         printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(stderr, "u16: $(value & 0xFFFF)")
-        return nothing
-    elseif addr == DEBUG_OUT_I16
-        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        # Convert to signed 16-bit (handle two's complement)
-        unsigned_val = UInt16(value & 0xFFFF)
+        println(
+            stderr,
+            "u16 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $val",
+        )
+    elseif func_name == :debug_out_i16
+        unsigned_val = UInt16(get_register_value(state, :R12) & 0xFFFF)
         signed_val = reinterpret(Int16, unsigned_val)
-        println(stderr, "i16: $signed_val")
-        return nothing
-    elseif addr == DEBUG_OUT_HEX
         printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(stderr, "hex: 0x$(string(value & 0xFFFF, base=16, pad=4))")
-        return nothing
-    elseif addr == DEBUG_OUT_CHAR
-        # Buffer characters until newline, then print the accumulated string
-        char_val = Char(value & 0xFF)
+        println(
+            stderr,
+            "i16 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $signed_val",
+        )
+    elseif func_name == :debug_out_hex
+        val = get_register_value(state, :R12) & 0xFFFF
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "hex call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): 0x$(string(val, base=16, pad=4))",
+        )
+    elseif func_name == :debug_out_char
+        char_val = Char(get_register_value(state, :R12) & 0xFF)
         if char_val == '\n'
             buffered = String(take!(DEBUG_CHAR_BUFFER))
             printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-            println(stderr, buffered)
+            println(
+                stderr,
+                "char call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $buffered",
+            )
         else
             print(DEBUG_CHAR_BUFFER, char_val)
         end
-        return nothing
-    elseif addr == DEBUG_OUT_U32
-        # 32-bit writes require two 16-bit operations: LSW then MSW
-        if DEBUG_STATE.u32_write_count == 0
-            # First write: store LSW
-            DEBUG_STATE.u32_lsw = UInt16(value & 0xFFFF)
-            DEBUG_STATE.u32_write_count = 1
-        else
-            # Second write: combine MSW with stored LSW
-            lsw = DEBUG_STATE.u32_lsw
-            msw = UInt16(value & 0xFFFF)
-            full_value = UInt32(lsw) | (UInt32(msw) << 16)
-            printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-            println(stderr, "u32: $full_value")
-            # Reset for next 32-bit write
-            DEBUG_STATE.u32_lsw = nothing
-            DEBUG_STATE.u32_write_count = 0
-        end
-        return nothing
+    elseif func_name == :debug_out_u32
+        lsw = get_register_value(state, :R12) & 0xFFFF
+        msw = get_register_value(state, :R13) & 0xFFFF
+        full_value = UInt32(lsw) | (UInt32(msw) << 16)
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "u32 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $full_value",
+        )
+    elseif func_name == :debug_out_str
+        ptr = get_register_value(state, :R12) & 0xFFFFF
+        text = read_c_string(state, ptr)
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "str call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $text",
+        )
     end
+
     return nothing
 end
 
 function set_memory_value!(
     state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
 )::Nothing
-    handle_debug_memory_write!(addr, value)
-
     # Normal memory write
     if data_size == :word
         # Write 16-bit word to memory
@@ -384,6 +397,12 @@ function update_flags!(
     is_add::Bool,
     data_size::Symbol=:word,
 )::Nothing
+    # Mask operands/results to the active data size so flag math matches
+    # architectural overflow/underflow (e.g., 16-bit and 20-bit wraparound).
+    masked_result = apply_data_size_mask(result, data_size)
+    masked_dst = apply_data_size_mask(dst, data_size)
+    masked_src = apply_data_size_mask(src, data_size)
+
     # Get the appropriate mask and MSB bit for the data size
     max_val, msb_bit = if data_size == :byte
         (UInt32(0xFF), UInt32(0x80))
@@ -396,28 +415,28 @@ function update_flags!(
     end
 
     # Zero flag
-    state.flags[:Z] = (result == 0)
+    state.flags[:Z] = (masked_result == 0)
 
     # Negative flag (MSB set)
-    state.flags[:N] = (result & msb_bit) != 0
+    state.flags[:N] = (masked_result & msb_bit) != 0
 
     if is_add
         # Carry flag for addition
-        state.flags[:C] = (dst + src) > max_val
+        state.flags[:C] = (masked_dst + masked_src) > max_val
 
         # Overflow flag for addition (both operands same sign, result different sign)
-        dst_sign = (dst & msb_bit) != 0
-        src_sign = (src & msb_bit) != 0
-        result_sign = (result & msb_bit) != 0
+        dst_sign = (masked_dst & msb_bit) != 0
+        src_sign = (masked_src & msb_bit) != 0
+        result_sign = (masked_result & msb_bit) != 0
         state.flags[:V] = (dst_sign == src_sign) && (dst_sign != result_sign)
     else
         # Carry flag for subtraction (borrow)
-        state.flags[:C] = dst >= src
+        state.flags[:C] = masked_dst >= masked_src
 
         # Overflow flag for subtraction
-        dst_sign = (dst & msb_bit) != 0
-        src_sign = (src & msb_bit) != 0
-        result_sign = (result & msb_bit) != 0
+        dst_sign = (masked_dst & msb_bit) != 0
+        src_sign = (masked_src & msb_bit) != 0
+        result_sign = (masked_result & msb_bit) != 0
         state.flags[:V] = (dst_sign != src_sign) && (dst_sign != result_sign)
     end
 
