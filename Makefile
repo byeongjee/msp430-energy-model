@@ -97,13 +97,15 @@ disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c>)
 	echo "✓ Data dump saved to: $(ASM_DIR)/$$(basename $(FILE) .c).data"
 
 
-interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
+interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>] [MODEL=<model>])
 	@echo "Running MSP430 interpreter..."
 	@BASENAME=$$(basename $(FILE) .c); \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
 	DATA_DUMP_FLAG="--data-dump $(ASM_DIR)/$$BASENAME.data"; \
-	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG
+	MODEL_FLAG=""; \
+	if [ -n "$(MODEL)" ]; then MODEL_FLAG="--model $(MODEL)"; fi; \
+	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG $$MODEL_FLAG
 	@echo "✓ Interpret completed!"
 
 train: MODEL?=mean_per_addressing_mode
