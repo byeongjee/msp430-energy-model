@@ -201,8 +201,11 @@ int main() {
   value_t key = INIT_KEY;
   unsigned inserts = 0;
 
+  begin_measurement_window();
+
   // 1. Insertion Phase
   DEBUG_OUT_STR("\n[Phase 1] Inserting...\n");
+  begin_event();
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool success = insert(filter, key);
@@ -217,6 +220,7 @@ int main() {
     delay(5000);
 #endif
   }
+  end_event();
 
 #ifdef DEBUG
   print_filter(filter);
@@ -232,6 +236,7 @@ int main() {
   key = INIT_KEY; // Reset key generator
   unsigned found = 0;
 
+  begin_event();
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool member = lookup(filter, key);
@@ -249,6 +254,9 @@ int main() {
     delay(5000);
 #endif
   }
+  end_event();
+
+  end_measurement_window();
 
   DEBUG_OUT_STR("Lookup Success Rate: ");
   DEBUG_OUT_U16(found);
