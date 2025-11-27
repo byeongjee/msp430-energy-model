@@ -44,6 +44,7 @@ abstract type JumpHandler <: AbstractInstructionHandler end
 struct MovHandler <: DualOperandHandler end
 struct MovaHandler <: DualOperandHandler end
 struct AddHandler <: DualOperandHandler end
+struct AddaHandler <: DualOperandHandler end
 struct AddcHandler <: DualOperandHandler end
 struct SubHandler <: DualOperandHandler end
 struct SubcHandler <: DualOperandHandler end
@@ -111,6 +112,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :mov => MovHandler(),
     :mova => MovaHandler(),
     :add => AddHandler(),
+    :adda => AddaHandler(),
     :addc => AddcHandler(),
     :sub => SubHandler(),
     :subc => SubcHandler(),
@@ -256,6 +258,26 @@ end
 function execute!(
     state::MachineState,
     ::AddHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    if length(ops) < 2
+        return nothing
+    end
+    src_val = get_operand_value(state, ops[1], data_size)
+    dst_val = get_operand_value(state, ops[2], data_size)
+    result = UInt32(dst_val + src_val)
+    update_flags!(state, result, dst_val, src_val, true, data_size)
+    set_operand_value!(state, ops[2], result, data_size)
+    return nothing
+end
+
+# ADDA - Add address-sized source to destination
+function execute!(
+    state::MachineState,
+    ::AddaHandler,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{UInt32},
