@@ -30,6 +30,7 @@ function MachineState()::MachineState
         registers,
         Dict{UInt32,UInt16}(),  # Empty memory. Each cell is 16 bits.
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
+        0,  # repeat_counter initialized to 0
     )
 end
 
@@ -49,6 +50,14 @@ function execute_instruction!(
 
     # Execute instruction using multiple dispatch
     execute!(state, handler, inst.operands, inst.data_size, addresses, current_idx)
+
+    # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
+    # unless it's the RPT instruction itself (which sets the counter)
+    if state.repeat_counter > 0 && inst.opcode != :rpt
+        state.repeat_counter -= 1
+        # Don't advance PC - re-execute same instruction
+        return nothing
+    end
 
     # Centralized PC update logic
     if should_advance_pc(handler, state, inst.operands) && current_idx < length(addresses)
@@ -132,9 +141,81 @@ function get_memory_value(state::MachineState, addr::UInt32, data_size::Symbol):
     end
 end
 
+"""
+Debug output memory-mapped addresses for interpreter visibility.
+Programs can write to these addresses to output debug information.
+Using 0x1BF0 region: reserved space between peripherals and RAM on MSP430FR5994.
+"""
+const DEBUG_OUT_U16 = UInt32(0x1BF0)  # Write 16-bit unsigned value
+const DEBUG_OUT_I16 = UInt32(0x1BF2)  # Write 16-bit signed value
+const DEBUG_OUT_HEX = UInt32(0x1BF4)  # Write 16-bit hex value
+const DEBUG_OUT_CHAR = UInt32(0x1BF6) # Write single character
+const DEBUG_OUT_U32 = UInt32(0x1BF8)  # Write 32-bit unsigned (write LSW then MSW)
+
+# Global state to track partial 32-bit writes
+mutable struct DebugState
+    u32_lsw::Union{Nothing,UInt16}
+    u32_write_count::Int
+end
+const DEBUG_STATE = DebugState(nothing, 0)
+const DEBUG_CHAR_BUFFER = IOBuffer()
+
+function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
+    # Check for debug output addresses
+    if addr == DEBUG_OUT_U16
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(stderr, "u16: $(value & 0xFFFF)")
+        return nothing
+    elseif addr == DEBUG_OUT_I16
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        # Convert to signed 16-bit (handle two's complement)
+        unsigned_val = UInt16(value & 0xFFFF)
+        signed_val = reinterpret(Int16, unsigned_val)
+        println(stderr, "i16: $signed_val")
+        return nothing
+    elseif addr == DEBUG_OUT_HEX
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(stderr, "hex: 0x$(string(value & 0xFFFF, base=16, pad=4))")
+        return nothing
+    elseif addr == DEBUG_OUT_CHAR
+        # Buffer characters until newline, then print the accumulated string
+        char_val = Char(value & 0xFF)
+        if char_val == '\n'
+            buffered = String(take!(DEBUG_CHAR_BUFFER))
+            printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+            println(stderr, buffered)
+        else
+            print(DEBUG_CHAR_BUFFER, char_val)
+        end
+        return nothing
+    elseif addr == DEBUG_OUT_U32
+        # 32-bit writes require two 16-bit operations: LSW then MSW
+        if DEBUG_STATE.u32_write_count == 0
+            # First write: store LSW
+            DEBUG_STATE.u32_lsw = UInt16(value & 0xFFFF)
+            DEBUG_STATE.u32_write_count = 1
+        else
+            # Second write: combine MSW with stored LSW
+            lsw = DEBUG_STATE.u32_lsw
+            msw = UInt16(value & 0xFFFF)
+            full_value = UInt32(lsw) | (UInt32(msw) << 16)
+            printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+            println(stderr, "u32: $full_value")
+            # Reset for next 32-bit write
+            DEBUG_STATE.u32_lsw = nothing
+            DEBUG_STATE.u32_write_count = 0
+        end
+        return nothing
+    end
+    return nothing
+end
+
 function set_memory_value!(
     state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
 )::Nothing
+    handle_debug_memory_write!(addr, value)
+
+    # Normal memory write
     if data_size == :word
         # Write 16-bit word to memory
         state.memory[addr] = UInt16(value & 0xFFFF)
@@ -193,8 +274,28 @@ function get_operand_value(
         addr = get_register_value(state, reg_name)
         val = get_memory_value(state, addr, data_size)
         # Increment register after reading (by 2 for word, 1 for byte)
-        increment = data_size == :byte ? UInt32(1) : UInt32(2)
-        state.registers[reg_name] = UInt32((addr + increment) & get_register_mask(reg_name))
+        increment = if data_size == :byte
+            UInt32(1)
+        elseif data_size == :address
+            UInt32(4)  # 20-bit values span two words
+        else
+            UInt32(2)
+        end
+
+        # For byte/word operations, MSP430 updates only the lower 16 bits and
+        # does not carry into the upper extension bits. Keep full width for
+        # PC/SP and address-sized operations.
+        mask = if data_size == :address || reg_name in (:PC, :SP)
+            get_register_mask(reg_name)
+        else
+            UInt32(0xFFFF)
+        end
+        new_val = UInt32((addr + increment) & mask)
+        @debug "Autoincrement" reg = reg_name addr = string(addr; base=16, pad=4) increment mask =
+            string(mask; base=16, pad=5) data_size = data_size new_val = string(
+                new_val; base=16, pad=4
+            )
+        state.registers[reg_name] = new_val
         val
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
@@ -322,7 +423,7 @@ function update_flags!(
 
     # Update status register
     state.registers[:SR] =
-        (state.registers[:SR] & 0xFFF0) |
+        (state.registers[:SR] & ~UInt32(0x0107)) |  # Preserve GIE/CPU mode bits
         (state.flags[:V] ? 0x0100 : 0x0000) |
         (state.flags[:N] ? 0x0004 : 0x0000) |
         (state.flags[:Z] ? 0x0002 : 0x0000) |
@@ -353,9 +454,10 @@ function update_flags_simple!(
 
     # Update status register
     state.registers[:SR] =
-        (state.registers[:SR] & 0xFEF9) |  # Clear N and Z bits
+        (state.registers[:SR] & ~UInt32(0x0007)) |  # Preserve V/GIE/CPU mode bits, clear C/N/Z
         (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000)
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
 
     return nothing
 end

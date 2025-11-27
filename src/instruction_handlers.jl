@@ -60,6 +60,9 @@ struct RrcHandler <: SingleOperandHandler end
 struct RrcmHandler <: SingleOperandHandler end
 struct SwpbHandler <: SingleOperandHandler end
 struct RraHandler <: SingleOperandHandler end
+struct RraxHandler <: SingleOperandHandler end
+struct RruxHandler <: SingleOperandHandler end
+struct RrumHandler <: SingleOperandHandler end
 struct SxtHandler <: SingleOperandHandler end
 struct PushHandler <: SingleOperandHandler end
 struct CallHandler <: SingleOperandHandler end
@@ -69,6 +72,10 @@ struct RetHandler <: SingleOperandHandler end
 struct IncHandler <: SingleOperandHandler end
 struct DecHandler <: SingleOperandHandler end
 struct DintHandler <: SingleOperandHandler end
+struct EintHandler <: SingleOperandHandler end
+struct SetcHandler <: SingleOperandHandler end
+struct ClrcHandler <: SingleOperandHandler end
+struct RlcHandler <: SingleOperandHandler end
 struct NopHandler <: SingleOperandHandler end
 struct BrHandler <: SingleOperandHandler end
 struct PushmHandler <: SingleOperandHandler end
@@ -79,6 +86,7 @@ struct SbcHandler <: SingleOperandHandler end
 struct AdcHandler <: SingleOperandHandler end
 struct DecdHandler <: SingleOperandHandler end
 struct IncdHandler <: SingleOperandHandler end
+struct RptHandler <: SingleOperandHandler end
 
 # Jump handlers
 struct JnzHandler <: JumpHandler end
@@ -118,6 +126,9 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :rrcm => RrcmHandler(),
     :swpb => SwpbHandler(),
     :rra => RraHandler(),
+    :rrax => RraxHandler(),
+    :rrux => RruxHandler(),
+    :rrum => RrumHandler(),
     :sxt => SxtHandler(),
     :push => PushHandler(),
     :call => CallHandler(),
@@ -127,6 +138,10 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :inc => IncHandler(),
     :dec => DecHandler(),
     :dint => DintHandler(),
+    :eint => EintHandler(),
+    :setc => SetcHandler(),
+    :clrc => ClrcHandler(),
+    :rlc => RlcHandler(),
     :nop => NopHandler(),
     :br => BrHandler(),
     :pushm => PushmHandler(),
@@ -137,6 +152,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :adc => AdcHandler(),
     :decd => DecdHandler(),
     :incd => IncdHandler(),
+    :rpt => RptHandler(),
     # Jump instructions
     :jnz => JnzHandler(),
     :jz => JzHandler(),
@@ -168,7 +184,9 @@ Determine if PC should advance after instruction execution.
 Default: advance PC for all instructions.
 Override for instructions that manage their own PC (jumps, calls, branches).
 """
-should_advance_pc(::AbstractInstructionHandler, state::MachineState, ops::Vector{Operand})::Bool = true
+should_advance_pc(
+    ::AbstractInstructionHandler, state::MachineState, ops::Vector{Operand}
+)::Bool = true
 
 # Instructions that manage their own PC: never advance
 should_advance_pc(::CallHandler, state::MachineState, ops::Vector{Operand})::Bool = false
@@ -178,7 +196,9 @@ should_advance_pc(::BrHandler, state::MachineState, ops::Vector{Operand})::Bool 
 should_advance_pc(::JumpHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 
 # MOV/MOVA to PC acts as a branch: don't advance if destination is PC
-function should_advance_pc(::Union{MovHandler, MovaHandler}, state::MachineState, ops::Vector{Operand})::Bool
+function should_advance_pc(
+    ::Union{MovHandler,MovaHandler}, state::MachineState, ops::Vector{Operand}
+)::Bool
     # Don't advance if destination operand is PC (R0)
     if length(ops) >= 2 && ops[2].mode == :register && ops[2].value == :PC
         return false
@@ -199,7 +219,14 @@ end
 # ----------------------------------------------------------------------------
 
 # MOV - Move source to destination
-function execute!(state::MachineState, ::MovHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::MovHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -209,7 +236,14 @@ function execute!(state::MachineState, ::MovHandler, ops::Vector{Operand}, data_
 end
 
 # MOVA - Move address (20-bit) - same as MOV, data_size set by parser
-function execute!(state::MachineState, ::MovaHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::MovaHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -219,7 +253,14 @@ function execute!(state::MachineState, ::MovaHandler, ops::Vector{Operand}, data
 end
 
 # ADD - Add source to destination
-function execute!(state::MachineState, ::AddHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::AddHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -232,7 +273,14 @@ function execute!(state::MachineState, ::AddHandler, ops::Vector{Operand}, data_
 end
 
 # ADDC - Add with carry
-function execute!(state::MachineState, ::AddcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::AddcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -246,7 +294,14 @@ function execute!(state::MachineState, ::AddcHandler, ops::Vector{Operand}, data
 end
 
 # SUB - Subtract source from destination
-function execute!(state::MachineState, ::SubHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::SubHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -259,7 +314,14 @@ function execute!(state::MachineState, ::SubHandler, ops::Vector{Operand}, data_
 end
 
 # SUBC - Subtract with carry
-function execute!(state::MachineState, ::SubcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::SubcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -273,7 +335,14 @@ function execute!(state::MachineState, ::SubcHandler, ops::Vector{Operand}, data
 end
 
 # CMP - Compare (subtract without storing)
-function execute!(state::MachineState, ::CmpHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::CmpHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -285,7 +354,14 @@ function execute!(state::MachineState, ::CmpHandler, ops::Vector{Operand}, data_
 end
 
 # DADD - Decimal add (BCD addition)
-function execute!(state::MachineState, ::DaddHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::DaddHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -298,7 +374,14 @@ function execute!(state::MachineState, ::DaddHandler, ops::Vector{Operand}, data
 end
 
 # BIT - Test bits (AND without storing)
-function execute!(state::MachineState, ::BitHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::BitHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -310,7 +393,14 @@ function execute!(state::MachineState, ::BitHandler, ops::Vector{Operand}, data_
 end
 
 # BIC - Bit clear
-function execute!(state::MachineState, ::BicHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::BicHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -322,7 +412,14 @@ function execute!(state::MachineState, ::BicHandler, ops::Vector{Operand}, data_
 end
 
 # BIS - Bit set
-function execute!(state::MachineState, ::BisHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::BisHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -334,7 +431,14 @@ function execute!(state::MachineState, ::BisHandler, ops::Vector{Operand}, data_
 end
 
 # XOR - Exclusive OR
-function execute!(state::MachineState, ::XorHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::XorHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -347,7 +451,14 @@ function execute!(state::MachineState, ::XorHandler, ops::Vector{Operand}, data_
 end
 
 # AND - Logical AND
-function execute!(state::MachineState, ::AndHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::AndHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -364,7 +475,14 @@ end
 # ----------------------------------------------------------------------------
 
 # RRC - Rotate right through carry
-function execute!(state::MachineState, ::RrcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::RrcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -380,7 +498,14 @@ end
 # RRCM - Rotate right through carry multiple times
 # Supports 16-bit (.w) and 20-bit (.a) operands
 # RRCM.W clears bits 19:16 of the destination register
-function execute!(state::MachineState, ::RrcmHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::RrcmHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -407,7 +532,14 @@ function execute!(state::MachineState, ::RrcmHandler, ops::Vector{Operand}, data
 end
 
 # SWPB - Swap bytes
-function execute!(state::MachineState, ::SwpbHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::SwpbHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -418,7 +550,14 @@ function execute!(state::MachineState, ::SwpbHandler, ops::Vector{Operand}, data
 end
 
 # RRA - Arithmetic right shift
-function execute!(state::MachineState, ::RraHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::RraHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -430,8 +569,128 @@ function execute!(state::MachineState, ::RraHandler, ops::Vector{Operand}, data_
     return nothing
 end
 
+# RRAX - Arithmetic right shift extended (MSP430X, supports 20-bit addressing)
+function execute!(
+    state::MachineState,
+    ::RraxHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    if length(ops) < 1
+        return nothing
+    end
+    operand_val = get_operand_value(state, ops[1], data_size)
+
+    # Arithmetic right shift (sign-extended)
+    # We need to handle sign extension carefully to avoid overflow
+    if data_size == :byte
+        # Sign extend from bit 7
+        is_negative = (operand_val & 0x80) != 0
+        result = operand_val >> 1
+        if is_negative
+            result = result | 0x80  # Set MSB (bit 7)
+        end
+        result = result & 0xFF
+    elseif data_size == :address
+        # 20-bit: sign extend from bit 19
+        is_negative = (operand_val & 0x80000) != 0
+        result = operand_val >> 1
+        if is_negative
+            result = result | 0x80000  # Set MSB (bit 19)
+        end
+        result = result & 0xFFFFF
+    else  # :word
+        # Sign extend from bit 15
+        is_negative = (operand_val & 0x8000) != 0
+        result = operand_val >> 1
+        if is_negative
+            result = result | 0x8000  # Set MSB (bit 15)
+        end
+        result = result & 0xFFFF
+    end
+
+    state.flags[:C] = (operand_val & 0x0001) != 0
+    update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
+# RRUX - Logical right shift extended (MSP430X, no sign extension)
+function execute!(
+    state::MachineState,
+    ::RruxHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    if length(ops) < 1
+        return nothing
+    end
+    operand_val = get_operand_value(state, ops[1], data_size)
+
+    # Logical right shift (zero fill)
+    result = operand_val >> 1
+
+    state.flags[:C] = (operand_val & 0x0001) != 0
+    update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
+# RRUM - Rotate right unsigned multiple times
+# Supports 16-bit (.w) and 20-bit (.a) operands
+# RRUM.W clears bits 19:16 of the destination register
+# Performs logical right shifts (zero fill) multiple times
+function execute!(
+    state::MachineState,
+    ::RrumHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    if length(ops) < 2
+        return nothing
+    end
+    shift_count = get_operand_value(state, ops[1], data_size)
+    dst_val = get_operand_value(state, ops[2], data_size)
+
+    # The carry flag is set to the bit that gets shifted out after n shifts
+    # For n shifts, this is bit (n-1) of the original value
+    # For n=1: bit 0, n=2: bit 1, n=3: bit 2, n=4: bit 3
+    carry_bit_pos = shift_count - 1
+    carry_bit_mask = UInt32(1) << carry_bit_pos
+    state.flags[:C] = (dst_val & carry_bit_mask) != 0
+
+    # Logical right shift (zero fill) multiple times
+    result = dst_val >> shift_count
+
+    # Mask to data size (clears bits 19:16 for .w operations)
+    if data_size == :byte
+        result = result & 0xFF
+    elseif data_size == :word
+        result = result & 0xFFFF  # Clears bits 19:16
+    else  # :address
+        result = result & 0xFFFFF
+    end
+
+    update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[2], result, data_size)
+    return nothing
+end
+
 # SXT - Sign extend byte to word
-function execute!(state::MachineState, ::SxtHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::SxtHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -447,7 +706,14 @@ function execute!(state::MachineState, ::SxtHandler, ops::Vector{Operand}, data_
 end
 
 # PUSH - Push to stack
-function execute!(state::MachineState, ::PushHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::PushHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -458,18 +724,29 @@ function execute!(state::MachineState, ::PushHandler, ops::Vector{Operand}, data
 end
 
 # CALL - Call subroutine
-function execute!(state::MachineState, ::CallHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::CallHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
     if current_idx >= length(addresses)
-        error("Call instruction at index $current_idx has no next instruction for return address")
+        error(
+            "Call instruction at index $current_idx has no next instruction for return address",
+        )
     end
     operand_val = get_operand_value(state, ops[1], data_size)
     return_addr = addresses[current_idx + 1]
     # CALL instruction only supports 16-bit return addresses
     if return_addr > 0xFFFF
-        error("CALL instruction cannot handle return address 0x$(string(return_addr, base=16)) > 0xFFFF. Use CALLA for 20-bit addresses.")
+        error(
+            "CALL instruction cannot handle return address 0x$(string(return_addr, base=16)) > 0xFFFF. Use CALLA for 20-bit addresses.",
+        )
     end
     state.registers[:SP] = state.registers[:SP] - 2
     state.memory[state.registers[:SP]] = UInt16(return_addr)
@@ -478,7 +755,14 @@ function execute!(state::MachineState, ::CallHandler, ops::Vector{Operand}, data
 end
 
 # RET - Return from subroutine
-function execute!(state::MachineState, ::RetHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::RetHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     return_addr = get(state.memory, state.registers[:SP], UInt16(0))
     state.registers[:PC] = return_addr
     state.registers[:SP] = state.registers[:SP] + 2
@@ -486,7 +770,14 @@ function execute!(state::MachineState, ::RetHandler, ops::Vector{Operand}, data_
 end
 
 # RETI - Return from interrupt
-function execute!(state::MachineState, ::RetiHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::RetiHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     state.registers[:SR] = state.memory[state.registers[:SP]]
     state.registers[:SP] = state.registers[:SP] + 2
     state.registers[:PC] = state.memory[state.registers[:SP]]
@@ -495,7 +786,14 @@ function execute!(state::MachineState, ::RetiHandler, ops::Vector{Operand}, data
 end
 
 # CLR - Clear (set to zero)
-function execute!(state::MachineState, ::ClrHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::ClrHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -504,7 +802,14 @@ function execute!(state::MachineState, ::ClrHandler, ops::Vector{Operand}, data_
 end
 
 # INC - Increment by 1
-function execute!(state::MachineState, ::IncHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::IncHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -516,7 +821,14 @@ function execute!(state::MachineState, ::IncHandler, ops::Vector{Operand}, data_
 end
 
 # DEC - Decrement by 1
-function execute!(state::MachineState, ::DecHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::DecHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -528,18 +840,140 @@ function execute!(state::MachineState, ::DecHandler, ops::Vector{Operand}, data_
 end
 
 # DINT - Disable interrupt
-function execute!(state::MachineState, ::DintHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::DintHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     state.registers[:SR] = state.registers[:SR] & ~0x0008  # Clear GIE bit (bit 3)
     return nothing
 end
 
+# EINT - Enable interrupt
+function execute!(
+    state::MachineState,
+    ::EintHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    state.registers[:SR] = state.registers[:SR] | 0x0008  # Set GIE bit (bit 3)
+    return nothing
+end
+
+# SETC - Set carry flag
+function execute!(
+    state::MachineState,
+    ::SetcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    state.flags[:C] = true
+    state.registers[:SR] = state.registers[:SR] | 0x0001  # Set C bit (bit 0)
+    return nothing
+end
+
+# CLRC - Clear carry flag
+function execute!(
+    state::MachineState,
+    ::ClrcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    state.flags[:C] = false
+    state.registers[:SR] = state.registers[:SR] & ~0x0001  # Clear C bit (bit 0)
+    return nothing
+end
+
+# RLC - Rotate left through carry
+function execute!(
+    state::MachineState,
+    ::RlcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    # RLC rotates left through carry: shifts left and inserts carry into LSB
+    dst_val = get_operand_value(state, ops[1], data_size)
+    carry = (state.registers[:SR] & 0x0001) != 0 ? UInt32(1) : UInt32(0)
+
+    # Shift left and add carry
+    result = (dst_val << 1) | carry
+
+    # Mask to data size
+    if data_size == :byte
+        result = result & 0xFF
+    elseif data_size == :word
+        result = result & 0xFFFF
+    else  # :address
+        result = result & 0xFFFFF
+    end
+
+    # Update C flag with the bit that was shifted out
+    old_msb = if data_size == :byte
+        (dst_val & 0x80) != 0
+    elseif data_size == :word
+        (dst_val & 0x8000) != 0
+    else  # :address
+        (dst_val & 0x80000) != 0
+    end
+
+    state.flags[:C] = old_msb
+
+    # Update Z and N flags based on result
+    # V flag is NOT affected by RLC per MSP430 spec
+    msb_bit = if data_size == :byte
+        UInt32(0x80)
+    elseif data_size == :word
+        UInt32(0x8000)
+    else  # :address
+        UInt32(0x80000)
+    end
+
+    state.flags[:Z] = (result == 0)
+    state.flags[:N] = (result & msb_bit) != 0
+
+    # Update SR with flags (preserve V flag, update C/Z/N)
+    state.registers[:SR] =
+        (state.registers[:SR] & 0x0108) |  # Preserve V (bit 8) and GIE (bit 3)
+        (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
+
+    set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
 # NOP - No operation
-function execute!(state::MachineState, ::NopHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::NopHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     return nothing
 end
 
 # BR - Branch (indirect jump)
-function execute!(state::MachineState, ::BrHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::BrHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -549,7 +983,14 @@ function execute!(state::MachineState, ::BrHandler, ops::Vector{Operand}, data_s
 end
 
 # DECD - Double decrement
-function execute!(state::MachineState, ::DecdHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::DecdHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -561,7 +1002,14 @@ function execute!(state::MachineState, ::DecdHandler, ops::Vector{Operand}, data
 end
 
 # INCD - Double increment
-function execute!(state::MachineState, ::IncdHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::IncdHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -572,8 +1020,32 @@ function execute!(state::MachineState, ::IncdHandler, ops::Vector{Operand}, data
     return nothing
 end
 
+# RPT - Repeat next instruction N times
+function execute!(
+    state::MachineState,
+    ::RptHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    # Get repeat count from immediate operand
+    count = get_operand_value(state, ops[1], data_size)
+    # Set repeat counter to N-1 because the instruction executes once normally,
+    # then repeats (N-1) more times
+    state.repeat_counter = Int(count) - 1
+    return nothing
+end
+
 # SBC - Subtract carry
-function execute!(state::MachineState, ::SbcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::SbcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -586,7 +1058,14 @@ function execute!(state::MachineState, ::SbcHandler, ops::Vector{Operand}, data_
 end
 
 # ADC - Add carry
-function execute!(state::MachineState, ::AdcHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::AdcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -599,7 +1078,14 @@ function execute!(state::MachineState, ::AdcHandler, ops::Vector{Operand}, data_
 end
 
 # RLA - Rotate left arithmetic
-function execute!(state::MachineState, ::RlaHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::RlaHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 1
         return nothing
     end
@@ -613,7 +1099,14 @@ function execute!(state::MachineState, ::RlaHandler, ops::Vector{Operand}, data_
 end
 
 # RLAM - Rotate left arithmetic multiple
-function execute!(state::MachineState, ::RlamHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::RlamHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -633,7 +1126,14 @@ function execute!(state::MachineState, ::RlamHandler, ops::Vector{Operand}, data
 end
 
 # PUSHM - Push multiple registers
-function execute!(state::MachineState, ::PushmHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::PushmHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -665,7 +1165,14 @@ function execute!(state::MachineState, ::PushmHandler, ops::Vector{Operand}, dat
 end
 
 # POPM - Pop multiple registers
-function execute!(state::MachineState, ::PopmHandler, ops::Vector{Operand}, data_size::Symbol, ::Vector{UInt32}, ::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::PopmHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
     if length(ops) < 2
         return nothing
     end
@@ -706,7 +1213,7 @@ function execute_jump_helper!(
     should_jump::Bool,
     ops::Vector{Operand},
     addresses::Vector{UInt32},
-    current_idx::Int
+    current_idx::Int,
 )::Nothing
     if length(ops) < 1
         return nothing
@@ -724,7 +1231,9 @@ function execute_jump_helper!(
 
     if should_jump
         # Jump is relative to PC + 2
-        state.registers[:PC] = UInt32((Int32(state.registers[:PC]) + 2 + (Int32(offset) * 2)) & 0xFFFFF)
+        state.registers[:PC] = UInt32(
+            (Int32(state.registers[:PC]) + 2 + (Int32(offset) * 2)) & 0xFFFFF
+        )
     else
         # Advance to next instruction
         if current_idx < length(addresses)
@@ -735,41 +1244,101 @@ function execute_jump_helper!(
 end
 
 # JMP - Unconditional jump
-function execute!(state::MachineState, ::JmpHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::JmpHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
     execute_jump_helper!(state, true, ops, addresses, current_idx)
 end
 
 # JNZ - Jump if not zero
-function execute!(state::MachineState, ::JnzHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::JnzHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
     execute_jump_helper!(state, !state.flags[:Z], ops, addresses, current_idx)
 end
 
 # JZ - Jump if zero
-function execute!(state::MachineState, ::JzHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::JzHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
     execute_jump_helper!(state, state.flags[:Z], ops, addresses, current_idx)
 end
 
 # JNC - Jump if no carry
-function execute!(state::MachineState, ::JncHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::JncHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
     execute_jump_helper!(state, !state.flags[:C], ops, addresses, current_idx)
 end
 
 # JC - Jump if carry
-function execute!(state::MachineState, ::JcHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::JcHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
     execute_jump_helper!(state, state.flags[:C], ops, addresses, current_idx)
 end
 
 # JN - Jump if negative
-function execute!(state::MachineState, ::JnHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
+function execute!(
+    state::MachineState,
+    ::JnHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
     execute_jump_helper!(state, state.flags[:N], ops, addresses, current_idx)
 end
 
 # JGE - Jump if greater or equal (signed)
-function execute!(state::MachineState, ::JgeHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
-    execute_jump_helper!(state, !(state.flags[:N] ⊻ state.flags[:V]), ops, addresses, current_idx)
+function execute!(
+    state::MachineState,
+    ::JgeHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
+    execute_jump_helper!(
+        state, !(state.flags[:N] ⊻ state.flags[:V]), ops, addresses, current_idx
+    )
 end
 
 # JL - Jump if less (signed)
-function execute!(state::MachineState, ::JlHandler, ops::Vector{Operand}, data_size::Symbol, addresses::Vector{UInt32}, current_idx::Int)::Nothing
-    execute_jump_helper!(state, (state.flags[:N] ⊻ state.flags[:V]), ops, addresses, current_idx)
+function execute!(
+    state::MachineState,
+    ::JlHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
+    execute_jump_helper!(
+        state, (state.flags[:N] ⊻ state.flags[:V]), ops, addresses, current_idx
+    )
 end

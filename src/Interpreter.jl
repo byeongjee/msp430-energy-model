@@ -9,6 +9,74 @@ using ..Parser
 
 include("machine_state.jl")
 
+const _HEX_CHARS = Set("0123456789abcdefABCDEF")
+
+"""
+Load bytes from an objdump -s data dump file into machine memory.
+Returns true if any bytes were written.
+"""
+function load_memory_dump!(state::MachineState, data_file::String)::Bool
+    if !isfile(data_file)
+        @warn "Data dump file not found; skipping memory preload" data_file
+        return false
+    end
+
+    bytes_written = 0
+    current_section = nothing
+
+    for raw_line in eachline(data_file)
+        if startswith(raw_line, "Contents of section ")
+            m = match(r"Contents of section (\S+):", raw_line)
+            current_section = isnothing(m) ? nothing : m.captures[1]
+            continue
+        end
+
+        if isnothing(current_section)
+            continue
+        end
+
+        line = strip(raw_line)
+        isempty(line) && continue
+
+        parts = split(line)
+        isempty(parts) && continue
+
+        addr_str = parts[1]
+        if !all(c -> c in _HEX_CHARS, addr_str)
+            continue
+        end
+
+        addr = parse(UInt32, addr_str; base=16)
+
+        hex_tokens = String[]
+        for token in parts[2:end]
+            # Stop once ASCII column appears; only accept even-length hex tokens
+            if iseven(length(token)) && all(c -> c in _HEX_CHARS, token)
+                push!(hex_tokens, token)
+            else
+                break  # Stop when ASCII column starts
+            end
+        end
+
+        isempty(hex_tokens) && continue
+
+        hex_str = join(hex_tokens, "")
+        for i in 1:2:length(hex_str)
+            byte_val = parse(UInt8, hex_str[i:(i + 1)]; base=16)
+            set_memory_value!(state, addr + UInt32(div(i - 1, 2)), UInt32(byte_val), :byte)
+            bytes_written += 1
+        end
+    end
+
+    if bytes_written == 0
+        @warn "No bytes loaded from data dump" data_file
+        return false
+    end
+
+    @info "Preloaded memory from data dump" data_file bytes = bytes_written
+    return true
+end
+
 """
 Format all register values in a formatted way for MSP430
 """
@@ -34,6 +102,37 @@ end
 function _memory_op_debug_msg(
     state::MachineState, inst::Instruction, old_regs::Dict{Symbol,UInt32}
 )::Union{String,Nothing}
+    # Use a side-effect-free read of operand values using the pre-execution register snapshot
+    function _peek_operand_value(operand::Operand, data_size::Symbol)::UInt32
+        if operand.mode == :immediate
+            return apply_data_size_mask(UInt32(operand.value), data_size)
+        elseif operand.mode == :register
+            return apply_data_size_mask(get(old_regs, operand.value, UInt32(0)), data_size)
+        elseif operand.mode == :indirect
+            operand_str = string(operand.value)
+            reg_name = Symbol(operand_str[2:end])
+            addr = get(old_regs, reg_name, UInt32(0))
+            return get_memory_value(state, addr, data_size)
+        elseif operand.mode == :autoincrement
+            operand_str = string(operand.value)
+            reg_name = Symbol(operand_str[2:end])
+            addr = get(old_regs, reg_name, UInt32(0))
+            return get_memory_value(state, addr, data_size)
+        elseif operand.mode == :indexed || operand.mode == :symbolic
+            offset, reg = operand.value
+            base_addr = get(old_regs, reg, UInt32(0))
+            if operand.mode == :symbolic
+                base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
+            end
+            addr = UInt32((base_addr + offset) & get_register_mask(reg))
+            return get_memory_value(state, addr, data_size)
+        elseif operand.mode == :absolute
+            return get_memory_value(state, UInt32(operand.value), data_size)
+        else
+            return UInt32(0)
+        end
+    end
+
     # Only create a message if we can recognize a memory read/write
     if length(inst.operands) >= 2
         # Case 1: memory writes — indexed addressing on the destination
@@ -43,7 +142,7 @@ function _memory_op_debug_msg(
             base_addr = get(old_regs, reg, UInt32(0))
             addr = UInt32((base_addr + offset) & 0xFFFFF)
             if inst.opcode == :mov
-                src_val = get_operand_value(state, inst.operands[1])
+                src_val = _peek_operand_value(inst.operands[1], inst.data_size)
                 return "    Memory[0x$(string(addr, base=16, pad=5))] = $src_val"
             end
         end
@@ -105,10 +204,29 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
             end
 
             # Parse the instruction string with current address for relative jump resolution
-            parsed_instr = Parser.parse_line(String(instr_str), addr)
-            if !isnothing(parsed_instr)
-                push!(instructions, parsed_instr)
-                push!(addresses, addr)
+            # Special case: RPT instruction contains two instructions on one line
+            if contains(instr_str, "{")
+                # Parse RPT: "rpt #N { instruction"
+                rpt_instr = Parser.parse_rpt_instruction(String(instr_str), addr)
+                if !isnothing(rpt_instr)
+                    push!(instructions, rpt_instr)
+                    push!(addresses, addr)
+                end
+
+                # Parse the nested instruction at addr+2
+                nested_instr = Parser.parse_rpt_nested_instruction(
+                    String(instr_str), UInt32(addr + 2)
+                )
+                if !isnothing(nested_instr)
+                    push!(instructions, nested_instr)
+                    push!(addresses, addr + 2)
+                end
+            else
+                parsed_instr = Parser.parse_line(String(instr_str), addr)
+                if !isnothing(parsed_instr)
+                    push!(instructions, parsed_instr)
+                    push!(addresses, addr)
+                end
             end
         end
     end
@@ -131,116 +249,8 @@ FUNCTIONS_TO_SKIP = [
     "end_measurement_window",
     "begin_event",
     "end_event",
+    "delay",
 ]
-
-"""
-Fast-path handler for memset(void *ptr, int value, size_t num)
-MSP430 calling convention: r12=ptr, r13=value, r14=num
-"""
-function handle_memset!(state::MachineState)::Nothing
-    ptr = state.registers[:R12]
-    value = UInt8(state.registers[:R13] & 0xFF)
-    num = state.registers[:R14]
-
-    # Fill memory directly
-    for i in 0:(num - 1)
-        addr = UInt32((ptr + i) & 0xFFFFF)
-        state.memory[addr] = UInt16(value)
-    end
-
-    # Update registers to match what the actual memset assembly would do
-    # The memset implementation: R14 = ptr + num, R15 = ptr + num
-    state.registers[:R14] = UInt32((ptr + num) & 0xFFFFF)
-    state.registers[:R15] = UInt32((ptr + num) & 0xFFFFF)
-
-    @debug "Fast-path: memset filled $num bytes at 0x$(string(ptr, base=16, pad=4)) with value $value"
-    return nothing
-end
-
-"""
-Fast-path handler for memmove/memcpy(void *dest, const void *src, size_t num)
-MSP430 calling convention: r12=dest, r13=src, r14=num
-"""
-function handle_memmove!(state::MachineState)::Nothing
-    dest = state.registers[:R12]
-    src = state.registers[:R13]
-    num = state.registers[:R14]
-
-    # Copy memory directly (handle overlapping regions for memmove)
-    if dest <= src || dest >= src + num
-        # Non-overlapping or dest before src: copy forward
-        for i in 0:(num - 1)
-            src_addr = UInt32((src + i) & 0xFFFFF)
-            dest_addr = UInt32((dest + i) & 0xFFFFF)
-            state.memory[dest_addr] = get(state.memory, src_addr, UInt16(0))
-        end
-    else
-        # Overlapping with dest after src: copy backward
-        for i in (num - 1):-1:0
-            src_addr = UInt32((src + i) & 0xFFFFF)
-            dest_addr = UInt32((dest + i) & 0xFFFFF)
-            state.memory[dest_addr] = get(state.memory, src_addr, UInt16(0))
-        end
-    end
-
-    # Update registers to match what the actual memmove assembly would do
-    # The memmove implementation increments R13 and R14 as it copies bytes
-    state.registers[:R13] = UInt32((src + num) & 0xFFFFF)
-    state.registers[:R14] = UInt32((dest + num) & 0xFFFFF)
-    state.registers[:R15] = UInt32((src + num) & 0xFFFFF)
-
-    # Clear all flags - the actual memmove ends with all flags clear
-    # The last comparison before return compares equal values, but testing shows
-    # that GDB reports all flags as 0 after memmove completes
-    state.flags[:C] = false
-    state.flags[:Z] = false
-    state.flags[:N] = false
-    state.flags[:V] = false
-
-    # Sync flags to SR register
-    state.registers[:SR] =
-        (state.registers[:SR] & 0xFFF0) |
-        (state.flags[:V] ? 0x0100 : 0x0000) |
-        (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000) |
-        (state.flags[:C] ? 0x0001 : 0x0000)
-
-    @debug "Fast-path: memmove/memcpy copied $num bytes from 0x$(string(src, base=16, pad=4)) to 0x$(string(dest, base=16, pad=4))"
-    return nothing
-end
-
-"""
-memset/memmove/memcpy functions are reasonably fast in real hardward
-but extremely slow in our interpreter.
-We handle the function calls with fast-path optimizations.
-"""
-function try_fast_path_call!(
-    state::MachineState,
-    call_target::UInt32,
-    func_addrs::Dict{String,UInt32},
-    addresses::Vector{UInt32},
-    current_idx::Int,
-)::Bool
-    # memset
-    memset_addr = get(func_addrs, "memset", nothing)
-    if !isnothing(memset_addr) && call_target == memset_addr
-        handle_memset!(state)
-        state.registers[:PC] = addresses[current_idx + 1]
-        return true
-    end
-
-    # memmove/memcpy
-    memmove_addr = get(func_addrs, "memmove", nothing)
-    memcpy_addr = get(func_addrs, "memcpy", nothing)
-    if (!isnothing(memmove_addr) && call_target == memmove_addr) ||
-        (!isnothing(memcpy_addr) && call_target == memcpy_addr)
-        handle_memmove!(state)
-        state.registers[:PC] = addresses[current_idx + 1]
-        return true
-    end
-
-    return false
-end
 
 """
 Interpret MSP430 program
@@ -249,7 +259,8 @@ function interpret_program(
     instructions::Vector{Instruction},
     addresses::Vector{UInt32},
     func_addrs::Dict{String,UInt32},
-    max_steps::Int,
+    max_steps::Int;
+    data_file::Union{String,Nothing}=nothing,
 )::Tuple{MachineState,Vector{Vector{Instruction}}}
     @info "="^60
     @info "Interpret Program"
@@ -288,6 +299,10 @@ function interpret_program(
     state = MachineState()
     state.registers[:PC] = addresses[1]  # Start at the first instruction address
 
+    if !isnothing(data_file)
+        load_memory_dump!(state, data_file)
+    end
+
     @debug "Initial machine state" pc = string(state.registers[:PC]; base=16, pad=4) sp = string(
         state.registers[:SP]; base=16, pad=4
     ) PC = state.registers[:PC] SP = state.registers[:SP] SR = state.registers[:SR] r3 = state.registers[:R3] r4 = state.registers[:R4] r5 = state.registers[:R5]
@@ -312,6 +327,10 @@ function interpret_program(
 
         try
             old_pc = state.registers[:PC]
+            debug_enabled = Logging.shouldlog(
+                current_logger(), Logging.Debug, @__MODULE__, "", nothing
+            )
+            old_regs = debug_enabled ? copy(state.registers) : nothing
 
             # Pre-check if this is a call instruction to avoid multiple function checks
             is_call = inst.opcode == :call
@@ -357,13 +376,6 @@ function interpret_program(
                 end
             end
 
-            # Try fast-path optimization for common library functions
-            if is_call && try_fast_path_call!(
-                state, call_target, func_addrs, addresses, current_addr_idx
-            )
-                continue
-            end
-
             # Execute the instruction
             execute_instruction!(state, inst, addresses, current_addr_idx)
             push!(current_sequence, inst)
@@ -375,9 +387,7 @@ function interpret_program(
             end
 
             # Debug logging only when needed
-            if Logging.shouldlog(current_logger(), Logging.Debug, @__MODULE__, "", nothing)
-                # Only copy registers when debug logging is active
-                old_regs = copy(state.registers)
+            if debug_enabled && old_regs !== nothing
                 if (msg = _memory_op_debug_msg(state, inst, old_regs)) !== nothing
                     @debug msg
                 end

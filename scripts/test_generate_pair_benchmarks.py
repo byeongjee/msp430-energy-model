@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from generate_pair_benchmarks import (
+from populate_pairs_benchmarks import (
     generate_pair_benchmark,
     get_all_instruction_specs,
 )
@@ -319,10 +319,16 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         - rlam: 4 variants (constants 1, 2, 3, 4)
         - jmp: 1 variant
         - jge: 1 variant
-        Total: 3×28 + 4 + 4 + 1 + 1 = 94 instruction keys
+        - jl: 1 variant
+        - jnz: 1 variant
+        - jz: 1 variant
+        - jnc: 1 variant
+        - jc: 1 variant
+        - jn: 1 variant
+        Total: 3×28 + 4 + 4 + 8×1 = 100 instruction keys
         """
         specs = get_all_instruction_specs()
-        self.assertEqual(len(specs), 94)
+        self.assertEqual(len(specs), 100)
 
         # Count by opcode
         opcode_counts = {}
@@ -336,6 +342,12 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         self.assertEqual(opcode_counts["rlam"], 4)
         self.assertEqual(opcode_counts["jmp"], 1)
         self.assertEqual(opcode_counts["jge"], 1)
+        self.assertEqual(opcode_counts["jl"], 1)
+        self.assertEqual(opcode_counts["jnz"], 1)
+        self.assertEqual(opcode_counts["jz"], 1)
+        self.assertEqual(opcode_counts["jnc"], 1)
+        self.assertEqual(opcode_counts["jc"], 1)
+        self.assertEqual(opcode_counts["jn"], 1)
 
 
 class TestKeyGeneration(unittest.TestCase):

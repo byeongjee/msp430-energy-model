@@ -25,12 +25,10 @@ DEFINES=""  # Space-separated list of compiler macros
 
 # Required parameters (to be set via command line)
 TRAIN_FILES=""  # Pattern for training files (supports glob patterns and brace expansion)
-TRAINING_RAW_CSV=""  # Semicolon-separated list (optional, for resuming)
 TRAINING_SEGMENTS_CSV=""  # Semicolon-separated list (optional, for resuming)
 PARAMS_FILE=""
 
 # Optional intermediate files
-USE_TEMP_TRAINING_RAW=0
 USE_TEMP_TRAINING_SEGMENTS=0
 USE_TEMP_PARAMS=0
 
@@ -44,7 +42,6 @@ Required arguments:
   --train-files PATTERN     C file(s) to train the model from (supports glob patterns and brace expansion)
 
 Optional arguments:
-  --training-raw-csv PATTERN     Raw measurement CSV file(s) for training (semicolon-separated list or glob pattern; automatically matched to training files by basename)
   --training-segments-csv PATTERN  Preprocessed segments CSV file(s) for training (semicolon-separated list or glob pattern; automatically matched to training files by basename)
   --params FILE             Model parameters JSON file (default: temp file)
   --tag TAG                 Tag for naming output files (default: process ID)
@@ -85,10 +82,6 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --train-files)
             TRAIN_FILES="$2"
-            shift 2
-            ;;
-        --training-raw-csv)
-            TRAINING_RAW_CSV="$2"
             shift 2
             ;;
         --training-segments-csv)
@@ -196,17 +189,10 @@ else
     FILE_SUFFIX="${TIMESTAMP}"
 fi
 
-# Setup training file arrays for raw and segment CSVs
-TRAINING_RAW_CSV_ARRAY=()
+# Setup training file array for segment CSVs
 TRAINING_SEGMENTS_CSV_ARRAY=()
 
-# Match training files to CSVs by basename (supports glob patterns)
-if [[ -n "$TRAINING_RAW_CSV" ]]; then
-    log_info "Matching training raw CSVs by basename..."
-    csv_matches=$(match_files_by_basename "TRAIN_FILE_ARRAY" "$TRAINING_RAW_CSV" "training raw CSV")
-    mapfile -t TRAINING_RAW_CSV_ARRAY <<< "$csv_matches"
-fi
-
+# Match training files to segment CSVs by basename (supports glob patterns)
 if [[ -n "$TRAINING_SEGMENTS_CSV" ]]; then
     log_info "Matching training segments CSVs by basename..."
     csv_matches=$(match_files_by_basename "TRAIN_FILE_ARRAY" "$TRAINING_SEGMENTS_CSV" "training segments CSV")
@@ -217,14 +203,6 @@ fi
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
     basename=$(basename "$train_file" .c)
-
-    # Raw CSV - use temp file if no match found
-    if [[ -z "${TRAINING_RAW_CSV_ARRAY[$i]:-}" ]]; then
-        TRAINING_RAW_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_${TIMESTAMP}.csv"
-        USE_TEMP_TRAINING_RAW=1
-    else
-        log_info "  Matched raw CSV for $basename: ${TRAINING_RAW_CSV_ARRAY[$i]}"
-    fi
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
@@ -291,53 +269,12 @@ if [[ -n "$DEFINES" ]]; then
 fi
 
 # Determine which steps to skip based on provided intermediate files
-SKIP_MEASUREMENT=0
-SKIP_PREPROCESSING=0
 SKIP_TRAINING=0
 
-# Check if all training segment CSVs exist
-ALL_TRAINING_SEGMENTS_EXIST=1
-if [[ -n "$TRAINING_SEGMENTS_CSV" ]] && [[ $USE_TEMP_TRAINING_SEGMENTS -eq 0 ]]; then
-    for csv in "${TRAINING_SEGMENTS_CSV_ARRAY[@]}"; do
-        if [[ ! -f "$csv" ]]; then
-            ALL_TRAINING_SEGMENTS_EXIST=0
-            break
-        fi
-    done
-else
-    ALL_TRAINING_SEGMENTS_EXIST=0
-fi
-
-# Check if all training raw CSVs exist
-ALL_TRAINING_RAW_EXIST=1
-if [[ -n "$TRAINING_RAW_CSV" ]] && [[ $USE_TEMP_TRAINING_RAW -eq 0 ]]; then
-    for csv in "${TRAINING_RAW_CSV_ARRAY[@]}"; do
-        if [[ ! -f "$csv" ]]; then
-            ALL_TRAINING_RAW_EXIST=0
-            break
-        fi
-    done
-else
-    ALL_TRAINING_RAW_EXIST=0
-fi
-
-# If PARAMS provided and exists, skip all steps
+# If PARAMS provided and exists, skip training
 if [[ -n "$PARAMS_FILE" ]] && [[ -f "$PARAMS_FILE" ]] && [[ $USE_TEMP_PARAMS -eq 0 ]]; then
-    SKIP_MEASUREMENT=1
-    SKIP_PREPROCESSING=1
     SKIP_TRAINING=1
-    log_info "Using existing params: $PARAMS_FILE (all steps skipped)"
-fi
-
-# Check training segments - if provided, skip measurement and preprocessing
-if [[ $ALL_TRAINING_SEGMENTS_EXIST -eq 1 ]]; then
-    SKIP_MEASUREMENT=1
-    SKIP_PREPROCESSING=1
-    log_info "Using existing training segments (${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files) - skipping measurement and preprocessing"
-# Else if all TRAINING_RAW_CSV provided and exist, skip measurement only
-elif [[ $ALL_TRAINING_RAW_EXIST -eq 1 ]]; then
-    SKIP_MEASUREMENT=1
-    log_info "Using existing training raw CSVs (${#TRAINING_RAW_CSV_ARRAY[@]} files) - skipping measurement"
+    log_info "Using existing params: $PARAMS_FILE (training skipped)"
 fi
 
 # Cleanup function
@@ -349,15 +286,6 @@ cleanup() {
 
     if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
         return
-    fi
-
-    if [[ $USE_TEMP_TRAINING_RAW -eq 1 ]]; then
-        for csv in "${TRAINING_RAW_CSV_ARRAY[@]}"; do
-            if [[ -f "$csv" ]]; then
-                log_info "Cleaning up temporary training raw CSV: $csv"
-                rm -f "$csv"
-            fi
-        done
     fi
 
     if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 1 ]]; then
@@ -392,93 +320,69 @@ log_info "Output params file: $PARAMS_FILE"
 mkdir -p "$BUILD_DIR" "$ASM_DIR"
 cd "$PROJECT_ROOT"
 
-# Training measurement (compile, flash, measure each training file)
-if [[ $SKIP_MEASUREMENT -eq 0 ]]; then
-    MEASURED_COUNT=0
-    SKIPPED_COUNT=0
+# Process each training file individually: measure → preprocess → remove raw data
+PROCESSED_COUNT=0
+SKIPPED_COUNT=0
 
-    for i in "${!TRAIN_FILE_ARRAY[@]}"; do
-        train_file="${TRAIN_FILE_ARRAY[$i]}"
-        train_basename=$(basename "$train_file" .c)
-        training_raw_csv="${TRAINING_RAW_CSV_ARRAY[$i]}"
-        training_segments_csv="${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
-
-        log_info ""
-        log_info "Training file $((i+1))/${#TRAIN_FILE_ARRAY[@]}: $train_file"
-
-        # Check if segments CSV already exists for this file
-        if [[ -f "$training_segments_csv" ]]; then
-            log_info "✓ Segments CSV already exists: $training_segments_csv - SKIPPING measurement"
-            SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
-            continue
-        fi
-
-        # Compile training file
-        log_step "Compiling training file ($train_basename)"
-        $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
-        log_success "Compiled: $BUILD_DIR/${train_basename}.elf"
-
-        # Flash training file to device
-        log_step "Flashing training file to device ($train_basename)"
-        log_info "Flashing $BUILD_DIR/${train_basename}.elf..."
-        mspdebug tilib "prog $BUILD_DIR/${train_basename}.elf" "exit"
-        log_success "Flashed to device"
-
-        # Measure training file energy
-        log_step "Measuring training file energy consumption ($train_basename)"
-        log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-        python3 "$MEASURE_PY" \
-            --voltage "$VOLTAGE" \
-            --max_current "$MAX_CURRENT" \
-            --outfile "$training_raw_csv" \
-            $SKIP_RESET
-        log_success "Training raw measurement saved: $training_raw_csv"
-        MEASURED_COUNT=$((MEASURED_COUNT + 1))
-    done
+for i in "${!TRAIN_FILE_ARRAY[@]}"; do
+    train_file="${TRAIN_FILE_ARRAY[$i]}"
+    train_basename=$(basename "$train_file" .c)
+    training_segments_csv="${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
+    event_labels_json="${TRAINING_EVENT_LABELS_ARRAY[$i]}"
+    training_raw_csv="$TEMP_DIR/${train_basename}_${TIMESTAMP}.csv"
 
     log_info ""
-    log_info "Measurement summary: $MEASURED_COUNT measured, $SKIPPED_COUNT skipped (already have segments CSV)"
-else
-    log_step "Training measurement SKIPPED (using existing training raw CSVs: ${#TRAINING_RAW_CSV_ARRAY[@]} files)"
-fi
+    log_info "Processing training file $((i+1))/${#TRAIN_FILE_ARRAY[@]}: $train_file"
+
+    # Check if segments CSV already exists for this file
+    if [[ -f "$training_segments_csv" ]]; then
+        log_info "✓ Segments CSV already exists: $training_segments_csv - SKIPPING measurement and preprocessing"
+        SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+        continue
+    fi
+
+    # Compile training file
+    log_step "Compiling training file ($train_basename)"
+    $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
+    log_success "Compiled: $BUILD_DIR/${train_basename}.elf"
+
+    # Flash training file to device
+    log_step "Flashing training file to device ($train_basename)"
+    log_info "Flashing $BUILD_DIR/${train_basename}.elf..."
+    mspdebug tilib "prog $BUILD_DIR/${train_basename}.elf" "exit"
+    log_success "Flashed to device"
+
+    # Measure training file energy
+    log_step "Measuring training file energy consumption ($train_basename)"
+    log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
+    python3 "$MEASURE_PY" \
+        --voltage "$VOLTAGE" \
+        --max_current "$MAX_CURRENT" \
+        --outfile "$training_raw_csv" \
+        $SKIP_RESET
+    log_success "Training raw measurement saved: $training_raw_csv"
+
+    # Preprocess immediately after measurement
+    log_step "Preprocessing training measurements ($train_basename)"
+    python3 "$PREPROCESS_PY" \
+        --input "$training_raw_csv" \
+        --output "$training_segments_csv" \
+        --event-labels "$event_labels_json"
+    log_success "Training segments saved: $training_segments_csv"
+
+    # Remove raw data immediately after preprocessing
+    rm -f "$training_raw_csv"
+    log_info "Removed raw data: $training_raw_csv"
+
+    PROCESSED_COUNT=$((PROCESSED_COUNT + 1))
+done
+
+log_info ""
+log_info "Processing summary: $PROCESSED_COUNT processed, $SKIPPED_COUNT skipped (already have segments CSV)"
 
 echo ""
 log_info "==> Hardware no longer required - remaining steps can run offline"
 echo ""
-
-# Preprocess training measurements
-if [[ $SKIP_PREPROCESSING -eq 0 ]]; then
-    PREPROCESSED_COUNT=0
-    SKIPPED_PREPROCESS_COUNT=0
-
-    for i in "${!TRAINING_RAW_CSV_ARRAY[@]}"; do
-        training_raw_csv="${TRAINING_RAW_CSV_ARRAY[$i]}"
-        training_segments_csv="${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
-        train_file="${TRAIN_FILE_ARRAY[$i]}"
-        train_basename=$(basename "$train_file" .c)
-        event_labels_json="${TRAINING_EVENT_LABELS_ARRAY[$i]}"
-
-        # Check if segments CSV already exists
-        if [[ -f "$training_segments_csv" ]]; then
-            log_info "✓ Segments CSV already exists: $training_segments_csv - SKIPPING preprocessing"
-            SKIPPED_PREPROCESS_COUNT=$((SKIPPED_PREPROCESS_COUNT + 1))
-            continue
-        fi
-
-        log_step "Preprocessing training measurements ($train_basename)"
-        python3 "$PREPROCESS_PY" \
-            --input "$training_raw_csv" \
-            --output "$training_segments_csv" \
-            --event-labels "$event_labels_json"
-        log_success "Training segments saved: $training_segments_csv"
-        PREPROCESSED_COUNT=$((PREPROCESSED_COUNT + 1))
-    done
-
-    log_info ""
-    log_info "Preprocessing summary: $PREPROCESSED_COUNT preprocessed, $SKIPPED_PREPROCESS_COUNT skipped (already exist)"
-else
-    log_step "Preprocessing SKIPPED (using existing training segments CSVs: ${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files)"
-fi
 
 # Train energy model
 if [[ $SKIP_TRAINING -eq 0 ]]; then
@@ -490,8 +394,8 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
         train_file="${TRAIN_FILE_ARRAY[$i]}"
         train_basename=$(basename "$train_file" .c)
 
-        # Need to compile if we skipped measurement
-        if [[ $SKIP_MEASUREMENT -eq 1 ]]; then
+        # Compile if .elf doesn't exist (e.g., when resuming from segments)
+        if [[ ! -f "$BUILD_DIR/${train_basename}.elf" ]]; then
             log_info "Compiling $train_basename"
             $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
         fi
@@ -520,12 +424,6 @@ log_step "TRAINING PIPELINE COMPLETE"
 log_success "Training completed successfully!"
 echo ""
 log_info "Output files:"
-if [[ $USE_TEMP_TRAINING_RAW -eq 0 ]]; then
-    echo "  - Training Raw CSVs (${#TRAINING_RAW_CSV_ARRAY[@]} files):"
-    for csv in "${TRAINING_RAW_CSV_ARRAY[@]}"; do
-        echo "      $csv"
-    done
-fi
 if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 0 ]]; then
     echo "  - Training Segments CSVs (${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files):"
     for csv in "${TRAINING_SEGMENTS_CSV_ARRAY[@]}"; do

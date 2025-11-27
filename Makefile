@@ -15,6 +15,8 @@ OBJCOPY := $(MSP430GCC_TOOLCHAIN_PATH)/bin/msp430-elf-objcopy
 
 # Device configuration
 DEVICE := MSP430FR5994
+# Sections to dump for interpreter data preload
+DATA_SECTIONS := .rodata .rodata2 .data .lower.data .upper.data .persistent .text
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MKFILE_DIR := $(dir $(MKFILE_PATH))
@@ -89,8 +91,10 @@ endif
 disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c>)
 	@echo "Disassembling binary..."
 	@BASENAME=$$(basename $(FILE) .c); \
-	$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm
-	@echo "✓ Disassembly saved to: $(ASM_DIR)/$$(basename $(FILE) .c).asm"
+	$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm; \
+	echo "✓ Disassembly saved to: $(ASM_DIR)/$$(basename $(FILE) .c).asm"; \
+	$(OBJDUMP) -s $(addprefix -j ,$(DATA_SECTIONS)) $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.data; \
+	echo "✓ Data dump saved to: $(ASM_DIR)/$$(basename $(FILE) .c).data"
 
 
 interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
@@ -98,7 +102,8 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>])
 	@BASENAME=$$(basename $(FILE) .c); \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
-	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG
+	DATA_DUMP_FLAG="--data-dump $(ASM_DIR)/$$BASENAME.data"; \
+	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG
 	@echo "✓ Interpret completed!"
 
 train: MODEL?=mean_per_addressing_mode
@@ -110,7 +115,6 @@ endif
 	@ARGS=("--train-files" "$(FILES)"); \
 	[ -n "$(PARAMS)" ] && ARGS+=("--params" "$(PARAMS)"); \
 	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
-	[ -n "$(TRAINING_RAW_CSV)" ] && ARGS+=("--training-raw-csv" "$(TRAINING_RAW_CSV)"); \
 	[ -n "$(TRAINING_SEGMENTS_CSV)" ] && ARGS+=("--training-segments-csv" "$(TRAINING_SEGMENTS_CSV)"); \
 	[ -n "$(VOLTAGE)" ] && ARGS+=("--voltage" "$(VOLTAGE)"); \
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
@@ -133,7 +137,8 @@ endif
 	if [ -n "$(PLOT)" ]; then PLOT_FLAG="--plot $(PLOT)"; fi; \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
-	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG
+	DATA_DUMP_FLAG="--data-dump $(ASM_DIR)/$$BASENAME.data"; \
+	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG
 	@echo "✓ Estimation completed!"
 
 train_and_estimate: MODEL?=mean_per_addressing_mode
@@ -147,8 +152,6 @@ ifndef ESTIMATE_FILE
 endif
 	@ARGS=("--train-files" "$(TRAIN_FILES)" "--estimate-file" "$(ESTIMATE_FILE)"); \
 	[ -n "$(TAG)" ] && ARGS+=("--tag" "$(TAG)"); \
-	[ -n "$(TRAINING_RAW_CSV)" ] && ARGS+=("--training-raw-csv" "$(TRAINING_RAW_CSV)"); \
-	[ -n "$(TEST_RAW_CSV)" ] && ARGS+=("--test-raw-csv" "$(TEST_RAW_CSV)"); \
 	[ -n "$(TRAINING_SEGMENTS_CSV)" ] && ARGS+=("--training-segments-csv" "$(TRAINING_SEGMENTS_CSV)"); \
 	[ -n "$(TEST_SEGMENTS_CSV)" ] && ARGS+=("--test-segments-csv" "$(TEST_SEGMENTS_CSV)"); \
 	[ -n "$(PARAMS)" ] && ARGS+=("--params" "$(PARAMS)"); \

@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from generate_addressing_mode_benchmarks import (
+from populate_addressing_mode_benchmarks import (
     generate_benchmark,
     get_all_instruction_specs,
 )
@@ -291,10 +291,16 @@ INLINE void bench_inc_register(void) {
         - rlam: 4 variants (constants 1, 2, 3, 4)
         - jmp: 1 variant
         - jge: 1 variant
-        Total: 280 + 8 + 4 + 1 + 1 = 294 instruction keys
+        - jl: 1 variant
+        - jnz: 1 variant
+        - jz: 1 variant
+        - jnc: 1 variant
+        - jc: 1 variant
+        - jn: 1 variant
+        Total: 280 + 8 + 4 + 8×1 = 300 instruction keys
         """
         specs = get_all_instruction_specs()
-        self.assertEqual(len(specs), 294)
+        self.assertEqual(len(specs), 300)
 
         # Count by opcode
         opcode_counts = {}
@@ -313,6 +319,12 @@ INLINE void bench_inc_register(void) {
         self.assertEqual(opcode_counts["rlam"], 4)
         self.assertEqual(opcode_counts["jmp"], 1)
         self.assertEqual(opcode_counts["jge"], 1)
+        self.assertEqual(opcode_counts["jl"], 1)
+        self.assertEqual(opcode_counts["jnz"], 1)
+        self.assertEqual(opcode_counts["jz"], 1)
+        self.assertEqual(opcode_counts["jnc"], 1)
+        self.assertEqual(opcode_counts["jc"], 1)
+        self.assertEqual(opcode_counts["jn"], 1)
 
     def test_dual_operand_exhaustiveness(self):
         """Verify all 28 combinations are generated for dual-operand instructions
@@ -321,7 +333,7 @@ INLINE void bench_inc_register(void) {
         - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, indirect_auto
         - 4 destination modes: register, indexed, symbolic, absolute
         """
-        from generate_addressing_mode_benchmarks import create_dual_operand_specs
+        from benchmark_common import create_dual_operand_specs
 
         specs = create_dual_operand_specs("add")
         self.assertEqual(len(specs), 28)

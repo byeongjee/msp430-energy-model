@@ -27,6 +27,59 @@ function parse_assembly(
 end
 
 """
+Parse the RPT part of: rpt #N { instruction
+Returns an RPT instruction with the count as operand.
+"""
+function parse_rpt_instruction(line::String, current_addr::UInt32)::Union{Instruction,Nothing}
+    # Format: "rpt #N { instruction"
+    # Extract the repeat count from the part before {
+    parts = split(line, "{")
+    if length(parts) < 2
+        return nothing
+    end
+
+    rpt_part = strip(parts[1])
+    rpt_tokens = split(rpt_part)
+
+    if length(rpt_tokens) < 2
+        return nothing
+    end
+
+    # Parse the repeat count (should be #N format)
+    count_str = strip(rpt_tokens[2])
+    if !startswith(count_str, "#")
+        return nothing
+    end
+
+    count_value = parse(Int, count_str[2:end])
+
+    # Create RPT instruction with the count as an immediate operand
+    operands = [Operand(UInt32(count_value), :immediate)]
+
+    return Instruction(:rpt, operands, :word)
+end
+
+"""
+Parse the nested instruction part of: rpt #N { instruction
+Returns the instruction that should be repeated.
+"""
+function parse_rpt_nested_instruction(
+    line::String, current_addr::UInt32
+)::Union{Instruction,Nothing}
+    # Format: "rpt #N { instruction"
+    # Extract the instruction after {
+    parts = split(line, "{")
+    if length(parts) < 2
+        return nothing
+    end
+
+    nested_instr = String(strip(parts[2]))
+
+    # Parse the nested instruction normally
+    return parse_line(nested_instr, current_addr)
+end
+
+"""
 Parse a single line of MSP430 assembly
 """
 function parse_line(line::String, current_addr::UInt32)::Union{Instruction,Nothing}
@@ -38,6 +91,7 @@ function parse_line(line::String, current_addr::UInt32)::Union{Instruction,Nothi
     if endswith(line, ":")
         return nothing
     end
+
 
     parts = split(line)
 
