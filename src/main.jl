@@ -92,11 +92,17 @@ function run_interpret(
     @info "Successfully executed MSP430 instructions" count = length(instructions)
     @info "Number of events" count = length(event_sequences)
 
+    all_opcodes = Set{String}()
     for (i, event) in enumerate(event_sequences)
         unique_opcodes = unique([string(inst.opcode) for inst in event])
         sort!(unique_opcodes)
+        union!(all_opcodes, unique_opcodes)
         opcodes_str = join(unique_opcodes, " ")
         @info "Event $i" instructions = length(event) unique_opcodes = opcodes_str
+    end
+    if !isempty(all_opcodes)
+        opcodes_str = join(sort(collect(all_opcodes)), " ")
+        @info "All events" unique_opcodes = opcodes_str
     end
 
     return final_state
