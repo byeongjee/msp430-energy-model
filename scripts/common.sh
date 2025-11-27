@@ -31,6 +31,10 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1" >&2
+}
+
 log_step() {
     echo ""
     echo -e "${YELLOW}======================================${NC}"

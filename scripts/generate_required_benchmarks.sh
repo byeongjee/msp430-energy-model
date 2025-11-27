@@ -137,7 +137,7 @@ python "$REPO_ROOT/scripts/list_benchmarks.py" --granularity "$GRANULARITY" \
 MISSING_COUNT=$(jq '.missing | length' "$FILTERED_JSON")
 if [[ "$MISSING_COUNT" -gt 0 ]]; then
     MISSING_KEYS="$(jq -r '.missing | join(" ")' "$FILTERED_JSON")"
-    echo "WARNING: Missing benchmarks in list_benchmarks.py for: $MISSING_KEYS" >&2
+    log_warn "Missing benchmarks in list_benchmarks.py for: $MISSING_KEYS"
 fi
 
 if [[ -n "$OUTPUT_DIR" ]]; then
