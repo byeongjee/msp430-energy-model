@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test cases for generate_addressing_mode_benchmarks.py
+Test cases for gen_benchmarks.py (instruction granularity)
 
 These tests validate the generated C code and serve as documentation
 showing what the generator produces for different instruction variations.
@@ -17,10 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from populate_addressing_mode_benchmarks import (
-    generate_benchmark,
-    get_all_instruction_specs,
-)
+from gen_benchmarks import generate_benchmark, get_all_instruction_specs
 
 
 class TestGeneratedCode(unittest.TestCase):

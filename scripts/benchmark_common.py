@@ -331,6 +331,41 @@ def create_jn_specs() -> List[InstructionSpec]:
     ]
 
 
+def get_instruction_specs(granularity: str) -> List[InstructionSpec]:
+    """Return instruction specs for the requested benchmark granularity.
+
+    granularity:
+        - "instruction": exhaustive addressing-mode coverage (per-instruction)
+        - "pair": subset used for pair benchmarks
+    """
+    granularity = granularity.lower()
+    specs: List[InstructionSpec] = []
+
+    if granularity == "instruction":
+        for opcode in ["add", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+            specs.extend(create_dual_operand_specs(opcode))
+        for opcode in ["inc", "dec"]:
+            specs.extend(create_single_operand_specs(opcode))
+    elif granularity == "pair":
+        for opcode in ["add", "mov", "cmp"]:
+            specs.extend(create_dual_operand_specs(opcode))
+        specs.extend(create_single_operand_specs("inc"))
+    else:
+        raise ValueError(f"Unsupported granularity '{granularity}'. Expected 'instruction' or 'pair'.")
+
+    specs.extend(create_rlam_specs())
+    specs.extend(create_jmp_specs())
+    specs.extend(create_jge_specs())
+    specs.extend(create_jl_specs())
+    specs.extend(create_jnz_specs())
+    specs.extend(create_jz_specs())
+    specs.extend(create_jnc_specs())
+    specs.extend(create_jc_specs())
+    specs.extend(create_jn_specs())
+
+    return specs
+
+
 # ============================================================================
 # Jinja2 Templates
 # ============================================================================
