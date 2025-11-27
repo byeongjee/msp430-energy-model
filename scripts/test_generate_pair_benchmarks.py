@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test cases for generate_pair_benchmarks.py
+Test cases for gen_benchmarks.py (pair granularity)
 
 These tests validate the generated C code and serve as documentation
 showing what the generator produces for different instruction pairs.
@@ -17,10 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from populate_pairs_benchmarks import (
-    generate_pair_benchmark,
-    get_all_instruction_specs,
-)
+from gen_benchmarks import generate_pair_benchmark, get_all_instruction_specs
 
 
 class TestGeneratedCode(unittest.TestCase):
@@ -327,7 +324,7 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         - jn: 1 variant
         Total: 3×28 + 4 + 4 + 8×1 = 100 instruction keys
         """
-        specs = get_all_instruction_specs()
+        specs = get_all_instruction_specs(granularity="pair")
         self.assertEqual(len(specs), 100)
 
         # Count by opcode
