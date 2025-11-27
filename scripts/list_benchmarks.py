@@ -27,6 +27,10 @@ from benchmark_common import (
     normalize_granularity,
 )
 
+# Benchmarks for these opcodes can corrupt memory; skip them here.
+# TODO: add safe handling for pushm/popm/call/ret generation.
+UNSAFE_OPCODES = {"pushm", "popm", "call", "ret"}
+
 
 def list_instruction_keys(specs: List[InstructionSpec]) -> dict:
     """Create JSON payload for instruction-level benchmarks"""
@@ -111,7 +115,7 @@ def main():
     args = parser.parse_args()
 
     normalized = normalize_granularity(args.granularity)
-    specs = get_instruction_specs(normalized)
+    specs = [spec for spec in get_instruction_specs(normalized) if spec.opcode not in UNSAFE_OPCODES]
 
     if normalized.endswith("pair"):
         output_data = list_pair_keys(specs)
