@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test cases for gen_benchmarks.py (pair granularity)
+Test cases for gen_benchmarks.py (pair granularities)
 
 These tests validate the generated C code and serve as documentation
 showing what the generator produces for different instruction pairs.
@@ -324,19 +324,19 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         - jn: 1 variant
         Total: 3×28 + 4 + 4 + 8×1 = 100 instruction keys
         """
-        specs = get_all_instruction_specs(granularity="pair")
-        self.assertEqual(len(specs), 100)
+        specs = get_all_instruction_specs(granularity="addressing_mode_pair")
+        self.assertEqual(len(specs), 297)
 
         # Count by opcode
         opcode_counts = {}
         for spec in specs:
             opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
 
-        self.assertEqual(opcode_counts["add"], 28)
-        self.assertEqual(opcode_counts["mov"], 28)
-        self.assertEqual(opcode_counts["cmp"], 28)
-        self.assertEqual(opcode_counts["inc"], 4)
-        self.assertEqual(opcode_counts["rlam"], 4)
+        for opcode in ["add", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+            self.assertEqual(opcode_counts[opcode], 28)
+        for opcode in ["inc", "dec"]:
+            self.assertEqual(opcode_counts[opcode], 4)
+        self.assertEqual(opcode_counts["rlam"], 1)
         self.assertEqual(opcode_counts["jmp"], 1)
         self.assertEqual(opcode_counts["jge"], 1)
         self.assertEqual(opcode_counts["jl"], 1)
