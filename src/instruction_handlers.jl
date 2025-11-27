@@ -846,11 +846,9 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    masked_operand = apply_data_size_mask(operand_val, data_size)
-    result = masked_operand + UInt32(1)
-    masked_result = apply_data_size_mask(result, data_size)
-    update_flags!(state, masked_result, masked_operand, UInt32(1), true, data_size)
-    set_operand_value!(state, ops[1], masked_result, data_size)
+    result = operand_val + UInt32(1)
+    update_flags!(state, result, operand_val, UInt32(1), true, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
 
@@ -867,11 +865,9 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    masked_operand = apply_data_size_mask(operand_val, data_size)
-    result = masked_operand - UInt32(1)
-    masked_result = apply_data_size_mask(result, data_size)
-    update_flags!(state, masked_result, masked_operand, UInt32(1), false, data_size)
-    set_operand_value!(state, ops[1], masked_result, data_size)
+    result = operand_val - UInt32(1)
+    update_flags!(state, result, operand_val, UInt32(1), false, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
 
@@ -1031,11 +1027,9 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    masked_operand = apply_data_size_mask(operand_val, data_size)
-    result = masked_operand - UInt32(2)
-    masked_result = apply_data_size_mask(result, data_size)
-    update_flags!(state, masked_result, masked_operand, UInt32(2), false, data_size)
-    set_operand_value!(state, ops[1], masked_result, data_size)
+    result = operand_val - UInt32(2)
+    update_flags!(state, result, operand_val, UInt32(2), false, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
 
@@ -1052,11 +1046,9 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    masked_operand = apply_data_size_mask(operand_val, data_size)
-    result = masked_operand + UInt32(2)
-    masked_result = apply_data_size_mask(result, data_size)
-    update_flags!(state, masked_result, masked_operand, UInt32(2), true, data_size)
-    set_operand_value!(state, ops[1], masked_result, data_size)
+    result = operand_val + UInt32(2)
+    update_flags!(state, result, operand_val, UInt32(2), true, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
 
