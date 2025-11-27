@@ -29,7 +29,7 @@ static fingerprint_t filter[NUM_BUCKETS];
 // doesn't support initializing variables from data section
 static uint16_t lfsr_state;
 
-static uint16_t simple_rand(void) {
+INLINE uint16_t simple_rand(void) {
   // If the last bit is 1, shift and XOR. If 0, just shift.
   // 0xB400 is the tap configuration for a 16-bit maximal-length LFSR
   if (lfsr_state & 1) {
@@ -42,7 +42,7 @@ static uint16_t simple_rand(void) {
 
 // --- Core Cuckoo Logic ---
 
-static hash_t djb_hash(uint8_t *data, unsigned len) {
+INLINE hash_t djb_hash(uint8_t *data, unsigned len) {
   uint32_t hash = 5381;
   unsigned int i;
   for (i = 0; i < len; data++, i++)
@@ -51,28 +51,28 @@ static hash_t djb_hash(uint8_t *data, unsigned len) {
 }
 
 // Map a fingerprint to an index
-static index_t hash_fp_to_index(fingerprint_t fp) {
+INLINE index_t hash_fp_to_index(fingerprint_t fp) {
   hash_t hash = djb_hash((uint8_t *)&fp, sizeof(fingerprint_t));
   return hash & (NUM_BUCKETS - 1);
 }
 
 // Map a key (original value) to an index
-static index_t hash_key_to_index(value_t key) {
+INLINE index_t hash_key_to_index(value_t key) {
   hash_t hash = djb_hash((uint8_t *)&key, sizeof(value_t));
   return hash & (NUM_BUCKETS - 1);
 }
 
 // Generate the fingerprint (short hash) for a key
-static fingerprint_t hash_to_fingerprint(value_t key) {
+INLINE fingerprint_t hash_to_fingerprint(value_t key) {
   fingerprint_t fp = djb_hash((uint8_t *)&key, sizeof(value_t));
   // Fingerprint cannot be 0 (0 denotes empty slot)
   return (fp == 0) ? 1 : fp;
 }
 
 // Deterministic key generator for testing
-static value_t generate_key(value_t prev_key) { return (prev_key + 1) * 17; }
+INLINE value_t generate_key(value_t prev_key) { return (prev_key + 1) * 17; }
 
-static bool insert(fingerprint_t *filter, value_t key) {
+INLINE bool insert(fingerprint_t *filter, value_t key) {
   fingerprint_t fp1, fp2, fp_victim, fp_next_victim;
   index_t index_victim, fp_hash_victim;
   unsigned relocation_count = 0;
@@ -133,7 +133,7 @@ static bool insert(fingerprint_t *filter, value_t key) {
   return true;
 }
 
-static bool lookup(fingerprint_t *filter, value_t key) {
+INLINE bool lookup(fingerprint_t *filter, value_t key) {
   fingerprint_t fp = hash_to_fingerprint(key);
   index_t index1 = hash_key_to_index(key);
   index_t fp_hash = hash_fp_to_index(fp);
