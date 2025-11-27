@@ -30,6 +30,7 @@ function run_estimate(
     max_steps::Int,
     n_samples::Int,
     output_file::Union{String,Nothing}=nothing,
+    data_dump::Union{String,Nothing}=nothing,
 )::Nothing
     @info "Running in ESTIMATE mode"
     @info "Assembly file" path = asm_file
@@ -51,7 +52,7 @@ function run_estimate(
     @info "Executing program to get event sequences"
     start_time = time()
     _, event_sequences = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps
+        instructions, addresses, func_addrs, max_steps; data_file=data_dump
     )
     inference_time = time() - start_time
 

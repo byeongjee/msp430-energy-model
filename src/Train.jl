@@ -35,7 +35,7 @@ function process_training_file(
     end
 
     _, event_sequences = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps
+        instructions, addresses, func_addrs, max_steps; data_file=nothing
     )
 
     @info "Reading measurement data from CSV"

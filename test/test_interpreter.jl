@@ -39,7 +39,7 @@ function run_interpreter(asm_file::String, max_steps::Int=100000000)
 
     # Execute program
     final_state, _ = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps
+        instructions, addresses, func_addrs, max_steps; data_file=nothing
     )
 
     return final_state
