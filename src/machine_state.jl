@@ -158,6 +158,7 @@ mutable struct DebugState
     u32_write_count::Int
 end
 const DEBUG_STATE = DebugState(nothing, 0)
+const DEBUG_CHAR_BUFFER = IOBuffer()
 
 function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
     # Check for debug output addresses
@@ -177,12 +178,14 @@ function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
         println(stderr, "hex: 0x$(string(value & 0xFFFF, base=16, pad=4))")
         return nothing
     elseif addr == DEBUG_OUT_CHAR
-        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        # Buffer characters until newline, then print the accumulated string
         char_val = Char(value & 0xFF)
         if char_val == '\n'
-            println(stderr)
+            buffered = String(take!(DEBUG_CHAR_BUFFER))
+            printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+            println(stderr, buffered)
         else
-            print(stderr, "char: '$char_val'\n")
+            print(DEBUG_CHAR_BUFFER, char_val)
         end
         return nothing
     elseif addr == DEBUG_OUT_U32
