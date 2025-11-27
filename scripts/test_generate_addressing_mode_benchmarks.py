@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test cases for gen_benchmarks.py (instruction granularity)
+Test cases for gen_benchmarks.py (addressing_mode granularity)
 
 These tests validate the generated C code and serve as documentation
 showing what the generator produces for different instruction variations.
@@ -285,19 +285,12 @@ INLINE void bench_inc_register(void) {
         Expected breakdown:
         - Dual-operand (add, mov, cmp, sub, and, or, xor, bit, bic, bis): 10 opcodes × 28 variants = 280
         - Single-operand (inc, dec): 2 opcodes × 4 variants = 8
-        - rlam: 4 variants (constants 1, 2, 3, 4)
-        - jmp: 1 variant
-        - jge: 1 variant
-        - jl: 1 variant
-        - jnz: 1 variant
-        - jz: 1 variant
-        - jnc: 1 variant
-        - jc: 1 variant
-        - jn: 1 variant
-        Total: 280 + 8 + 4 + 8×1 = 300 instruction keys
+        - rlam: 1 representative variant (constant folded into opcode-level key)
+        - Jump opcodes: 8
+        Total: 280 + 8 + 1 + 8 = 297 instruction keys
         """
         specs = get_all_instruction_specs()
-        self.assertEqual(len(specs), 300)
+        self.assertEqual(len(specs), 297)
 
         # Count by opcode
         opcode_counts = {}
@@ -313,7 +306,7 @@ INLINE void bench_inc_register(void) {
             self.assertEqual(opcode_counts[opcode], 4, f"{opcode} should have 4 variants")
 
         # Constant-aware and jump instructions
-        self.assertEqual(opcode_counts["rlam"], 4)
+        self.assertEqual(opcode_counts["rlam"], 1)
         self.assertEqual(opcode_counts["jmp"], 1)
         self.assertEqual(opcode_counts["jge"], 1)
         self.assertEqual(opcode_counts["jl"], 1)
