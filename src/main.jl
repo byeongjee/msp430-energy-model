@@ -71,7 +71,10 @@ end
 Interpret mode: Run interpreter on assembly file
 """
 function run_interpret(
-    asm_file::String, max_steps::Int; data_dump::Union{String,Nothing}=nothing
+    asm_file::String,
+    max_steps::Int;
+    data_dump::Union{String,Nothing}=nothing,
+    model_str::Union{String,Nothing}=nothing,
 )
     @info "Running in INTERPRET mode"
     @info "Assembly file" path = asm_file
@@ -86,17 +89,72 @@ function run_interpret(
         instructions, addresses, func_addrs, max_steps; data_file=data_dump
     )
 
+    model = isnothing(model_str) ? nothing : Model.create_model(model_str)
+    granularity = isnothing(model) ? nothing : model.granularity
+
+    format_param_key = key -> join(string.(key), "_")
+    format_pair_key = pair_key -> begin
+        key1_str = join(string.(pair_key[1]), "_")
+        key2_str = join(string.(pair_key[2]), "_")
+        return key1_str * " -> " * key2_str
+    end
+
     @info "="^60
     @info "EXECUTION SUMMARY"
     @info "="^60
     @info "Successfully executed MSP430 instructions" count = length(instructions)
     @info "Number of events" count = length(event_sequences)
 
-    for (i, event) in enumerate(event_sequences)
-        unique_opcodes = unique([string(inst.opcode) for inst in event])
-        sort!(unique_opcodes)
-        opcodes_str = join(unique_opcodes, " ")
-        @info "Event $i" instructions = length(event) unique_opcodes = opcodes_str
+    if isnothing(granularity)
+        all_opcodes = Set{String}()
+        for (i, event) in enumerate(event_sequences)
+            unique_opcodes = unique([string(inst.opcode) for inst in event])
+            sort!(unique_opcodes)
+            union!(all_opcodes, unique_opcodes)
+            opcodes_str = join(unique_opcodes, " ")
+            @info "Event $i unique_opcodes: $opcodes_str" instructions = length(event)
+        end
+        if !isempty(all_opcodes)
+            opcodes_str = join(sort(collect(all_opcodes)), " ")
+            @info "All events unique_opcodes: $opcodes_str"
+        end
+    elseif model isa Model.MeanPairModel
+        all_param_pairs = Set{Tuple{Model.ParamKey,Model.ParamKey}}()
+        for (i, event) in enumerate(event_sequences)
+            pair_keys = Tuple{Model.ParamKey,Model.ParamKey}[]
+            for idx in 1:(length(event)-1)
+                key1 = Model.get_instruction_key(event[idx], granularity)
+                key2 = Model.get_instruction_key(event[idx + 1], granularity)
+                push!(pair_keys, Model.normalize_pair(key1, key2))
+            end
+            unique_pair_keys = unique(pair_keys)
+            sort!(unique_pair_keys; by=string)
+            union!(all_param_pairs, unique_pair_keys)
+            pairs_str = join([format_pair_key(key) for key in unique_pair_keys], " ")
+            @info "Event $i param_pairs: $pairs_str" instructions = length(event)
+        end
+        if !isempty(all_param_pairs)
+            pairs_str = join(
+                [format_pair_key(key) for key in sort(collect(all_param_pairs); by=string)],
+                " ",
+            )
+            @info "All events param_pairs: $pairs_str"
+        end
+    else
+        all_param_keys = Set{Model.ParamKey}()
+        for (i, event) in enumerate(event_sequences)
+            unique_param_keys = unique(
+                [Model.get_instruction_key(inst, granularity) for inst in event]
+            )
+            sort!(unique_param_keys; by=string)
+            union!(all_param_keys, unique_param_keys)
+            keys_str = join([format_param_key(key) for key in unique_param_keys], " ")
+            @info "Event $i param_keys: $keys_str" instructions = length(event)
+        end
+        if !isempty(all_param_keys)
+            keys_str = join([format_param_key(key) for key in sort(collect(all_param_keys); by=string)], " ")
+            @info "All events param_keys: $keys_str"
+        end
     end
 
     return final_state
@@ -121,7 +179,9 @@ function main()
             if length(asm_files) > 1
                 error("interpret mode only supports a single assembly file")
             end
-            run_interpret(asm_files[1], max_steps; data_dump=data_dump)
+            run_interpret(
+                asm_files[1], max_steps; data_dump=data_dump, model_str=args["model"]
+            )
 
         elseif mode == "train"
             asm_files = args["asm"]

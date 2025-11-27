@@ -209,17 +209,18 @@ def create_single_operand_specs(opcode: str) -> List[InstructionSpec]:
     return specs
 
 
-def create_rlam_specs() -> List[InstructionSpec]:
-    """Create instruction specs for rlam (constant-aware instruction)"""
+def create_constant_imm_to_reg_specs(opcode: str, include_constant: bool = True) -> List[InstructionSpec]:
+    """Create constant-aware instruction specs of the form: opcode #const, reg"""
     specs = []
-    for constant in [1, 2, 3, 4]:
+    constants = [1, 2, 3, 4] if include_constant else [1]
+    for constant in constants:
         specs.append(
             InstructionSpec(
-                opcode="rlam",
+                opcode=opcode,
                 src_mode="immediate",
                 dst_mode="register",
-                constant=constant,
-                asm_template=f"rlam #{constant}, %[dst]",
+                constant=constant if include_constant else None,
+                asm_template=f"{opcode} #{constant}, %[dst]",
                 variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
                 constraints={"outputs": '[dst] "+r"(dst)', "inputs": "", "clobbers": '"cc"'},
             )
@@ -329,6 +330,210 @@ def create_jn_specs() -> List[InstructionSpec]:
             constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
         )
     ]
+
+
+def create_call_specs() -> List[InstructionSpec]:
+    """Create instruction specs for call (single operand)"""
+    specs = []
+    modes = ["register", "indexed", "symbolic", "absolute"]
+
+    for mode in modes:
+        variables: List[Dict[str, Any]] = []
+        constraints = {"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'}
+
+        if mode == "register":
+            op_asm = "%[target]"
+            variables.append({"name": "target", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[target] "r"(target)'
+        elif mode == "indexed":
+            op_asm = "%c[offs](%[base])"
+            variables.append({"name": "base", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[base] "r"(base), [offs] "i"(OFFS)'
+        elif mode == "symbolic":
+            op_asm = "sym_data"
+        elif mode == "absolute":
+            op_asm = "&sym_data"
+
+        specs.append(
+            InstructionSpec(
+                opcode="call",
+                src_mode=mode,
+                asm_template=f"call {op_asm}",
+                variables=variables,
+                constraints=constraints,
+            )
+        )
+
+    return specs
+
+
+def create_no_operand_specs(opcode: str) -> List[InstructionSpec]:
+    """Create spec for no-operand instructions (e.g., ret)"""
+    return [
+        InstructionSpec(
+            opcode=opcode,
+            src_mode=None,
+            asm_template=f"{opcode}",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+        )
+    ]
+
+
+def create_opcode_specs() -> List[InstructionSpec]:
+    """Create one representative spec per opcode (granularity: opcode)"""
+    specs = []
+
+    dual_opcodes = ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
+    for opcode in dual_opcodes:
+        specs.append(
+            InstructionSpec(
+                opcode=opcode,
+                src_mode=None,
+                dst_mode=None,
+                asm_template=f"{opcode}.w %[src], %[dst]",
+                variables=[
+                    {"name": "src", "type": "uint16_t", "value": "0x5678"},
+                    {"name": "dst", "type": "uint16_t", "value": "0x1234"},
+                ],
+                constraints={
+                    "outputs": '[dst] "+r"(dst)',
+                    "inputs": '[src] "r"(src)',
+                    "clobbers": '"cc"',
+                },
+            )
+        )
+
+    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]
+    for opcode in single_opcodes:
+        specs.append(
+            InstructionSpec(
+                opcode=opcode,
+                src_mode=None,
+                asm_template=f"{opcode}.w %[dst]",
+                variables=[{"name": "dst", "type": "uint16_t", "value": "0x2222"}],
+                constraints={
+                    "outputs": '[dst] "+r"(dst)',
+                    "inputs": "",
+                    "clobbers": '"cc"',
+                },
+            )
+        )
+
+    constant_opcodes = ["rlam", "rrum", "pushm", "popm"]
+    for opcode in constant_opcodes:
+        specs.append(
+            InstructionSpec(
+                opcode=opcode,
+                src_mode=None,
+                asm_template=f"{opcode} #1, %[dst]",
+                variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
+                constraints={
+                    "outputs": '[dst] "+r"(dst)',
+                    "inputs": "",
+                    "clobbers": '"cc"',
+                },
+            )
+        )
+
+    specs.extend(create_call_specs())
+
+    for opcode in ["ret"]:
+        specs.extend(create_no_operand_specs(opcode))
+
+    jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
+    for opcode in jump_opcodes:
+        specs.append(
+            InstructionSpec(
+                opcode=opcode,
+                src_mode=None,
+                asm_template=f"{opcode} 1f\\n1:",
+                variables=[],
+                constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+            )
+        )
+
+    return specs
+
+
+def create_addressing_mode_specs(include_constant: bool = False) -> List[InstructionSpec]:
+    """Create specs for addressing-mode-based granularities"""
+    specs: List[InstructionSpec] = []
+
+    dual_opcodes = ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
+    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]
+    jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
+    no_operand_opcodes = ["ret"]
+
+    for opcode in dual_opcodes:
+        specs.extend(create_dual_operand_specs(opcode))
+
+    for opcode in single_opcodes:
+        specs.extend(create_single_operand_specs(opcode))
+
+    specs.extend(create_constant_imm_to_reg_specs("rlam", include_constant=include_constant))
+    specs.extend(create_constant_imm_to_reg_specs("rrum", include_constant=include_constant))
+    specs.extend(create_constant_imm_to_reg_specs("pushm", include_constant=include_constant))
+    specs.extend(create_constant_imm_to_reg_specs("popm", include_constant=include_constant))
+
+    specs.extend(create_call_specs())
+
+    specs.extend(create_jmp_specs())
+    specs.extend(create_jge_specs())
+    specs.extend(create_jl_specs())
+    specs.extend(create_jnz_specs())
+    specs.extend(create_jz_specs())
+    specs.extend(create_jnc_specs())
+    specs.extend(create_jc_specs())
+    specs.extend(create_jn_specs())
+
+    for opcode in no_operand_opcodes:
+        specs.extend(create_no_operand_specs(opcode))
+
+    return specs
+
+
+def normalize_granularity(granularity: str) -> str:
+    """Normalize user-facing granularity string to canonical form"""
+    g = granularity.lower()
+    aliases = {
+        "instruction": "addressing_mode",
+        "pair": "addressing_mode_pair",
+    }
+    return aliases.get(g, g)
+
+
+def get_instruction_specs(granularity: str) -> List[InstructionSpec]:
+    """Return instruction specs for the requested benchmark granularity.
+
+    Supported granularities:
+        - opcode
+        - addressing_mode
+        - addressing_mode_constant
+        - opcode_pair
+        - addressing_mode_pair
+        - addressing_mode_constant_pair
+    """
+    g = normalize_granularity(granularity)
+
+    if g == "opcode":
+        return create_opcode_specs()
+    if g == "addressing_mode":
+        return create_addressing_mode_specs(include_constant=False)
+    if g == "addressing_mode_constant":
+        return create_addressing_mode_specs(include_constant=True)
+    if g == "opcode_pair":
+        return create_opcode_specs()
+    if g == "addressing_mode_pair":
+        return create_addressing_mode_specs(include_constant=False)
+    if g == "addressing_mode_constant_pair":
+        return create_addressing_mode_specs(include_constant=True)
+
+    raise ValueError(
+        f"Unsupported granularity '{granularity}'. Expected one of: "
+        "opcode, addressing_mode, addressing_mode_constant, opcode_pair, "
+        "addressing_mode_pair, addressing_mode_constant_pair."
+    )
 
 
 # ============================================================================

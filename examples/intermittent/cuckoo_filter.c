@@ -201,8 +201,11 @@ int main() {
   value_t key = INIT_KEY;
   unsigned inserts = 0;
 
+  begin_measurement_window();
+
   // 1. Insertion Phase
   DEBUG_OUT_STR("\n[Phase 1] Inserting...\n");
+  begin_event();
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool success = insert(filter, key);
@@ -211,12 +214,17 @@ int main() {
       inserts++;
 
     // Blink Red LED on success
-    P1OUT ^= LED1_PIN;
     DEBUG_OUT_U16(i);
+#ifdef DEBUG
+    P1OUT ^= LED1_PIN;
     delay(5000);
+#endif
   }
+  end_event();
 
+#ifdef DEBUG
   print_filter(filter);
+#endif
   DEBUG_OUT_STR("Insert Success Rate: ");
   DEBUG_OUT_U16(inserts);
   DEBUG_OUT_STR(" / ");
@@ -228,6 +236,7 @@ int main() {
   key = INIT_KEY; // Reset key generator
   unsigned found = 0;
 
+  begin_event();
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool member = lookup(filter, key);
@@ -239,10 +248,15 @@ int main() {
       // printf("Key %04x missing (likely dropped during insert)\n", key);
     }
 
-    // Blink Green LED on check
+// Blink Green LED on check
+#ifdef DEBUG
     P1OUT ^= LED2_PIN;
     delay(5000);
+#endif
   }
+  end_event();
+
+  end_measurement_window();
 
   DEBUG_OUT_STR("Lookup Success Rate: ");
   DEBUG_OUT_U16(found);

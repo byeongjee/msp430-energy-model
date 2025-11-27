@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test cases for generate_addressing_mode_benchmarks.py
+Test cases for gen_benchmarks.py (addressing_mode granularity)
 
 These tests validate the generated C code and serve as documentation
 showing what the generator produces for different instruction variations.
@@ -17,10 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from populate_addressing_mode_benchmarks import (
-    generate_benchmark,
-    get_all_instruction_specs,
-)
+from gen_benchmarks import generate_benchmark, get_all_instruction_specs
 
 
 class TestGeneratedCode(unittest.TestCase):
@@ -286,21 +283,16 @@ INLINE void bench_inc_register(void) {
         """Verify we have the expected number of instruction specs
 
         Expected breakdown:
-        - Dual-operand (add, mov, cmp, sub, and, or, xor, bit, bic, bis): 10 opcodes × 28 variants = 280
-        - Single-operand (inc, dec): 2 opcodes × 4 variants = 8
-        - rlam: 4 variants (constants 1, 2, 3, 4)
-        - jmp: 1 variant
-        - jge: 1 variant
-        - jl: 1 variant
-        - jnz: 1 variant
-        - jz: 1 variant
-        - jnc: 1 variant
-        - jc: 1 variant
-        - jn: 1 variant
-        Total: 280 + 8 + 4 + 8×1 = 300 instruction keys
+        - Dual-operand (11 opcodes): 11 × 28 = 308
+        - Single-operand (inc, incd, dec, decd, clr, rla, rlc): 7 × 4 = 28
+        - call: 4 variants
+        - Constant-aware representative (rlam, rrum, pushm, popm): 4
+        - Jump opcodes: 8
+        - No-operand: ret (1)
+        Total: 308 + 28 + 4 + 4 + 8 + 1 = 353 instruction keys
         """
         specs = get_all_instruction_specs()
-        self.assertEqual(len(specs), 300)
+        self.assertEqual(len(specs), 353)
 
         # Count by opcode
         opcode_counts = {}
@@ -308,15 +300,17 @@ INLINE void bench_inc_register(void) {
             opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
 
         # Dual-operand instructions (28 each)
-        for opcode in ["add", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+        for opcode in ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
             self.assertEqual(opcode_counts[opcode], 28, f"{opcode} should have 28 variants")
 
         # Single-operand instructions (4 each)
-        for opcode in ["inc", "dec"]:
+        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]:
             self.assertEqual(opcode_counts[opcode], 4, f"{opcode} should have 4 variants")
 
         # Constant-aware and jump instructions
-        self.assertEqual(opcode_counts["rlam"], 4)
+        for opcode in ["rlam", "rrum", "pushm", "popm"]:
+            self.assertEqual(opcode_counts[opcode], 1)
+        self.assertEqual(opcode_counts["call"], 4)
         self.assertEqual(opcode_counts["jmp"], 1)
         self.assertEqual(opcode_counts["jge"], 1)
         self.assertEqual(opcode_counts["jl"], 1)
@@ -325,6 +319,7 @@ INLINE void bench_inc_register(void) {
         self.assertEqual(opcode_counts["jnc"], 1)
         self.assertEqual(opcode_counts["jc"], 1)
         self.assertEqual(opcode_counts["jn"], 1)
+        self.assertEqual(opcode_counts["ret"], 1)
 
     def test_dual_operand_exhaustiveness(self):
         """Verify all 28 combinations are generated for dual-operand instructions
