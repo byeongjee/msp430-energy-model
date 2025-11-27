@@ -874,6 +874,7 @@ function execute!(
     ::Vector{UInt32},
     ::Int,
 )::Nothing
+    state.flags[:C] = true
     state.registers[:SR] = state.registers[:SR] | 0x0001  # Set C bit (bit 0)
     return nothing
 end
@@ -887,6 +888,7 @@ function execute!(
     ::Vector{UInt32},
     ::Int,
 )::Nothing
+    state.flags[:C] = false
     state.registers[:SR] = state.registers[:SR] & ~0x0001  # Clear C bit (bit 0)
     return nothing
 end
