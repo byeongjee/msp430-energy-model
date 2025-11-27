@@ -188,21 +188,21 @@ int main() {
   for (int i = 0; i < NUM_BUCKETS; i++)
     filter[i] = 0;
 
-  // DEBUG_OUT_STR("\n\n=== Cuckoo Filter Demo (Updated) ===\n");
-  // DEBUG_OUT_STR("Buckets: ");
+  DEBUG_OUT_STR("\n\n=== Cuckoo Filter Demo (Updated) ===\n");
+  DEBUG_OUT_STR("Buckets: ");
   DEBUG_OUT_U16(NUM_BUCKETS);
-  // DEBUG_OUT_STR(", Relocation Limit: ");
+  DEBUG_OUT_STR(", Relocation Limit: ");
   DEBUG_OUT_U16(MAX_RELOCATIONS);
   DEBUG_OUT_CHAR('\n');
-  // DEBUG_OUT_STR("Attempting to insert ");
+  DEBUG_OUT_STR("Attempting to insert ");
   DEBUG_OUT_U16(NUM_KEYS);
-  // DEBUG_OUT_STR(" keys...\n");
+  DEBUG_OUT_STR(" keys...\n");
 
   value_t key = INIT_KEY;
   unsigned inserts = 0;
 
   // 1. Insertion Phase
-  // DEBUG_OUT_STR("\n[Phase 1] Inserting...\n");
+  DEBUG_OUT_STR("\n[Phase 1] Inserting...\n");
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool success = insert(filter, key);
@@ -217,14 +217,14 @@ int main() {
   }
 
   print_filter(filter);
-  // DEBUG_OUT_STR("Insert Success Rate: ");
+  DEBUG_OUT_STR("Insert Success Rate: ");
   DEBUG_OUT_U16(inserts);
-  // DEBUG_OUT_STR(" / ");
+  DEBUG_OUT_STR(" / ");
   DEBUG_OUT_U16(NUM_KEYS);
-  // DEBUG_OUT_CHAR('\n');
+  DEBUG_OUT_CHAR('\n');
 
   // 2. Verification Phase
-  // DEBUG_OUT_STR("\n[Phase 2] Verifying...\n");
+  DEBUG_OUT_STR("\n[Phase 2] Verifying...\n");
   key = INIT_KEY; // Reset key generator
   unsigned found = 0;
 
