@@ -384,7 +384,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
     """Create one representative spec per opcode (granularity: opcode)"""
     specs = []
 
-    dual_opcodes = ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
+    dual_opcodes = ["add", "addc", "mov", "mova", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
     for opcode in dual_opcodes:
         specs.append(
             InstructionSpec(
@@ -404,7 +404,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
             )
         )
 
-    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]
+    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc", "rrux"]
     for opcode in single_opcodes:
         specs.append(
             InstructionSpec(
@@ -460,8 +460,8 @@ def create_addressing_mode_specs(include_constant: bool = False) -> List[Instruc
     """Create specs for addressing-mode-based granularities"""
     specs: List[InstructionSpec] = []
 
-    dual_opcodes = ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
-    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]
+    dual_opcodes = ["add", "addc", "mov", "mova", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]
+    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "rla", "rlc", "rrux"]
     jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
     no_operand_opcodes = ["ret"]
 
