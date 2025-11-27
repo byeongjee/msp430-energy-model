@@ -101,22 +101,22 @@ void clockSetup(void) {
   CSCTL0_H = 0;
 }
 
-void toggle_gpio() { P1OUT ^= BIT3; }
+NOINLINE void toggle_gpio() { P1OUT ^= BIT3; }
 
-void begin_event() {
+NOINLINE void begin_event() {
   __delay_cycles(0.1 * CLOCK_HZ);
   P1OUT |= BIT3;
 }
-void end_event() {
+NOINLINE void end_event() {
   P1OUT &= ~BIT3;
   __delay_cycles(0.1 * CLOCK_HZ);
 }
 
-void begin_measurement_window() {
+NOINLINE void begin_measurement_window() {
   __delay_cycles(CLOCK_HZ * 5);
   P1OUT |= BIT2;
 }
-void end_measurement_window() {
+NOINLINE void end_measurement_window() {
   P1OUT &= ~BIT2;
   __delay_cycles(CLOCK_HZ * 5);
 }
@@ -202,7 +202,7 @@ int putchar(int c) {
 }
 #endif // DEBUG
 
-void initialize(void) {
+NOINLINE void initialize(void) {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
   PM5CTL0 &= ~LOCKLPM5;     // Unlock I/O (FRAM parts)
 

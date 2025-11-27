@@ -14,17 +14,25 @@ OBJDUMP := $(MSP430GCC_TOOLCHAIN_PATH)/bin/msp430-elf-objdump
 OBJCOPY := $(MSP430GCC_TOOLCHAIN_PATH)/bin/msp430-elf-objcopy
 
 # Device configuration
-DEVICE := MSP430FR5994
+DEVICE ?= MSP430FR5994
+ifeq ($(origin MSP430_DEVICE), environment)
+DEVICE := $(MSP430_DEVICE)
+endif
 # Sections to dump for interpreter data preload
 DATA_SECTIONS := .rodata .rodata2 .data .lower.data .upper.data .persistent .text
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MKFILE_DIR := $(dir $(MKFILE_PATH))
 MEASUREMENT_INCLUDE_PATH := $(MKFILE_DIR)/include
+export CC OBJDUMP OBJCOPY
 
 
 # Compiler flags
-CFLAGS := -mmcu=$(DEVICE) -O0 -Wall
+CFLAGS ?= -mmcu=$(DEVICE) -O3 -Wall
+ifeq ($(origin MSP430_CFLAGS), environment)
+CFLAGS := $(MSP430_CFLAGS)
+endif
+export DEVICE CFLAGS
 
 # Process DEFINES variable: space-separated list of macros (e.g., DEFINES="FOO=1 BAR ENABLE_FEATURE=value")
 # Each macro gets -D prefix automatically
@@ -36,6 +44,7 @@ endif
 
 INCLUDES := -I$(MSP430GCC_SUPPORT_PATH)/include -I$(MEASUREMENT_INCLUDE_PATH)
 LDFLAGS := -L$(MSP430GCC_SUPPORT_PATH)/include
+export INCLUDES LDFLAGS
 
 # Directories
 SRC_DIR := examples/c_programs
@@ -45,6 +54,8 @@ TEMP_DIR ?= ./tmp
 REPORT_DIR ?= ./report
 export TEMP_DIR
 export REPORT_DIR
+export BUILD_DIR
+export ASM_DIR
 
 # Julia thread configuration
 # Default: 'auto' uses all available cores (Julia 1.5+)

@@ -74,22 +74,18 @@ check_environment() {
 # ============================================================
 
 setup_toolchain() {
-    # MSP430 toolchain binaries
-    CC="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-gcc"
-    OBJDUMP="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-objdump"
-    OBJCOPY="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-objcopy"
-
-    # Device configuration
-    DEVICE="MSP430FR5994"
-
-    # Compiler flags
-    CFLAGS="-mmcu=$DEVICE -O0 -g -Wall"
-    INCLUDES="-I$MSP430GCC_SUPPORT_PATH/include -I$PROJECT_ROOT/include"
-    LDFLAGS="-L$MSP430GCC_SUPPORT_PATH/include"
+    # Require Makefile to export these; fail fast if missing
+    : "${CC:?CC not set (export from Makefile)}"
+    : "${OBJDUMP:?OBJDUMP not set (export from Makefile)}"
+    : "${OBJCOPY:?OBJCOPY not set (export from Makefile)}"
+    : "${DEVICE:?DEVICE not set (export from Makefile)}"
+    : "${CFLAGS:?CFLAGS not set (export from Makefile)}"
+    : "${INCLUDES:?INCLUDES not set (export from Makefile)}"
+    : "${LDFLAGS:?LDFLAGS not set (export from Makefile)}"
 
     # Directories
-    BUILD_DIR="$PROJECT_ROOT/build"
-    ASM_DIR="$BUILD_DIR/asm"
+    : "${BUILD_DIR:?BUILD_DIR not set (export from Makefile)}"
+    : "${ASM_DIR:?ASM_DIR not set (export from Makefile)}"
 }
 
 # ============================================================
