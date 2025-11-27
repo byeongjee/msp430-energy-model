@@ -318,17 +318,8 @@ function interpret_program(
     state.registers[:PC] = addresses[1]  # Start at the first instruction address
 
     if !isnothing(data_file)
-        # Disable debug output handling while preloading memory so any bytes in
-        # the reserved range don't emit spurious debug logs.
-        set_debug_output_enabled!(false)
         load_memory_dump!(state, data_file)
     end
-
-    # Enable debug output only when explicitly requested to avoid accidental
-    # prints from benchmarks that touch legacy addresses or debug stubs.
-    debug_env = get(ENV, "INTERPRETER_DEBUG_OUTPUT", get(ENV, "INTERPRETER_DEBUG_MMIO", "0"))
-    debug_enabled = lowercase(debug_env) in ["1", "true", "yes"]
-    set_debug_output_enabled!(debug_enabled)
 
     @debug "Initial machine state" pc = string(state.registers[:PC]; base=16, pad=4) sp = string(
         state.registers[:SP]; base=16, pad=4
