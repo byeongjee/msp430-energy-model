@@ -92,8 +92,11 @@ function run_interpret(
     model = isnothing(model_str) ? nothing : Model.create_model(model_str)
     granularity = isnothing(model) ? nothing : model.granularity
 
-    format_param_key = function (key)
-        return "(" * join(string.(key), ", ") * ")"
+    format_param_key = key -> join(string.(key), "_")
+    format_pair_key = pair_key -> begin
+        key1_str = join(string.(pair_key[1]), "_")
+        key2_str = join(string.(pair_key[2]), "_")
+        return key1_str * " -> " * key2_str
     end
 
     @info "="^60
@@ -109,17 +112,14 @@ function run_interpret(
             sort!(unique_opcodes)
             union!(all_opcodes, unique_opcodes)
             opcodes_str = join(unique_opcodes, " ")
-            @info "Event $i" instructions = length(event) unique_opcodes = opcodes_str
+            @info "Event $i unique_opcodes: $opcodes_str" instructions = length(event)
         end
         if !isempty(all_opcodes)
             opcodes_str = join(sort(collect(all_opcodes)), " ")
-            @info "All events" unique_opcodes = opcodes_str
+            @info "All events unique_opcodes: $opcodes_str"
         end
     elseif model isa Model.MeanPairModel
         all_param_pairs = Set{Tuple{Model.ParamKey,Model.ParamKey}}()
-        format_pair_key = function (pair_key)
-            return format_param_key(pair_key[1]) * " -> " * format_param_key(pair_key[2])
-        end
         for (i, event) in enumerate(event_sequences)
             pair_keys = Tuple{Model.ParamKey,Model.ParamKey}[]
             for idx in 1:(length(event)-1)
@@ -131,14 +131,14 @@ function run_interpret(
             sort!(unique_pair_keys; by=string)
             union!(all_param_pairs, unique_pair_keys)
             pairs_str = join([format_pair_key(key) for key in unique_pair_keys], " ")
-            @info "Event $i" instructions = length(event) param_pairs = pairs_str
+            @info "Event $i param_pairs: $pairs_str" instructions = length(event)
         end
         if !isempty(all_param_pairs)
             pairs_str = join(
                 [format_pair_key(key) for key in sort(collect(all_param_pairs); by=string)],
                 " ",
             )
-            @info "All events" param_pairs = pairs_str
+            @info "All events param_pairs: $pairs_str"
         end
     else
         all_param_keys = Set{Model.ParamKey}()
@@ -149,11 +149,11 @@ function run_interpret(
             sort!(unique_param_keys; by=string)
             union!(all_param_keys, unique_param_keys)
             keys_str = join([format_param_key(key) for key in unique_param_keys], " ")
-            @info "Event $i" instructions = length(event) param_keys = keys_str
+            @info "Event $i param_keys: $keys_str" instructions = length(event)
         end
         if !isempty(all_param_keys)
             keys_str = join([format_param_key(key) for key in sort(collect(all_param_keys); by=string)], " ")
-            @info "All events" param_keys = keys_str
+            @info "All events param_keys: $keys_str"
         end
     end
 
