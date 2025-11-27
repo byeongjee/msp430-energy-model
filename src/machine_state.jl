@@ -420,7 +420,7 @@ function update_flags!(
 
     # Update status register
     state.registers[:SR] =
-        (state.registers[:SR] & 0xFFF0) |
+        (state.registers[:SR] & ~UInt32(0x0107)) |  # Preserve GIE/CPU mode bits
         (state.flags[:V] ? 0x0100 : 0x0000) |
         (state.flags[:N] ? 0x0004 : 0x0000) |
         (state.flags[:Z] ? 0x0002 : 0x0000) |
@@ -451,9 +451,10 @@ function update_flags_simple!(
 
     # Update status register
     state.registers[:SR] =
-        (state.registers[:SR] & 0xFEF9) |  # Clear N and Z bits
+        (state.registers[:SR] & ~UInt32(0x0007)) |  # Preserve V/GIE/CPU mode bits, clear C/N/Z
         (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000)
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
 
     return nothing
 end
