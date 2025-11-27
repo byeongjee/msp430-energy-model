@@ -814,9 +814,11 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val + 1)
-    update_flags!(state, result, operand_val, UInt32(1), true, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
+    masked_operand = apply_data_size_mask(operand_val, data_size)
+    result = masked_operand + UInt32(1)
+    masked_result = apply_data_size_mask(result, data_size)
+    update_flags!(state, masked_result, masked_operand, UInt32(1), true, data_size)
+    set_operand_value!(state, ops[1], masked_result, data_size)
     return nothing
 end
 
@@ -833,9 +835,11 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val - 1)
-    update_flags!(state, result, operand_val, UInt32(1), false, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
+    masked_operand = apply_data_size_mask(operand_val, data_size)
+    result = masked_operand - UInt32(1)
+    masked_result = apply_data_size_mask(result, data_size)
+    update_flags!(state, masked_result, masked_operand, UInt32(1), false, data_size)
+    set_operand_value!(state, ops[1], masked_result, data_size)
     return nothing
 end
 
@@ -995,9 +999,11 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val - 2)
-    update_flags!(state, result, operand_val, UInt32(2), false, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
+    masked_operand = apply_data_size_mask(operand_val, data_size)
+    result = masked_operand - UInt32(2)
+    masked_result = apply_data_size_mask(result, data_size)
+    update_flags!(state, masked_result, masked_operand, UInt32(2), false, data_size)
+    set_operand_value!(state, ops[1], masked_result, data_size)
     return nothing
 end
 
@@ -1014,9 +1020,11 @@ function execute!(
         return nothing
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    result = UInt32(operand_val + 2)
-    update_flags!(state, result, operand_val, UInt32(2), true, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
+    masked_operand = apply_data_size_mask(operand_val, data_size)
+    result = masked_operand + UInt32(2)
+    masked_result = apply_data_size_mask(result, data_size)
+    update_flags!(state, masked_result, masked_operand, UInt32(2), true, data_size)
+    set_operand_value!(state, ops[1], masked_result, data_size)
     return nothing
 end
 
@@ -1137,14 +1145,14 @@ function execute!(
     if length(ops) < 2
         return nothing
     end
-    n = get_operand_value(state, ops[1], data_size)
+    n = Int(get_operand_value(state, ops[1], data_size))
     dst_reg = ops[2].value
     dst_num = Parser.reg_symbol_to_num(dst_reg)
 
     bytes_per_reg = if data_size == :address
-        4  # 20-bit = 2 words = 4 bytes
+        UInt32(4)  # 20-bit = 2 words = 4 bytes
     else
-        2  # 16-bit = 1 word = 2 bytes
+        UInt32(2)  # 16-bit = 1 word = 2 bytes
     end
 
     for i in (dst_num - n + 1):dst_num
@@ -1152,7 +1160,8 @@ function execute!(
             reg_sym = Parser.reg_num_to_symbol(i)
             reg_val = get_register_value(state, reg_sym)
 
-            state.registers[:SP] = state.registers[:SP] - bytes_per_reg
+            state.registers[:SP] =
+                UInt32((state.registers[:SP] - bytes_per_reg) & get_register_mask(:SP))
 
             if data_size == :address
                 set_memory_value!(state, state.registers[:SP], reg_val, :address)
@@ -1176,14 +1185,14 @@ function execute!(
     if length(ops) < 2
         return nothing
     end
-    n = get_operand_value(state, ops[1], data_size)
+    n = Int(get_operand_value(state, ops[1], data_size))
     dst_reg = ops[2].value
     dst_num = Parser.reg_symbol_to_num(dst_reg)
 
     bytes_per_reg = if data_size == :address
-        4  # 20-bit = 2 words = 4 bytes
+        UInt32(4)  # 20-bit = 2 words = 4 bytes
     else
-        2  # 16-bit = 1 word = 2 bytes
+        UInt32(2)  # 16-bit = 1 word = 2 bytes
     end
 
     for i in dst_num:-1:(dst_num - n + 1)
@@ -1197,7 +1206,8 @@ function execute!(
             end
 
             set_register_value!(state, reg_sym, reg_val)
-            state.registers[:SP] = state.registers[:SP] + bytes_per_reg
+            state.registers[:SP] =
+                UInt32((state.registers[:SP] + bytes_per_reg) & get_register_mask(:SP))
         end
     end
     return nothing
