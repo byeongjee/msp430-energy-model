@@ -8,7 +8,7 @@ Keys can contain symbols (opcodes, addressing modes) and integers (compile-time 
 """
 const ParamKey = Tuple{Vararg{Union{Symbol,Int}}}
 
-const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm]
+const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm, :rpt]
 
 """
 Granularity level for energy model parameters
@@ -72,7 +72,14 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
             return (inst.opcode,)
         elseif length(inst.operands) == 1
             # Single operand (e.g., push R5, call, jmp)
-            return (inst.opcode, inst.operands[1].mode)
+            src_mode = inst.operands[1].mode
+
+            if inst.opcode in constant_aware_opcodes && src_mode == :immediate
+                constant_value = Int(inst.operands[1].value)
+                return (inst.opcode, src_mode, constant_value)
+            end
+
+            return (inst.opcode, src_mode)
         else
             # Dual operand (e.g., mov, add) - use src and dst modes
             src_mode = inst.operands[1].mode
