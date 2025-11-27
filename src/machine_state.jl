@@ -142,8 +142,9 @@ function get_memory_value(state::MachineState, addr::UInt32, data_size::Symbol):
 end
 
 """
-Debug output memory-mapped addresses for interpreter visibility.
-Programs can write to these addresses to output debug information.
+Legacy debug output memory-mapped addresses for interpreter visibility.
+Programs can write to these addresses to output debug information, but the
+preferred path is calling the debug_out_* stubs (DEBUG=2).
 
 We park these in the top of HIFRAM (0x43FE0 region) to avoid colliding with
 auto-generated benchmarks that exercise RAM around 0x1C00 and the stack.
@@ -161,23 +162,44 @@ mutable struct DebugState
 end
 const DEBUG_STATE = DebugState(nothing, 0)
 const DEBUG_CHAR_BUFFER = IOBuffer()
+const DEBUG_OUTPUT_ENABLED = Ref(false)
 
-function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
+function set_debug_output_enabled!(enabled::Bool)::Nothing
+    DEBUG_OUTPUT_ENABLED[] = enabled
+    return nothing
+end
+
+debug_output_enabled()::Bool = DEBUG_OUTPUT_ENABLED[]
+
+function handle_debug_memory_write!(state::MachineState, addr::UInt32, value::UInt32)::Nothing
+    if !debug_output_enabled()
+        return nothing
+    end
+
     # Check for debug output addresses
     if addr == DEBUG_OUT_U16
         printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(stderr, "u16: $(value & 0xFFFF)")
+        println(
+            stderr,
+            "u16 @0x$(string(addr, base=16, pad=5)) pc=0x$(string(state.registers[:PC]; base=16, pad=4)) sp=0x$(string(state.registers[:SP]; base=16, pad=5)): $(value & 0xFFFF)",
+        )
         return nothing
     elseif addr == DEBUG_OUT_I16
         printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
         # Convert to signed 16-bit (handle two's complement)
         unsigned_val = UInt16(value & 0xFFFF)
         signed_val = reinterpret(Int16, unsigned_val)
-        println(stderr, "i16: $signed_val")
+        println(
+            stderr,
+            "i16 @0x$(string(addr, base=16, pad=5)) pc=0x$(string(state.registers[:PC]; base=16, pad=4)) sp=0x$(string(state.registers[:SP]; base=16, pad=5)): $signed_val",
+        )
         return nothing
     elseif addr == DEBUG_OUT_HEX
         printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(stderr, "hex: 0x$(string(value & 0xFFFF, base=16, pad=4))")
+        println(
+            stderr,
+            "hex @0x$(string(addr, base=16, pad=5)) pc=0x$(string(state.registers[:PC]; base=16, pad=4)) sp=0x$(string(state.registers[:SP]; base=16, pad=5)): 0x$(string(value & 0xFFFF, base=16, pad=4))",
+        )
         return nothing
     elseif addr == DEBUG_OUT_CHAR
         # Buffer characters until newline, then print the accumulated string
@@ -185,7 +207,10 @@ function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
         if char_val == '\n'
             buffered = String(take!(DEBUG_CHAR_BUFFER))
             printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-            println(stderr, buffered)
+            println(
+                stderr,
+                "char @0x$(string(addr, base=16, pad=5)) pc=0x$(string(state.registers[:PC]; base=16, pad=4)) sp=0x$(string(state.registers[:SP]; base=16, pad=5)): $buffered",
+            )
         else
             print(DEBUG_CHAR_BUFFER, char_val)
         end
@@ -202,7 +227,10 @@ function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
             msw = UInt16(value & 0xFFFF)
             full_value = UInt32(lsw) | (UInt32(msw) << 16)
             printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-            println(stderr, "u32: $full_value")
+            println(
+                stderr,
+                "u32 @0x$(string(addr, base=16, pad=5)) pc=0x$(string(state.registers[:PC]; base=16, pad=4)) sp=0x$(string(state.registers[:SP]; base=16, pad=5)): $full_value",
+            )
             # Reset for next 32-bit write
             DEBUG_STATE.u32_lsw = nothing
             DEBUG_STATE.u32_write_count = 0
@@ -212,10 +240,96 @@ function handle_debug_memory_write!(addr::UInt32, value::UInt32)::Nothing
     return nothing
 end
 
+"""
+Read a null-terminated C string from memory starting at `addr`.
+"""
+function read_c_string(state::MachineState, addr::UInt32)::String
+    io = IOBuffer()
+    current = addr
+    while true
+        byte_val = UInt8(get_memory_value(state, current, :byte) & 0xFF)
+        if byte_val == 0x00
+            break
+        end
+        write(io, Char(byte_val))
+        current += UInt32(1)
+    end
+    return String(take!(io))
+end
+
+"""
+Handle interpreter-visible debug function calls (DEBUG=2).
+These functions are no-ops on-device; the interpreter reads arguments from
+calling-convention registers and emits debug output when enabled.
+"""
+function handle_debug_function_call!(
+    state::MachineState, func_name::Symbol, pc::UInt32
+)::Nothing
+    if !debug_output_enabled()
+        return nothing
+    end
+
+    sp = state.registers[:SP]
+    if func_name == :debug_out_u16
+        val = get_register_value(state, :R12) & 0xFFFF
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "u16 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $val",
+        )
+    elseif func_name == :debug_out_i16
+        unsigned_val = UInt16(get_register_value(state, :R12) & 0xFFFF)
+        signed_val = reinterpret(Int16, unsigned_val)
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "i16 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $signed_val",
+        )
+    elseif func_name == :debug_out_hex
+        val = get_register_value(state, :R12) & 0xFFFF
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "hex call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): 0x$(string(val, base=16, pad=4))",
+        )
+    elseif func_name == :debug_out_char
+        char_val = Char(get_register_value(state, :R12) & 0xFF)
+        if char_val == '\n'
+            buffered = String(take!(DEBUG_CHAR_BUFFER))
+            printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+            println(
+                stderr,
+                "char call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $buffered",
+            )
+        else
+            print(DEBUG_CHAR_BUFFER, char_val)
+        end
+    elseif func_name == :debug_out_u32
+        lsw = get_register_value(state, :R12) & 0xFFFF
+        msw = get_register_value(state, :R13) & 0xFFFF
+        full_value = UInt32(lsw) | (UInt32(msw) << 16)
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "u32 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $full_value",
+        )
+    elseif func_name == :debug_out_str
+        ptr = get_register_value(state, :R12) & 0xFFFFF
+        text = read_c_string(state, ptr)
+        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
+        println(
+            stderr,
+            "str call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $text",
+        )
+    end
+
+    return nothing
+end
+
 function set_memory_value!(
     state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
 )::Nothing
-    handle_debug_memory_write!(addr, value)
+    handle_debug_memory_write!(state, addr, value)
 
     # Normal memory write
     if data_size == :word
