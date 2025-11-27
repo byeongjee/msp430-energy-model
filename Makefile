@@ -108,14 +108,25 @@ disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c>)
 	echo "✓ Data dump saved to: $(ASM_DIR)/$$(basename $(FILE) .c).data"
 
 
-interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>] [MODEL=<model>])
+interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>] [GRANULARITY=<g>|MODEL=<model>])
 	@echo "Running MSP430 interpreter..."
 	@BASENAME=$$(basename $(FILE) .c); \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
 	DATA_DUMP_FLAG="--data-dump $(ASM_DIR)/$$BASENAME.data"; \
 	MODEL_FLAG=""; \
-	if [ -n "$(MODEL)" ]; then MODEL_FLAG="--model $(MODEL)"; fi; \
+	if [ -n "$(GRANULARITY)" ]; then \
+		case "$(GRANULARITY)" in \
+			opcode) MODEL_NAME="mean_per_instruction";; \
+			addressing_mode) MODEL_NAME="mean_per_addressing_mode";; \
+			addressing_mode_constant) MODEL_NAME="mean_per_addressing_mode_constant";; \
+			opcode_pair|addressing_mode_pair|addressing_mode_constant_pair) MODEL_NAME="mean_per_pair_addressing_mode_constant";; \
+			*) echo "Unknown GRANULARITY: $(GRANULARITY). Expected: opcode, addressing_mode, addressing_mode_constant, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair."; exit 1;; \
+		esac; \
+		MODEL_FLAG="--model $$MODEL_NAME"; \
+	elif [ -n "$(MODEL)" ]; then \
+		MODEL_FLAG="--model $(MODEL)"; \
+	fi; \
 	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG $$MODEL_FLAG
 	@echo "✓ Interpret completed!"
 
@@ -193,6 +204,23 @@ endif
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	./scripts/analyze_distribution.sh "$${ARGS[@]}"
+
+BENCH_GRANULARITY ?= addressing_mode_constant
+BENCH_OUTPUT ?= $(TEMP_DIR)/required_benchmarks.c
+BENCH_OUTPUT_DIR ?=
+BENCH_BATCH ?=
+
+generate_required_benchmarks: ## Generate benchmarks needed for a C file (FILE=<file.c> [BENCH_GRANULARITY=addressing_mode_constant] [BENCH_OUTPUT=tmp/required_benchmarks.c] [BENCH_OUTPUT_DIR=...] [BENCH_BATCH=...])
+ifndef FILE
+	$(error Please specify FILE=<filename.c>)
+endif
+	@ARGS=(--file "$(FILE)" --granularity "$(BENCH_GRANULARITY)"); \
+	[ -n "$(BENCH_OUTPUT_DIR)" ] && ARGS+=(--output-dir "$(BENCH_OUTPUT_DIR)"); \
+	[ -n "$(BENCH_BATCH)" ] && ARGS+=(--batch "$(BENCH_BATCH)"); \
+	[ -n "$(BENCH_OUTPUT)" ] && ARGS+=(--output "$(BENCH_OUTPUT)"); \
+	[ -n "$(MAX_STEPS)" ] && ARGS+=(--max-steps "$(MAX_STEPS)"); \
+	[ -n "$(DEFINES)" ] && ARGS+=(--defines "$(DEFINES)"); \
+	./scripts/generate_required_benchmarks.sh "$${ARGS[@]}"
 
 create_fixture: ## Create test fixture (FILE=<file.c> NAME=<name>)
 ifndef FILE
