@@ -124,8 +124,21 @@ echo "Filtering benchmark list for keys: $KEYS"
 python "$REPO_ROOT/scripts/list_benchmarks.py" --granularity "$GRANULARITY" \
   | jq --arg keys "$KEYS" --arg payload "$PAYLOAD_KEY" \
       '($keys | split(" ") | map(select(length>0))) as $wanted
-       | {($payload): (.[ $payload ] // [] | map(select(.name as $n | $wanted | index($n))))}' \
+       | ($payload) as $payload_key
+       | ($payload_key // "instructions") as $payload_name
+       | .[$payload_name] as $all
+       | ($all // []) as $list
+       | ($list | map(select(.name as $n | $wanted | index($n)))) as $filtered
+       | ($list | map(.name)) as $available
+       | ($wanted - $available) as $missing
+       | {($payload_name): $filtered, missing: $missing}' \
   > "$FILTERED_JSON"
+
+MISSING_COUNT=$(jq '.missing | length' "$FILTERED_JSON")
+if [[ "$MISSING_COUNT" -gt 0 ]]; then
+    MISSING_KEYS="$(jq -r '.missing | join(" ")' "$FILTERED_JSON")"
+    echo "WARNING: Missing benchmarks in list_benchmarks.py for: $MISSING_KEYS" >&2
+fi
 
 if [[ -n "$OUTPUT_DIR" ]]; then
     mkdir -p "$OUTPUT_DIR"
