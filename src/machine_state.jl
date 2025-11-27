@@ -386,6 +386,12 @@ function update_flags!(
     is_add::Bool,
     data_size::Symbol=:word,
 )::Nothing
+    # Mask operands/results to the active data size so flag math matches
+    # architectural overflow/underflow (e.g., 16-bit and 20-bit wraparound).
+    masked_result = apply_data_size_mask(result, data_size)
+    masked_dst = apply_data_size_mask(dst, data_size)
+    masked_src = apply_data_size_mask(src, data_size)
+
     # Get the appropriate mask and MSB bit for the data size
     max_val, msb_bit = if data_size == :byte
         (UInt32(0xFF), UInt32(0x80))
@@ -398,28 +404,28 @@ function update_flags!(
     end
 
     # Zero flag
-    state.flags[:Z] = (result == 0)
+    state.flags[:Z] = (masked_result == 0)
 
     # Negative flag (MSB set)
-    state.flags[:N] = (result & msb_bit) != 0
+    state.flags[:N] = (masked_result & msb_bit) != 0
 
     if is_add
         # Carry flag for addition
-        state.flags[:C] = (dst + src) > max_val
+        state.flags[:C] = (masked_dst + masked_src) > max_val
 
         # Overflow flag for addition (both operands same sign, result different sign)
-        dst_sign = (dst & msb_bit) != 0
-        src_sign = (src & msb_bit) != 0
-        result_sign = (result & msb_bit) != 0
+        dst_sign = (masked_dst & msb_bit) != 0
+        src_sign = (masked_src & msb_bit) != 0
+        result_sign = (masked_result & msb_bit) != 0
         state.flags[:V] = (dst_sign == src_sign) && (dst_sign != result_sign)
     else
         # Carry flag for subtraction (borrow)
-        state.flags[:C] = dst >= src
+        state.flags[:C] = masked_dst >= masked_src
 
         # Overflow flag for subtraction
-        dst_sign = (dst & msb_bit) != 0
-        src_sign = (src & msb_bit) != 0
-        result_sign = (result & msb_bit) != 0
+        dst_sign = (masked_dst & msb_bit) != 0
+        src_sign = (masked_src & msb_bit) != 0
+        result_sign = (masked_result & msb_bit) != 0
         state.flags[:V] = (dst_sign != src_sign) && (dst_sign != result_sign)
     end
 
