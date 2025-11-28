@@ -111,11 +111,11 @@ if [[ -z "$ENTRY" ]]; then
 fi
 
 if echo "$ENTRY" | grep -q "param_pairs:"; then
-    KEYS_RAW="${ENTRY#*: }"
+    KEYS_RAW="${ENTRY##*: }"
     KEYS="$(printf "%s\n" "$KEYS_RAW" | tr ' ' '\n' | sed 's/ -> /__/g' | tr '\n' ' ')"
     PAYLOAD_KEY="pairs"
 else
-    KEYS="${ENTRY#*: }"
+    KEYS="${ENTRY##*: }"
     PAYLOAD_KEY="instructions"
 fi
 
