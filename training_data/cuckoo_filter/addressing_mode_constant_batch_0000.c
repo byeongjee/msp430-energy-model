@@ -146,6 +146,17 @@ INLINE void bench_mov_indirect_register(void) {
       : "cc", "memory"));
 }
 
+INLINE void bench_mova_immediate_register(void) {
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  mova.w #0x1357, %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
 INLINE void bench_cmp_immediate_register(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -225,17 +236,6 @@ INLINE void bench_bit_immediate_indexed(void) {
       : "cc", "memory"));
 }
 
-INLINE void bench_inc_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  inc.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
@@ -253,6 +253,7 @@ int main(void) {
   BENCH(bench_mov_indexed_absolute());
   BENCH(bench_mov_absolute_indexed());
   BENCH(bench_mov_indirect_register());
+  BENCH(bench_mova_immediate_register());
   BENCH(bench_cmp_immediate_register());
   BENCH(bench_cmp_immediate_indexed());
   BENCH(bench_cmp_indexed_register());
@@ -260,7 +261,6 @@ int main(void) {
   BENCH(bench_xor_register_register());
   BENCH(bench_xor_immediate_register());
   BENCH(bench_bit_immediate_indexed());
-  BENCH(bench_inc_register());
 
   end_measurement_window();
 
