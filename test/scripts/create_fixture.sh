@@ -59,13 +59,31 @@ fi
 # MSP430 toolchain
 MEASUREMENT_INCLUDE_PATH="$PROJECT_ROOT/include"
 
-CC="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-gcc"
-OBJDUMP="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-objdump"
-
-DEVICE="MSP430FR5994"
-CFLAGS="-mmcu=$DEVICE -O0 -g -Wall"
-INCLUDES="-I$MSP430GCC_SUPPORT_PATH/include -I$MEASUREMENT_INCLUDE_PATH"
-LDFLAGS="-L$MSP430GCC_SUPPORT_PATH/include"
+# Require toolchain/flags to be provided by the Makefile environment.
+if [[ -z "${CC}" ]]; then
+    echo "Error: CC is not set. Run via 'make create_fixture' so Makefile exports toolchain variables."
+    exit 1
+fi
+if [[ -z "${OBJDUMP}" ]]; then
+    echo "Error: OBJDUMP is not set. Run via 'make create_fixture' so Makefile exports toolchain variables."
+    exit 1
+fi
+if [[ -z "${DEVICE}" ]]; then
+    echo "Error: DEVICE is not set. Run via 'make create_fixture' so Makefile exports toolchain variables."
+    exit 1
+fi
+if [[ -z "${CFLAGS}" ]]; then
+    echo "Error: CFLAGS is not set. Run via 'make create_fixture' so Makefile exports toolchain variables."
+    exit 1
+fi
+if [[ -z "${INCLUDES}" ]]; then
+    echo "Error: INCLUDES is not set. Run via 'make create_fixture' so Makefile exports toolchain variables."
+    exit 1
+fi
+if [[ -z "${LDFLAGS}" ]]; then
+    echo "Error: LDFLAGS is not set. Run via 'make create_fixture' so Makefile exports toolchain variables."
+    exit 1
+fi
 
 # Output files
 ELF_FILE="$BUILD_DIR/${TEST_NAME}.elf"
@@ -78,6 +96,10 @@ FIXTURE_FILE="$FIXTURE_DIR/${TEST_NAME}.json"
 DATA_SECTIONS=(.rodata .rodata2 .data .lower.data .upper.data .persistent .text)
 
 echo "Step 1: Compiling C to MSP430 ELF..."
+echo "         CC=$CC"
+echo "    CFLAGS=$CFLAGS"
+echo "  INCLUDES=$INCLUDES"
+echo "   LDFLAGS=$LDFLAGS"
 "$CC" $CFLAGS $INCLUDES $LDFLAGS -o "$ELF_FILE" "$C_FILE"
 echo "✓ Compiled: $ELF_FILE"
 echo ""
@@ -108,6 +130,7 @@ echo "Step 5: Creating test fixture JSON..."
 # Create the fixture JSON by combining assembly path and GDB results
 # Use relative path from project root for portability
 ASM_FILE_REL="test/fixtures/${TEST_NAME}.asm"
+DATA_FILE_REL="test/fixtures/${TEST_NAME}.data"
 
 # Read GDB result JSON and embed it in fixture
 GDB_RESULT=$(cat "$GDB_RESULT_FILE")
@@ -116,6 +139,7 @@ cat > "$FIXTURE_FILE" << EOF
 {
   "test_name": "$TEST_NAME",
   "asm_file": "$ASM_FILE_REL",
+  "data_file": "$DATA_FILE_REL",
   "gdb_result": $GDB_RESULT
 }
 EOF

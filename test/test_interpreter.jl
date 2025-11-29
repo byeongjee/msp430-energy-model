@@ -26,9 +26,24 @@ end
 """
 Run the interpreter on an assembly file and return the final machine state
 """
-function run_interpreter(asm_file::String, max_steps::Int=100000000)
+function run_interpreter(
+    asm_file::String, max_steps::Int=100000000, data_file::Union{String,Nothing}=nothing
+)
     if !isfile(asm_file)
         error("Assembly file not found: $asm_file")
+    end
+    data_dump = nothing
+    if data_file !== nothing
+        if isfile(data_file)
+            data_dump = data_file
+        else
+            rel_path = joinpath(@__DIR__, "..", data_file)
+            if isfile(rel_path)
+                data_dump = rel_path
+            else
+                @info "Data file not found; continuing without data dump" data_file rel_path
+            end
+        end
     end
 
     # Parse assembly file
@@ -39,7 +54,7 @@ function run_interpreter(asm_file::String, max_steps::Int=100000000)
 
     # Execute program
     final_state, _ = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps; data_file=nothing
+        instructions, addresses, func_addrs, max_steps; data_file=data_dump
     )
 
     return final_state
@@ -134,11 +149,12 @@ function test_fixture(fixture_path::String)
     fixture = load_fixture(fixture_path)
     test_name = fixture["test_name"]
     asm_file = fixture["asm_file"]
+    data_file = get(fixture, "data_file", nothing)
     gdb_result = fixture["gdb_result"]
 
     @testset "Test: $test_name" begin
         # Run interpreter
-        final_state = run_interpreter(asm_file)
+        final_state = run_interpreter(asm_file, 100000000, data_file)
 
         # Convert to comparable format
         interpreter_result = state_to_dict(final_state)
