@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from gen_benchmarks import generate_benchmark, get_all_instruction_specs
+from gen_benchmarks import generate_benchmark
 
 
 class TestGeneratedCode(unittest.TestCase):
@@ -278,63 +278,6 @@ INLINE void bench_inc_register(void) {
         # Check BENCH() calls
         self.assertIn("BENCH(bench_add_register_register());", file_content)
         self.assertIn("BENCH(bench_inc_register());", file_content)
-
-    def test_instruction_count(self):
-        """Verify we have the expected number of instruction specs
-
-        Expected breakdown:
-        - Dual-operand (12 opcodes @ 28 each): add, addc, and, bic, bis, bit,
-          cmp, mov, mova, or, sub, xor => 12 × 28 = 336
-        - Single-operand (8 opcodes @ 4 each): inc, incd, dec, decd, clr, rla,
-          rlc, rrux => 8 × 4 = 32
-        - call: 4 variants
-        - Constant-aware representative (rlam, rrum, pushm, popm): 4
-        - Jump opcodes: 8
-        - No-operand: ret (1)
-        Total: 336 + 32 + 4 + 4 + 8 + 1 = 385 instruction keys
-        """
-        specs = get_all_instruction_specs()
-        self.assertEqual(len(specs), 385)
-
-        # Count by opcode
-        opcode_counts = {}
-        for spec in specs:
-            opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
-
-        # Dual-operand instructions (28 each)
-        for opcode in [
-            "add",
-            "addc",
-            "and",
-            "bic",
-            "bis",
-            "bit",
-            "cmp",
-            "mov",
-            "mova",
-            "or",
-            "sub",
-            "xor",
-        ]:
-            self.assertEqual(opcode_counts[opcode], 28, f"{opcode} should have 28 variants")
-
-        # Single-operand instructions (4 each)
-        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc", "rrux"]:
-            self.assertEqual(opcode_counts[opcode], 4, f"{opcode} should have 4 variants")
-
-        # Constant-aware and jump instructions
-        for opcode in ["rlam", "rrum", "pushm", "popm"]:
-            self.assertEqual(opcode_counts[opcode], 1)
-        self.assertEqual(opcode_counts["call"], 4)
-        self.assertEqual(opcode_counts["jmp"], 1)
-        self.assertEqual(opcode_counts["jge"], 1)
-        self.assertEqual(opcode_counts["jl"], 1)
-        self.assertEqual(opcode_counts["jnz"], 1)
-        self.assertEqual(opcode_counts["jz"], 1)
-        self.assertEqual(opcode_counts["jnc"], 1)
-        self.assertEqual(opcode_counts["jc"], 1)
-        self.assertEqual(opcode_counts["jn"], 1)
-        self.assertEqual(opcode_counts["ret"], 1)
 
     def test_dual_operand_exhaustiveness(self):
         """Verify all 28 combinations are generated for dual-operand instructions

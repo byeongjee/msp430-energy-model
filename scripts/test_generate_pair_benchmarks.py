@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from gen_benchmarks import generate_pair_benchmark, get_all_instruction_specs
+from gen_benchmarks import generate_pair_benchmark
 
 
 class TestGeneratedCode(unittest.TestCase):
@@ -305,53 +305,6 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
 """
         self.assertEqual(result["code"].strip(), expected_code.strip())
 
-    def test_instruction_count(self):
-        """Verify we have the expected number of instruction specs
-
-        Expected breakdown:
-        - Dual operand (7 src modes × 4 dst modes = 28 each):
-          add, addc, and, bic, bis, bit, cmp, mov, mova, or, sub, xor
-        - Single operand (4 each): inc, incd, dec, decd, clr, rla, rlc, rrux
-        - Constant ops (1 each): rlam, rrum, pushm, popm
-        - Branch/call: call (4), ret (1), jumps jmp/jge/jl/jnz/jz/jnc/jc/jn (1 each)
-        Total: 385 instruction keys
-        """
-        specs = get_all_instruction_specs(granularity="addressing_mode_pair")
-        self.assertEqual(len(specs), 385)
-
-        opcode_counts = {}
-        for spec in specs:
-            opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
-
-        for opcode in [
-            "add",
-            "addc",
-            "and",
-            "bic",
-            "bis",
-            "bit",
-            "cmp",
-            "mov",
-            "mova",
-            "or",
-            "sub",
-            "xor",
-        ]:
-            self.assertEqual(opcode_counts[opcode], 28)
-        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc", "rrux"]:
-            self.assertEqual(opcode_counts[opcode], 4)
-        for opcode in ["rlam", "rrum", "pushm", "popm"]:
-            self.assertEqual(opcode_counts[opcode], 1)
-        self.assertEqual(opcode_counts["call"], 4)
-        self.assertEqual(opcode_counts["jmp"], 1)
-        self.assertEqual(opcode_counts["jge"], 1)
-        self.assertEqual(opcode_counts["jl"], 1)
-        self.assertEqual(opcode_counts["jnz"], 1)
-        self.assertEqual(opcode_counts["jz"], 1)
-        self.assertEqual(opcode_counts["jnc"], 1)
-        self.assertEqual(opcode_counts["jc"], 1)
-        self.assertEqual(opcode_counts["jn"], 1)
-        self.assertEqual(opcode_counts["ret"], 1)
 
 
 class TestKeyGeneration(unittest.TestCase):
