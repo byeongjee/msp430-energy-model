@@ -63,17 +63,6 @@ INLINE void bench_rlc_register(void) {
       : "cc"));
 }
 
-INLINE void bench_rrux_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  rrux.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
 INLINE void bench_rlam_immediate_1_register(void) {
   uint16_t dst = 0x3333;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -137,6 +126,17 @@ INLINE void bench_jz_symbolic(void) {
       : "cc"));
 }
 
+INLINE void bench_rpt_8_rrux_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rpt #8 { rrux.w %[dst] }\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
 int main(void) {
   initialize();
   begin_measurement_window();
@@ -147,13 +147,13 @@ int main(void) {
   BENCH(bench_clr_register());
   BENCH(bench_rla_register());
   BENCH(bench_rlc_register());
-  BENCH(bench_rrux_register());
   BENCH(bench_rlam_immediate_1_register());
   BENCH(bench_rlam_immediate_4_register());
   BENCH(bench_rrum_immediate_1_register());
   BENCH(bench_jmp_symbolic());
   BENCH(bench_jnz_symbolic());
   BENCH(bench_jz_symbolic());
+  BENCH(bench_rpt_8_rrux_register());
 
   end_measurement_window();
 
