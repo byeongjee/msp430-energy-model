@@ -59,37 +59,38 @@ unsigned g_cyphertext_len = 0;
 
 // --- Helper Functions ---
 
-
-void print_hex_ascii(const uint8_t *m, unsigned len) {
+INLINE void print_hex_ascii(const uint8_t *m, unsigned len) {
   int i, j;
   for (i = 0; i < len; i += PRINT_HEX_ASCII_COLS) {
     for (j = 0; j < PRINT_HEX_ASCII_COLS && i + j < len; ++j)
-      DEBUG_PRINTF("%02x ", m[i + j]);
+      DEBUG_OUT_STR("0x");
+    DEBUG_OUT_HEX(m[i + j]);
+    DEBUG_OUT_STR(" ");
     for (; j < PRINT_HEX_ASCII_COLS; ++j)
-      DEBUG_PRINTF("   ");
-    DEBUG_PRINTF(" ");
+      DEBUG_OUT_STR("   ");
+    DEBUG_OUT_STR(" ");
     for (j = 0; j < PRINT_HEX_ASCII_COLS && i + j < len; ++j) {
       char c = m[i + j];
       if (!(32 <= c && c <= 127))
         c = '.';
-      DEBUG_PRINTF("%c", c);
+      DEBUG_OUT_CHAR(c);
     }
-    DEBUG_PRINTF("\r\n");
+    DEBUG_OUT_STR("\r\n");
   }
 }
 
 // Helper for 16-bit multiplication used in reduction
-uint32_t mult16(digit_t a, digit_t b) { return (uint32_t)a * b; }
+INLINE uint32_t mult16(digit_t a, digit_t b) { return (uint32_t)a * b; }
 
 // --- Logic Functions (Converted Tasks) ---
 
 // Forward declaration
-void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer);
+INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer);
 
 /* * Performs: result = (A * B) mod N
  * This consolidates task_mult_mod, task_mult, and all task_reduce_*
  */
-void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
+INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
   int i, j;
 
   // --- Original Task: task_mult_mod ---
@@ -319,23 +320,32 @@ int main(void) {
 
   __enable_interrupt();
 
-  DEBUG_PRINTF(".Init.\r\n");
+  DEBUG_OUT_STR(".Init.\r\n");
 
   // --- Original Task: task_init (Logic) ---
   unsigned message_length = sizeof(PLAINTEXT) - 1;
 
-  DEBUG_PRINTF("Message:\r\n");
+#ifdef DEBUG
+  DEBUG_OUT_STR("Message:\r\n");
   print_hex_ascii(PLAINTEXT, message_length);
-  DEBUG_PRINTF("Public key: exp = 0x%x  N = \r\n", pubkey.e);
+  DEBUG_OUT_STR("Public key: exp = 0x%x  N = \r\n", pubkey.e);
   print_hex_ascii(pubkey.n, NUM_DIGITS);
+#endif
 
   unsigned block_offset = 0;
 
+  begin_measurement_window();
+
+  begin_event();
   // Main Loop handling blocks
   while (block_offset < message_length) {
 
     // --- Original Task: task_pad ---
-    DEBUG_PRINTF("pad: len=%u offset=%u\r\n", message_length, block_offset);
+    DEBUG_OUT_STR("pad: len=");
+    DEBUG_OUT_U16(message_length);
+    DEBUG_OUT_STR(" offset=");
+    DEBUG_OUT_U16(block_offset);
+    DEBUG_OUT_STR("\r\n");
 
     // Construct the base for this block
     int i;
@@ -358,7 +368,9 @@ int main(void) {
 
     // --- Original Task: task_exp (Modular Exponentiation) ---
     // Loops through bits of exponent
-    DEBUG_PRINTF("exp: e=%x\r\n", e);
+    DEBUG_OUT_STR("exp: e=");
+    DEBUG_OUT_HEX(e);
+    DEBUG_OUT_STR("\r\n");
 
     while (e > 0) {
       bool multiply = e & 0x1;
@@ -399,37 +411,41 @@ int main(void) {
         g_cyphertext[g_cyphertext_len++] = g_block[i];
       }
     } else {
-      DEBUG_PRINTF("WARN: block dropped: cyphertext overflow\r\n");
+      DEBUG_OUT_STR("WARN: block dropped: cyphertext overflow\r\n");
     }
 
+#ifdef DEBUG
     PORT_LED_1 ^= (1 << PIN_LED_1); // Toggle LED to show progress
+#endif
   }
 
   // --- Original Task: task_print_cyphertext ---
-  DEBUG_PRINTF("Cyphertext:\r\n");
-  char line[PRINT_HEX_ASCII_COLS];
+  DEBUG_OUT_STR("Cyphertext:\r\n");
+  volatile char line[PRINT_HEX_ASCII_COLS];
   int j = 0;
 
   for (int i = 0; i < g_cyphertext_len; ++i) {
     digit_t c = g_cyphertext[i];
-    DEBUG_PRINTF("%02x ", c);
+    DEBUG_OUT_STR("0x");
+    DEBUG_OUT_HEX(c);
+    DEBUG_OUT_STR(" ");
     line[j++] = c;
     if ((i + 1) % PRINT_HEX_ASCII_COLS == 0) {
-      DEBUG_PRINTF(" ");
+      DEBUG_OUT_STR(" ");
       for (int k = 0; k < PRINT_HEX_ASCII_COLS; ++k) {
         char ch = line[k];
         if (!(32 <= ch && ch <= 127))
           ch = '.';
-        DEBUG_PRINTF("%c", ch);
+        DEBUG_OUT_CHAR(ch);
       }
       j = 0;
-      DEBUG_PRINTF("\r\n");
+      DEBUG_OUT_STR("\r\n");
     }
   }
-  DEBUG_PRINTF("\r\n");
+  DEBUG_OUT_STR("\r\n");
 
-  // End of program
-  while (1)
-    ;
+  end_event();
+  end_measurement_window();
+
   return 0;
 }
