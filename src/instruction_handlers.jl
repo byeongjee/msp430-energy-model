@@ -214,6 +214,17 @@ end
 # ============================================================================
 # Instruction Execution Methods (using multiple dispatch)
 # ============================================================================
+# Generic shim: allow execute! to accept the full Instruction for flexibility
+function execute!(
+    state::MachineState,
+    handler::AbstractInstructionHandler,
+    inst::Instruction,
+    addresses::Vector{UInt32},
+    current_idx::Int,
+)::Nothing
+    return execute!(state, handler, inst.operands, inst.data_size, addresses, current_idx)
+end
+
 # Each handler implements execute! with its specific logic.
 # Helper functions (get_operand_value, set_operand_value!, etc.) are defined
 # in machine_state.jl and used here.
@@ -1103,11 +1114,7 @@ end
 
 # RPT - Repeat next instruction N times (execute nested instruction directly)
 function execute!(
-    state::MachineState,
-    ::RptHandler,
-    inst::Instruction,
-    addresses::Vector{UInt32},
-    current_idx::Int,
+    state::MachineState, ::RptHandler, inst::Instruction, addresses::Vector{UInt32}, current_idx::Int
 )::Nothing
     nested_inst = inst.rpt_nested
     count = Int(get_operand_value(state, inst.operands[1], inst.data_size))

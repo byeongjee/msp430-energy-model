@@ -49,11 +49,7 @@ function execute_instruction!(
     handler = get_handler(inst.opcode)
 
     # Execute instruction using multiple dispatch (RPT has a custom overload)
-    if handler isa RptHandler
-        execute!(state, handler, inst, addresses, current_idx)
-    else
-        execute!(state, handler, inst.operands, inst.data_size, addresses, current_idx)
-    end
+    execute!(state, handler, inst, addresses, current_idx)
 
     # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
     # unless it's the RPT instruction itself (which sets the counter)
