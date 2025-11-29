@@ -16,9 +16,11 @@ import pandas as pd
 
 def calculate_statistics(data):
     """Calculate statistics for a dataset."""
+    # Use ddof=0 for single sample to avoid division by zero
+    ddof = 0 if len(data) == 1 else 1
     return {
         'mean': np.mean(data),
-        'std': np.std(data, ddof=1),
+        'std': np.std(data, ddof=ddof),
         'min': np.min(data),
         'max': np.max(data),
         'count': len(data)
@@ -261,7 +263,9 @@ def main():
         f.write("|--------|------:|\n")
         f.write(f"| **Average Mean** | {np.mean(all_means):.4f} nJ |\n")
         f.write(f"| **Average Std Dev** | {np.mean(all_stds):.4f} nJ |\n")
-        f.write(f"| **Mean Variability (Std of Means)** | {np.std(all_means, ddof=1):.4f} nJ |\n")
+        # Use ddof=0 for single event to avoid division by zero
+        mean_variability_ddof = 0 if len(all_means) == 1 else 1
+        f.write(f"| **Mean Variability (Std of Means)** | {np.std(all_means, ddof=mean_variability_ddof):.4f} nJ |\n")
         f.write(f"| **Total Events** | {num_events} |\n\n")
 
         f.write("### Output Files\n\n")

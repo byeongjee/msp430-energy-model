@@ -32,9 +32,11 @@ def load_measured_data(csv_file):
 
 def calculate_statistics(data):
     """Calculate statistics for a dataset."""
+    # Use ddof=0 for single sample to avoid division by zero
+    ddof = 0 if len(data) == 1 else 1
     return {
         "mean": np.mean(data),
-        "std": np.std(data, ddof=1),
+        "std": np.std(data, ddof=ddof),
         "min": np.min(data),
         "max": np.max(data),
         "count": len(data),
@@ -74,7 +76,9 @@ def plot_distribution(data, title, output_path, color="steelblue", stats=None):
 
     # Add mean line
     mean_val = stats["mean"] if stats else np.mean(data)
-    std_val = stats["std"] if stats else np.std(data, ddof=1)
+    # Use ddof=0 for single sample to avoid division by zero
+    ddof = 0 if len(data) == 1 else 1
+    std_val = stats["std"] if stats else np.std(data, ddof=ddof)
 
     ax.axvline(
         mean_val,
@@ -317,7 +321,8 @@ def main():
             mean_diff = estimated_stats["mean"] - measured_stats["mean"]
             mean_diff_pct = (mean_diff / measured_stats["mean"]) * 100
             std_diff = estimated_stats["std"] - measured_stats["std"]
-            std_diff_pct = (std_diff / measured_stats["std"]) * 100
+            # Handle division by zero when std is 0 (single sample case)
+            std_diff_pct = (std_diff / measured_stats["std"]) * 100 if measured_stats["std"] > 0 else np.nan
             all_errors.append(mean_diff_pct)
 
             # Write to report
