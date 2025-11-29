@@ -29,7 +29,8 @@ from benchmark_common import (
 
 # Benchmarks for these opcodes can corrupt memory; skip them here.
 # TODO: add safe handling for pushm/popm/call/ret generation.
-UNSAFE_OPCODES = {"pushm", "popm", "call", "ret"}
+# We also skip instructions that are hard to repeat safely in a tight loop.
+UNSAFE_OPCODES = {"br", "call", "nop", "popm", "push", "pushm", "ret", "reti", "rpt"}
 
 
 def list_instruction_keys(specs: List[InstructionSpec]) -> dict:
