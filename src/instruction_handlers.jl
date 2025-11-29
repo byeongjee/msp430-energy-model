@@ -1132,7 +1132,7 @@ function execute!(
     operand_val = get_operand_value(state, ops[1], data_size)
     carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
     result = UInt32(operand_val - carry)
-    update_flags!(state, result, operand_val, UInt32(0), false, data_size)
+    update_flags!(state, result, operand_val, carry, false, data_size)
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
@@ -1152,7 +1152,7 @@ function execute!(
     operand_val = get_operand_value(state, ops[1], data_size)
     carry = state.flags[:C] ? UInt32(1) : UInt32(0)
     result = UInt32(operand_val + carry)
-    update_flags!(state, result, operand_val, UInt32(0), true, data_size)
+    update_flags!(state, result, operand_val, carry, true, data_size)
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
