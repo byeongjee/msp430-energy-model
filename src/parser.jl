@@ -30,7 +30,9 @@ end
 Parse the RPT part of: rpt #N { instruction
 Returns an RPT instruction with the count as operand.
 """
-function parse_rpt_instruction(line::String, current_addr::UInt32)::Union{Instruction,Nothing}
+function parse_rpt_instruction(
+    line::String, current_addr::UInt32
+)::Union{Instruction,Nothing}
     # Format: "rpt #N { instruction"
     # Extract the repeat count from the part before {
     parts = split(line, "{")
@@ -91,7 +93,6 @@ function parse_line(line::String, current_addr::UInt32)::Union{Instruction,Nothi
     if endswith(line, ":")
         return nothing
     end
-
 
     parts = split(line)
 
@@ -161,7 +162,7 @@ function parse_operands(op_str::String, current_addr::UInt32)::Vector{Operand}
 
             if endswith(reg_str, "+")
                 # Autoincrement mode: @Rn+
-                reg_str = reg_str[1:end-1]  # Remove + suffix
+                reg_str = reg_str[1:(end - 1)]  # Remove + suffix
                 reg_name = normalize_register_name(Symbol(uppercase(reg_str)))
                 indirect_symbol = Symbol("@" * string(reg_name))
                 push!(operands, Operand(indirect_symbol, :autoincrement))

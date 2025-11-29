@@ -784,8 +784,9 @@ function execute!(
     end
     operand_val = get_operand_value(state, ops[1], data_size)
     bytes_per_val = data_size == :address ? UInt32(4) : UInt32(2)
-    state.registers[:SP] =
-        UInt32((state.registers[:SP] - bytes_per_val) & get_register_mask(:SP))
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] - bytes_per_val) & get_register_mask(:SP)
+    )
     if data_size == :address
         set_memory_value!(state, state.registers[:SP], operand_val, :address)
     else
@@ -819,8 +820,9 @@ function execute!(
             "CALL instruction cannot handle return address 0x$(string(return_addr, base=16)) > 0xFFFF. Use CALLA for 20-bit addresses.",
         )
     end
-    state.registers[:SP] =
-        UInt32((state.registers[:SP] - UInt32(2)) & get_register_mask(:SP))
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] - UInt32(2)) & get_register_mask(:SP)
+    )
     state.memory[state.registers[:SP]] = UInt16(return_addr)
     state.registers[:PC] = operand_val
     return nothing
@@ -837,8 +839,9 @@ function execute!(
 )::Nothing
     return_addr = get(state.memory, state.registers[:SP], UInt16(0))
     state.registers[:PC] = return_addr
-    state.registers[:SP] =
-        UInt32((state.registers[:SP] + UInt32(2)) & get_register_mask(:SP))
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
+    )
     return nothing
 end
 
@@ -852,11 +855,13 @@ function execute!(
     ::Int,
 )::Nothing
     state.registers[:SR] = state.memory[state.registers[:SP]]
-    state.registers[:SP] =
-        UInt32((state.registers[:SP] + UInt32(2)) & get_register_mask(:SP))
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
+    )
     state.registers[:PC] = state.memory[state.registers[:SP]]
-    state.registers[:SP] =
-        UInt32((state.registers[:SP] + UInt32(2)) & get_register_mask(:SP))
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
+    )
     return nothing
 end
 
@@ -1227,8 +1232,9 @@ function execute!(
             reg_sym = Parser.reg_num_to_symbol(i)
             reg_val = get_register_value(state, reg_sym)
 
-            state.registers[:SP] =
-                UInt32((state.registers[:SP] - bytes_per_reg) & get_register_mask(:SP))
+            state.registers[:SP] = UInt32(
+                (state.registers[:SP] - bytes_per_reg) & get_register_mask(:SP)
+            )
 
             if data_size == :address
                 set_memory_value!(state, state.registers[:SP], reg_val, :address)
@@ -1273,8 +1279,9 @@ function execute!(
             end
 
             set_register_value!(state, reg_sym, reg_val)
-            state.registers[:SP] =
-                UInt32((state.registers[:SP] + bytes_per_reg) & get_register_mask(:SP))
+            state.registers[:SP] = UInt32(
+                (state.registers[:SP] + bytes_per_reg) & get_register_mask(:SP)
+            )
         end
     end
     return nothing
