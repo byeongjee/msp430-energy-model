@@ -283,16 +283,18 @@ INLINE void bench_inc_register(void) {
         """Verify we have the expected number of instruction specs
 
         Expected breakdown:
-        - Dual-operand (11 opcodes): 11 × 28 = 308
-        - Single-operand (inc, incd, dec, decd, clr, rla, rlc): 7 × 4 = 28
+        - Dual-operand (12 opcodes @ 28 each): add, addc, and, bic, bis, bit,
+          cmp, mov, mova, or, sub, xor => 12 × 28 = 336
+        - Single-operand (8 opcodes @ 4 each): inc, incd, dec, decd, clr, rla,
+          rlc, rrux => 8 × 4 = 32
         - call: 4 variants
         - Constant-aware representative (rlam, rrum, pushm, popm): 4
         - Jump opcodes: 8
         - No-operand: ret (1)
-        Total: 308 + 28 + 4 + 4 + 8 + 1 = 353 instruction keys
+        Total: 336 + 32 + 4 + 4 + 8 + 1 = 385 instruction keys
         """
         specs = get_all_instruction_specs()
-        self.assertEqual(len(specs), 353)
+        self.assertEqual(len(specs), 385)
 
         # Count by opcode
         opcode_counts = {}
@@ -300,11 +302,24 @@ INLINE void bench_inc_register(void) {
             opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
 
         # Dual-operand instructions (28 each)
-        for opcode in ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+        for opcode in [
+            "add",
+            "addc",
+            "and",
+            "bic",
+            "bis",
+            "bit",
+            "cmp",
+            "mov",
+            "mova",
+            "or",
+            "sub",
+            "xor",
+        ]:
             self.assertEqual(opcode_counts[opcode], 28, f"{opcode} should have 28 variants")
 
         # Single-operand instructions (4 each)
-        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]:
+        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc", "rrux"]:
             self.assertEqual(opcode_counts[opcode], 4, f"{opcode} should have 4 variants")
 
         # Constant-aware and jump instructions

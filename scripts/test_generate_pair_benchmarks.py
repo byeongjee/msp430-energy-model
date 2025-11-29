@@ -309,31 +309,36 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
         """Verify we have the expected number of instruction specs
 
         Expected breakdown:
-        - add: 28 variants (7 src modes × 4 dst modes)
-        - mov: 28 variants (7 src modes × 4 dst modes)
-        - cmp: 28 variants (7 src modes × 4 dst modes)
-        - inc: 4 variants (reg, idx, sym, abs)
-        - rlam: 4 variants (constants 1, 2, 3, 4)
-        - jmp: 1 variant
-        - jge: 1 variant
-        - jl: 1 variant
-        - jnz: 1 variant
-        - jz: 1 variant
-        - jnc: 1 variant
-        - jc: 1 variant
-        - jn: 1 variant
-        Total: 3×28 + 4 + 4 + 8×1 = 100 instruction keys
+        - Dual operand (7 src modes × 4 dst modes = 28 each):
+          add, addc, and, bic, bis, bit, cmp, mov, mova, or, sub, xor
+        - Single operand (4 each): inc, incd, dec, decd, clr, rla, rlc, rrux
+        - Constant ops (1 each): rlam, rrum, pushm, popm
+        - Branch/call: call (4), ret (1), jumps jmp/jge/jl/jnz/jz/jnc/jc/jn (1 each)
+        Total: 385 instruction keys
         """
         specs = get_all_instruction_specs(granularity="addressing_mode_pair")
-        self.assertEqual(len(specs), 353)
+        self.assertEqual(len(specs), 385)
 
         opcode_counts = {}
         for spec in specs:
             opcode_counts[spec.opcode] = opcode_counts.get(spec.opcode, 0) + 1
 
-        for opcode in ["add", "addc", "mov", "cmp", "sub", "and", "or", "xor", "bit", "bic", "bis"]:
+        for opcode in [
+            "add",
+            "addc",
+            "and",
+            "bic",
+            "bis",
+            "bit",
+            "cmp",
+            "mov",
+            "mova",
+            "or",
+            "sub",
+            "xor",
+        ]:
             self.assertEqual(opcode_counts[opcode], 28)
-        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc"]:
+        for opcode in ["inc", "incd", "dec", "decd", "clr", "rla", "rlc", "rrux"]:
             self.assertEqual(opcode_counts[opcode], 4)
         for opcode in ["rlam", "rrum", "pushm", "popm"]:
             self.assertEqual(opcode_counts[opcode], 1)
