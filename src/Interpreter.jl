@@ -298,6 +298,7 @@ function interpret_program(
     # Track instruction sequences between begin_event and end_event
     event_sequences = Vector{Vector{Instruction}}()
     current_sequence = Vector{Instruction}()
+    exit_addr = get(func_addrs, "_exit", nothing)
 
     # Show the program
     @info "instruction_count" count = length(instructions)
@@ -330,6 +331,13 @@ function interpret_program(
     start_time = time()
 
     while step_count < max_steps
+        if exit_addr !== nothing && state.registers[:PC] == exit_addr
+            @info "Program terminated at _exit" pc = string(
+                state.registers[:PC]; base=16, pad=4
+            )
+            break
+        end
+
         step_count += 1
 
         # Get instruction at current PC
@@ -352,7 +360,6 @@ function interpret_program(
 
             # Pre-check if this is a call instruction to avoid multiple function checks
             is_call = inst.opcode == :call
-            should_terminate = false
 
             if is_call
                 call_target = get_operand_value(state, inst.operands[1])
@@ -397,22 +404,11 @@ function interpret_program(
                 if skip_function
                     continue
                 end
-
-                # Check for termination (_exit) - set flag but still execute
-                if get(func_addrs, "_exit", nothing) == call_target
-                    should_terminate = true
-                end
             end
 
             # Execute the instruction
             execute_instruction!(state, inst, addresses, current_addr_idx)
             push!(current_sequence, inst)
-
-            # Check termination after execution
-            if should_terminate
-                @info "Program terminated"
-                break
-            end
 
             # Debug logging only when needed
             if debug_enabled && old_regs !== nothing
