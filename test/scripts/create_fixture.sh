@@ -70,9 +70,12 @@ LDFLAGS="-L$MSP430GCC_SUPPORT_PATH/include"
 # Output files
 ELF_FILE="$BUILD_DIR/${TEST_NAME}.elf"
 ASM_FILE="$ASM_DIR/${TEST_NAME}.asm"
+DATA_FILE="$ASM_DIR/${TEST_NAME}.data"
 FIXTURE_ASM_FILE="$FIXTURE_DIR/${TEST_NAME}.asm"
+FIXTURE_DATA_FILE="$FIXTURE_DIR/${TEST_NAME}.data"
 GDB_RESULT_FILE="$BUILD_DIR/${TEST_NAME}_gdb.json"
 FIXTURE_FILE="$FIXTURE_DIR/${TEST_NAME}.json"
+DATA_SECTIONS=(.rodata .rodata2 .data .lower.data .upper.data .persistent .text)
 
 echo "Step 1: Compiling C to MSP430 ELF..."
 "$CC" $CFLAGS $INCLUDES $LDFLAGS -o "$ELF_FILE" "$C_FILE"
@@ -84,6 +87,11 @@ echo "Step 2: Disassembling to assembly..."
 echo "✓ Disassembled: $ASM_FILE"
 echo ""
 
+echo "Step 2b: Dumping data sections..."
+"$OBJDUMP" -s $(printf ' -j %s' "${DATA_SECTIONS[@]}") "$ELF_FILE" > "$DATA_FILE"
+echo "✓ Data dump: $DATA_FILE"
+echo ""
+
 echo "Step 3: Running in GDB simulator..."
 "$SCRIPT_DIR/run_gdb.sh" "$ELF_FILE" "$GDB_RESULT_FILE"
 echo "✓ GDB execution complete: $GDB_RESULT_FILE"
@@ -92,6 +100,8 @@ echo ""
 echo "Step 4: Copying assembly to fixtures directory..."
 cp "$ASM_FILE" "$FIXTURE_ASM_FILE"
 echo "✓ Copied: $FIXTURE_ASM_FILE"
+cp "$DATA_FILE" "$FIXTURE_DATA_FILE"
+echo "✓ Copied: $FIXTURE_DATA_FILE"
 echo ""
 
 echo "Step 5: Creating test fixture JSON..."
