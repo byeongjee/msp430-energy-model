@@ -28,7 +28,16 @@ struct Instruction
     opcode::Symbol
     operands::Vector{Operand}
     data_size::Symbol        # :byte (8-bit), :word (16-bit), or :address (20-bit)
+    rpt_nested::Union{Nothing,Instruction}  # Nested instruction for rpt blocks
 end
+
+# Convenience constructors to keep existing call sites unchanged
+Instruction(opcode::Symbol, operands::Vector{Operand}, data_size::Symbol) = Instruction(
+    opcode, operands, data_size, nothing
+)
+Instruction(
+    opcode::Symbol, operands::Vector{Operand}, data_size::Symbol; rpt_nested=nothing
+) = Instruction(opcode, operands, data_size, rpt_nested)
 
 """
 Machine state for processor simulation

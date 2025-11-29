@@ -208,15 +208,21 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
             if contains(instr_str, "{")
                 # Parse RPT: "rpt #N { instruction"
                 rpt_instr = Parser.parse_rpt_instruction(String(instr_str), addr)
-                if !isnothing(rpt_instr)
-                    push!(instructions, rpt_instr)
-                    push!(addresses, addr)
-                end
-
                 # Parse the nested instruction at addr+2
                 nested_instr = Parser.parse_rpt_nested_instruction(
                     String(instr_str), UInt32(addr + 2)
                 )
+                if !isnothing(rpt_instr)
+                    rpt_with_nested = Instruction(
+                        rpt_instr.opcode,
+                        rpt_instr.operands,
+                        rpt_instr.data_size;
+                        rpt_nested=nested_instr,
+                    )
+                    push!(instructions, rpt_with_nested)
+                    push!(addresses, addr)
+                end
+
                 if !isnothing(nested_instr)
                     push!(instructions, nested_instr)
                     push!(addresses, addr + 2)

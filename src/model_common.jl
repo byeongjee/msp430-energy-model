@@ -48,6 +48,13 @@ For dual-operand instructions with PerAddressingMode, uses source and destinatio
 For PerAddressingModeConstant, also includes compile-time constant values for specific instructions.
 """
 function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::ParamKey
+    # Treat RPT blocks as a single instruction keyed by the nested instruction
+    if inst.opcode == :rpt && inst.rpt_nested !== nothing
+        repeat_count = length(inst.operands) >= 1 ? Int(inst.operands[1].value) : 0
+        nested_key = get_instruction_key(inst.rpt_nested, granularity)
+        return (:rpt, repeat_count, nested_key...)
+    end
+
     if granularity == PerOpcode
         # Simple: just the opcode
         return (inst.opcode,)

@@ -198,6 +198,7 @@ should_advance_pc(::RetHandler, state::MachineState, ops::Vector{Operand})::Bool
 should_advance_pc(::RetiHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 should_advance_pc(::BrHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 should_advance_pc(::JumpHandler, state::MachineState, ops::Vector{Operand})::Bool = false
+should_advance_pc(::RptHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 
 # MOV/MOVA to PC acts as a branch: don't advance if destination is PC
 function should_advance_pc(
@@ -1100,20 +1101,31 @@ function execute!(
     return nothing
 end
 
-# RPT - Repeat next instruction N times
+# RPT - Repeat next instruction N times (execute nested instruction directly)
 function execute!(
     state::MachineState,
     ::RptHandler,
-    ops::Vector{Operand},
-    data_size::Symbol,
-    ::Vector{UInt32},
-    ::Int,
+    inst::Instruction,
+    addresses::Vector{UInt32},
+    current_idx::Int,
 )::Nothing
-    # Get repeat count from immediate operand
-    count = get_operand_value(state, ops[1], data_size)
-    # Set repeat counter to N-1 because the instruction executes once normally,
-    # then repeats (N-1) more times
-    state.repeat_counter = Int(count) - 1
+    nested_inst = inst.rpt_nested
+    count = Int(get_operand_value(state, inst.operands[1], inst.data_size))
+
+    nested_idx = current_idx + 1
+    nested_addr = addresses[nested_idx]
+    after_nested_idx = nested_idx < length(addresses) ? nested_idx + 1 : nested_idx
+    nested_handler = get_handler(nested_inst.opcode)
+
+    for _ in 1:count
+        state.registers[:PC] = nested_addr
+        execute!(state, nested_handler, nested_inst.operands, nested_inst.data_size, addresses, nested_idx)
+    end
+
+    if after_nested_idx <= length(addresses) && state.registers[:PC] == nested_addr
+        state.registers[:PC] = addresses[after_nested_idx]
+    end
+
     return nothing
 end
 
