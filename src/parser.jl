@@ -319,11 +319,57 @@ Identify MSP430 instruction format
 function get_instruction_format(opcode::Symbol)::Symbol
     # Dual-operand instructions (Format I)
     dual_operand = [
-        :mov, :add, :addc, :sub, :subc, :cmp, :dadd, :bit, :bic, :bis, :xor, :and
+        :mov,
+        :mova,
+        :add,
+        :adda,
+        :addc,
+        :sub,
+        :subc,
+        :cmp,
+        :dadd,
+        :bit,
+        :bic,
+        :bis,
+        :xor,
+        :and,
     ]
 
     # Single-operand instructions (Format II)
-    single_operand = [:rrc, :swpb, :rra, :sxt, :push, :call, :reti]
+    single_operand = [
+        :rrc,
+        :rrcm,
+        :swpb,
+        :rra,
+        :rrax,
+        :rrux,
+        :rrum,
+        :sxt,
+        :inv,
+        :push,
+        :call,
+        :reti,
+        :clr,
+        :ret,
+        :inc,
+        :dec,
+        :dint,
+        :eint,
+        :setc,
+        :clrc,
+        :rlc,
+        :nop,
+        :br,
+        :pushm,
+        :popm,
+        :rla,
+        :rlam,
+        :sbc,
+        :adc,
+        :decd,
+        :incd,
+        :rpt,
+    ]
 
     # Jump instructions (Format III)
     jump_instructions = [:jnz, :jz, :jnc, :jc, :jn, :jge, :jl, :jmp]

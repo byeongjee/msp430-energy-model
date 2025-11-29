@@ -65,6 +65,7 @@ struct RraxHandler <: SingleOperandHandler end
 struct RruxHandler <: SingleOperandHandler end
 struct RrumHandler <: SingleOperandHandler end
 struct SxtHandler <: SingleOperandHandler end
+struct InvHandler <: SingleOperandHandler end
 struct PushHandler <: SingleOperandHandler end
 struct CallHandler <: SingleOperandHandler end
 struct RetiHandler <: SingleOperandHandler end
@@ -132,6 +133,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :rrux => RruxHandler(),
     :rrum => RrumHandler(),
     :sxt => SxtHandler(),
+    :inv => InvHandler(),
     :push => PushHandler(),
     :call => CallHandler(),
     :reti => RetiHandler(),
@@ -723,6 +725,47 @@ function execute!(
         UInt32(operand_val & 0x00FF)
     end
     update_flags_simple!(state, result, data_size)
+    set_operand_value!(state, ops[1], result, data_size)
+    return nothing
+end
+
+# INV - Bitwise invert
+function execute!(
+    state::MachineState,
+    ::InvHandler,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{UInt32},
+    ::Int,
+)::Nothing
+    if length(ops) < 1
+        return nothing
+    end
+    operand_val = get_operand_value(state, ops[1], data_size)
+    result = apply_data_size_mask(~operand_val, data_size)
+
+    # INV sets C=1, clears V, and updates N/Z based on the masked result.
+    state.flags[:C] = true
+    state.flags[:V] = false
+
+    msb_bit = if data_size == :byte
+        UInt32(0x80)
+    elseif data_size == :word
+        UInt32(0x8000)
+    else
+        UInt32(0x80000)
+    end
+
+    state.flags[:Z] = (result == 0)
+    state.flags[:N] = (result & msb_bit) != 0
+
+    state.registers[:SR] =
+        (state.registers[:SR] & ~UInt32(0x0107)) |
+        (state.flags[:V] ? 0x0100 : 0x0000) |
+        (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
+
     set_operand_value!(state, ops[1], result, data_size)
     return nothing
 end
