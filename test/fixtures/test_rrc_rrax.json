@@ -1,0 +1,31 @@
+{
+  "test_name": "test_rrc_rrax",
+  "asm_file": "test/fixtures/test_rrc_rrax.asm",
+  "gdb_result": {
+  "registers": {
+    "PC": 16456,
+    "SP": 11262,
+    "SR": 5,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 65535,
+    "R13": 65535,
+    "R14": 40960,
+    "R15": 127
+  },
+  "flags": {
+    "C": true,
+    "Z": false,
+    "N": true,
+    "V": false
+  },
+  "pc": 16456
+}
+}
