@@ -380,6 +380,32 @@ function set_operand_value!(
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
         set_memory_value!(state, operand.value, masked_value, data_size)
+    elseif operand.mode == :indirect
+        # Indirect register mode: @Rn -> store to address in Rn
+        @assert isa(operand.value, Symbol) "Indirect mode: operand.value must be Symbol, got $(typeof(operand.value))"
+        operand_str = string(operand.value)
+        reg_name = Symbol(operand_str[2:end])  # Strip leading @
+        addr = get_register_value(state, reg_name)
+        set_memory_value!(state, addr, masked_value, data_size)
+    elseif operand.mode == :autoincrement
+        # Autoincrement store: write then increment pointer register
+        @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
+        operand_str = string(operand.value)
+        reg_name = Symbol(operand_str[2:end])  # Strip leading @
+        addr = get_register_value(state, reg_name)
+        set_memory_value!(state, addr, masked_value, data_size)
+
+        increment = if data_size == :byte
+            UInt32(1)
+        elseif data_size == :address
+            UInt32(4)  # 20-bit spans two words
+        else
+            UInt32(2)
+        end
+
+        mask = reg_name in (:PC, :SP) ? get_register_mask(reg_name) : UInt32(0xFFFF)
+        new_val = UInt32((addr + increment) & mask)
+        state.registers[reg_name] = new_val
     else
         error("Cannot set value for addressing mode: $(operand.mode)")
     end
