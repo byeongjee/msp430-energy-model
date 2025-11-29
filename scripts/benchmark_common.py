@@ -11,6 +11,7 @@ and generate_addressing_mode_benchmarks.py, including:
 """
 
 from pathlib import Path
+import copy
 from typing import List, Dict, Any, Tuple
 from jinja2 import Template
 
@@ -32,6 +33,8 @@ class InstructionSpec:
         asm_template: str = "",
         variables: List[Dict[str, str]] = None,
         constraints: Dict[str, str] = None,
+        key_override: tuple = None,
+        inner_opcode: str = None,
     ):
         self.opcode = opcode
         self.src_mode = src_mode
@@ -44,9 +47,14 @@ class InstructionSpec:
             "inputs": "",
             "clobbers": '"cc"',
         }
+        self.key_override = key_override
+        self.inner_opcode = inner_opcode
 
     def get_key(self) -> Tuple:
         """Get the parameter key for this instruction (matches model_common.jl)"""
+        if self.key_override is not None:
+            return self.key_override
+
         if self.dst_mode is None:
             # Single operand or no operand
             return (self.opcode, self.src_mode) if self.src_mode else (self.opcode,)
@@ -206,6 +214,62 @@ def create_single_operand_specs(opcode: str) -> List[InstructionSpec]:
         )
     )
 
+    return specs
+
+
+DEFAULT_RPT_COUNTS = list(range(1, 16))
+
+
+def create_rpt_specs(
+    base_specs: List[InstructionSpec], repeat_counts: List[int] = None, include_constant: bool = False
+) -> List[InstructionSpec]:
+    """Wrap base specs into RPT variants.
+
+    - Always generate a register-count variant (non-constant)
+    - If include_constant is True, also generate immediate-count variants for repeat_counts
+    """
+    repeat_counts = repeat_counts or DEFAULT_RPT_COUNTS
+    specs: List[InstructionSpec] = []
+
+    for base in base_specs:
+        # Register-count variant (non-constant granularity)
+        reg_constraints = copy.deepcopy(base.constraints)
+        reg_vars = copy.deepcopy(base.variables)
+        reg_vars.append({"name": "rcount", "type": "uint16_t", "value": "4"})
+        if reg_constraints["inputs"]:
+            reg_constraints["inputs"] += ", "
+        reg_constraints["inputs"] += '[rcount] "r"(rcount)'
+        asm_reg = f"rpt %[rcount] {{ {base.asm_template} }}"
+        specs.append(
+            InstructionSpec(
+                opcode="rpt",
+                src_mode="register",
+                dst_mode=base.dst_mode,
+                constant=None,
+                asm_template=asm_reg,
+                variables=reg_vars,
+                constraints=reg_constraints,
+                key_override=("rpt", "register", *base.get_key()),
+                inner_opcode=base.opcode,
+            )
+        )
+
+        if include_constant:
+            for count in repeat_counts:
+                asm = f"rpt #{count} {{ {base.asm_template} }}"
+                specs.append(
+                    InstructionSpec(
+                        opcode="rpt",
+                        src_mode="immediate",
+                        dst_mode=base.dst_mode,
+                        constant=count,
+                        asm_template=asm,
+                        variables=copy.deepcopy(base.variables),
+                        constraints=copy.deepcopy(base.constraints),
+                        key_override=("rpt", count, *base.get_key()),
+                        inner_opcode=base.opcode,
+                    )
+                )
     return specs
 
 
@@ -519,15 +583,23 @@ def get_instruction_specs(granularity: str) -> List[InstructionSpec]:
     if g == "opcode":
         return create_opcode_specs()
     if g == "addressing_mode":
-        return create_addressing_mode_specs(include_constant=False)
+        specs = create_addressing_mode_specs(include_constant=False)
+        specs.extend(create_rpt_specs(specs, include_constant=False))
+        return specs
     if g == "addressing_mode_constant":
-        return create_addressing_mode_specs(include_constant=True)
+        specs = create_addressing_mode_specs(include_constant=True)
+        specs.extend(create_rpt_specs(specs, include_constant=True))
+        return specs
     if g == "opcode_pair":
         return create_opcode_specs()
     if g == "addressing_mode_pair":
-        return create_addressing_mode_specs(include_constant=False)
+        specs = create_addressing_mode_specs(include_constant=False)
+        specs.extend(create_rpt_specs(specs, include_constant=False))
+        return specs
     if g == "addressing_mode_constant_pair":
-        return create_addressing_mode_specs(include_constant=True)
+        specs = create_addressing_mode_specs(include_constant=True)
+        specs.extend(create_rpt_specs(specs, include_constant=True))
+        return specs
 
     raise ValueError(
         f"Unsupported granularity '{granularity}'. Expected one of: "

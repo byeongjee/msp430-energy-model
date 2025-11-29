@@ -30,7 +30,7 @@ from benchmark_common import (
 # Benchmarks for these opcodes can corrupt memory; skip them here.
 # TODO: add safe handling for pushm/popm/call/ret generation.
 # We also skip instructions that are hard to repeat safely in a tight loop.
-UNSAFE_OPCODES = {"br", "call", "nop", "popm", "push", "pushm", "ret", "reti", "rpt"}
+UNSAFE_OPCODES = {"br", "call", "nop", "popm", "push", "pushm", "ret", "reti"}
 
 
 def list_instruction_keys(specs: List[InstructionSpec]) -> dict:
@@ -116,7 +116,13 @@ def main():
     args = parser.parse_args()
 
     normalized = normalize_granularity(args.granularity)
-    specs = [spec for spec in get_instruction_specs(normalized) if spec.opcode not in UNSAFE_OPCODES]
+    def is_safe(spec: InstructionSpec) -> bool:
+        outer_ok = spec.opcode not in UNSAFE_OPCODES
+        inner = getattr(spec, "inner_opcode", None)
+        inner_ok = True if inner is None else inner not in UNSAFE_OPCODES
+        return outer_ok and inner_ok
+
+    specs = [spec for spec in get_instruction_specs(normalized) if is_safe(spec)]
 
     if normalized.endswith("pair"):
         output_data = list_pair_keys(specs)

@@ -309,7 +309,14 @@ def main():
     normalized = normalize_granularity(args.granularity)
     payload = load_payload(args.input, normalized)
 
-    specs = get_instruction_specs(normalized)
+    unsafe = {"br", "call", "nop", "popm", "push", "pushm", "ret", "reti"}
+    def is_safe(spec):
+        outer_ok = spec.opcode not in unsafe
+        inner = getattr(spec, "inner_opcode", None)
+        inner_ok = True if inner is None else inner not in unsafe
+        return outer_ok and inner_ok
+
+    specs = [spec for spec in get_instruction_specs(normalized) if is_safe(spec)]
     spec_lookup = {spec.get_key_str(): spec for spec in specs}
     print(f"Loaded {len(spec_lookup)} instruction specifications", file=sys.stderr)
 
