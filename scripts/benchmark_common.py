@@ -550,7 +550,7 @@ def create_addressing_mode_specs(include_constant: bool = False) -> List[Instruc
     dual_opcodes = ["add", "addc", "mov", "mova", "cmp", "sub", "subc", "and", "or", "xor", "bit", "bic", "bis"]
     single_opcodes = ["inc", "incd", "dec", "decd", "clr", "inv", "rla", "rlc", "rrc", "rrax", "rrux", "sxt"]
     jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
-    no_operand_opcodes = ["clrc", "dint", "ret"]
+    no_operand_opcodes = ["clrc", "dint", "nop", "ret"]
 
     for opcode in dual_opcodes:
         specs.extend(create_dual_operand_specs(opcode))

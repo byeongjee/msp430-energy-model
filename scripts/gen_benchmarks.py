@@ -319,7 +319,7 @@ def main():
             regular_items.append(item)
 
     # Note: br_immediate is handled as a hardcoded benchmark, not filtered here
-    unsafe = {"call", "nop", "popm", "push", "pushm", "ret", "reti"}
+    unsafe = {"call", "popm", "push", "pushm", "ret", "reti"}
 
     def is_safe(spec):
         outer_ok = spec.opcode not in unsafe
