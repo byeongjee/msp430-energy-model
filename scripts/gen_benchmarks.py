@@ -35,6 +35,7 @@ from benchmark_common import (
     UNSAFE_OPCODES,
     COMPOSITE_CALL_AND_RET,
     COMPOSITE_PUSHM_AND_POPM,
+    COMPOSITE_PUSH_AND_RETI,
 )
 
 
@@ -129,6 +130,28 @@ INLINE void bench_pushm_and_popm(void) {
     }
 
 
+def generate_push_and_reti_benchmark(source_keys=None) -> Dict[str, Any]:
+    """Generate a composite benchmark that measures push+reti via an interrupt stub."""
+    name = COMPOSITE_PUSH_AND_RETI
+    code = """
+INLINE void bench_push_and_reti(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\\n"
+      "  call #bench_empty_interrupt\\n"
+      ".endr\\n"
+      : 
+      : 
+      : "cc", "memory"));
+}
+"""
+    return {
+        "name": name,
+        "code": code,
+        "key": (name,),
+        "source_keys": sorted(source_keys) if source_keys else None,
+    }
+
+
 # ============================================================================
 # Instruction-level benchmark generation
 # ============================================================================
@@ -189,6 +212,8 @@ def generate_instruction_benchmarks(
             benchmarks.append(generate_call_and_ret_benchmark(source_keys))
         elif group == COMPOSITE_PUSHM_AND_POPM:
             benchmarks.append(generate_pushm_and_popm_benchmark(source_keys))
+        elif group == COMPOSITE_PUSH_AND_RETI:
+            benchmarks.append(generate_push_and_reti_benchmark(source_keys))
         else:
             print(
                 f"Warning: Unknown composite group '{group}', skipping", file=sys.stderr

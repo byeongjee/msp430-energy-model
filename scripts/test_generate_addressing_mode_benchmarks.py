@@ -408,6 +408,25 @@ class TestCompositeGeneration(unittest.TestCase):
             any(n.startswith("pushm_immediate") or n.startswith("popm_immediate") for n in names)
         )
 
+    def test_push_and_reti_composite(self):
+        specs = get_instruction_specs("addressing_mode")
+        lookup = {spec.get_key_str(): spec for spec in specs}
+        payload = [
+            {"key": "push_register"},
+            {"key": "reti"},
+            {"key": "add_register_register"},
+        ]
+
+        benches = generate_instruction_benchmarks(payload, lookup, "addressing_mode")
+        names = [b["name"] for b in benches]
+
+        self.assertIn("push_and_reti", names)
+        self.assertEqual(names.count("push_and_reti"), 1)
+        self.assertIn("add_register_register", names)
+        residual_push = [n for n in names if n.startswith("push_") and n != "push_and_reti"]
+        self.assertEqual(residual_push, [])
+        self.assertNotIn("reti", names)
+
 
 if __name__ == "__main__":
     unittest.main()

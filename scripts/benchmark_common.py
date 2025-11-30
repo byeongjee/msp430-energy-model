@@ -22,10 +22,11 @@ from jinja2 import Template
 
 # Benchmarks for these opcodes can corrupt memory or are not yet safely handled.
 # Note: br_immediate is handled as a hardcoded benchmark, not generated here.
-UNSAFE_OPCODES = {"push", "reti"}
+UNSAFE_OPCODES = set()
 
 COMPOSITE_CALL_AND_RET = "call_and_ret"
 COMPOSITE_PUSHM_AND_POPM = "pushm_and_popm"
+COMPOSITE_PUSH_AND_RETI = "push_and_reti"
 
 
 # ============================================================================
@@ -527,6 +528,50 @@ def create_dint_specs() -> List[InstructionSpec]:
     ]
 
 
+def create_reti_specs() -> List[InstructionSpec]:
+    """Create spec for reti (no operand) grouped with push composite."""
+    return create_no_operand_specs("reti", composite_group=COMPOSITE_PUSH_AND_RETI)
+
+
+def create_push_specs() -> List[InstructionSpec]:
+    """Create instruction specs for push (single operand)"""
+    specs = []
+    modes = ["register", "immediate", "indexed", "symbolic", "absolute"]
+
+    for mode in modes:
+        variables: List[Dict[str, Any]] = []
+        constraints = {"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'}
+
+        if mode == "register":
+            op_asm = "%[src]"
+            variables.append({"name": "src", "type": "uint16_t", "value": "0x2222"})
+            constraints["inputs"] = '[src] "r"(src)'
+        elif mode == "immediate":
+            op_asm = "#0x2222"
+            constraints["clobbers"] = '"cc"'
+        elif mode == "indexed":
+            op_asm = "%c[offs](%[base])"
+            variables.append({"name": "base", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["inputs"] = '[base] "r"(base), [offs] "i"(OFFS)'
+        elif mode == "symbolic":
+            op_asm = "sym_data"
+        elif mode == "absolute":
+            op_asm = "&sym_data"
+
+        specs.append(
+            InstructionSpec(
+                opcode="push",
+                src_mode=mode,
+                asm_template=f"push.w {op_asm}",
+                variables=variables,
+                constraints=constraints,
+                composite_group=COMPOSITE_PUSH_AND_RETI,
+            )
+        )
+
+    return specs
+
+
 def create_opcode_specs() -> List[InstructionSpec]:
     """Create one representative spec per opcode (granularity: opcode)"""
     specs = []
@@ -611,10 +656,14 @@ def create_opcode_specs() -> List[InstructionSpec]:
         )
 
     specs.extend(create_call_specs())
+    specs.extend(create_push_specs())
+    specs.extend(create_push_specs())
+    specs.extend(create_push_specs())
 
     specs.extend(create_no_operand_specs("clrc"))
     specs.extend(create_dint_specs())
     specs.extend(create_no_operand_specs("ret", composite_group=COMPOSITE_CALL_AND_RET))
+    specs.extend(create_reti_specs())
 
     jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
     for opcode in jump_opcodes:
@@ -696,6 +745,7 @@ def create_addressing_mode_specs(
     )
 
     specs.extend(create_call_specs())
+    specs.extend(create_push_specs())
 
     specs.extend(create_jmp_specs())
     specs.extend(create_jge_specs())
@@ -709,6 +759,7 @@ def create_addressing_mode_specs(
 
     specs.extend(create_dint_specs())
     specs.extend(create_no_operand_specs("ret", composite_group=COMPOSITE_CALL_AND_RET))
+    specs.extend(create_reti_specs())
     specs.extend(create_no_operand_specs("nop"))
     specs.extend(create_no_operand_specs("clrc"))
 

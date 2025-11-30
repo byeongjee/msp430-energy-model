@@ -132,6 +132,15 @@ NOINLINE __attribute__((used)) void bench_empty_function(void) {
   __asm__ volatile("" ::: "memory");
 }
 
+// Interrupt-style stub for push/reti composite benchmark.
+NOINLINE __attribute__((used, naked)) void bench_empty_interrupt(void) {
+  __asm__ volatile(
+      "push r2\n"
+      "dint\n"
+      "nop\n"
+      "reti\n");
+}
+
 // Setup for printf over UART. For debugging.
 #ifdef DEBUG
 #include <reent.h>
