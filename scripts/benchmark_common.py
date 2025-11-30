@@ -17,6 +17,17 @@ from jinja2 import Template
 
 
 # ============================================================================
+# Constants
+# ============================================================================
+
+# Benchmarks for these opcodes can corrupt memory; skip them.
+# TODO: add safe handling for pushm/popm/call/ret generation.
+# We also skip instructions that are hard to repeat safely in a tight loop.
+# Note: br_immediate is handled as a hardcoded benchmark, not generated here
+UNSAFE_OPCODES = {"call", "popm", "push", "pushm", "ret", "reti"}
+
+
+# ============================================================================
 # Instruction Specification
 # ============================================================================
 

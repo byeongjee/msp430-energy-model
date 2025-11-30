@@ -32,6 +32,7 @@ from benchmark_common import (
     generate_batched_files,
     get_instruction_specs,
     normalize_granularity,
+    UNSAFE_OPCODES,
 )
 
 
@@ -318,13 +319,10 @@ def main():
         else:
             regular_items.append(item)
 
-    # Note: br_immediate is handled as a hardcoded benchmark, not filtered here
-    unsafe = {"call", "popm", "push", "pushm", "ret", "reti"}
-
     def is_safe(spec):
-        outer_ok = spec.opcode not in unsafe
+        outer_ok = spec.opcode not in UNSAFE_OPCODES
         inner = getattr(spec, "inner_opcode", None)
-        inner_ok = True if inner is None else inner not in unsafe
+        inner_ok = True if inner is None else inner not in UNSAFE_OPCODES
         return outer_ok and inner_ok
 
     specs = [spec for spec in get_instruction_specs(normalized) if is_safe(spec)]
