@@ -33,6 +33,8 @@ from benchmark_common import (
     get_instruction_specs,
     normalize_granularity,
     UNSAFE_OPCODES,
+    COMPOSITE_CALL_AND_RET,
+    COMPOSITE_PUSHM_AND_POPM,
 )
 
 
@@ -78,6 +80,56 @@ INLINE void bench_{{ name }}(void) {
 
 
 # ============================================================================
+# Composite benchmarks
+# ============================================================================
+
+
+def generate_call_and_ret_benchmark(source_keys=None) -> Dict[str, Any]:
+    """Generate a composite benchmark that measures call+ret together."""
+    name = COMPOSITE_CALL_AND_RET
+    code = """
+INLINE void bench_call_and_ret(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\\n"
+      "  call #bench_empty_function\\n"
+      ".endr\\n"
+      : 
+      : 
+      : "cc", "memory"));
+}
+"""
+    return {
+        "name": name,
+        "code": code,
+        "key": (name,),
+        "source_keys": sorted(source_keys) if source_keys else None,
+    }
+
+
+def generate_pushm_and_popm_benchmark(source_keys=None) -> Dict[str, Any]:
+    """Generate a composite benchmark that balances pushm/popm in one loop."""
+    name = COMPOSITE_PUSHM_AND_POPM
+    code = """
+INLINE void bench_pushm_and_popm(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\\n"
+      "  pushm #1, r10\\n"
+      "  popm #1, r10\\n"
+      ".endr\\n"
+      : 
+      : 
+      : "r10", "r11", "cc", "memory"));
+}
+"""
+    return {
+        "name": name,
+        "code": code,
+        "key": (name,),
+        "source_keys": sorted(source_keys) if source_keys else None,
+    }
+
+
+# ============================================================================
 # Instruction-level benchmark generation
 # ============================================================================
 
@@ -103,9 +155,12 @@ def generate_benchmark(spec: InstructionSpec) -> Dict[str, Any]:
 def generate_instruction_benchmarks(
     instructions_data: List[Dict[str, Any]],
     spec_lookup: Dict[str, InstructionSpec],
+    granularity: str,
 ) -> List[Dict[str, Any]]:
     """Generate benchmarks for a list of instruction payloads"""
     benchmarks = []
+    composite_requests: Dict[str, set] = {}
+
     for inst_data in instructions_data:
         key = inst_data["key"]
 
@@ -116,8 +171,28 @@ def generate_instruction_benchmarks(
             continue
 
         spec = spec_lookup[key]
+        if spec.composite_group:
+            if not granularity.startswith("addressing_mode"):
+                print(
+                    f"Warning: Composite benchmarks not supported for granularity '{granularity}', skipping '{key}'",
+                    file=sys.stderr,
+                )
+                continue
+            composite_requests.setdefault(spec.composite_group, set()).add(key)
+            continue
+
         benchmark = generate_benchmark(spec)
         benchmarks.append(benchmark)
+
+    for group, source_keys in composite_requests.items():
+        if group == COMPOSITE_CALL_AND_RET:
+            benchmarks.append(generate_call_and_ret_benchmark(source_keys))
+        elif group == COMPOSITE_PUSHM_AND_POPM:
+            benchmarks.append(generate_pushm_and_popm_benchmark(source_keys))
+        else:
+            print(
+                f"Warning: Unknown composite group '{group}', skipping", file=sys.stderr
+            )
 
     return benchmarks
 
@@ -208,6 +283,13 @@ def generate_pair_benchmarks(
 
         spec1 = spec_lookup[key1]
         spec2 = spec_lookup[key2]
+
+        if spec1.composite_group or spec2.composite_group:
+            print(
+                f"Warning: Composite benchmarks are not supported for pairs (skipping '{key1}' / '{key2}')",
+                file=sys.stderr,
+            )
+            continue
 
         benchmark = generate_pair_benchmark(spec1, spec2)
         benchmarks.append(benchmark)
@@ -334,7 +416,9 @@ def main():
         benchmarks = generate_pair_benchmarks(regular_items, spec_lookup)
         file_prefix = f"{normalized}_batch"
     else:
-        benchmarks = generate_instruction_benchmarks(regular_items, spec_lookup)
+        benchmarks = generate_instruction_benchmarks(
+            regular_items, spec_lookup, normalized
+        )
         file_prefix = f"{normalized}_batch"
 
     print(f"Generated {len(benchmarks)} regular benchmarks", file=sys.stderr)

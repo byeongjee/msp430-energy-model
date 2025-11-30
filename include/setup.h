@@ -127,6 +127,11 @@ NOINLINE void delay(uint32_t cycles) {
   }
 }
 
+// Target for call/ret composite benchmarks; kept non-inline and non-empty.
+NOINLINE __attribute__((used)) void bench_empty_function(void) {
+  __asm__ volatile("" ::: "memory");
+}
+
 // Setup for printf over UART. For debugging.
 #ifdef DEBUG
 #include <reent.h>

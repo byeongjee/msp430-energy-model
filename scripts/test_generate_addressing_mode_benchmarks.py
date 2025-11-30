@@ -16,8 +16,8 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from benchmark_common import InstructionSpec, FILE_TEMPLATE
-from gen_benchmarks import generate_benchmark
+from benchmark_common import InstructionSpec, FILE_TEMPLATE, get_instruction_specs
+from gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
 
 
 class TestGeneratedCode(unittest.TestCase):
@@ -356,6 +356,45 @@ class TestKeyGeneration(unittest.TestCase):
         """No-operand instructions should just be (opcode,)"""
         spec = InstructionSpec(opcode="nop", src_mode=None)
         self.assertEqual(spec.get_key(), ("nop",))
+
+
+class TestCompositeGeneration(unittest.TestCase):
+    """Ensure composite benchmarks are emitted for supported opcodes"""
+
+    def test_call_and_ret_composite(self):
+        specs = get_instruction_specs("addressing_mode")
+        lookup = {spec.get_key_str(): spec for spec in specs}
+        payload = [{"key": "call_immediate"}, {"key": "ret"}]
+
+        benches = generate_instruction_benchmarks(
+            payload, lookup, "addressing_mode"
+        )
+        names = [b["name"] for b in benches]
+
+        self.assertIn("call_and_ret", names)
+        self.assertEqual(names.count("call_and_ret"), 1)
+        self.assertNotIn("call_immediate", names)
+
+    def test_pushm_and_popm_composite(self):
+        specs = get_instruction_specs("addressing_mode_constant")
+        lookup = {spec.get_key_str(): spec for spec in specs}
+        payload = [
+            {"key": "pushm_immediate_3_register"},
+            {"key": "popm_immediate_5_register"},
+            {"key": "mov_register_register"},
+        ]
+
+        benches = generate_instruction_benchmarks(
+            payload, lookup, "addressing_mode_constant"
+        )
+        names = [b["name"] for b in benches]
+
+        self.assertIn("pushm_and_popm", names)
+        self.assertEqual(names.count("pushm_and_popm"), 1)
+        self.assertIn("mov_register_register", names)
+        self.assertFalse(
+            any(n.startswith("pushm_immediate") or n.startswith("popm_immediate") for n in names)
+        )
 
 
 if __name__ == "__main__":

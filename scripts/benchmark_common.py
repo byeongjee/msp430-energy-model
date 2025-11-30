@@ -20,11 +20,12 @@ from jinja2 import Template
 # Constants
 # ============================================================================
 
-# Benchmarks for these opcodes can corrupt memory; skip them.
-# TODO: add safe handling for pushm/popm/call/ret generation.
-# We also skip instructions that are hard to repeat safely in a tight loop.
-# Note: br_immediate is handled as a hardcoded benchmark, not generated here
-UNSAFE_OPCODES = {"call", "popm", "push", "pushm", "ret", "reti"}
+# Benchmarks for these opcodes can corrupt memory or are not yet safely handled.
+# Note: br_immediate is handled as a hardcoded benchmark, not generated here.
+UNSAFE_OPCODES = {"push", "reti"}
+
+COMPOSITE_CALL_AND_RET = "call_and_ret"
+COMPOSITE_PUSHM_AND_POPM = "pushm_and_popm"
 
 
 # ============================================================================
@@ -47,6 +48,7 @@ class InstructionSpec:
         key_override: tuple = None,
         inner_opcode: str = None,
         hardcoded_benchmark_path: str = None,
+        composite_group: str = None,
     ):
         self.opcode = opcode
         self.src_mode = src_mode
@@ -62,6 +64,7 @@ class InstructionSpec:
         self.key_override = key_override
         self.inner_opcode = inner_opcode
         self.hardcoded_benchmark_path = hardcoded_benchmark_path
+        self.composite_group = composite_group
 
     def get_key(self) -> Tuple:
         """Get the parameter key for this instruction (matches model_common.jl)"""
@@ -305,11 +308,11 @@ def create_rpt_specs(
 
 
 def create_constant_imm_to_reg_specs(
-    opcode: str, include_constant: bool = True
+    opcode: str, include_constant: bool = True, composite_group: str = None
 ) -> List[InstructionSpec]:
     """Create constant-aware instruction specs of the form: opcode #const, reg"""
     specs = []
-    constants = [1, 2, 3, 4] if include_constant else [1]
+    constants = [1, 2, 3, 4, 5] if include_constant else [1]
     for constant in constants:
         specs.append(
             InstructionSpec(
@@ -324,6 +327,7 @@ def create_constant_imm_to_reg_specs(
                     "inputs": "",
                     "clobbers": '"cc"',
                 },
+                composite_group=composite_group,
             )
         )
     return specs
@@ -457,7 +461,7 @@ def create_br_specs() -> List[InstructionSpec]:
 def create_call_specs() -> List[InstructionSpec]:
     """Create instruction specs for call (single operand)"""
     specs = []
-    modes = ["register", "indexed", "symbolic", "absolute"]
+    modes = ["register", "immediate", "indexed", "symbolic", "absolute"]
 
     for mode in modes:
         variables: List[Dict[str, Any]] = []
@@ -469,6 +473,8 @@ def create_call_specs() -> List[InstructionSpec]:
                 {"name": "target", "type": "uint16_t*", "value": "BASE_PTR"}
             )
             constraints["inputs"] = '[target] "r"(target)'
+        elif mode == "immediate":
+            op_asm = "#bench_empty_function"
         elif mode == "indexed":
             op_asm = "%c[offs](%[base])"
             variables.append({"name": "base", "type": "uint16_t*", "value": "BASE_PTR"})
@@ -485,6 +491,7 @@ def create_call_specs() -> List[InstructionSpec]:
                 asm_template=f"call {op_asm}",
                 variables=variables,
                 constraints=constraints,
+                composite_group=COMPOSITE_CALL_AND_RET,
             )
         )
 
@@ -500,6 +507,7 @@ def create_no_operand_specs(opcode: str) -> List[InstructionSpec]:
             asm_template=f"{opcode}",
             variables=[],
             constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+            composite_group=COMPOSITE_CALL_AND_RET if opcode in {"call", "ret"} else None,
         )
     ]
 
@@ -657,10 +665,18 @@ def create_addressing_mode_specs(
         create_constant_imm_to_reg_specs("rrum", include_constant=include_constant)
     )
     specs.extend(
-        create_constant_imm_to_reg_specs("pushm", include_constant=include_constant)
+        create_constant_imm_to_reg_specs(
+            "pushm",
+            include_constant=include_constant,
+            composite_group=COMPOSITE_PUSHM_AND_POPM,
+        )
     )
     specs.extend(
-        create_constant_imm_to_reg_specs("popm", include_constant=include_constant)
+        create_constant_imm_to_reg_specs(
+            "popm",
+            include_constant=include_constant,
+            composite_group=COMPOSITE_PUSHM_AND_POPM,
+        )
     )
 
     specs.extend(create_call_specs())
