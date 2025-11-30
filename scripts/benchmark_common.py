@@ -498,7 +498,9 @@ def create_call_specs() -> List[InstructionSpec]:
     return specs
 
 
-def create_no_operand_specs(opcode: str) -> List[InstructionSpec]:
+def create_no_operand_specs(
+    opcode: str, *, composite_group: str = None
+) -> List[InstructionSpec]:
     """Create spec for no-operand instructions (e.g., ret)"""
     return [
         InstructionSpec(
@@ -507,7 +509,20 @@ def create_no_operand_specs(opcode: str) -> List[InstructionSpec]:
             asm_template=f"{opcode}",
             variables=[],
             constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-            composite_group=COMPOSITE_CALL_AND_RET if opcode in {"call", "ret"} else None,
+            composite_group=composite_group,
+        )
+    ]
+
+
+def create_dint_specs() -> List[InstructionSpec]:
+    """Create spec for dint with a following nop to satisfy assembler requirements."""
+    return [
+        InstructionSpec(
+            opcode="dint",
+            src_mode=None,
+            asm_template="dint\\n  nop",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
         )
     ]
 
@@ -597,8 +612,9 @@ def create_opcode_specs() -> List[InstructionSpec]:
 
     specs.extend(create_call_specs())
 
-    for opcode in ["clrc", "dint", "ret"]:
-        specs.extend(create_no_operand_specs(opcode))
+    specs.extend(create_no_operand_specs("clrc"))
+    specs.extend(create_dint_specs())
+    specs.extend(create_no_operand_specs("ret", composite_group=COMPOSITE_CALL_AND_RET))
 
     jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
     for opcode in jump_opcodes:
@@ -650,7 +666,7 @@ def create_addressing_mode_specs(
         "rrux",
         "sxt",
     ]
-    no_operand_opcodes = ["clrc", "dint", "nop", "ret"]
+    no_operand_opcodes = ["clrc", "nop"]
 
     for opcode in dual_opcodes:
         specs.extend(create_dual_operand_specs(opcode))
@@ -691,8 +707,10 @@ def create_addressing_mode_specs(
     specs.extend(create_jn_specs())
     specs.extend(create_br_specs())
 
-    for opcode in no_operand_opcodes:
-        specs.extend(create_no_operand_specs(opcode))
+    specs.extend(create_dint_specs())
+    specs.extend(create_no_operand_specs("ret", composite_group=COMPOSITE_CALL_AND_RET))
+    specs.extend(create_no_operand_specs("nop"))
+    specs.extend(create_no_operand_specs("clrc"))
 
     return specs
 

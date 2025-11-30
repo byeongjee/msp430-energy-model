@@ -16,7 +16,12 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from benchmark_common import InstructionSpec, FILE_TEMPLATE, get_instruction_specs
+from benchmark_common import (
+    InstructionSpec,
+    FILE_TEMPLATE,
+    get_instruction_specs,
+    create_dint_specs,
+)
 from gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
 
 
@@ -356,6 +361,13 @@ class TestKeyGeneration(unittest.TestCase):
         """No-operand instructions should just be (opcode,)"""
         spec = InstructionSpec(opcode="nop", src_mode=None)
         self.assertEqual(spec.get_key(), ("nop",))
+
+    def test_dint_has_trailing_nop(self):
+        """dint benchmark should emit a nop to satisfy assembler warning."""
+        spec = create_dint_specs()[0]
+        result = generate_benchmark(spec)
+        self.assertIn("dint\\n", result["code"])
+        self.assertIn("nop\\n", result["code"])
 
 
 class TestCompositeGeneration(unittest.TestCase):
