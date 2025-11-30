@@ -1,10 +1,10 @@
 #include "setup.h"
 
-// Hardcoded macros determined from compilation and assembly inspection
+// Hardcoded macros automatically determined via two-pass compilation
 // BR_INITIAL_ADDR: Address of the first br instruction (at loop_header label)
 // LOOP_HEADER_ADDR: Address where loop counter is decremented (after all br instructions)
-// These values are for TEXTUAL_REPT=100, INNER_ITERS=100
-// If you change compilation settings, you may need to recompile and update these addresses
+// These addresses are extracted from the first compilation pass and passed as -D flags
+// Use scripts/compile_hardcoded_benchmarks.sh to compile this file
 #ifndef BR_INITIAL_ADDR
 #define BR_INITIAL_ADDR 0x4154
 #endif
