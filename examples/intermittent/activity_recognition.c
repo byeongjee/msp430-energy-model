@@ -236,7 +236,7 @@ INLINE void train(volatile features_t *classModel) {
 }
 
 INLINE void recognize_loop(volatile model_t *model) {
-  stats_t stats = {0};
+  volatile stats_t stats = {0};
   accelWindow sampleWindow;
   features_t features;
   class_t class;
@@ -329,12 +329,10 @@ int main() {
   mock_scenario = 0;
 
   begin_event();
-  for (int i = 0; i < 10; i++) {
-    recognize_loop(&global_model);
+  recognize_loop(&global_model);
 #ifdef DEBUG
-    delay(SEC_TO_CYCLES);
+  delay(SEC_TO_CYCLES);
 #endif
-  }
   end_event();
 
   end_measurement_window();
