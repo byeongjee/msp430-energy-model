@@ -401,8 +401,12 @@ class TestCompositeGeneration(unittest.TestCase):
         )
         names = [b["name"] for b in benches]
 
-        self.assertIn("pushm_and_popm", names)
-        self.assertEqual(names.count("pushm_and_popm"), 1)
+        self.assertIn("pushm_and_popm_3", names)
+        self.assertIn("pushm_and_popm_5", names)
+        composite5 = next(b for b in benches if b["name"] == "pushm_and_popm_5")
+        self.assertIn("#5", composite5["code"])
+        composite3 = next(b for b in benches if b["name"] == "pushm_and_popm_3")
+        self.assertIn("#3", composite3["code"])
         self.assertIn("mov_register_register", names)
         self.assertFalse(
             any(n.startswith("pushm_immediate") or n.startswith("popm_immediate") for n in names)

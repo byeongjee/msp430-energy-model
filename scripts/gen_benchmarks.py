@@ -108,26 +108,29 @@ INLINE void bench_call_and_ret(void) {
     }
 
 
-def generate_pushm_and_popm_benchmark(source_keys=None) -> Dict[str, Any]:
+def generate_pushm_and_popm_benchmark(
+    source_keys=None, word_count: int = 1
+) -> Dict[str, Any]:
     """Generate a composite benchmark that balances pushm/popm in one loop."""
-    name = COMPOSITE_PUSHM_AND_POPM
+    name = f"{COMPOSITE_PUSHM_AND_POPM}_{word_count}"
     code = """
-INLINE void bench_pushm_and_popm(void) {
+INLINE void bench_%(name)s(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\\n"
-      "  pushm #1, r10\\n"
-      "  popm #1, r10\\n"
+      "  pushm #%(cnt)s, r10\\n"
+      "  popm #%(cnt)s, r10\\n"
       ".endr\\n"
       : 
       : 
       : "r10", "r11", "cc", "memory"));
 }
-"""
+""" % {"name": name, "cnt": word_count}
     return {
         "name": name,
         "code": code,
-        "key": (name,),
+        "key": (COMPOSITE_PUSHM_AND_POPM, word_count),
         "source_keys": sorted(source_keys) if source_keys else None,
+        "word_count": word_count,
     }
 
 
@@ -183,7 +186,7 @@ def generate_instruction_benchmarks(
 ) -> List[Dict[str, Any]]:
     """Generate benchmarks for a list of instruction payloads"""
     benchmarks = []
-    composite_requests: Dict[str, set] = {}
+    composite_requests: Dict[str, Dict[str, Any]] = {}
 
     for inst_data in instructions_data:
         key = inst_data["key"]
@@ -202,17 +205,30 @@ def generate_instruction_benchmarks(
                     file=sys.stderr,
                 )
                 continue
-            composite_requests.setdefault(spec.composite_group, set()).add(key)
+            entry = composite_requests.setdefault(
+                spec.composite_group, {"keys": set(), "specs": []}
+            )
+            entry["keys"].add(key)
+            entry["specs"].append(spec)
             continue
 
         benchmark = generate_benchmark(spec)
         benchmarks.append(benchmark)
 
-    for group, source_keys in composite_requests.items():
+    for group, info in composite_requests.items():
+        source_keys = info["keys"]
+        specs = info["specs"]
         if group == COMPOSITE_CALL_AND_RET:
             benchmarks.append(generate_call_and_ret_benchmark(source_keys))
         elif group == COMPOSITE_PUSHM_AND_POPM:
-            benchmarks.append(generate_pushm_and_popm_benchmark(source_keys))
+            # Emit one composite per requested word count (default 1 when missing)
+            counts = set()
+            for s in specs:
+                counts.add(s.constant if s.constant else 1)
+            for count in sorted(counts):
+                benchmarks.append(
+                    generate_pushm_and_popm_benchmark(source_keys, count)
+                )
         elif group == COMPOSITE_PUSH_AND_RETI:
             benchmarks.append(generate_push_and_reti_benchmark(source_keys))
         else:
