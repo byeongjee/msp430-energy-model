@@ -642,7 +642,6 @@ def create_addressing_mode_specs(
         "rrux",
         "sxt",
     ]
-    jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
     no_operand_opcodes = ["clrc", "dint", "nop", "ret"]
 
     for opcode in dual_opcodes:
