@@ -87,30 +87,45 @@ $(BUILD_DIR):
 $(ASM_DIR): | $(BUILD_DIR)
 	@mkdir -p $(ASM_DIR)
 
-compile: | $(BUILD_DIR) ## Compile C file to MSP430 binary (FILE=<file.c> [DEFINES="MACRO1=val MACRO2..."])
+compile: | $(BUILD_DIR) ## Compile C or S file to MSP430 binary (FILE=<file.c|file.S> [DEFINES="MACRO1=val MACRO2..."])
 ifndef FILE
-	$(error Please specify FILE=<filename.c>)
+	$(error Please specify FILE=<filename.c> or FILE=<filename.S>)
 endif
 	@echo "Compiling $(FILE) for MSP430..."
-	@BASENAME=$$(basename $(FILE) .c); \
+	@# Handle both .c and .S files
+	@if echo "$(FILE)" | grep -q '\.S$$'; then \
+		BASENAME=$$(basename $(FILE) .S); \
+	else \
+		BASENAME=$$(basename $(FILE) .c); \
+	fi; \
 	if [ -n "$(DEFINES)" ]; then \
 		echo "  DEFINES=$(DEFINES)"; \
 	fi; \
-	$(CC) $(CFLAGS) $(DEFINE_FLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE)
-	@echo "✓ Compilation successful: $(BUILD_DIR)/$$(basename $(FILE) .c).elf"
+	$(CC) $(CFLAGS) $(DEFINE_FLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE); \
+	echo "✓ Compilation successful: $(BUILD_DIR)/$$BASENAME.elf"
 
-disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c>)
+disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)
 	@echo "Disassembling binary..."
-	@BASENAME=$$(basename $(FILE) .c); \
+	@# Handle both .c and .S files
+	@if echo "$(FILE)" | grep -q '\.S$$'; then \
+		BASENAME=$$(basename $(FILE) .S); \
+	else \
+		BASENAME=$$(basename $(FILE) .c); \
+	fi; \
 	$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm; \
-	echo "✓ Disassembly saved to: $(ASM_DIR)/$$(basename $(FILE) .c).asm"; \
+	echo "✓ Disassembly saved to: $(ASM_DIR)/$$BASENAME.asm"; \
 	$(OBJDUMP) -s $(addprefix -j ,$(DATA_SECTIONS)) $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.data; \
-	echo "✓ Data dump saved to: $(ASM_DIR)/$$(basename $(FILE) .c).data"
+	echo "✓ Data dump saved to: $(ASM_DIR)/$$BASENAME.data"
 
 
-interpret: disasm ## Interpret assembly program (FILE=<file.c> [MAX_STEPS=<n>] [GRANULARITY=<g>|MODEL=<model>])
+interpret: disasm ## Interpret assembly program (FILE=<file.c|file.S> [MAX_STEPS=<n>] [GRANULARITY=<g>|MODEL=<model>])
 	@echo "Running MSP430 interpreter..."
-	@BASENAME=$$(basename $(FILE) .c); \
+	@# Handle both .c and .S files
+	@if echo "$(FILE)" | grep -q '\.S$$'; then \
+		BASENAME=$$(basename $(FILE) .S); \
+	else \
+		BASENAME=$$(basename $(FILE) .c); \
+	fi; \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
 	DATA_DUMP_FLAG="--data-dump $(ASM_DIR)/$$BASENAME.data"; \

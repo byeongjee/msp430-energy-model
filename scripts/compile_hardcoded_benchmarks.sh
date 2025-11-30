@@ -83,22 +83,39 @@ if [[ "$BASENAME" == "br_immediate_benchmark" ]]; then
     echo "  BR_INITIAL_ADDR:   $BR_INITIAL_ADDR"
     echo "  LOOP_HEADER_ADDR:  $LOOP_HEADER_ADDR"
 
-    # Pass 2: Recompile with actual addresses
+    # Pass 2: Generate .S assembly file with correct addresses
     echo ""
-    echo "Pass 2: Recompiling with actual addresses..."
+    echo "Pass 2: Generating .S assembly file with actual addresses..."
 
     PASS2_DEFINES="BR_INITIAL_ADDR=$BR_INITIAL_ADDR LOOP_HEADER_ADDR=$LOOP_HEADER_ADDR"
     if [[ -n "$DEFINES" ]]; then
         PASS2_DEFINES="$DEFINES $PASS2_DEFINES"
     fi
 
-    make -C "$REPO_ROOT" disasm FILE="$FILE" DEFINES="$PASS2_DEFINES" > /dev/null
+    OUTPUT_S="$ASM_DIR/$BASENAME.S"
+
+    # Use make to generate assembly file with -S flag
+    # Use default CFLAGS from Makefile if not set in environment
+    cd "$REPO_ROOT"
+    make compile FILE="$FILE" DEFINES="$PASS2_DEFINES" CFLAGS="${CFLAGS:--mmcu=MSP430FR5994 -O3 -Wall} -S" > /dev/null
+
+    # Move the generated file to .S extension
+    TEMP_ELF="$BUILD_DIR/$BASENAME.elf"
+    if [ -f "$TEMP_ELF" ]; then
+        mv "$TEMP_ELF" "$OUTPUT_S"
+    else
+        echo "ERROR: Expected output file not found: $TEMP_ELF" >&2
+        exit 1
+    fi
 
     echo ""
     echo "✓ Two-pass compilation completed!"
-    echo "  ELF:  $BUILD_DIR/$BASENAME.elf"
-    echo "  ASM:  $ASM_DIR/$BASENAME.asm"
-    echo "  DATA: $ASM_DIR/$BASENAME.data"
+    echo "  Assembly source: $OUTPUT_S"
+    echo ""
+    echo "You can now compile this .S file normally:"
+    echo "  make compile FILE=$OUTPUT_S"
+    echo "  make disasm FILE=$OUTPUT_S"
+    echo "  make interpret FILE=$OUTPUT_S"
 else
     echo "WARNING: Unknown hardcoded benchmark: $BASENAME" >&2
     echo "Only br_immediate_benchmark is currently supported" >&2

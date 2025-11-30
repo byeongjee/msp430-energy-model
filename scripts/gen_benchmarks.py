@@ -22,6 +22,7 @@ import argparse
 import json
 import sys
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List
 from jinja2 import Template
@@ -480,16 +481,43 @@ def main():
         generate_benchmark_file(benchmarks, output_file)
         print(f"✓ Generated {output_file}", file=sys.stderr)
 
-    # Copy hardcoded benchmark files
+    # Generate and copy hardcoded benchmark files
     if hardcoded_items:
         script_dir = Path(__file__).parent.parent  # Go up to repo root
+        compile_script = script_dir / "scripts" / "compile_hardcoded_benchmarks.sh"
+
         for item in hardcoded_items:
             name = item["name"]
             hardcoded_path = item["hardcoded_benchmark_path"]
-            src = script_dir / hardcoded_path
-            dst = args.output_dir / f"{name}.c"
-            shutil.copy(src, dst)
-            print(f"✓ Copied hardcoded benchmark: {dst}", file=sys.stderr)
+            src_c_file = script_dir / hardcoded_path
+
+            # Run two-pass compilation to generate .S file
+            print(f"Generating {name}.S via two-pass compilation...", file=sys.stderr)
+            try:
+                subprocess.run(
+                    [str(compile_script), "--file", str(src_c_file)],
+                    check=True,
+                    cwd=str(script_dir),
+                    capture_output=True,
+                    text=True
+                )
+            except subprocess.CalledProcessError as e:
+                print(f"ERROR: Failed to compile hardcoded benchmark {name}", file=sys.stderr)
+                print(f"STDOUT: {e.stdout}", file=sys.stderr)
+                print(f"STDERR: {e.stderr}", file=sys.stderr)
+                raise
+
+            # Copy the generated .S file from build/asm/ to output directory
+            basename = src_c_file.stem  # e.g., "br_immediate_benchmark"
+            src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
+            dst_s_file = args.output_dir / f"{name}.S"
+
+            if not src_s_file.exists():
+                print(f"ERROR: Expected .S file not found: {src_s_file}", file=sys.stderr)
+                raise FileNotFoundError(f"Generated .S file not found: {src_s_file}")
+
+            shutil.copy(src_s_file, dst_s_file)
+            print(f"✓ Generated and copied hardcoded benchmark: {dst_s_file}", file=sys.stderr)
 
 
 if __name__ == "__main__":
