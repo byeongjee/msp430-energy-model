@@ -35,6 +35,7 @@ class InstructionSpec:
         constraints: Dict[str, str] = None,
         key_override: tuple = None,
         inner_opcode: str = None,
+        hardcoded_benchmark_path: str = None,
     ):
         self.opcode = opcode
         self.src_mode = src_mode
@@ -49,6 +50,7 @@ class InstructionSpec:
         }
         self.key_override = key_override
         self.inner_opcode = inner_opcode
+        self.hardcoded_benchmark_path = hardcoded_benchmark_path
 
     def get_key(self) -> Tuple:
         """Get the parameter key for this instruction (matches model_common.jl)"""
@@ -396,6 +398,27 @@ def create_jn_specs() -> List[InstructionSpec]:
     ]
 
 
+def create_br_specs() -> List[InstructionSpec]:
+    """Create instruction specs for br (branch)
+
+    Note: br supports multiple addressing modes (register, indexed, symbolic, absolute, etc.),
+    but we currently only support br with immediate addressing (br_immediate).
+    This is a placeholder spec. The actual implementation uses hardcoded addresses
+    and is in scripts/hardcoded_benchmarks/br_immediate_benchmark.c
+    This spec is only used for listing purposes.
+    """
+    return [
+        InstructionSpec(
+            opcode="br",
+            src_mode="immediate",
+            asm_template="# HARDCODED BENCHMARK",
+            variables=[],
+            constraints={"outputs": "", "inputs": "", "clobbers": '"memory"'},
+            hardcoded_benchmark_path="scripts/hardcoded_benchmarks/br_immediate_benchmark.c",
+        )
+    ]
+
+
 def create_call_specs() -> List[InstructionSpec]:
     """Create instruction specs for call (single operand)"""
     specs = []
@@ -550,6 +573,7 @@ def create_addressing_mode_specs(include_constant: bool = False) -> List[Instruc
     specs.extend(create_jnc_specs())
     specs.extend(create_jc_specs())
     specs.extend(create_jn_specs())
+    specs.extend(create_br_specs())
 
     for opcode in no_operand_opcodes:
         specs.extend(create_no_operand_specs(opcode))

@@ -30,7 +30,8 @@ from benchmark_common import (
 # Benchmarks for these opcodes can corrupt memory; skip them here.
 # TODO: add safe handling for pushm/popm/call/ret generation.
 # We also skip instructions that are hard to repeat safely in a tight loop.
-UNSAFE_OPCODES = {"br", "call", "nop", "popm", "push", "pushm", "ret", "reti"}
+# Note: br_immediate is handled as a hardcoded benchmark, not generated here
+UNSAFE_OPCODES = {"call", "nop", "popm", "push", "pushm", "ret", "reti"}
 
 
 def list_instruction_keys(specs: List[InstructionSpec]) -> dict:
@@ -38,13 +39,17 @@ def list_instruction_keys(specs: List[InstructionSpec]) -> dict:
     instructions = []
     for spec in specs:
         key_str = spec.get_key_str()
-        instructions.append(
-            {
-                "name": key_str,
-                "key": key_str,
-                "opcode": spec.opcode,
-            }
-        )
+        entry = {
+            "name": key_str,
+            "key": key_str,
+            "opcode": spec.opcode,
+        }
+
+        # Add hardcoded benchmark path if present
+        if spec.hardcoded_benchmark_path:
+            entry["hardcoded_benchmark_path"] = spec.hardcoded_benchmark_path
+
+        instructions.append(entry)
 
     return {
         "num_keys": len(specs),

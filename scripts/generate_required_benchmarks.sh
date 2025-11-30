@@ -13,15 +13,15 @@ source "$SCRIPT_DIR/common.sh"
 usage() {
     cat <<'EOF'
 Usage: generate_required_benchmarks.sh --file FILE --granularity GRAN
-       [--output FILE | --output-dir DIR --batch N]
+       [--output-dir DIR] [--batch N]
        [--temp-dir DIR] [--max-steps N] [--defines "MACROS"]
 
 Examples:
-  # Single output file (default)
+  # Single file output (all_benchmarks.c)
   ./scripts/generate_required_benchmarks.sh \
       --file examples/c_programs/simple.c \
       --granularity addressing_mode_constant \
-      --output tmp/simple_required.c
+      --output-dir tmp/simple_benchmarks
 
   # Batched output
   ./scripts/generate_required_benchmarks.sh \
@@ -34,8 +34,7 @@ EOF
 
 # Defaults
 GRANULARITY="addressing_mode_constant"
-OUTPUT="$REPO_ROOT/tmp/required_benchmarks.c"
-OUTPUT_DIR=""
+OUTPUT_DIR="$REPO_ROOT/tmp"
 BATCH=""
 TEMP_DIR="${TEMP_DIR:-$REPO_ROOT/tmp}"
 MAX_STEPS=""
@@ -48,8 +47,6 @@ while [[ $# -gt 0 ]]; do
             FILE="$2"; shift 2 ;;
         --granularity)
             GRANULARITY="$2"; shift 2 ;;
-        --output)
-            OUTPUT="$2"; shift 2 ;;
         --output-dir)
             OUTPUT_DIR="$2"; shift 2 ;;
         --batch)
@@ -71,11 +68,6 @@ done
 if [[ -z "$FILE" ]]; then
     echo "ERROR: --file is required" >&2
     usage; exit 1
-fi
-
-if [[ -n "$OUTPUT_DIR" && -z "$BATCH" ]]; then
-    echo "ERROR: --batch is required when --output-dir is set" >&2
-    exit 1
 fi
 
 mkdir -p "$TEMP_DIR"
@@ -140,20 +132,13 @@ if [[ "$MISSING_COUNT" -gt 0 ]]; then
     log_warn "Missing benchmarks in list_benchmarks.py for: $MISSING_KEYS"
 fi
 
-if [[ -n "$OUTPUT_DIR" ]]; then
-    mkdir -p "$OUTPUT_DIR"
-    echo "Generating benchmarks to directory $OUTPUT_DIR (batch=$BATCH)..."
-    python "$REPO_ROOT/scripts/gen_benchmarks.py" \
-        --granularity "$GRANULARITY" \
-        --input "$FILTERED_JSON" \
-        --output-dir "$OUTPUT_DIR" \
-        --batch "$BATCH"
-    echo "✓ Benchmarks written to $OUTPUT_DIR (log: $LOG_FILE)"
-else
-    echo "Generating benchmarks to $OUTPUT..."
-    python "$REPO_ROOT/scripts/gen_benchmarks.py" \
-        --granularity "$GRANULARITY" \
-        --input "$FILTERED_JSON" \
-        --output "$OUTPUT"
-    echo "✓ Benchmarks written to $OUTPUT (log: $LOG_FILE)"
+mkdir -p "$OUTPUT_DIR"
+echo "Generating benchmarks to directory $OUTPUT_DIR..."
+
+GEN_ARGS=(--granularity "$GRANULARITY" --input "$FILTERED_JSON" --output-dir "$OUTPUT_DIR")
+if [[ -n "$BATCH" ]]; then
+    GEN_ARGS+=(--batch "$BATCH")
 fi
+
+python "$REPO_ROOT/scripts/gen_benchmarks.py" "${GEN_ARGS[@]}"
+echo "✓ Benchmarks written to $OUTPUT_DIR (log: $LOG_FILE)"

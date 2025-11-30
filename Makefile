@@ -206,18 +206,15 @@ endif
 	./scripts/analyze_distribution.sh "$${ARGS[@]}"
 
 BENCH_GRANULARITY ?= addressing_mode_constant
-BENCH_OUTPUT ?= $(TEMP_DIR)/required_benchmarks.c
-BENCH_OUTPUT_DIR ?=
+BENCH_OUTPUT_DIR ?= $(TEMP_DIR)
 BENCH_BATCH ?=
 
-generate_required_benchmarks: ## Generate benchmarks needed for a C file (FILE=<file.c> [BENCH_GRANULARITY=addressing_mode_constant] [BENCH_OUTPUT=tmp/required_benchmarks.c] [BENCH_OUTPUT_DIR=...] [BENCH_BATCH=...])
+generate_required_benchmarks: ## Generate benchmarks needed for a C file (FILE=<file.c> [BENCH_GRANULARITY=addressing_mode_constant] [BENCH_OUTPUT_DIR=tmp] [BENCH_BATCH=...])
 ifndef FILE
 	$(error Please specify FILE=<filename.c>)
 endif
-	@ARGS=(--file "$(FILE)" --granularity "$(BENCH_GRANULARITY)"); \
-	[ -n "$(BENCH_OUTPUT_DIR)" ] && ARGS+=(--output-dir "$(BENCH_OUTPUT_DIR)"); \
+	@ARGS=(--file "$(FILE)" --granularity "$(BENCH_GRANULARITY)" --output-dir "$(BENCH_OUTPUT_DIR)"); \
 	[ -n "$(BENCH_BATCH)" ] && ARGS+=(--batch "$(BENCH_BATCH)"); \
-	[ -n "$(BENCH_OUTPUT)" ] && ARGS+=(--output "$(BENCH_OUTPUT)"); \
 	[ -n "$(MAX_STEPS)" ] && ARGS+=(--max-steps "$(MAX_STEPS)"); \
 	[ -n "$(DEFINES)" ] && ARGS+=(--defines "$(DEFINES)"); \
 	./scripts/generate_required_benchmarks.sh "$${ARGS[@]}"
@@ -239,6 +236,9 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	else \
 		julia --project=. test/runtests.jl; \
 	fi
+	@echo ""
+	@echo "Running br_immediate benchmark test..."
+	@source env.sh && julia --project=. test/test_br_immediate.jl
 	@echo ""
 	@echo "Running Python test suite..."
 	@uv run python scripts/test_generate_pair_benchmarks.py

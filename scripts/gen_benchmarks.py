@@ -21,6 +21,7 @@ USAGE:
 import argparse
 import json
 import sys
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 from jinja2 import Template
@@ -108,7 +109,9 @@ def generate_instruction_benchmarks(
         key = inst_data["key"]
 
         if key not in spec_lookup:
-            print(f"Warning: Unknown key '{key}', skipping instruction", file=sys.stderr)
+            print(
+                f"Warning: Unknown key '{key}', skipping instruction", file=sys.stderr
+            )
             continue
 
         spec = spec_lookup[key]
@@ -242,7 +245,9 @@ def load_payload(input_path: Path, granularity: str) -> List[Dict[str, Any]]:
     return payload
 
 
-def get_all_instruction_specs(granularity: str = "instruction") -> List[InstructionSpec]:
+def get_all_instruction_specs(
+    granularity: str = "instruction",
+) -> List[InstructionSpec]:
     """Compatibility wrapper for callers expecting get_all_instruction_specs"""
     return get_instruction_specs(normalize_granularity(granularity))
 
@@ -277,39 +282,45 @@ def main():
         help="Input JSON file (default: stdin)",
     )
 
-    output_group = parser.add_mutually_exclusive_group(required=True)
-    output_group.add_argument(
-        "--output",
-        type=Path,
-        help="Output C file (single file mode)",
-    )
-    output_group.add_argument(
+    parser.add_argument(
         "--output-dir",
         type=Path,
-        help="Output directory for batched files",
+        required=True,
+        help="Output directory for benchmark files",
     )
 
     parser.add_argument(
         "--batch",
         type=int,
-        help="Number of benchmarks per file (only for --output-dir mode)",
+        help="Number of benchmarks per file (if not specified, creates all_benchmarks.c)",
     )
     parser.add_argument(
         "--start-batch",
         type=int,
         default=0,
-        help="Starting batch number (only for --output-dir mode, default: 0)",
+        help="Starting batch number (only for batched mode, default: 0)",
     )
 
     args = parser.parse_args()
 
-    if args.output_dir and not args.batch:
-        parser.error("--batch is required when using --output-dir")
-
     normalized = normalize_granularity(args.granularity)
     payload = load_payload(args.input, normalized)
 
-    unsafe = {"br", "call", "nop", "popm", "push", "pushm", "ret", "reti"}
+    # Separate hardcoded benchmarks from regular ones
+    is_pair = normalized.endswith("pair")
+
+    hardcoded_items = []
+    regular_items = []
+
+    for item in payload:
+        if "hardcoded_benchmark_path" in item:
+            hardcoded_items.append(item)
+        else:
+            regular_items.append(item)
+
+    # Note: br_immediate is handled as a hardcoded benchmark, not filtered here
+    unsafe = {"call", "nop", "popm", "push", "pushm", "ret", "reti"}
+
     def is_safe(spec):
         outer_ok = spec.opcode not in unsafe
         inner = getattr(spec, "inner_opcode", None)
@@ -320,20 +331,24 @@ def main():
     spec_lookup = {spec.get_key_str(): spec for spec in specs}
     print(f"Loaded {len(spec_lookup)} instruction specifications", file=sys.stderr)
 
+    # Generate regular benchmarks
     if normalized.endswith("pair"):
-        benchmarks = generate_pair_benchmarks(payload, spec_lookup)
+        benchmarks = generate_pair_benchmarks(regular_items, spec_lookup)
         file_prefix = f"{normalized}_batch"
     else:
-        benchmarks = generate_instruction_benchmarks(payload, spec_lookup)
+        benchmarks = generate_instruction_benchmarks(regular_items, spec_lookup)
         file_prefix = f"{normalized}_batch"
 
-    print(f"Generated {len(benchmarks)} benchmarks", file=sys.stderr)
+    print(f"Generated {len(benchmarks)} regular benchmarks", file=sys.stderr)
+    if hardcoded_items:
+        print(f"Found {len(hardcoded_items)} hardcoded benchmarks", file=sys.stderr)
 
-    if args.output:
-        generate_benchmark_file(benchmarks, args.output)
-        print(f"✓ Generated {args.output}", file=sys.stderr)
-    else:
-        args.output_dir.mkdir(parents=True, exist_ok=True)
+    # Create output directory
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate regular benchmark files
+    if args.batch:
+        # Batched mode
         generate_batched_files(
             benchmarks,
             args.output_dir,
@@ -344,11 +359,30 @@ def main():
         num_files = (len(benchmarks) + args.batch - 1) // args.batch
         if args.start_batch > 0:
             print(
-                f"✓ Generated {num_files} files in {args.output_dir} (starting from batch {args.start_batch})",
+                f"✓ Generated {num_files} batch files in {args.output_dir} (starting from batch {args.start_batch})",
                 file=sys.stderr,
             )
         else:
-            print(f"✓ Generated {num_files} files in {args.output_dir}", file=sys.stderr)
+            print(
+                f"✓ Generated {num_files} batch files in {args.output_dir}",
+                file=sys.stderr,
+            )
+    else:
+        # Single file mode - all regular benchmarks in one file
+        output_file = args.output_dir / "all_benchmarks.c"
+        generate_benchmark_file(benchmarks, output_file)
+        print(f"✓ Generated {output_file}", file=sys.stderr)
+
+    # Copy hardcoded benchmark files
+    if hardcoded_items:
+        script_dir = Path(__file__).parent.parent  # Go up to repo root
+        for item in hardcoded_items:
+            name = item["name"]
+            hardcoded_path = item["hardcoded_benchmark_path"]
+            src = script_dir / hardcoded_path
+            dst = args.output_dir / f"{name}.c"
+            shutil.copy(src, dst)
+            print(f"✓ Copied hardcoded benchmark: {dst}", file=sys.stderr)
 
 
 if __name__ == "__main__":
