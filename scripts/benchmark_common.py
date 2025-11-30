@@ -99,7 +99,15 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     specs = []
 
     # Define all source and destination modes
-    src_modes = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "indirect_auto"]
+    src_modes = [
+        "register",
+        "immediate",
+        "indexed",
+        "symbolic",
+        "absolute",
+        "indirect",
+        "indirect_auto",
+    ]
     dst_modes = ["register", "indexed", "symbolic", "absolute"]
 
     # Helper function to generate assembly template and variables/constraints
@@ -116,7 +124,9 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
             src_asm = "#0x1357"
         elif src_mode == "indexed":
             src_asm = "%c[offs_src](%[base_src])"
-            variables.append({"name": "base_src", "type": "uint16_t*", "value": "BASE_PTR"})
+            variables.append(
+                {"name": "base_src", "type": "uint16_t*", "value": "BASE_PTR"}
+            )
             constraints["inputs"] = '[base_src] "r"(base_src), [offs_src] "i"(OFFS)'
             constraints["clobbers"] = '"cc", "memory"'
         elif src_mode == "symbolic":
@@ -143,7 +153,9 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
             constraints["outputs"] = '[dst] "+r"(dst)'
         elif dst_mode == "indexed":
             dst_asm = "%c[offs_dst](%[base_dst])"
-            variables.append({"name": "base_dst", "type": "uint16_t*", "value": "BASE_PTR + 8"})
+            variables.append(
+                {"name": "base_dst", "type": "uint16_t*", "value": "BASE_PTR + 8"}
+            )
             # Merge inputs
             if constraints["inputs"]:
                 constraints["inputs"] += ", "
@@ -186,7 +198,11 @@ def create_single_operand_specs(opcode: str) -> List[InstructionSpec]:
             src_mode="register",
             asm_template=f"{opcode}.w %[dst]",
             variables=[{"name": "dst", "type": "uint16_t", "value": "0x2222"}],
-            constraints={"outputs": '[dst] "+r"(dst)', "inputs": "", "clobbers": '"cc"'},
+            constraints={
+                "outputs": '[dst] "+r"(dst)',
+                "inputs": "",
+                "clobbers": '"cc"',
+            },
         )
     )
 
@@ -234,7 +250,9 @@ DEFAULT_RPT_COUNTS = list(range(1, 16))
 
 
 def create_rpt_specs(
-    base_specs: List[InstructionSpec], repeat_counts: List[int] = None, include_constant: bool = False
+    base_specs: List[InstructionSpec],
+    repeat_counts: List[int] = None,
+    include_constant: bool = False,
 ) -> List[InstructionSpec]:
     """Wrap base specs into RPT variants.
 
@@ -286,7 +304,9 @@ def create_rpt_specs(
     return specs
 
 
-def create_constant_imm_to_reg_specs(opcode: str, include_constant: bool = True) -> List[InstructionSpec]:
+def create_constant_imm_to_reg_specs(
+    opcode: str, include_constant: bool = True
+) -> List[InstructionSpec]:
     """Create constant-aware instruction specs of the form: opcode #const, reg"""
     specs = []
     constants = [1, 2, 3, 4] if include_constant else [1]
@@ -299,7 +319,11 @@ def create_constant_imm_to_reg_specs(opcode: str, include_constant: bool = True)
                 constant=constant if include_constant else None,
                 asm_template=f"{opcode} #{constant}, %[dst]",
                 variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
-                constraints={"outputs": '[dst] "+r"(dst)', "inputs": "", "clobbers": '"cc"'},
+                constraints={
+                    "outputs": '[dst] "+r"(dst)',
+                    "inputs": "",
+                    "clobbers": '"cc"',
+                },
             )
         )
     return specs
@@ -441,7 +465,9 @@ def create_call_specs() -> List[InstructionSpec]:
 
         if mode == "register":
             op_asm = "%[target]"
-            variables.append({"name": "target", "type": "uint16_t*", "value": "BASE_PTR"})
+            variables.append(
+                {"name": "target", "type": "uint16_t*", "value": "BASE_PTR"}
+            )
             constraints["inputs"] = '[target] "r"(target)'
         elif mode == "indexed":
             op_asm = "%c[offs](%[base])"
@@ -482,7 +508,21 @@ def create_opcode_specs() -> List[InstructionSpec]:
     """Create one representative spec per opcode (granularity: opcode)"""
     specs = []
 
-    dual_opcodes = ["add", "addc", "mov", "mova", "cmp", "sub", "subc", "and", "or", "xor", "bit", "bic", "bis"]
+    dual_opcodes = [
+        "add",
+        "addc",
+        "mov",
+        "mova",
+        "cmp",
+        "sub",
+        "subc",
+        "and",
+        "or",
+        "xor",
+        "bit",
+        "bic",
+        "bis",
+    ]
     for opcode in dual_opcodes:
         specs.append(
             InstructionSpec(
@@ -502,7 +542,20 @@ def create_opcode_specs() -> List[InstructionSpec]:
             )
         )
 
-    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "inv", "rla", "rlc", "rrc", "rrax", "rrux", "sxt"]
+    single_opcodes = [
+        "inc",
+        "incd",
+        "dec",
+        "decd",
+        "clr",
+        "inv",
+        "rla",
+        "rlc",
+        "rrc",
+        "rrax",
+        "rrux",
+        "sxt",
+    ]
     for opcode in single_opcodes:
         specs.append(
             InstructionSpec(
@@ -554,12 +607,41 @@ def create_opcode_specs() -> List[InstructionSpec]:
     return specs
 
 
-def create_addressing_mode_specs(include_constant: bool = False) -> List[InstructionSpec]:
+def create_addressing_mode_specs(
+    include_constant: bool = False,
+) -> List[InstructionSpec]:
     """Create specs for addressing-mode-based granularities"""
     specs: List[InstructionSpec] = []
 
-    dual_opcodes = ["add", "addc", "mov", "mova", "cmp", "sub", "subc", "and", "or", "xor", "bit", "bic", "bis"]
-    single_opcodes = ["inc", "incd", "dec", "decd", "clr", "inv", "rla", "rlc", "rrc", "rrax", "rrux", "sxt"]
+    dual_opcodes = [
+        "add",
+        "addc",
+        "mov",
+        "mova",
+        "cmp",
+        "sub",
+        "subc",
+        "and",
+        "or",
+        "xor",
+        "bit",
+        "bic",
+        "bis",
+    ]
+    single_opcodes = [
+        "inc",
+        "incd",
+        "dec",
+        "decd",
+        "clr",
+        "inv",
+        "rla",
+        "rlc",
+        "rrc",
+        "rrax",
+        "rrux",
+        "sxt",
+    ]
     jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
     no_operand_opcodes = ["clrc", "dint", "nop", "ret"]
 
@@ -569,10 +651,18 @@ def create_addressing_mode_specs(include_constant: bool = False) -> List[Instruc
     for opcode in single_opcodes:
         specs.extend(create_single_operand_specs(opcode))
 
-    specs.extend(create_constant_imm_to_reg_specs("rlam", include_constant=include_constant))
-    specs.extend(create_constant_imm_to_reg_specs("rrum", include_constant=include_constant))
-    specs.extend(create_constant_imm_to_reg_specs("pushm", include_constant=include_constant))
-    specs.extend(create_constant_imm_to_reg_specs("popm", include_constant=include_constant))
+    specs.extend(
+        create_constant_imm_to_reg_specs("rlam", include_constant=include_constant)
+    )
+    specs.extend(
+        create_constant_imm_to_reg_specs("rrum", include_constant=include_constant)
+    )
+    specs.extend(
+        create_constant_imm_to_reg_specs("pushm", include_constant=include_constant)
+    )
+    specs.extend(
+        create_constant_imm_to_reg_specs("popm", include_constant=include_constant)
+    )
 
     specs.extend(create_call_specs())
 
@@ -629,11 +719,9 @@ def get_instruction_specs(granularity: str) -> List[InstructionSpec]:
         return create_opcode_specs()
     if g == "addressing_mode_pair":
         specs = create_addressing_mode_specs(include_constant=False)
-        specs.extend(create_rpt_specs(specs, include_constant=False))
         return specs
     if g == "addressing_mode_constant_pair":
         specs = create_addressing_mode_specs(include_constant=True)
-        specs.extend(create_rpt_specs(specs, include_constant=True))
         return specs
 
     raise ValueError(
@@ -692,7 +780,7 @@ def generate_batched_files(
     output_dir: Path,
     batch_size: int,
     file_prefix: str = "batch",
-    start_batch: int = 0
+    start_batch: int = 0,
 ):
     """Generate C files with specified number of benchmarks per file
 
