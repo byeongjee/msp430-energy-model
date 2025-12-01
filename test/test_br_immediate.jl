@@ -19,11 +19,13 @@ function test_br_immediate_instruction_count()
     @testset "br_immediate benchmark instruction count" begin
         # Generate br_immediate_benchmark.S using two-pass compilation
         @info "Generating br_immediate_benchmark.S (two-pass compilation)..."
-        run(`bash -c "source env.sh && ./scripts/compile_hardcoded_benchmarks.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c"`)
+        run(
+            `bash -c "./scripts/compile_hardcoded_benchmarks.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c"`,
+        )
 
         # Now compile and disassemble the .S file
         @info "Compiling and disassembling .S file..."
-        run(`bash -c "source env.sh && make disasm FILE=build/asm/br_immediate_benchmark.S"`)
+        run(`bash -c "make disasm FILE=build/asm/br_immediate_benchmark.S"`)
 
         asm_file = "build/asm/br_immediate_benchmark.asm"
         data_file = "build/asm/br_immediate_benchmark.data"

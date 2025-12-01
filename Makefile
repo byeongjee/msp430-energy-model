@@ -253,7 +253,7 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	fi
 	@echo ""
 	@echo "Running br_immediate benchmark test..."
-	@source env.sh && julia --project=. test/test_br_immediate.jl
+	@julia --project=. test/test_br_immediate.jl
 	@echo ""
 	@echo "Running Python test suite..."
 	@uv run python scripts/test_generate_pair_benchmarks.py
