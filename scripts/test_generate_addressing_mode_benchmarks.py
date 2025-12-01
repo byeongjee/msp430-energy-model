@@ -288,7 +288,7 @@ INLINE void bench_inc_register(void) {
         """Verify all 28 combinations are generated for dual-operand instructions
 
         For each dual-operand instruction, verify we have all combinations of:
-        - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, indirect_auto
+        - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, autoincrement
         - 4 destination modes: register, indexed, symbolic, absolute
         """
         from benchmark_common import create_dual_operand_specs
@@ -302,7 +302,7 @@ INLINE void bench_inc_register(void) {
             combinations.add((spec.src_mode, spec.dst_mode))
 
         # Expected combinations
-        src_modes = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "indirect_auto"]
+        src_modes = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "autoincrement"]
         dst_modes = ["register", "indexed", "symbolic", "absolute"]
 
         expected_combinations = set()
@@ -356,6 +356,32 @@ class TestKeyGeneration(unittest.TestCase):
             opcode="rlam", src_mode="immediate", dst_mode="register", constant=2
         )
         self.assertEqual(spec.get_key(), ("rlam", "immediate", 2, "register"))
+
+    def test_multiplier_register_keys(self):
+        """Multiplier-mapped addresses should produce distinct mov keys"""
+        specs = get_instruction_specs("addressing_mode")
+        lookup = {spec.get_key_str(): spec for spec in specs}
+
+        self.assertIn("mov_MPY_register", lookup)
+        self.assertIn("mov_register_MPY", lookup)
+
+        read_spec = lookup["mov_MPY_register"]
+        bench = generate_benchmark(read_spec)
+        self.assertEqual(read_spec.get_key(), ("mov", "MPY", "register"))
+        self.assertIn("&0x04c0".lower(), bench["code"].lower())
+
+    def test_multiplier_register_constant_keys(self):
+        """Immediate writes to multiplier registers should carry constants in the key"""
+        specs = get_instruction_specs("addressing_mode_constant")
+        lookup = {spec.get_key_str(): spec for spec in specs}
+
+        self.assertIn("mov_immediate_1_MPY", lookup)
+        spec = lookup["mov_immediate_1_MPY"]
+        bench = generate_benchmark(spec)
+
+        self.assertEqual(spec.get_key(), ("mov", "immediate", 1, "MPY"))
+        self.assertIn("#1", bench["code"])
+        self.assertIn("&0x04c0".lower(), bench["code"].lower())
 
     def test_no_operand_key(self):
         """No-operand instructions should just be (opcode,)"""

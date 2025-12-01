@@ -1,6 +1,6 @@
 # model_common.jl - Common types and utilities for energy models
 
-using ..Types: Instruction, TrainingData
+using ..Types: Instruction, Operand, TrainingData
 
 """
 Type alias for parameter keys.
@@ -9,6 +9,18 @@ Keys can contain symbols (opcodes, addressing modes) and integers (compile-time 
 const ParamKey = Tuple{Vararg{Union{Symbol,Int}}}
 
 const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm, :rpt]
+# See table 9-65 of https://www.ti.com/lit/ds/symlink/msp430fr5994.pdf
+const multiplier_address_modes = Dict(
+    UInt32(0x04C0) => :MPY,
+    UInt32(0x04C8) => :OP2,
+    UInt32(0x04CA) => :RESLO,
+    UInt32(0x04D0) => :MPY32L,
+    UInt32(0x04D2) => :MPY32H,
+    UInt32(0x04E0) => :OP2L,
+    UInt32(0x04E2) => :OP2H,
+    UInt32(0x04E4) => :RES0,
+    UInt32(0x04E6) => :RES1,
+)
 
 """
 Granularity level for energy model parameters
@@ -55,6 +67,15 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
         return (:rpt, repeat_count, nested_key...)
     end
 
+    # Remap absolute accesses to multiplier-mapped addresses into distinct modes
+    remap_mode(op::Operand)::Symbol = begin
+        if op.mode == :absolute && op.value isa Integer
+            addr = UInt32(op.value)
+            return get(multiplier_address_modes, addr, op.mode)
+        end
+        return op.mode
+    end
+
     if granularity == PerOpcode
         # Simple: just the opcode
         return (inst.opcode,)
@@ -65,11 +86,11 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
             return (inst.opcode,)
         elseif length(inst.operands) == 1
             # Single operand (e.g., push R5, call, jmp)
-            return (inst.opcode, inst.operands[1].mode)
+            return (inst.opcode, remap_mode(inst.operands[1]))
         else
             # Dual operand (e.g., mov, add) - use src and dst modes
-            src_mode = inst.operands[1].mode
-            dst_mode = inst.operands[2].mode
+            src_mode = remap_mode(inst.operands[1])
+            dst_mode = remap_mode(inst.operands[2])
             return (inst.opcode, src_mode, dst_mode)
         end
     else  # PerAddressingModeConstant
@@ -79,7 +100,7 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
             return (inst.opcode,)
         elseif length(inst.operands) == 1
             # Single operand (e.g., push R5, call, jmp)
-            src_mode = inst.operands[1].mode
+            src_mode = remap_mode(inst.operands[1])
 
             if inst.opcode in constant_aware_opcodes && src_mode == :immediate
                 constant_value = Int(inst.operands[1].value)
@@ -89,8 +110,8 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
             return (inst.opcode, src_mode)
         else
             # Dual operand (e.g., mov, add) - use src and dst modes
-            src_mode = inst.operands[1].mode
-            dst_mode = inst.operands[2].mode
+            src_mode = remap_mode(inst.operands[1])
+            dst_mode = remap_mode(inst.operands[2])
 
             # Special handling for instructions with compile-time constants
             # These instructions have immediate values that significantly affect energy
@@ -119,7 +140,9 @@ function get_valid_param_keys(
             key = get_instruction_key(inst, granularity)
 
             # For PerAddressingMode and PerAddressingModeConstant, filter out meaningless combinations
-            if (granularity == PerAddressingMode || granularity == PerAddressingModeConstant) && length(key) >= 2
+            if (
+                granularity == PerAddressingMode || granularity == PerAddressingModeConstant
+            ) && length(key) >= 2
                 # key is (opcode, mode) or (opcode, src_mode, dst_mode)
                 # or (opcode, src_mode, constant, dst_mode) for constant-aware instructions
                 if length(key) == 2

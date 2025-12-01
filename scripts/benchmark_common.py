@@ -28,6 +28,18 @@ COMPOSITE_CALL_AND_RET = "call_and_ret"
 COMPOSITE_PUSHM_AND_POPM = "pushm_and_popm"
 COMPOSITE_PUSH_AND_RETI = "push_and_reti"
 
+MULTIPLIER_REGISTERS = [
+    ("MPY", 0x04C0),
+    ("OP2", 0x04C8),
+    ("RESLO", 0x04CA),
+    ("MPY32L", 0x04D0),
+    ("MPY32H", 0x04D2),
+    ("OP2L", 0x04E0),
+    ("OP2H", 0x04E2),
+    ("RES0", 0x04E4),
+    ("RES1", 0x04E6),
+]
+
 
 # ============================================================================
 # Instruction Specification
@@ -96,7 +108,7 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     """Create instruction specs for dual-operand instructions (add, mov, cmp, etc.)
 
     Generates all combinations of:
-    - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, indirect_auto
+    - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, autoincrement
     - 4 destination modes: register, indexed, symbolic, absolute
     Total: 7 × 4 = 28 variants per opcode
     """
@@ -110,7 +122,7 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
         "symbolic",
         "absolute",
         "indirect",
-        "indirect_auto",
+        "autoincrement",
     ]
     dst_modes = ["register", "indexed", "symbolic", "absolute"]
 
@@ -144,7 +156,7 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
             variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
             constraints["inputs"] = '[psrc] "r"(psrc)'
             constraints["clobbers"] = '"cc", "memory"'
-        elif src_mode == "indirect_auto":
+        elif src_mode == "autoincrement":
             src_asm = "@%[psrc]+"
             variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
             constraints["inputs"] = '[psrc] "r"(psrc)'
@@ -187,6 +199,77 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     for src_mode in src_modes:
         for dst_mode in dst_modes:
             specs.append(create_spec(src_mode, dst_mode))
+
+    return specs
+
+
+def create_multiplier_mov_specs(include_constant: bool) -> List[InstructionSpec]:
+    """Create mov specs that access multiplier-mapped memory addresses.
+
+    These accesses behave differently in hardware and should get distinct parameter keys.
+    """
+    specs: List[InstructionSpec] = []
+    constants = [1, 2, 3, 4, 5] if include_constant else [1]
+
+    for name, addr in MULTIPLIER_REGISTERS:
+        hex_addr = f"0x{addr:04X}"
+
+        # Read from multiplier register into a CPU register
+        specs.append(
+            InstructionSpec(
+                opcode="mov",
+                src_mode="absolute",
+                dst_mode="register",
+                asm_template=f"mov.w &{hex_addr}, %[dst]",
+                variables=[{"name": "dst", "type": "uint16_t", "value": "0x1234"}],
+                constraints={
+                    "outputs": '[dst] "+r"(dst)',
+                    "inputs": "",
+                    "clobbers": '"cc", "memory"',
+                },
+                key_override=("mov", name, "register"),
+            )
+        )
+
+        # Write a register value into the multiplier register
+        specs.append(
+            InstructionSpec(
+                opcode="mov",
+                src_mode="register",
+                dst_mode="absolute",
+                asm_template=f"mov.w %[src], &{hex_addr}",
+                variables=[{"name": "src", "type": "uint16_t", "value": "0x5678"}],
+                constraints={
+                    "outputs": "",
+                    "inputs": '[src] "r"(src)',
+                    "clobbers": '"cc", "memory"',
+                },
+                key_override=("mov", "register", name),
+            )
+        )
+
+        # Write an immediate constant into the multiplier register
+        for constant in constants:
+            specs.append(
+                InstructionSpec(
+                    opcode="mov",
+                    src_mode="immediate",
+                    dst_mode="absolute",
+                    constant=constant if include_constant else None,
+                    asm_template=f"mov.w #{constant}, &{hex_addr}",
+                    variables=[],
+                    constraints={
+                        "outputs": "",
+                        "inputs": "",
+                        "clobbers": '"cc", "memory"',
+                    },
+                    key_override=(
+                        ("mov", "immediate", constant, name)
+                        if include_constant
+                        else ("mov", "immediate", name)
+                    ),
+                )
+            )
 
     return specs
 
@@ -722,6 +805,8 @@ def create_addressing_mode_specs(
 
     for opcode in single_opcodes:
         specs.extend(create_single_operand_specs(opcode))
+
+    specs.extend(create_multiplier_mov_specs(include_constant=include_constant))
 
     specs.extend(
         create_constant_imm_to_reg_specs("rlam", include_constant=include_constant)
