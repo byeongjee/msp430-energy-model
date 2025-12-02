@@ -43,17 +43,15 @@ INLINE void bench_add_indexed_register(void) {
       : "cc", "memory"));
 }
 
-INLINE void bench_add_autoincrement_register(void) {
+INLINE void bench_add_indirect_register(void) {
   uint16_t* psrc = BASE_PTR;
-  uint16_t* psrc_reset = BASE_PTR;
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  add.w @%[psrc]+, %[dst]\n"
+      "  add.w @%[psrc], %[dst]\n"
       ".endr\n"
-      "  mov %[psrc_reset], %[psrc]\n"
       : [psrc] "+r"(psrc), [dst] "+r"(dst)
-      : [psrc_reset] "r"(psrc_reset)
+      : 
       : "cc", "memory"));
 }
 
@@ -248,7 +246,7 @@ int main(void) {
   BENCH(bench_add_register_register());
   BENCH(bench_add_immediate_register());
   BENCH(bench_add_indexed_register());
-  BENCH(bench_add_autoincrement_register());
+  BENCH(bench_add_indirect_register());
   BENCH(bench_addc_register_register());
   BENCH(bench_mov_register_register());
   BENCH(bench_mov_register_indexed());

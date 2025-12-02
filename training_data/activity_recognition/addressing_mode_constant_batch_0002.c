@@ -8,6 +8,17 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_rrc_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rrc.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
 INLINE void bench_sxt_register(void) {
   uint16_t dst = 0x2222;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -210,21 +221,12 @@ INLINE void bench_jc_symbolic(void) {
       : "cc"));
 }
 
-INLINE void bench_dint(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  dint\n  nop\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_rrc_register());
   BENCH(bench_sxt_register());
   BENCH(bench_mov_register_MPY());
   BENCH(bench_mov_register_OP2());
@@ -244,7 +246,6 @@ int main(void) {
   BENCH(bench_jz_symbolic());
   BENCH(bench_jnc_symbolic());
   BENCH(bench_jc_symbolic());
-  BENCH(bench_dint());
 
   end_measurement_window();
 

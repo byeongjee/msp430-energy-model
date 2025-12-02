@@ -8,6 +8,16 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_dint(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  dint\n  nop\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
 INLINE void bench_nop(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -112,6 +122,7 @@ int main(void) {
   begin_measurement_window();
 
 
+  BENCH(bench_dint());
   BENCH(bench_nop());
   BENCH(bench_clrc());
   BENCH(bench_rpt_7_rrax_register());
