@@ -85,8 +85,20 @@ function run_interpret(
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
     func_addrs = Parser.find_functions(asm_file)
 
-    final_state, event_sequences = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps; data_file=data_dump
+    log_memory_access = get(ENV, "LOG_MEMORY_ACCESS", "0") == "1"
+    memory_regions = Interpreter.build_memory_regions()
+    if log_memory_access
+        @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
+    end
+
+    final_state, event_sequences, event_accesses = Interpreter.interpret_program(
+        instructions,
+        addresses,
+        func_addrs,
+        max_steps;
+        data_file=data_dump,
+        memory_regions=memory_regions,
+        log_memory_access=log_memory_access,
     )
 
     model = isnothing(model_str) ? nothing : Model.create_model(model_str)
@@ -105,6 +117,14 @@ function run_interpret(
     @info "Successfully executed MSP430 instructions" count = length(instructions)
     @info "Number of events" count = length(event_sequences)
 
+    log_event_memory = i -> begin
+        if log_memory_access && i <= length(event_accesses)
+            acc = event_accesses[i]
+            @info "Event $i memory_accesses" sram = acc[:sram] fram = acc[:fram] other =
+                acc[:other] reads = acc[:reads] writes = acc[:writes] total = acc[:total]
+        end
+    end
+
     if isnothing(granularity)
         all_opcodes = Set{String}()
         for (i, event) in enumerate(event_sequences)
@@ -113,6 +133,7 @@ function run_interpret(
             union!(all_opcodes, unique_opcodes)
             opcodes_str = join(unique_opcodes, " ")
             @info "Event $i unique_opcodes: $opcodes_str" instructions = length(event)
+            log_event_memory(i)
         end
         if !isempty(all_opcodes)
             opcodes_str = join(sort(collect(all_opcodes)), " ")
@@ -132,6 +153,7 @@ function run_interpret(
             union!(all_param_pairs, unique_pair_keys)
             pairs_str = join([format_pair_key(key) for key in unique_pair_keys], " ")
             @info "Event $i param_pairs: $pairs_str" instructions = length(event)
+            log_event_memory(i)
         end
         if !isempty(all_param_pairs)
             pairs_str = join(
@@ -150,6 +172,7 @@ function run_interpret(
             union!(all_param_keys, unique_param_keys)
             keys_str = join([format_param_key(key) for key in unique_param_keys], " ")
             @info "Event $i param_keys: $keys_str" instructions = length(event)
+            log_event_memory(i)
         end
         if !isempty(all_param_keys)
             keys_str = join([format_param_key(key) for key in sort(collect(all_param_keys); by=string)], " ")

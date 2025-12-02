@@ -31,6 +31,7 @@ function MachineState()::MachineState
         Dict{UInt32,UInt16}(),  # Empty memory. Each cell is 16 bits.
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
         0,  # repeat_counter initialized to 0
+        nothing,  # memory_observer (set by interpreter when needed)
     )
 end
 
@@ -115,6 +116,9 @@ function apply_data_size_mask(value::UInt32, data_size::Symbol)::UInt32
 end
 
 function get_memory_value(state::MachineState, addr::UInt32, data_size::Symbol)::UInt32
+    # Notify observers of the memory access
+    record_memory_access!(state, addr, :read, data_size)
+
     if data_size == :word
         # Read 16-bit word from memory
         return UInt32(get(state.memory, addr, UInt16(0)))
@@ -228,6 +232,7 @@ end
 function set_memory_value!(
     state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
 )::Nothing
+    record_memory_access!(state, addr, :write, data_size)
     # Normal memory write
     if data_size == :word
         # Write 16-bit word to memory
@@ -254,6 +259,18 @@ function set_memory_value!(
         state.memory[addr + 2] = msw
     else
         error("Unknown data size: $data_size")
+    end
+    return nothing
+end
+
+"""
+Invoke the optional memory observer to record a memory access.
+"""
+function record_memory_access!(
+    state::MachineState, addr::UInt32, access_type::Symbol, data_size::Symbol
+)::Nothing
+    if state.memory_observer !== nothing
+        state.memory_observer(addr, access_type, data_size)
     end
     return nothing
 end

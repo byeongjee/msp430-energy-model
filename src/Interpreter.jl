@@ -10,6 +10,52 @@ using ..Parser
 include("machine_state.jl")
 
 const _HEX_CHARS = Set("0123456789abcdefABCDEF")
+const DEFAULT_FRAM_RANGES = [(0x4400, 0xFFFFF)]
+const DEFAULT_SRAM_RANGES = [(0x1C00, 0x3BFF)]
+
+"""
+Parse an address range specification of the form "start:end" (hex or decimal).
+"""
+function _parse_range(range_str::String)::Tuple{UInt32,UInt32}
+    parts = split(range_str, ":")
+    length(parts) == 2 || error("Invalid range '$range_str'. Expected start:end.")
+    parse_addr = s -> UInt32(parse(Int, startswith(lowercase(s), "0x") ? s : "0x$s", base=16))
+    start_addr = parse_addr(strip(parts[1]))
+    end_addr = parse_addr(strip(parts[2]))
+    start_addr <= end_addr || error("Range start must be <= end in '$range_str'")
+    return (start_addr, end_addr)
+end
+
+"""
+Create memory region configuration for FRAM/SRAM classification.
+"""
+function build_memory_regions(
+    fram_specs::Union{Nothing,Vector{String}}=nothing,
+    sram_specs::Union{Nothing,Vector{String}}=nothing,
+)
+    fram_ranges = isnothing(fram_specs) || isempty(fram_specs) ?
+        DEFAULT_FRAM_RANGES : [_parse_range(r) for r in fram_specs]
+    sram_ranges = isnothing(sram_specs) || isempty(sram_specs) ?
+        DEFAULT_SRAM_RANGES : [_parse_range(r) for r in sram_specs]
+    return Dict(:fram => fram_ranges, :sram => sram_ranges)
+end
+
+"""
+Classify an address into :fram, :sram, or :other based on configured ranges.
+"""
+function classify_region(addr::UInt32, memory_regions)::Symbol
+    for (lo, hi) in get(memory_regions, :sram, DEFAULT_SRAM_RANGES)
+        if lo <= addr <= hi
+            return :sram
+        end
+    end
+    for (lo, hi) in get(memory_regions, :fram, DEFAULT_FRAM_RANGES)
+        if lo <= addr <= hi
+            return :fram
+        end
+    end
+    return :other
+end
 
 """
 Load bytes from an objdump -s data dump file into machine memory.
@@ -267,7 +313,9 @@ function interpret_program(
     func_addrs::Dict{String,UInt32},
     max_steps::Int;
     data_file::Union{String,Nothing}=nothing,
-)::Tuple{MachineState,Vector{Vector{Instruction}}}
+    memory_regions=build_memory_regions(),
+    log_memory_access::Bool=false,
+)::Tuple{MachineState,Vector{Vector{Instruction}},Vector{Dict{Symbol,Int}}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
@@ -301,9 +349,30 @@ function interpret_program(
         end
     end
 
+    state = MachineState()
+    state.registers[:PC] = addresses[1]  # Start at the first instruction address
+
+    if !isnothing(data_file)
+        load_memory_dump!(state, data_file)
+    end
+
     # Track instruction sequences between begin_event and end_event
     event_sequences = Vector{Vector{Instruction}}()
+    event_accesses = Vector{Dict{Symbol,Int}}()
     current_sequence = Vector{Instruction}()
+    current_event_access = Ref{Union{Nothing,Dict{Symbol,Int}}}(nothing)
+    if log_memory_access
+        state.memory_observer = (addr::UInt32, access_type::Symbol, _size::Symbol) -> begin
+            counts = current_event_access[]
+            isnothing(counts) && return
+            region = classify_region(addr, memory_regions)
+            counts[region] = get(counts, region, 0) + 1
+            counts[access_type] = get(counts, access_type, 0) + 1
+            counts[:total] = get(counts, :total, 0) + 1
+        end
+    else
+        state.memory_observer = nothing
+    end
     exit_addr = get(func_addrs, "_exit", nothing)
 
     # Show the program
@@ -319,13 +388,6 @@ function interpret_program(
     pc_to_instruction = Dict{UInt32,Tuple{Int,Instruction}}()
     for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
         pc_to_instruction[addr] = (i, inst)
-    end
-
-    state = MachineState()
-    state.registers[:PC] = addresses[1]  # Start at the first instruction address
-
-    if !isnothing(data_file)
-        load_memory_dump!(state, data_file)
     end
 
     @debug "Initial machine state" pc = string(state.registers[:PC]; base=16, pad=4) sp = string(
@@ -384,6 +446,16 @@ function interpret_program(
                 if get(func_addrs, "begin_event", nothing) == call_target
                     @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
                     current_sequence = Vector{Instruction}()
+                    if log_memory_access
+                        current_event_access[] = Dict(
+                            :fram => 0,
+                            :sram => 0,
+                            :other => 0,
+                            :reads => 0,
+                            :writes => 0,
+                            :total => 0,
+                        )
+                    end
                     state.registers[:PC] = addresses[current_addr_idx + 1]
                     continue
                 end
@@ -392,6 +464,10 @@ function interpret_program(
                 if get(func_addrs, "end_event", nothing) == call_target
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
                     push!(event_sequences, copy(current_sequence))
+                    if log_memory_access && current_event_access[] !== nothing
+                        push!(event_accesses, deepcopy(current_event_access[]))
+                        current_event_access[] = nothing
+                    end
                     state.registers[:PC] = addresses[current_addr_idx + 1]
                     continue
                 end
@@ -449,9 +525,15 @@ function interpret_program(
     @info "Final machine state" pc = string(state.registers[:PC]; base=16, pad=4)
     @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
+    # If an event was started but not ended, flush its access counts and sequence.
+    if log_memory_access && current_event_access[] !== nothing && !isempty(current_sequence)
+        push!(event_sequences, copy(current_sequence))
+        push!(event_accesses, deepcopy(current_event_access[]))
+    end
+
     @info "Event sequences collected" count = length(event_sequences)
 
-    return (state, event_sequences)
+    return (state, event_sequences, event_accesses)
 end
 
 end # module

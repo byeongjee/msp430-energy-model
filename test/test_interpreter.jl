@@ -53,7 +53,7 @@ function run_interpreter(
     func_addrs = Parser.find_functions(asm_file)
 
     # Execute program
-    final_state, _ = Interpreter.interpret_program(
+    final_state, _, _ = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps; data_file=data_dump
     )
 
