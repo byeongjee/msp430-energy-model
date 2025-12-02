@@ -183,7 +183,9 @@ fi
 # Create temp file paths for files without matched CSVs
 for i in "${!FILE_ARRAY[@]}"; do
     file="${FILE_ARRAY[$i]}"
-    basename=$(basename "$file" .c)
+    basename=$(basename "$file")
+    basename="${basename%.c}"
+    basename="${basename%.S}"
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
@@ -211,7 +213,9 @@ log_step "Extracting event labels from C source files"
 EVENT_LABELS_ARRAY=()
 for i in "${!FILE_ARRAY[@]}"; do
     FILE="${FILE_ARRAY[$i]}"
-    BASENAME="$(basename "$FILE" .c)"
+    BASENAME="$(basename "$FILE")"
+    BASENAME="${BASENAME%.c}"
+    BASENAME="${BASENAME%.S}"
 
     EVENT_LABELS_JSON="$TEMP_DIR/labels_${BASENAME}_${TIMESTAMP}.json"
 
@@ -253,7 +257,9 @@ log_success "Event labels combined: $COMBINED_LABELS_JSON"
 # Process each file
 for i in "${!FILE_ARRAY[@]}"; do
     FILE="${FILE_ARRAY[$i]}"
-    BASENAME="$(basename "$FILE" .c)"
+    BASENAME="$(basename "$FILE")"
+    BASENAME="${BASENAME%.c}"
+    BASENAME="${BASENAME%.S}"
 
     log_info ""
     log_info "Processing file $((i+1))/${#FILE_ARRAY[@]}: $FILE"

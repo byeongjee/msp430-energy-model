@@ -248,7 +248,9 @@ fi
 # Create temp file paths for training files without matched CSVs
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file" .c)
+    basename=$(basename "$train_file")
+    basename="${basename%.c}"
+    basename="${basename%.S}"
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
@@ -300,7 +302,9 @@ fi
 log_info "Report will be saved to: $REPORT_DIR_FULL"
 
 # Extract basenames
-ESTIMATE_BASENAME="$(basename "$ESTIMATE_FILE" .c)"
+ESTIMATE_BASENAME="$(basename "$ESTIMATE_FILE")"
+ESTIMATE_BASENAME="${ESTIMATE_BASENAME%.c}"
+ESTIMATE_BASENAME="${ESTIMATE_BASENAME%.S}"
 
 # ============================================================
 # EXTRACT EVENT LABELS
@@ -310,7 +314,9 @@ ESTIMATE_BASENAME="$(basename "$ESTIMATE_FILE" .c)"
 TRAINING_EVENT_LABELS_ARRAY=()
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file" .c)
+    basename=$(basename "$train_file")
+    basename="${basename%.c}"
+    basename="${basename%.S}"
     event_labels_json="$TEMP_DIR/labels_${basename}_${TIMESTAMP}.json"
 
     log_info "Extracting event labels from $train_file..."

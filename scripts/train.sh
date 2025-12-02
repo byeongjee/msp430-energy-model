@@ -202,7 +202,9 @@ fi
 # Create temp file paths for training files without matched CSVs
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file" .c)
+    basename=$(basename "$train_file")
+    basename="${basename%.c}"
+    basename="${basename%.S}"
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
@@ -232,7 +234,9 @@ fi
 TRAINING_EVENT_LABELS_ARRAY=()
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file" .c)
+    basename=$(basename "$train_file")
+    basename="${basename%.c}"
+    basename="${basename%.S}"
     event_labels_json="$TEMP_DIR/labels_${basename}_${TIMESTAMP}.json"
 
     log_info "Extracting event labels from $train_file..."
@@ -326,7 +330,9 @@ SKIPPED_COUNT=0
 
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    train_basename=$(basename "$train_file" .c)
+    train_basename=$(basename "$train_file")
+    train_basename="${train_basename%.c}"
+    train_basename="${train_basename%.S}"
     training_segments_csv="${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
     event_labels_json="${TRAINING_EVENT_LABELS_ARRAY[$i]}"
     training_raw_csv="$TEMP_DIR/${train_basename}_${TIMESTAMP}.csv"
@@ -392,7 +398,9 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
     ASM_FILES=()
     for i in "${!TRAIN_FILE_ARRAY[@]}"; do
         train_file="${TRAIN_FILE_ARRAY[$i]}"
-        train_basename=$(basename "$train_file" .c)
+        train_basename=$(basename "$train_file")
+        train_basename="${train_basename%.c}"
+        train_basename="${train_basename%.S}"
 
         # Compile if .elf doesn't exist (e.g., when resuming from segments)
         if [[ ! -f "$BUILD_DIR/${train_basename}.elf" ]]; then

@@ -92,7 +92,9 @@ match_files_by_basename() {
     if [[ "$csv_input" == *"{filename}"* ]]; then
         # Pattern-based matching: substitute {filename} with each source basename
         for source_file in "${source_files_ref[@]}"; do
-            local basename=$(basename "$source_file" .c)
+            local basename=$(basename "$source_file")
+            basename="${basename%.c}"
+            basename="${basename%.S}"
             # Substitute {filename} with the actual basename
             local csv_pattern="${csv_input//\{filename\}/$basename}"
 
@@ -129,7 +131,9 @@ match_files_by_basename() {
         fi
 
         for source_file in "${source_files_ref[@]}"; do
-            local basename=$(basename "$source_file" .c)
+            local basename=$(basename "$source_file")
+            basename="${basename%.c}"
+            basename="${basename%.S}"
             local matched_csv=""
 
             # Search for matching CSV
@@ -155,7 +159,9 @@ match_files_by_basename() {
     if [[ ${#failed_matches[@]} -gt 0 ]]; then
         echo "[WARNING] No matching $csv_type files found for ${#failed_matches[@]} source file(s) (will be measured):" >&2
         for file in "${failed_matches[@]}"; do
-            local basename=$(basename "$file" .c)
+            local basename=$(basename "$file")
+            basename="${basename%.c}"
+            basename="${basename%.S}"
             echo "[WARNING]   - $basename" >&2
         done
     fi
