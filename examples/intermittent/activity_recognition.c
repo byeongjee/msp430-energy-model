@@ -18,7 +18,7 @@
 #define SAMPLE_NOISE_FLOOR 10
 #define SAMPLES_TO_COLLECT 64 // Reduced for faster demo loop
 
-static uint16_t lfsr_state = 0xACE1u;
+static uint16_t lfsr_state __attribute__((section(".noinit")));
 
 INLINE uint16_t simple_rand(void) {
   // If the last bit is 1, shift and XOR. If 0, just shift.
@@ -85,7 +85,8 @@ INLINE unsigned sqrt16(unsigned long n) {
 // If you have a real ADXL362, you would replace these with actual driver calls.
 // For now, we generate fake data to prove the logic works.
 
-volatile static int mock_scenario = 0; // 0=Stationary, 1=Moving
+volatile static int mock_scenario
+    __attribute__((section(".noinit"))); // 0=Stationary, 1=Moving
 
 INLINE void ACCEL_init() {
   // Real sensor init would go here
@@ -289,7 +290,7 @@ INLINE void recognize_loop(volatile model_t *model) {
 // --- Main ---
 
 // Global model storage (in RAM for this simple version)
-volatile model_t global_model;
+volatile model_t global_model __attribute__((section(".noinit")));
 
 int main() {
   initialize();
@@ -300,6 +301,8 @@ int main() {
   ACCEL_init();
 
   __enable_interrupt();
+  lfsr_state = 0xACE1u;
+  mock_scenario = 0;
 
   begin_measurement_window();
 
