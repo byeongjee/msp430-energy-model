@@ -390,28 +390,28 @@ echo ""
 log_info "==> Hardware no longer required - remaining steps can run offline"
 echo ""
 
+# Compile and disassemble all training files 
+log_step "Compiling and disassembling training files"
+ASM_FILES=()
+for i in "${!TRAIN_FILE_ARRAY[@]}"; do
+    train_file="${TRAIN_FILE_ARRAY[$i]}"
+    train_basename=$(basename "$train_file")
+    train_basename="${train_basename%.c}"
+    train_basename="${train_basename%.S}"
+
+    # Always recompile (measurement may have been skipped if segments already existed)
+    log_info "Compiling $train_basename"
+    $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
+
+    # Always disassemble
+    $OBJDUMP -d "$BUILD_DIR/${train_basename}.elf" > "$ASM_DIR/${train_basename}.asm"
+    log_info "Disassembled: $ASM_DIR/${train_basename}.asm"
+    ASM_FILES+=("$ASM_DIR/${train_basename}.asm")
+done
+
 # Train energy model
 if [[ $SKIP_TRAINING -eq 0 ]]; then
     log_step "Training energy model from ${#TRAIN_FILE_ARRAY[@]} file(s)"
-
-    # Compile and disassemble all training files
-    ASM_FILES=()
-    for i in "${!TRAIN_FILE_ARRAY[@]}"; do
-        train_file="${TRAIN_FILE_ARRAY[$i]}"
-        train_basename=$(basename "$train_file")
-        train_basename="${train_basename%.c}"
-        train_basename="${train_basename%.S}"
-
-        # Compile if .elf doesn't exist (e.g., when resuming from segments)
-        if [[ ! -f "$BUILD_DIR/${train_basename}.elf" ]]; then
-            log_info "Compiling $train_basename"
-            $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
-        fi
-
-        $OBJDUMP -d "$BUILD_DIR/${train_basename}.elf" > "$ASM_DIR/${train_basename}.asm"
-        log_info "Disassembled: $ASM_DIR/${train_basename}.asm"
-        ASM_FILES+=("$ASM_DIR/${train_basename}.asm")
-    done
 
     # Train with all ASM files and segment CSVs
     julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" train \
