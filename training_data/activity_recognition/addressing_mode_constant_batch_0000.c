@@ -1,7 +1,7 @@
 #include "setup.h"
 
 static volatile uint16_t sym_data = 0x1111;
-static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
+static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 #define BASE_PTR ((uint16_t *)mem_buf)
 #define OFFS 4
@@ -45,13 +45,15 @@ INLINE void bench_add_indexed_register(void) {
 
 INLINE void bench_add_autoincrement_register(void) {
   uint16_t* psrc = BASE_PTR;
+  uint16_t* psrc_reset = BASE_PTR;
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  add.w @%[psrc]+, %[dst]\n"
       ".endr\n"
-      : [dst] "+r"(dst)
-      : [psrc] "r"(psrc)
+      "  mov %[psrc_reset], %[psrc]\n"
+      : [psrc] "+r"(psrc), [dst] "+r"(dst)
+      : [psrc_reset] "r"(psrc_reset)
       : "cc", "memory"));
 }
 
@@ -188,8 +190,8 @@ INLINE void bench_mov_indirect_register(void) {
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  mov.w @%[psrc], %[dst]\n"
       ".endr\n"
-      : [dst] "+r"(dst)
-      : [psrc] "r"(psrc)
+      : [psrc] "+r"(psrc), [dst] "+r"(dst)
+      : 
       : "cc", "memory"));
 }
 

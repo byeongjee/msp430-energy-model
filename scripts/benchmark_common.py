@@ -56,6 +56,7 @@ class InstructionSpec:
         dst_mode: str = None,
         constant: int = None,
         asm_template: str = "",
+        post_asm: str = "",
         variables: List[Dict[str, str]] = None,
         constraints: Dict[str, str] = None,
         key_override: tuple = None,
@@ -68,6 +69,7 @@ class InstructionSpec:
         self.dst_mode = dst_mode
         self.constant = constant
         self.asm_template = asm_template
+        self.post_asm = post_asm
         self.variables = variables or []
         self.constraints = constraints or {
             "outputs": "",
@@ -130,6 +132,7 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     def create_spec(src_mode: str, dst_mode: str) -> InstructionSpec:
         variables = []
         constraints = {"outputs": "", "inputs": "", "clobbers": '"cc"'}
+        post_asm = ""
 
         # Build source operand
         if src_mode == "register":
@@ -154,19 +157,25 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
         elif src_mode == "indirect":
             src_asm = "@%[psrc]"
             variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
-            constraints["inputs"] = '[psrc] "r"(psrc)'
+            constraints["outputs"] = '[psrc] "+r"(psrc)'
             constraints["clobbers"] = '"cc", "memory"'
         elif src_mode == "autoincrement":
             src_asm = "@%[psrc]+"
             variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
-            constraints["inputs"] = '[psrc] "r"(psrc)'
+            variables.append({"name": "psrc_reset", "type": "uint16_t*", "value": "BASE_PTR"})
+            constraints["outputs"] = '[psrc] "+r"(psrc)'
+            constraints["inputs"] = '[psrc_reset] "r"(psrc_reset)'
             constraints["clobbers"] = '"cc", "memory"'
+            post_asm = "mov %[psrc_reset], %[psrc]"
 
         # Build destination operand
         if dst_mode == "register":
             dst_asm = "%[dst]"
             variables.append({"name": "dst", "type": "uint16_t", "value": "0x1234"})
-            constraints["outputs"] = '[dst] "+r"(dst)'
+            # Merge with any source-side outputs (e.g., autoincrement pointers)
+            if constraints["outputs"]:
+                constraints["outputs"] += ", "
+            constraints["outputs"] += '[dst] "+r"(dst)'
         elif dst_mode == "indexed":
             dst_asm = "%c[offs_dst](%[base_dst])"
             variables.append(
@@ -191,6 +200,7 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
             src_mode=src_mode,
             dst_mode=dst_mode,
             asm_template=asm_template,
+            post_asm=post_asm,
             variables=variables,
             constraints=constraints,
         )
@@ -365,6 +375,7 @@ def create_rpt_specs(
                 dst_mode=base.dst_mode,
                 constant=None,
                 asm_template=asm_reg,
+                post_asm=base.post_asm,
                 variables=reg_vars,
                 constraints=reg_constraints,
                 key_override=("rpt", "register", *base.get_key()),
@@ -382,6 +393,7 @@ def create_rpt_specs(
                         dst_mode=base.dst_mode,
                         constant=count,
                         asm_template=asm,
+                        post_asm=base.post_asm,
                         variables=copy.deepcopy(base.variables),
                         constraints=copy.deepcopy(base.constraints),
                         key_override=("rpt", count, *base.get_key()),
@@ -409,7 +421,7 @@ def create_constant_imm_to_reg_specs(
                 constraints={
                     "outputs": '[dst] "+r"(dst)',
                     "inputs": "",
-                    "clobbers": '"cc"',
+                    "clobbers": '"cc", "memory"' if opcode in {"pushm", "popm"} else '"cc"',
                 },
                 composite_group=composite_group,
             )
@@ -631,7 +643,7 @@ def create_push_specs() -> List[InstructionSpec]:
             constraints["inputs"] = '[src] "r"(src)'
         elif mode == "immediate":
             op_asm = "#0x2222"
-            constraints["clobbers"] = '"cc"'
+            constraints["clobbers"] = '"cc", "memory"'
         elif mode == "indexed":
             op_asm = "%c[offs](%[base])"
             variables.append({"name": "base", "type": "uint16_t*", "value": "BASE_PTR"})
@@ -908,7 +920,7 @@ FILE_TEMPLATE = Template(
     """#include "setup.h"
 
 static volatile uint16_t sym_data = 0x1111;
-static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
+static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 #define BASE_PTR ((uint16_t *)mem_buf)
 #define OFFS 4

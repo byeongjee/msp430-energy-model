@@ -1,7 +1,7 @@
 #include "setup.h"
 
 static volatile uint16_t sym_data = 0x1111;
-static volatile uint16_t mem_buf[64] __attribute__((aligned(64)));
+static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 #define BASE_PTR ((uint16_t *)mem_buf)
 #define OFFS 4

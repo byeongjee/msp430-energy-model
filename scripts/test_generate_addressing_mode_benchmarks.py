@@ -21,6 +21,8 @@ from benchmark_common import (
     FILE_TEMPLATE,
     get_instruction_specs,
     create_dint_specs,
+    create_dual_operand_specs,
+    create_push_specs,
 )
 from gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
 
@@ -269,7 +271,7 @@ INLINE void bench_inc_register(void) {
         # Check file structure
         self.assertIn('#include "setup.h"', file_content)
         self.assertIn("static volatile uint16_t sym_data", file_content)
-        self.assertIn("static volatile uint16_t mem_buf[64]", file_content)
+        self.assertIn("static volatile uint16_t mem_buf[1024]", file_content)
         self.assertIn("#define BASE_PTR", file_content)
         self.assertIn("int main(void)", file_content)
         self.assertIn("initialize();", file_content)
@@ -335,6 +337,41 @@ INLINE void bench_inc_register(void) {
         self.assertIn("sym_data", result["code"])
         self.assertIn('"memory"', result["code"])
         self.assertEqual(result["key"], ("mov", "symbolic", "register"))
+
+    def test_autoincrement_uses_readwrite_pointer(self):
+        """Autoincrement addressing should treat the pointer register as read-write."""
+        specs = create_dual_operand_specs("mov")
+        spec = next(
+            s for s in specs if s.src_mode == "autoincrement" and s.dst_mode == "register"
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn('[psrc] "+r"(psrc)', bench["code"])
+        self.assertNotIn('[psrc] "r"(psrc)', bench["code"])
+        self.assertIn("psrc_reset", bench["code"])
+        self.assertIn("mov %[psrc_reset], %[psrc]", bench["code"])
+        self.assertIn('"memory"', bench["code"])
+
+    def test_push_immediate_clobbers_memory(self):
+        """Immediate push should declare a memory clobber because it updates the stack."""
+        spec = next(s for s in create_push_specs() if s.src_mode == "immediate")
+        bench = generate_benchmark(spec)
+
+        self.assertIn("push.w #0x2222", bench["code"])
+        self.assertIn('"memory"', bench["code"])
+
+    def test_indirect_pointer_marked_readwrite(self):
+        """Indirect addressing should keep the pointer live with a read-write constraint."""
+        specs = create_dual_operand_specs("mov")
+        spec = next(
+            s for s in specs if s.src_mode == "indirect" and s.dst_mode == "register"
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn('[psrc] "+r"(psrc)', bench["code"])
+        self.assertIn('"memory"', bench["code"])
 
 
 class TestKeyGeneration(unittest.TestCase):

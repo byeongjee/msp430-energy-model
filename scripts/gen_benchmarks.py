@@ -54,6 +54,9 @@ INLINE void bench_{{ name }}(void) {
       ".rept " STR(TEXTUAL_REPT) "\\n"
       "  {{ instruction }}\\n"
       ".endr\\n"
+{%- if post_asm %}
+      "  {{ post_asm }}\\n"
+{%- endif %}
       : {{ constraints.outputs }}
       : {{ constraints.inputs }}
       : {{ constraints.clobbers }}));
@@ -73,6 +76,9 @@ INLINE void bench_{{ name }}(void) {
       "  {{ inst }}\\n"
 {%- endfor %}
       ".endr\\n"
+{%- if post_asm %}
+      "  {{ post_asm }}\\n"
+{%- endif %}
       : {{ constraints.outputs }}
       : {{ constraints.inputs }}
       : {{ constraints.clobbers }}));
@@ -170,6 +176,7 @@ def generate_benchmark(spec: InstructionSpec) -> Dict[str, Any]:
         variables=spec.variables,
         instruction=spec.asm_template,
         constraints=spec.constraints,
+        post_asm=spec.post_asm,
     )
 
     return {
@@ -290,12 +297,15 @@ def generate_pair_benchmark(
     constraints = merge_constraints(spec1.constraints, spec2.constraints)
 
     instructions = [spec1.asm_template, spec2.asm_template]
+    post_lines = [s.post_asm for s in (spec1, spec2) if getattr(s, "post_asm", "")]
+    post_asm = "\\n  ".join(post_lines) if post_lines else ""
 
     code = PAIR_BENCHMARK_FUNCTION_TEMPLATE.render(
         name=name,
         variables=variables,
         instructions=instructions,
         constraints=constraints,
+        post_asm=post_asm,
     )
 
     return {
