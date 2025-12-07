@@ -19,7 +19,8 @@ Parse an address range specification of the form "start:end" (hex or decimal).
 function _parse_range(range_str::String)::Tuple{UInt32,UInt32}
     parts = split(range_str, ":")
     length(parts) == 2 || error("Invalid range '$range_str'. Expected start:end.")
-    parse_addr = s -> UInt32(parse(Int, startswith(lowercase(s), "0x") ? s : "0x$s", base=16))
+    parse_addr =
+        s -> UInt32(parse(Int, startswith(lowercase(s), "0x") ? s : "0x$s"; base=16))
     start_addr = parse_addr(strip(parts[1]))
     end_addr = parse_addr(strip(parts[2]))
     start_addr <= end_addr || error("Range start must be <= end in '$range_str'")
@@ -33,10 +34,12 @@ function build_memory_regions(
     fram_specs::Union{Nothing,Vector{String}}=nothing,
     sram_specs::Union{Nothing,Vector{String}}=nothing,
 )
-    fram_ranges = isnothing(fram_specs) || isempty(fram_specs) ?
-        DEFAULT_FRAM_RANGES : [_parse_range(r) for r in fram_specs]
-    sram_ranges = isnothing(sram_specs) || isempty(sram_specs) ?
-        DEFAULT_SRAM_RANGES : [_parse_range(r) for r in sram_specs]
+    fram_ranges =
+        isnothing(fram_specs) || isempty(fram_specs) ? DEFAULT_FRAM_RANGES :
+        [_parse_range(r) for r in fram_specs]
+    sram_ranges =
+        isnothing(sram_specs) || isempty(sram_specs) ? DEFAULT_SRAM_RANGES :
+        [_parse_range(r) for r in sram_specs]
     return Dict(:fram => fram_ranges, :sram => sram_ranges)
 end
 
@@ -109,7 +112,7 @@ function load_memory_dump!(state::MachineState, data_file::String)::Bool
         hex_str = join(hex_tokens, "")
         for i in 1:2:length(hex_str)
             byte_val = parse(UInt8, hex_str[i:(i + 1)]; base=16)
-            set_memory_value!(state, addr + UInt32(div(i - 1, 2)), UInt32(byte_val), :byte)
+            write_memory!(state, addr + UInt32(div(i - 1, 2)), UInt32(byte_val), :byte)
             bytes_written += 1
         end
     end
@@ -158,12 +161,12 @@ function _memory_op_debug_msg(
             operand_str = string(operand.value)
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
-            return get_memory_value(state, addr, data_size)
+            return read_memory(state, addr, data_size)
         elseif operand.mode == :autoincrement
             operand_str = string(operand.value)
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
-            return get_memory_value(state, addr, data_size)
+            return read_memory(state, addr, data_size)
         elseif operand.mode == :indexed || operand.mode == :symbolic
             offset, reg = operand.value
             base_addr = get(old_regs, reg, UInt32(0))
@@ -171,9 +174,9 @@ function _memory_op_debug_msg(
                 base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
             end
             addr = UInt32((base_addr + offset) & get_register_mask(reg))
-            return get_memory_value(state, addr, data_size)
+            return read_memory(state, addr, data_size)
         elseif operand.mode == :absolute
-            return get_memory_value(state, UInt32(operand.value), data_size)
+            return read_memory(state, UInt32(operand.value), data_size)
         else
             return UInt32(0)
         end
@@ -362,14 +365,15 @@ function interpret_program(
     current_trace = Trace()
     current_event_access = Ref{Union{Nothing,Dict{Symbol,Int}}}(nothing)
     if log_memory_access
-        state.memory_observer = (addr::UInt32, access_type::Symbol, _size::Symbol) -> begin
-            counts = current_event_access[]
-            isnothing(counts) && return
-            region = classify_region(addr, memory_regions)
-            counts[region] = get(counts, region, 0) + 1
-            counts[access_type] = get(counts, access_type, 0) + 1
-            counts[:total] = get(counts, :total, 0) + 1
-        end
+        state.memory_observer =
+            (addr::UInt32, access_type::Symbol, _size::Symbol) -> begin
+                counts = current_event_access[]
+                isnothing(counts) && return nothing
+                region = classify_region(addr, memory_regions)
+                counts[region] = get(counts, region, 0) + 1
+                counts[access_type] = get(counts, access_type, 0) + 1
+                counts[:total] = get(counts, :total, 0) + 1
+            end
     else
         state.memory_observer = nothing
     end

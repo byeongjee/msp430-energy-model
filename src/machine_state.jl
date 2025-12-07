@@ -115,7 +115,7 @@ function apply_data_size_mask(value::UInt32, data_size::Symbol)::UInt32
     end
 end
 
-function get_memory_value(state::MachineState, addr::UInt32, data_size::Symbol)::UInt32
+function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt32
     # Notify observers of the memory access
     record_memory_access!(state, addr, :read, data_size)
 
@@ -154,7 +154,7 @@ function read_c_string(state::MachineState, addr::UInt32)::String
     io = IOBuffer()
     current = addr
     while true
-        byte_val = UInt8(get_memory_value(state, current, :byte) & 0xFF)
+        byte_val = UInt8(read_memory(state, current, :byte) & 0xFF)
         if byte_val == 0x00
             break
         end
@@ -229,7 +229,7 @@ function handle_debug_function_call!(
     return nothing
 end
 
-function set_memory_value!(
+function write_memory!(
     state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
 )::Nothing
     record_memory_access!(state, addr, :write, data_size)
@@ -295,14 +295,14 @@ function get_operand_value(
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get_register_value(state, reg_name)
-        get_memory_value(state, addr, data_size)
+        read_memory(state, addr, data_size)
     elseif operand.mode == :autoincrement
         # Autoincrement addressing: @R1+ means "value at address in R1, then increment R1"
         @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get_register_value(state, reg_name)
-        val = get_memory_value(state, addr, data_size)
+        val = read_memory(state, addr, data_size)
         # Increment register after reading (by 2 for word, 1 for byte)
         increment = if data_size == :byte
             UInt32(1)
@@ -321,10 +321,9 @@ function get_operand_value(
             UInt32(0xFFFF)
         end
         new_val = UInt32((addr + increment) & mask)
-        @debug "Autoincrement" reg = reg_name addr = string(addr; base=16, pad=4) increment mask =
-            string(mask; base=16, pad=5) data_size = data_size new_val = string(
-                new_val; base=16, pad=4
-            )
+        @debug "Autoincrement" reg = reg_name addr = string(addr; base=16, pad=4) increment mask = string(
+            mask; base=16, pad=5
+        ) data_size = data_size new_val = string(new_val; base=16, pad=4)
         state.registers[reg_name] = new_val
         val
     elseif operand.mode == :indexed || operand.mode == :symbolic
@@ -346,11 +345,11 @@ function get_operand_value(
             base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
         end
         addr = UInt32((base_addr + offset) & get_register_mask(reg))
-        get_memory_value(state, addr, data_size)
+        read_memory(state, addr, data_size)
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        get_memory_value(state, operand.value, data_size)
+        read_memory(state, operand.value, data_size)
     else
         error("Unknown addressing mode: $(operand.mode)")
     end
@@ -392,25 +391,25 @@ function set_operand_value!(
         # FIXME: for implementation simplicity, we assume that the address is 16-bit aligned
         addr = UInt32((base_addr + offset) & get_register_mask(reg))
 
-        set_memory_value!(state, addr, masked_value, data_size)
+        write_memory!(state, addr, masked_value, data_size)
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        set_memory_value!(state, operand.value, masked_value, data_size)
+        write_memory!(state, operand.value, masked_value, data_size)
     elseif operand.mode == :indirect
         # Indirect register mode: @Rn -> store to address in Rn
         @assert isa(operand.value, Symbol) "Indirect mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Strip leading @
         addr = get_register_value(state, reg_name)
-        set_memory_value!(state, addr, masked_value, data_size)
+        write_memory!(state, addr, masked_value, data_size)
     elseif operand.mode == :autoincrement
         # Autoincrement store: write then increment pointer register
         @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Strip leading @
         addr = get_register_value(state, reg_name)
-        set_memory_value!(state, addr, masked_value, data_size)
+        write_memory!(state, addr, masked_value, data_size)
 
         increment = if data_size == :byte
             UInt32(1)
