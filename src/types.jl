@@ -2,7 +2,7 @@
 
 module Types
 
-export Operand, Instruction, TraceState, Trace, MachineState, EnergyStats, TrainingData, get_inst
+export Operand, Instruction, TraceState, Trace, CacheLine, MachineState, EnergyStats, TrainingData, get_inst
 
 """
 Operand representation with its addressing mode
@@ -59,6 +59,16 @@ Extract the underlying instruction from a trace entry.
 get_inst(trace::TraceState)::Instruction = trace.inst
 
 """
+Cache line used by the MSP430FR5994-style cache simulation.
+"""
+mutable struct CacheLine
+    valid::Bool
+    tag::UInt32
+    data::Vector{UInt8}
+    last_used::UInt64
+end
+
+"""
 Machine state for processor simulation
 
 Register sizes:
@@ -70,6 +80,8 @@ Register sizes:
 mutable struct MachineState
     registers::Dict{Symbol,UInt32}  # All stored as UInt32, masked per register capabilities
     memory::Dict{UInt32,UInt16}     # 20-bit address space, 16-bit words
+    cache::Vector{Vector{CacheLine}}  # 2-way, 4-line cache
+    cache_tick::UInt64               # Monotonic counter for LRU
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
     repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
     memory_observer::Union{Nothing,Function}  # Optional hook for memory access logging

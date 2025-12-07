@@ -4,7 +4,7 @@ using Statistics
 using Gen
 using Printf
 using Logging
-using ..Types: Instruction, Operand, MachineState, TraceState, Trace
+using ..Types: Instruction, Operand, MachineState, TraceState, Trace, CacheLine
 using ..Parser
 
 include("machine_state.jl")
