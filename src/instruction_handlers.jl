@@ -800,7 +800,7 @@ function execute!(
         (state.registers[:SP] - bytes_per_val) & get_register_mask(:SP)
     )
     if data_size == :address
-        set_memory_value!(state, state.registers[:SP], operand_val, :address)
+        write_memory!(state, state.registers[:SP], operand_val, :address)
     else
         state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
     end
@@ -1114,7 +1114,11 @@ end
 
 # RPT - Repeat next instruction N times (execute nested instruction directly)
 function execute!(
-    state::MachineState, ::RptHandler, inst::Instruction, addresses::Vector{UInt32}, current_idx::Int
+    state::MachineState,
+    ::RptHandler,
+    inst::Instruction,
+    addresses::Vector{UInt32},
+    current_idx::Int,
 )::Nothing
     nested_inst = inst.rpt_nested
     count = Int(get_operand_value(state, inst.operands[1], inst.data_size))
@@ -1126,7 +1130,14 @@ function execute!(
 
     for _ in 1:count
         state.registers[:PC] = nested_addr
-        execute!(state, nested_handler, nested_inst.operands, nested_inst.data_size, addresses, nested_idx)
+        execute!(
+            state,
+            nested_handler,
+            nested_inst.operands,
+            nested_inst.data_size,
+            addresses,
+            nested_idx,
+        )
     end
 
     if after_nested_idx <= length(addresses) && state.registers[:PC] == nested_addr
@@ -1256,7 +1267,7 @@ function execute!(
             )
 
             if data_size == :address
-                set_memory_value!(state, state.registers[:SP], reg_val, :address)
+                write_memory!(state, state.registers[:SP], reg_val, :address)
             else
                 state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
             end
@@ -1292,7 +1303,7 @@ function execute!(
             reg_sym = Parser.reg_num_to_symbol(i)
 
             reg_val = if data_size == :address
-                get_memory_value(state, state.registers[:SP], :address)
+                read_memory(state, state.registers[:SP], :address)
             else
                 UInt32(get(state.memory, state.registers[:SP], UInt16(0)))
             end
