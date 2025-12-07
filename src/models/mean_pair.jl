@@ -23,7 +23,7 @@ Get dominant instruction pair from a program (most frequent consecutive pair).
 Used for microbenchmarks where one pair type dominates.
 """
 function get_dominant_pair(
-    program::Vector{Instruction}, granularity::ModelGranularity
+    program::Trace, granularity::ModelGranularity
 )::Tuple{ParamKey,ParamKey}
     if length(program) < 2
         error("Program must have at least 2 instructions to determine dominant pair")
@@ -543,7 +543,7 @@ end
 Estimate energy by summing mean energies for consecutive pairs
 """
 function estimate_energy_sum_pair_means(
-    model::MeanPairModel, program::Vector{Instruction}
+    model::MeanPairModel, program::Trace
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
@@ -596,7 +596,7 @@ end
 Estimate energy for a program (deterministic - just sums mean energies for pairs)
 """
 function estimate_energy(
-    model::MeanPairModel, program::Vector{Instruction}, config::MeanEstimationConfig
+    model::MeanPairModel, program::Trace, config::MeanEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},

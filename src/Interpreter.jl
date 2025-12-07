@@ -4,7 +4,7 @@ using Statistics
 using Gen
 using Printf
 using Logging
-using ..Types: Instruction, Operand, MachineState
+using ..Types: Instruction, Operand, MachineState, TraceState, Trace
 using ..Parser
 
 include("machine_state.jl")
@@ -315,7 +315,7 @@ function interpret_program(
     data_file::Union{String,Nothing}=nothing,
     memory_regions=build_memory_regions(),
     log_memory_access::Bool=false,
-)::Tuple{MachineState,Vector{Vector{Instruction}},Vector{Dict{Symbol,Int}}}
+)::Tuple{MachineState,Vector{Trace},Vector{Dict{Symbol,Int}}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
@@ -356,10 +356,10 @@ function interpret_program(
         load_memory_dump!(state, data_file)
     end
 
-    # Track instruction sequences between begin_event and end_event
-    event_sequences = Vector{Vector{Instruction}}()
+    # Track instruction traces between begin_event and end_event
+    event_traces = Vector{Trace}()
     event_accesses = Vector{Dict{Symbol,Int}}()
-    current_sequence = Vector{Instruction}()
+    current_trace = Trace()
     current_event_access = Ref{Union{Nothing,Dict{Symbol,Int}}}(nothing)
     if log_memory_access
         state.memory_observer = (addr::UInt32, access_type::Symbol, _size::Symbol) -> begin
@@ -445,7 +445,7 @@ function interpret_program(
                 # Check for begin_event
                 if get(func_addrs, "begin_event", nothing) == call_target
                     @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
-                    current_sequence = Vector{Instruction}()
+                    current_trace = Trace()
                     if log_memory_access
                         current_event_access[] = Dict(
                             :fram => 0,
@@ -463,7 +463,7 @@ function interpret_program(
                 # Check for end_event
                 if get(func_addrs, "end_event", nothing) == call_target
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
-                    push!(event_sequences, copy(current_sequence))
+                    push!(event_traces, copy(current_trace))
                     if log_memory_access && current_event_access[] !== nothing
                         push!(event_accesses, deepcopy(current_event_access[]))
                         current_event_access[] = nothing
@@ -490,7 +490,7 @@ function interpret_program(
 
             # Execute the instruction
             execute_instruction!(state, inst, addresses, current_addr_idx)
-            push!(current_sequence, inst)
+            push!(current_trace, TraceState(inst))
 
             # Debug logging only when needed
             if debug_enabled && old_regs !== nothing
@@ -525,15 +525,15 @@ function interpret_program(
     @info "Final machine state" pc = string(state.registers[:PC]; base=16, pad=4)
     @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
-    # If an event was started but not ended, flush its access counts and sequence.
-    if log_memory_access && current_event_access[] !== nothing && !isempty(current_sequence)
-        push!(event_sequences, copy(current_sequence))
+    # If an event was started but not ended, flush its access counts and trace.
+    if log_memory_access && current_event_access[] !== nothing && !isempty(current_trace)
+        push!(event_traces, copy(current_trace))
         push!(event_accesses, deepcopy(current_event_access[]))
     end
 
-    @info "Event sequences collected" count = length(event_sequences)
+    @info "Event traces collected" count = length(event_traces)
 
-    return (state, event_sequences, event_accesses)
+    return (state, event_traces, event_accesses)
 end
 
 end # module

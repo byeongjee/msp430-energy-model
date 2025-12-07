@@ -2,6 +2,8 @@
 
 module Model
 
+using ..Types: Trace
+
 export AbstractModel, TrainingConfig, EstimationConfig
 export load_params!, learn_params!, save_params, estimate_energy
 export create_model, create_training_config, create_estimation_config
@@ -13,7 +15,7 @@ All models must implement the following interface:
 - load_params!(model::AbstractModel, filename::String)
 - learn_params!(model::AbstractModel, training_data::TrainingData, config::TrainingConfig)
 - save_params(model::AbstractModel, filename::String)
-- estimate_energy(model::AbstractModel, program::Vector{Instruction}, config::EstimationConfig)
+- estimate_energy(model::AbstractModel, program::Trace, config::EstimationConfig)
 """
 abstract type AbstractModel end
 
@@ -66,7 +68,7 @@ Estimate energy consumption for a program.
 
 # Arguments
 - `model::AbstractModel`: The trained model
-- `program::Vector{Instruction}`: Sequence of instructions
+- `program::Trace`: Sequence of traced instructions
 - `config::EstimationConfig`: Configuration for estimation (e.g., number of samples for probabilistic models)
 
 # Returns

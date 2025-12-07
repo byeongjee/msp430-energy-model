@@ -29,7 +29,7 @@ end
 epsilon = 1e-12
 
 @gen function single_program_energy_model(
-    instructions::Vector{Instruction},
+    instructions::Trace,
     params::Dict{ParamKey,Tuple{Float64,Float64}},
     granularity::ModelGranularity,
 )::Float64
@@ -442,7 +442,7 @@ end
 Estimate energy distribution for a program
 """
 function estimate_energy(
-    model::GammaModel, program::Vector{Instruction}, config::GammaEstimationConfig
+    model::GammaModel, program::Trace, config::GammaEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},

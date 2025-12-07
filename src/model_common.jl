@@ -1,6 +1,6 @@
 # model_common.jl - Common types and utilities for energy models
 
-using ..Types: Instruction, Operand, TrainingData
+using ..Types: Instruction, Operand, TrainingData, Trace, TraceState, get_inst
 
 """
 Type alias for parameter keys.
@@ -126,6 +126,10 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
     end
 end
 
+# Allow trace entries in addition to bare instructions.
+get_instruction_key(trace::TraceState, granularity::ModelGranularity)::ParamKey =
+    get_instruction_key(get_inst(trace), granularity)
+
 """
 Extract all valid parameter keys from training data based on granularity level.
 Only includes meaningful combinations.
@@ -136,8 +140,8 @@ function get_valid_param_keys(
     valid_keys = Set{ParamKey}()
 
     for program in training_data.programs
-        for inst in program
-            key = get_instruction_key(inst, granularity)
+        for trace in program
+            key = get_instruction_key(trace, granularity)
 
             # For PerAddressingMode and PerAddressingModeConstant, filter out meaningless combinations
             if (
