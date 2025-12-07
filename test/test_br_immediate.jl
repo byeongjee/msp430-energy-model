@@ -1,7 +1,7 @@
 using Test
 
 include("../src/types.jl")
-using .Types: MachineState, Instruction
+using .Types: MachineState, Instruction, get_inst
 
 include("../src/parser.jl")
 using .Parser
@@ -43,7 +43,7 @@ function test_br_immediate_instruction_count()
 
         # Execute the program
         @info "Running interpreter..."
-        final_state, event_sequences = Interpreter.interpret_program(
+        final_state, event_traces, _ = Interpreter.interpret_program(
             instructions, addresses, func_addrs, 100000000; data_file=data_file
         )
 
@@ -63,11 +63,11 @@ function test_br_immediate_instruction_count()
         end
         @test br_count == TEXTUAL_REPT
 
-        # Count how many times br was executed by checking event sequences
+        # Count how many times br was executed by checking event traces
         total_br_executions = 0
-        for sequence in event_sequences
-            br_in_sequence = count(inst -> inst.opcode == :br, sequence)
-            total_br_executions += br_in_sequence
+        for trace in event_traces
+            br_in_trace = count(inst -> get_inst(inst).opcode == :br, trace)
+            total_br_executions += br_in_trace
         end
 
         @info "Actual br executions in events" total = total_br_executions

@@ -36,9 +36,7 @@ end
 Get dominant instruction key from a program (most frequent instruction).
 Used for microbenchmarks where one instruction type dominates.
 """
-function get_dominant_key(
-    program::Vector{Instruction}, granularity::ModelGranularity
-)::ParamKey
+function get_dominant_key(program::Trace, granularity::ModelGranularity)::ParamKey
     # Count instruction types
     inst_counts = Dict{ParamKey,Int}()
     for inst in program
@@ -267,7 +265,7 @@ end
 Estimate energy by summing mean energies from learned parameters
 """
 function estimate_energy_sum_means(
-    model::MeanModel, program::Vector{Instruction}
+    model::MeanModel, program::Trace
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
@@ -309,7 +307,7 @@ end
 Estimate energy for a program (deterministic - just sums mean energies)
 """
 function estimate_energy(
-    model::MeanModel, program::Vector{Instruction}, config::MeanEstimationConfig
+    model::MeanModel, program::Trace, config::MeanEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},

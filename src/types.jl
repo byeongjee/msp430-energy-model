@@ -2,7 +2,7 @@
 
 module Types
 
-export Operand, Instruction, MachineState, EnergyStats, TrainingData
+export Operand, Instruction, TraceState, Trace, MachineState, EnergyStats, TrainingData, get_inst
 
 """
 Operand representation with its addressing mode
@@ -40,6 +40,25 @@ Instruction(
 ) = Instruction(opcode, operands, data_size, rpt_nested)
 
 """
+Trace entry produced by the interpreter.
+
+This wraps the executed instruction and will later carry cache/memory metadata.
+"""
+struct TraceState
+    inst::Instruction
+end
+
+"""
+Alias for a single trace of executed instructions.
+"""
+const Trace = Vector{TraceState}
+
+"""
+Extract the underlying instruction from a trace entry.
+"""
+get_inst(trace::TraceState)::Instruction = trace.inst
+
+"""
 Machine state for processor simulation
 
 Register sizes:
@@ -71,7 +90,7 @@ end
 Training data structure containing programs and their energy measurements
 """
 struct TrainingData
-    programs::Vector{Vector{Instruction}}
+    programs::Vector{Trace}
     energies::Vector{Float64}
 end
 

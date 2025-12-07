@@ -2,6 +2,7 @@ module Estimation
 
 using JSON
 using Logging
+using ..Types: Trace, TraceState
 using ..Interpreter
 using ..Parser
 using ..Model
@@ -49,9 +50,9 @@ function run_estimate(
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
     func_addrs = Parser.find_functions(asm_file)
 
-    @info "Executing program to get event sequences"
+    @info "Executing program to get event traces"
     start_time = time()
-    _, event_sequences, _ = Interpreter.interpret_program(
+    _, event_traces, _ = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps; data_file=data_dump
     )
     inference_time = time() - start_time
@@ -63,9 +64,9 @@ function run_estimate(
 
     config = Model.create_estimation_config(model, n_samples)
 
-    for event_sequence in event_sequences
-        @info "Event sequence" length = length(event_sequence)
-        stats = Model.estimate_energy(model, event_sequence, config)
+    for event_trace in event_traces
+        @info "Event trace" length = length(event_trace)
+        stats = Model.estimate_energy(model, event_trace, config)
         push!(all_stats, stats)
     end
 

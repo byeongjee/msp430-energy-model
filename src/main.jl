@@ -91,7 +91,7 @@ function run_interpret(
         @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
     end
 
-    final_state, event_sequences, event_accesses = Interpreter.interpret_program(
+    final_state, event_traces, event_accesses = Interpreter.interpret_program(
         instructions,
         addresses,
         func_addrs,
@@ -115,7 +115,7 @@ function run_interpret(
     @info "EXECUTION SUMMARY"
     @info "="^60
     @info "Successfully executed MSP430 instructions" count = length(instructions)
-    @info "Number of events" count = length(event_sequences)
+    @info "Number of events" count = length(event_traces)
 
     log_event_memory = i -> begin
         if log_memory_access && i <= length(event_accesses)
@@ -127,8 +127,8 @@ function run_interpret(
 
     if isnothing(granularity)
         all_opcodes = Set{String}()
-        for (i, event) in enumerate(event_sequences)
-            unique_opcodes = unique([string(inst.opcode) for inst in event])
+        for (i, event) in enumerate(event_traces)
+            unique_opcodes = unique([string(get_inst(inst).opcode) for inst in event])
             sort!(unique_opcodes)
             union!(all_opcodes, unique_opcodes)
             opcodes_str = join(unique_opcodes, " ")
@@ -141,7 +141,7 @@ function run_interpret(
         end
     elseif model isa Model.MeanPairModel
         all_param_pairs = Set{Tuple{Model.ParamKey,Model.ParamKey}}()
-        for (i, event) in enumerate(event_sequences)
+        for (i, event) in enumerate(event_traces)
             pair_keys = Tuple{Model.ParamKey,Model.ParamKey}[]
             for idx in 1:(length(event)-1)
                 key1 = Model.get_instruction_key(event[idx], granularity)
@@ -164,7 +164,7 @@ function run_interpret(
         end
     else
         all_param_keys = Set{Model.ParamKey}()
-        for (i, event) in enumerate(event_sequences)
+        for (i, event) in enumerate(event_traces)
             unique_param_keys = unique(
                 [Model.get_instruction_key(inst, granularity) for inst in event]
             )

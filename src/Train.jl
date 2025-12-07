@@ -3,6 +3,7 @@ module Train
 using CSV
 using DataFrames
 using Logging
+using ..Types: Trace, TraceState, TrainingData
 using ..Interpreter
 using ..Parser
 using ..Model
@@ -13,11 +14,11 @@ export run_train
 
 """
 Process a single assembly file and its corresponding measurement data.
-Returns event sequences and energy measurements.
+Returns event traces and energy measurements.
 """
 function process_training_file(
     asm_file::String, data_file::String, max_steps::Int
-)::Tuple{Vector{Vector{Instruction}},Vector{Float64}}
+)::Tuple{Vector{Trace},Vector{Float64}}
     @info "Processing training file" asm = asm_file data = data_file
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
@@ -34,7 +35,7 @@ function process_training_file(
             "0x" * string(end_event_addr; base=16, pad=4)
     end
 
-    _, event_sequences, _ = Interpreter.interpret_program(
+    _, event_traces, _ = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps; data_file=nothing
     )
 
@@ -43,15 +44,15 @@ function process_training_file(
 
     energies = df.energy_nJ
 
-    if length(event_sequences) != length(energies)
+    if length(event_traces) != length(energies)
         error(
-            "Mismatch between event sequences ($(length(event_sequences))) and energy measurements ($(length(energies))) for file: $asm_file",
+            "Mismatch between event traces ($(length(event_traces))) and energy measurements ($(length(energies))) for file: $asm_file",
         )
     end
 
-    @info "File processed successfully" num_events = length(event_sequences)
+    @info "File processed successfully" num_events = length(event_traces)
 
-    return event_sequences, energies
+    return event_traces, energies
 end
 
 """
@@ -84,17 +85,17 @@ function run_train(
         @info "Output file" path = output_file
     end
 
-    all_event_sequences = Vector{Vector{Instruction}}()
+    all_event_traces = Vector{Trace}()
     all_energies = Vector{Float64}()
 
     for (asm_file, data_file) in zip(asm_files, data_files)
-        event_sequences, energies = process_training_file(asm_file, data_file, max_steps)
-        append!(all_event_sequences, event_sequences)
+        event_traces, energies = process_training_file(asm_file, data_file, max_steps)
+        append!(all_event_traces, event_traces)
         append!(all_energies, energies)
     end
 
     @info "Creating combined training data" total_samples = length(all_energies)
-    training_data = TrainingData(all_event_sequences, all_energies)
+    training_data = TrainingData(all_event_traces, all_energies)
 
     @info "Training data created successfully"
 
