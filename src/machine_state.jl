@@ -194,6 +194,23 @@ function _read_bytes_cached(state::MachineState, addr::UInt32, len::Int)::Vector
 end
 
 """
+Simulate instruction fetches through the cache. Instructions reside in FRAM, so
+fetches leverage the same cache logic and record FRAM reads.
+"""
+function fetch_instruction_bytes!(state::MachineState, addr::UInt32, len::UInt32)::Nothing
+    # Ensure at least one word is fetched even if size is unknown
+    len_bytes = max(len, UInt32(2))
+    last_addr = addr + len_bytes - 1
+    current = addr
+    while current <= last_addr
+        record_memory_access!(state, current, :read, :byte)
+        _cache_read_byte(state, current)
+        current += UInt32(1)
+    end
+    return nothing
+end
+
+"""
 Execute an MSP430 instruction with proper PC management using instruction addresses.
 
 This function uses the instruction handler dispatch system to:
