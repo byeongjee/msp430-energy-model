@@ -4,7 +4,19 @@ using Statistics
 using Gen
 using Printf
 using Logging
-using ..Types: Instruction, Operand, MachineState, Event, Trace, CacheLine
+using ..Types:
+    Instruction,
+    Operand,
+    MachineState,
+    Event,
+    Trace,
+    CacheLine,
+    Inst,
+    FRAMReadHit,
+    FRAMReadMiss,
+    FRAMWrite,
+    SRAMRead,
+    SRAMWrite
 using ..Parser
 
 include("machine_state.jl")
@@ -362,18 +374,22 @@ function interpret_program(
     event_accesses = Vector{Dict{Symbol,Int}}()
     current_trace = Trace()
     current_event_access = Ref{Union{Nothing,Dict{Symbol,Int}}}(nothing)
-    if log_memory_access
-        state.memory_observer =
-            (addr::UInt32, access_type::Symbol, _size::Symbol) -> begin
-                counts = current_event_access[]
-                isnothing(counts) && return nothing
-                region = classify_region(addr, memory_regions)
-                counts[region] = get(counts, region, 0) + 1
-                counts[access_type] = get(counts, access_type, 0) + 1
-                counts[:total] = get(counts, :total, 0) + 1
+    update_access_counts! = function (counts::Dict{Symbol,Int}, events::Vector{Event})
+        for evt in events
+            if evt.type == Inst || isempty(evt.operand_addressing_mode_and_constants)
+                continue
             end
-    else
-        state.memory_observer = nothing
+            addr = evt.operand_addressing_mode_and_constants[1]
+            region = classify_region(addr, memory_regions)
+            counts[region] = get(counts, region, 0) + 1
+            if evt.type in (FRAMReadHit, FRAMReadMiss, SRAMRead)
+                counts[:reads] = get(counts, :reads, 0) + 1
+            elseif evt.type in (FRAMWrite, SRAMWrite)
+                counts[:writes] = get(counts, :writes, 0) + 1
+            end
+            counts[:total] = get(counts, :total, 0) + 1
+        end
+        return counts
     end
     exit_addr = get(func_addrs, "_exit", nothing)
 
@@ -424,14 +440,6 @@ function interpret_program(
         current_addr_idx, inst = pc_to_instruction[state.registers[:PC]]
 
         try
-            # Instruction fetch from FRAM goes through cache simulation
-            instr_len = if current_addr_idx < length(addresses)
-                max(UInt32(2), addresses[current_addr_idx + 1] - addresses[current_addr_idx])
-            else
-                UInt32(2)
-            end
-            fetch_instruction_bytes!(state, state.registers[:PC], instr_len)
-
             old_pc = state.registers[:PC]
             debug_enabled = Logging.shouldlog(
                 current_logger(), Logging.Debug, @__MODULE__, "", nothing
@@ -501,15 +509,11 @@ function interpret_program(
             end
 
             # Execute the instruction
-            execute_instruction!(state, inst, addresses, current_addr_idx)
-            push!(
-                current_trace,
-                Event(
-                    inst,
-                    state.current_inst_cache_hit,
-                    copy(state.current_operand_cache_hits),
-                ),
-            )
+            events = execute_instruction!(state, inst, addresses, current_addr_idx)
+            append!(current_trace, events)
+            if log_memory_access && current_event_access[] !== nothing
+                update_access_counts!(current_event_access[], events)
+            end
 
             # Debug logging only when needed
             if debug_enabled && old_regs !== nothing

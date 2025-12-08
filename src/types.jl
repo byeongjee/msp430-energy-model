@@ -3,7 +3,15 @@
 module Types
 
 export Operand,
-    Instruction, Event, Trace, CacheLine, MachineState, EnergyStats, TrainingData, get_inst
+    Instruction,
+    Event,
+    EventType,
+    Trace,
+    CacheLine,
+    MachineState,
+    EnergyStats,
+    TrainingData,
+    get_inst
 
 """
 Operand representation with its addressing mode
@@ -40,14 +48,21 @@ Instruction(
 ) = Instruction(opcode, operands, data_size, rpt_nested)
 
 """
-Trace entry produced by the interpreter.
-
-This wraps the executed instruction and will later carry cache/memory metadata.
+Event produced by the interpreter.
 """
+@enum EventType begin
+    Inst
+    FRAMReadHit
+    FRAMReadMiss
+    FRAMWrite
+    SRAMRead
+    SRAMWrite
+    Other
+end
 struct Event
-    inst::Instruction
-    inst_cache_hit::Bool
-    operand_cache_hits::Vector{Bool}
+    type::EventType
+    inst::Union{Nothing,Instruction}
+    operand_addressing_mode_and_constants::Vector{Any}
 end
 
 """
@@ -58,7 +73,7 @@ const Trace = Vector{Event}
 """
 Extract the underlying instruction from a trace entry.
 """
-get_inst(trace::Event)::Instruction = trace.inst
+get_inst(event::Event)::Instruction = event.inst
 
 """
 Cache line used by the MSP430FR5994-style cache simulation.
@@ -86,9 +101,10 @@ mutable struct MachineState
     cache_tick::UInt64               # Monotonic counter for LRU
     current_inst_cache_hit::Bool     # Cache hit status for fetched instruction
     current_operand_cache_hits::Vector{Bool}  # Cache hits for operand reads in current instruction
+    current_events::Union{Nothing,Vector{Event}}  # Event buffer for current instruction
+    current_instruction::Union{Nothing,Instruction}  # Instruction currently executing
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
     repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
-    memory_observer::Union{Nothing,Function}  # Optional hook for memory access logging
 end
 
 """

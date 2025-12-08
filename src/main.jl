@@ -117,22 +117,27 @@ function run_interpret(
     @info "Successfully executed MSP430 instructions" count = length(instructions)
     @info "Number of events" count = length(event_traces)
 
-    log_event_memory = i -> begin
-        if log_memory_access && i <= length(event_accesses)
-            acc = event_accesses[i]
-            @info "Event $i memory_accesses" sram = acc[:sram] fram = acc[:fram] other =
-                acc[:other] reads = acc[:reads] writes = acc[:writes] total = acc[:total]
+    log_event_memory =
+        i -> begin
+            if log_memory_access && i <= length(event_accesses)
+                acc = event_accesses[i]
+                @info "Event $i memory_accesses" sram = acc[:sram] fram = acc[:fram] other = acc[:other] reads = acc[:reads] writes = acc[:writes] total = acc[:total]
+            end
         end
-    end
 
     if isnothing(granularity)
         all_opcodes = Set{String}()
         for (i, event) in enumerate(event_traces)
-            unique_opcodes = unique([string(get_inst(inst).opcode) for inst in event])
+            instruction_events = filter(evt -> evt.type == Inst, event)
+            unique_opcodes = unique([
+                string(get_inst(inst).opcode) for inst in instruction_events
+            ])
             sort!(unique_opcodes)
             union!(all_opcodes, unique_opcodes)
             opcodes_str = join(unique_opcodes, " ")
-            @info "Event $i unique_opcodes: $opcodes_str" instructions = length(event)
+            @info "Event $i unique_opcodes: $opcodes_str" instructions = length(
+                instruction_events
+            )
             log_event_memory(i)
         end
         if !isempty(all_opcodes)
@@ -142,17 +147,20 @@ function run_interpret(
     elseif model isa Model.MeanPairModel
         all_param_pairs = Set{Tuple{Model.ParamKey,Model.ParamKey}}()
         for (i, event) in enumerate(event_traces)
+            instruction_events = filter(evt -> evt.type == Inst, event)
             pair_keys = Tuple{Model.ParamKey,Model.ParamKey}[]
-            for idx in 1:(length(event)-1)
-                key1 = Model.get_instruction_key(event[idx], granularity)
-                key2 = Model.get_instruction_key(event[idx + 1], granularity)
+            for idx in 1:(length(instruction_events) - 1)
+                key1 = Model.get_instruction_key(instruction_events[idx], granularity)
+                key2 = Model.get_instruction_key(instruction_events[idx + 1], granularity)
                 push!(pair_keys, Model.normalize_pair(key1, key2))
             end
             unique_pair_keys = unique(pair_keys)
             sort!(unique_pair_keys; by=string)
             union!(all_param_pairs, unique_pair_keys)
             pairs_str = join([format_pair_key(key) for key in unique_pair_keys], " ")
-            @info "Event $i param_pairs: $pairs_str" instructions = length(event)
+            @info "Event $i param_pairs: $pairs_str" instructions = length(
+                instruction_events
+            )
             log_event_memory(i)
         end
         if !isempty(all_param_pairs)
@@ -165,17 +173,21 @@ function run_interpret(
     else
         all_param_keys = Set{Model.ParamKey}()
         for (i, event) in enumerate(event_traces)
-            unique_param_keys = unique(
-                [Model.get_instruction_key(inst, granularity) for inst in event]
-            )
+            instruction_events = filter(evt -> evt.type == Inst, event)
+            unique_param_keys = unique([
+                Model.get_instruction_key(inst, granularity) for inst in instruction_events
+            ])
             sort!(unique_param_keys; by=string)
             union!(all_param_keys, unique_param_keys)
             keys_str = join([format_param_key(key) for key in unique_param_keys], " ")
-            @info "Event $i param_keys: $keys_str" instructions = length(event)
+            @info "Event $i param_keys: $keys_str" instructions = length(instruction_events)
             log_event_memory(i)
         end
         if !isempty(all_param_keys)
-            keys_str = join([format_param_key(key) for key in sort(collect(all_param_keys); by=string)], " ")
+            keys_str = join(
+                [format_param_key(key) for key in sort(collect(all_param_keys); by=string)],
+                " ",
+            )
             @info "All events param_keys: $keys_str"
         end
     end

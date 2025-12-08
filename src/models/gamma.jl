@@ -447,8 +447,10 @@ function estimate_energy(
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
+    inst_events = instruction_events(program)
+
     @info "Estimating energy with Gamma model" granularity = model.granularity num_instructions = length(
-        program
+        inst_events
     ) n_samples = config.n_samples
 
     # Default parameters for unknown instructions
@@ -457,7 +459,7 @@ function estimate_energy(
 
     # Check for missing instructions
     missing_keys = Set{ParamKey}()
-    for inst in program
+    for inst in inst_events
         param_key = get_instruction_key(inst, model.granularity)
         if !haskey(model.params, param_key)
             push!(missing_keys, param_key)
@@ -476,7 +478,7 @@ function estimate_energy(
 
     @threads for i in 1:(config.n_samples)
         total_cost = 0.0
-        for inst in program
+        for inst in inst_events
             param_key = get_instruction_key(inst, model.granularity)
             alpha, beta = get(model.params, param_key, (default_alpha, default_beta))
             cost = rand(Distributions.Gamma(alpha, beta))
