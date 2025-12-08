@@ -422,6 +422,14 @@ function interpret_program(
         current_addr_idx, inst = pc_to_instruction[state.registers[:PC]]
 
         try
+            # Instruction fetch from FRAM goes through cache simulation
+            instr_len = if current_addr_idx < length(addresses)
+                max(UInt32(2), addresses[current_addr_idx + 1] - addresses[current_addr_idx])
+            else
+                UInt32(2)
+            end
+            fetch_instruction_bytes!(state, state.registers[:PC], instr_len)
+
             old_pc = state.registers[:PC]
             debug_enabled = Logging.shouldlog(
                 current_logger(), Logging.Debug, @__MODULE__, "", nothing
