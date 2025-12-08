@@ -121,7 +121,17 @@ function run_interpret(
         i -> begin
             if log_memory_access && i <= length(event_accesses)
                 acc = event_accesses[i]
-                @info "Event $i memory_accesses" sram = acc[:sram] fram = acc[:fram] other = acc[:other] reads = acc[:reads] writes = acc[:writes] total = acc[:total]
+                @info "Event $i memory_accesses" fram_read_hit = get(
+                    acc, :fram_read_hit, 0
+                ) fram_read_miss = get(acc, :fram_read_miss, 0) fram_write = get(
+                    acc, :fram_write, 0
+                ) sram_read = get(acc, :sram_read, 0) sram_write = get(
+                    acc, :sram_write, 0
+                ) other = get(acc, :other, 0) reads = get(acc, :reads, 0) writes = get(
+                    acc, :writes, 0
+                ) fram = get(acc, :fram, 0) sram = get(acc, :sram, 0) total = get(
+                    acc, :total, 0
+                )
             end
         end
 
