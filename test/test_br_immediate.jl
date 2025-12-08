@@ -1,7 +1,7 @@
 using Test
 
 include("../src/types.jl")
-using .Types: MachineState, Instruction, get_inst
+using .Types: MachineState, Instruction, Inst, get_inst
 
 include("../src/parser.jl")
 using .Parser
@@ -66,7 +66,9 @@ function test_br_immediate_instruction_count()
         # Count how many times br was executed by checking event traces
         total_br_executions = 0
         for trace in event_traces
-            br_in_trace = count(inst -> get_inst(inst).opcode == :br, trace)
+            br_in_trace = count(
+                event -> event.type == Inst && get_inst(event).opcode == :br, trace
+            )
             total_br_executions += br_in_trace
         end
 
