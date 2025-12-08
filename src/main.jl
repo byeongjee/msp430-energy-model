@@ -128,7 +128,7 @@ function run_interpret(
     if isnothing(granularity)
         all_opcodes = Set{String}()
         for (i, event) in enumerate(event_traces)
-            instruction_events = filter(evt -> evt.type == Inst, event)
+            instruction_events = filter(evt -> evt.type == Types.Inst, event)
             unique_opcodes = unique([
                 string(get_inst(inst).opcode) for inst in instruction_events
             ])
@@ -147,7 +147,7 @@ function run_interpret(
     elseif model isa Model.MeanPairModel
         all_param_pairs = Set{Tuple{Model.ParamKey,Model.ParamKey}}()
         for (i, event) in enumerate(event_traces)
-            instruction_events = filter(evt -> evt.type == Inst, event)
+            instruction_events = filter(evt -> evt.type == Types.Inst, event)
             pair_keys = Tuple{Model.ParamKey,Model.ParamKey}[]
             for idx in 1:(length(instruction_events) - 1)
                 key1 = Model.get_instruction_key(instruction_events[idx], granularity)
@@ -173,7 +173,7 @@ function run_interpret(
     else
         all_param_keys = Set{Model.ParamKey}()
         for (i, event) in enumerate(event_traces)
-            instruction_events = filter(evt -> evt.type == Inst, event)
+            instruction_events = filter(evt -> evt.type == Types.Inst, event)
             unique_param_keys = unique([
                 Model.get_instruction_key(inst, granularity) for inst in instruction_events
             ])
