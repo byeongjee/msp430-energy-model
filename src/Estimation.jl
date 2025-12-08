@@ -2,7 +2,7 @@ module Estimation
 
 using JSON
 using Logging
-using ..Types: Trace, TraceState
+using ..Types: Trace, Event
 using ..Interpreter
 using ..Parser
 using ..Model
@@ -76,7 +76,9 @@ function run_estimate(
     @info "Inference time" time_seconds = round(inference_time; digits=3)
 
     if !isnothing(output_file) && !isempty(all_stats)
-        @info "Saving estimation statistics" path = output_file num_events = length(all_stats)
+        @info "Saving estimation statistics" path = output_file num_events = length(
+            all_stats
+        )
         events_array = []
         for stats in all_stats
             push!(
