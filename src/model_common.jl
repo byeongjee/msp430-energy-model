@@ -1,6 +1,6 @@
 # model_common.jl - Common types and utilities for energy models
 
-using ..Types: Instruction, Operand, TrainingData, Trace, Event, get_inst
+using ..Types: Instruction, Operand, TrainingData, Trace, Event, Inst, get_inst
 
 """
 Type alias for parameter keys.
@@ -21,6 +21,8 @@ const multiplier_address_modes = Dict(
     UInt32(0x04E4) => :RES0,
     UInt32(0x04E6) => :RES1,
 )
+
+instruction_events(program::Trace)::Vector{Event} = filter(evt -> evt.type == Inst, program)
 
 """
 Granularity level for energy model parameters
@@ -127,8 +129,12 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
 end
 
 # Allow trace entries in addition to bare instructions.
-get_instruction_key(trace::Event, granularity::ModelGranularity)::ParamKey =
-    get_instruction_key(get_inst(trace), granularity)
+get_instruction_key(event::Event, granularity::ModelGranularity)::ParamKey =
+    if event.type == Inst
+        get_instruction_key(get_inst(event), granularity)
+    else
+        error("Event type $event.type is not supported")
+    end
 
 """
 Extract all valid parameter keys from training data based on granularity level.

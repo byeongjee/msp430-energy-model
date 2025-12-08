@@ -39,7 +39,7 @@ Used for microbenchmarks where one instruction type dominates.
 function get_dominant_key(program::Trace, granularity::ModelGranularity)::ParamKey
     # Count instruction types
     inst_counts = Dict{ParamKey,Int}()
-    for inst in program
+    for inst in instruction_events(program)
         key = get_instruction_key(inst, granularity)
         inst_counts[key] = get(inst_counts, key, 0) + 1
     end
@@ -145,7 +145,7 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     # Collect all unique instruction keys
     all_keys = Set{ParamKey}()
     for program in training_data.programs
-        for inst in program
+        for inst in instruction_events(program)
             key = get_instruction_key(inst, model.granularity)
             push!(all_keys, key)
         end
@@ -163,7 +163,7 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     A = zeros(Float64, num_programs, num_keys)
 
     for (i, program) in enumerate(training_data.programs)
-        for inst in program
+        for inst in instruction_events(program)
             key = get_instruction_key(inst, model.granularity)
             j = key_to_idx[key]
             A[i, j] += 1.0
@@ -274,7 +274,7 @@ function estimate_energy_sum_means(
     unknown_keys = Set{ParamKey}()
     default_energy = 1.0  # Default 1nJ per instruction
 
-    for inst in program
+    for inst in instruction_events(program)
         key = get_instruction_key(inst, model.granularity)
 
         if haskey(model.params, key)

@@ -52,9 +52,10 @@ function MachineState()::MachineState
         0,                      # cache_tick for LRU
         true,                   # current_inst_cache_hit default
         Bool[],                 # current_operand_cache_hits default
+        nothing,                # current_events
+        nothing,                # current_instruction
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
         0,  # repeat_counter initialized to 0
-        nothing,  # memory_observer (set by interpreter when needed)
     )
 end
 
@@ -64,6 +65,7 @@ _cache_tag(addr::UInt32)::UInt32 = UInt32(addr ÷ CACHE_SET_STRIDE)
 _cache_offset(addr::UInt32)::Int = Int(addr % CACHE_LINE_SIZE_BYTES)
 
 _is_fram_address(addr::UInt32)::Bool = any(r -> r[1] <= addr <= r[2], FRAM_RANGES)
+_is_sram_address(addr::UInt32)::Bool = any(r -> r[1] <= addr <= r[2], SRAM_RANGES)
 
 """
 Increment the cache tick used for LRU ordering.
@@ -155,6 +157,21 @@ function _cache_read_byte(state::MachineState, addr::UInt32)::Tuple{UInt8,Bool}
 end
 
 """
+Check whether the cache currently contains the line for the address without
+mutating cache metadata.
+"""
+function _cache_has_line(state::MachineState, addr::UInt32)::Bool
+    set_idx = _cache_set_index(addr)
+    tag = _cache_tag(addr)
+    for line in state.cache[set_idx]
+        if line.valid && line.tag == tag
+            return true
+        end
+    end
+    return false
+end
+
+"""
 Invalidate a cache line containing the address, if present.
 """
 function _invalidate_cache_line!(state::MachineState, addr::UInt32)::Nothing
@@ -187,7 +204,9 @@ end
 """
 Read N bytes via the cache.
 """
-function _read_bytes_cached(state::MachineState, addr::UInt32, len::Int)::Tuple{Vector{UInt8},Bool}
+function _read_bytes_cached(
+    state::MachineState, addr::UInt32, len::Int
+)::Tuple{Vector{UInt8},Bool}
     bytes = Vector{UInt8}(undef, len)
     all_hit = true
     for i in 0:(len - 1)
@@ -228,27 +247,46 @@ This function uses the instruction handler dispatch system to:
 """
 function execute_instruction!(
     state::MachineState, inst::Instruction, addresses::Vector{UInt32}, current_idx::Int
-)::Nothing
-    # Get handler for this instruction
-    handler = get_handler(inst.opcode)
+)::Vector{Event}
+    events = Event[]
 
-    # Execute instruction using multiple dispatch (RPT has a custom overload)
-    execute!(state, handler, inst, addresses, current_idx)
+    # Always include the instruction itself.
+    push!(events, Event(Inst, inst, Any[]))
 
-    # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
-    # unless it's the RPT instruction itself (which sets the counter)
-    if state.repeat_counter > 0 && inst.opcode != :rpt
-        state.repeat_counter -= 1
-        # Don't advance PC - re-execute same instruction
-        return nothing
+    state.current_events = events
+    state.current_instruction = inst
+    try
+        state.current_operand_cache_hits = Bool[]
+        state.current_inst_cache_hit = true
+
+        # Instruction fetch from FRAM goes through cache simulation
+        instr_len = if current_idx < length(addresses)
+            max(UInt32(2), addresses[current_idx + 1] - addresses[current_idx])
+        else
+            UInt32(2)
+        end
+        fetch_instruction_bytes!(state, state.registers[:PC], instr_len)
+
+        # Get handler for this instruction
+        handler = get_handler(inst.opcode)
+
+        # Execute instruction using multiple dispatch (RPT has a custom overload)
+        execute!(state, handler, inst, addresses, current_idx)
+
+        # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
+        # unless it's the RPT instruction itself (which sets the counter)
+        if state.repeat_counter > 0 && inst.opcode != :rpt
+            state.repeat_counter -= 1
+        elseif should_advance_pc(handler, state, inst.operands) &&
+            current_idx < length(addresses)
+            state.registers[:PC] = addresses[current_idx + 1]
+        end
+    finally
+        state.current_events = nothing
+        state.current_instruction = nothing
     end
 
-    # Centralized PC update logic
-    if should_advance_pc(handler, state, inst.operands) && current_idx < length(addresses)
-        state.registers[:PC] = addresses[current_idx + 1]
-    end
-
-    return nothing
+    return events
 end
 
 # ============================================================================
@@ -305,7 +343,9 @@ function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt
     use_cache = _is_fram_address(addr)
 
     if data_size == :byte
-        byte, hit = use_cache ? _cache_read_byte(state, addr) : (_read_byte_uncached(state, addr), false)
+        byte, hit =
+            use_cache ? _cache_read_byte(state, addr) :
+            (_read_byte_uncached(state, addr), false)
         push!(state.current_operand_cache_hits, use_cache && hit)
         return UInt32(byte)
     elseif data_size == :word
@@ -467,14 +507,33 @@ function write_memory!(
 end
 
 """
-Invoke the optional memory observer to record a memory access.
+Record a memory access as an Event when an event buffer is active.
 """
 function record_memory_access!(
     state::MachineState, addr::UInt32, access_type::Symbol, data_size::Symbol
 )::Nothing
-    if state.memory_observer !== nothing
-        state.memory_observer(addr, access_type, data_size)
+    events = state.current_events
+    isnothing(events) && return nothing
+
+    event_type = if access_type == :read
+        if _is_fram_address(addr)
+            _cache_has_line(state, addr) ? FRAMReadHit : FRAMReadMiss
+        elseif _is_sram_address(addr)
+            SRAMRead
+        else
+            SRAMRead
+        end
+    else
+        if _is_fram_address(addr)
+            FRAMWrite
+        elseif _is_sram_address(addr)
+            SRAMWrite
+        else
+            SRAMWrite
+        end
     end
+
+    push!(events, Event(event_type, state.current_instruction, Any[addr, data_size]))
     return nothing
 end
 
