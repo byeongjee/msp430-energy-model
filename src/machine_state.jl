@@ -50,6 +50,8 @@ function MachineState()::MachineState
         Dict{UInt32,UInt16}(),  # Empty memory. Each cell is 16 bits.
         _init_cache(),          # Two-way set associative cache
         0,                      # cache_tick for LRU
+        true,                   # current_inst_cache_hit default
+        Bool[],                 # current_operand_cache_hits default
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
         0,  # repeat_counter initialized to 0
         nothing,  # memory_observer (set by interpreter when needed)
@@ -132,9 +134,9 @@ end
 """
 Read a byte through the cache (fill on miss).
 """
-function _cache_read_byte(state::MachineState, addr::UInt32)::UInt8
+function _cache_read_byte(state::MachineState, addr::UInt32)::Tuple{UInt8,Bool}
     if !_is_fram_address(addr)
-        return _read_byte_uncached(state, addr)
+        return _read_byte_uncached(state, addr), false
     end
 
     set_idx = _cache_set_index(addr)
@@ -144,12 +146,12 @@ function _cache_read_byte(state::MachineState, addr::UInt32)::UInt8
     for line in state.cache[set_idx]
         if line.valid && line.tag == tag
             line.last_used = _bump_cache_tick!(state)
-            return line.data[offset + 1]
+            return line.data[offset + 1], true
         end
     end
 
     filled_line = _cache_fill!(state, addr)
-    return filled_line.data[offset + 1]
+    return filled_line.data[offset + 1], false
 end
 
 """
@@ -185,12 +187,15 @@ end
 """
 Read N bytes via the cache.
 """
-function _read_bytes_cached(state::MachineState, addr::UInt32, len::Int)::Vector{UInt8}
+function _read_bytes_cached(state::MachineState, addr::UInt32, len::Int)::Tuple{Vector{UInt8},Bool}
     bytes = Vector{UInt8}(undef, len)
+    all_hit = true
     for i in 0:(len - 1)
-        bytes[i + 1] = _cache_read_byte(state, addr + UInt32(i))
+        b, hit = _cache_read_byte(state, addr + UInt32(i))
+        bytes[i + 1] = b
+        all_hit &= hit
     end
-    return bytes
+    return bytes, all_hit
 end
 
 """
@@ -202,11 +207,14 @@ function fetch_instruction_bytes!(state::MachineState, addr::UInt32, len::UInt32
     len_bytes = max(len, UInt32(2))
     last_addr = addr + len_bytes - 1
     current = addr
+    all_hit = true
     while current <= last_addr
         record_memory_access!(state, current, :read, :byte)
-        _cache_read_byte(state, current)
+        _, hit = _cache_read_byte(state, current)
+        all_hit &= hit
         current += UInt32(1)
     end
+    state.current_inst_cache_hit = all_hit
     return nothing
 end
 
@@ -297,18 +305,26 @@ function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt
     use_cache = _is_fram_address(addr)
 
     if data_size == :byte
-        return UInt32(
-            use_cache ? _cache_read_byte(state, addr) : _read_byte_uncached(state, addr)
-        )
+        byte, hit = use_cache ? _cache_read_byte(state, addr) : (_read_byte_uncached(state, addr), false)
+        push!(state.current_operand_cache_hits, use_cache && hit)
+        return UInt32(byte)
     elseif data_size == :word
-        bytes =
-            use_cache ? _read_bytes_cached(state, addr, 2) :
-            _read_bytes_uncached(state, addr, 2)
+        if use_cache
+            bytes, all_hit = _read_bytes_cached(state, addr, 2)
+            push!(state.current_operand_cache_hits, all_hit)
+        else
+            bytes = _read_bytes_uncached(state, addr, 2)
+            push!(state.current_operand_cache_hits, false)
+        end
         return UInt32(bytes[1]) | (UInt32(bytes[2]) << 8)
     elseif data_size == :address
-        bytes =
-            use_cache ? _read_bytes_cached(state, addr, 4) :
-            _read_bytes_uncached(state, addr, 4)
+        if use_cache
+            bytes, all_hit = _read_bytes_cached(state, addr, 4)
+            push!(state.current_operand_cache_hits, all_hit)
+        else
+            bytes = _read_bytes_uncached(state, addr, 4)
+            push!(state.current_operand_cache_hits, false)
+        end
         lsw = UInt16(bytes[1]) | (UInt16(bytes[2]) << 8)
         msw = UInt16(bytes[3]) | (UInt16(bytes[4]) << 8)
         return UInt32(lsw) | (UInt32(msw & 0xF) << 16)

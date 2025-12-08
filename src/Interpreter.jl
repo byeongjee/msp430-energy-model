@@ -409,6 +409,8 @@ function interpret_program(
         end
 
         step_count += 1
+        state.current_operand_cache_hits = Bool[]
+        state.current_inst_cache_hit = true
 
         # Get instruction at current PC
         if !haskey(pc_to_instruction, state.registers[:PC])
@@ -500,7 +502,10 @@ function interpret_program(
 
             # Execute the instruction
             execute_instruction!(state, inst, addresses, current_addr_idx)
-            push!(current_trace, TraceState(inst))
+            push!(
+                current_trace,
+                TraceState(inst, state.current_inst_cache_hit, copy(state.current_operand_cache_hits)),
+            )
 
             # Debug logging only when needed
             if debug_enabled && old_regs !== nothing
