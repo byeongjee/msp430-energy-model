@@ -1,7 +1,7 @@
 # Include the instruction handler dispatch system
 include("instruction_handlers.jl")
 
-const FRAM_RANGES = [(0x4400, 0xFFFFF)]
+const FRAM_RANGES = [(0x04000, 0x043FFF)]
 const SRAM_RANGES = [(0x1C00, 0x3BFF)]
 
 const CACHE_LINE_SIZE_BYTES = UInt32(8)  # 64-bit lines
