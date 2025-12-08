@@ -3,7 +3,7 @@ module Train
 using CSV
 using DataFrames
 using Logging
-using ..Types: Trace, TraceState, TrainingData
+using ..Types: Trace, Event, TrainingData
 using ..Interpreter
 using ..Parser
 using ..Model

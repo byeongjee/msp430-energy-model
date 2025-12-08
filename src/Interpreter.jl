@@ -4,7 +4,7 @@ using Statistics
 using Gen
 using Printf
 using Logging
-using ..Types: Instruction, Operand, MachineState, TraceState, Trace, CacheLine
+using ..Types: Instruction, Operand, MachineState, Event, Trace, CacheLine
 using ..Parser
 
 include("machine_state.jl")
@@ -504,7 +504,11 @@ function interpret_program(
             execute_instruction!(state, inst, addresses, current_addr_idx)
             push!(
                 current_trace,
-                TraceState(inst, state.current_inst_cache_hit, copy(state.current_operand_cache_hits)),
+                Event(
+                    inst,
+                    state.current_inst_cache_hit,
+                    copy(state.current_operand_cache_hits),
+                ),
             )
 
             # Debug logging only when needed

@@ -2,7 +2,8 @@
 
 module Types
 
-export Operand, Instruction, TraceState, Trace, CacheLine, MachineState, EnergyStats, TrainingData, get_inst
+export Operand,
+    Instruction, Event, Trace, CacheLine, MachineState, EnergyStats, TrainingData, get_inst
 
 """
 Operand representation with its addressing mode
@@ -32,9 +33,8 @@ struct Instruction
 end
 
 # Convenience constructors to keep existing call sites unchanged
-Instruction(opcode::Symbol, operands::Vector{Operand}, data_size::Symbol) = Instruction(
-    opcode, operands, data_size, nothing
-)
+Instruction(opcode::Symbol, operands::Vector{Operand}, data_size::Symbol) =
+    Instruction(opcode, operands, data_size, nothing)
 Instruction(
     opcode::Symbol, operands::Vector{Operand}, data_size::Symbol; rpt_nested=nothing
 ) = Instruction(opcode, operands, data_size, rpt_nested)
@@ -44,7 +44,7 @@ Trace entry produced by the interpreter.
 
 This wraps the executed instruction and will later carry cache/memory metadata.
 """
-struct TraceState
+struct Event
     inst::Instruction
     inst_cache_hit::Bool
     operand_cache_hits::Vector{Bool}
@@ -53,12 +53,12 @@ end
 """
 Alias for a single trace of executed instructions.
 """
-const Trace = Vector{TraceState}
+const Trace = Vector{Event}
 
 """
 Extract the underlying instruction from a trace entry.
 """
-get_inst(trace::TraceState)::Instruction = trace.inst
+get_inst(trace::Event)::Instruction = trace.inst
 
 """
 Cache line used by the MSP430FR5994-style cache simulation.

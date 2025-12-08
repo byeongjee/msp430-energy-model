@@ -1,6 +1,6 @@
 # model_common.jl - Common types and utilities for energy models
 
-using ..Types: Instruction, Operand, TrainingData, Trace, TraceState, get_inst
+using ..Types: Instruction, Operand, TrainingData, Trace, Event, get_inst
 
 """
 Type alias for parameter keys.
@@ -127,7 +127,7 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
 end
 
 # Allow trace entries in addition to bare instructions.
-get_instruction_key(trace::TraceState, granularity::ModelGranularity)::ParamKey =
+get_instruction_key(trace::Event, granularity::ModelGranularity)::ParamKey =
     get_instruction_key(get_inst(trace), granularity)
 
 """
