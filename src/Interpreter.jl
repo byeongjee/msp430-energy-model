@@ -10,8 +10,6 @@ using ..Parser
 include("machine_state.jl")
 
 const _HEX_CHARS = Set("0123456789abcdefABCDEF")
-const DEFAULT_FRAM_RANGES = [(0x4400, 0xFFFFF)]
-const DEFAULT_SRAM_RANGES = [(0x1C00, 0x3BFF)]
 
 """
 Parse an address range specification of the form "start:end" (hex or decimal).
@@ -35,10 +33,10 @@ function build_memory_regions(
     sram_specs::Union{Nothing,Vector{String}}=nothing,
 )
     fram_ranges =
-        isnothing(fram_specs) || isempty(fram_specs) ? DEFAULT_FRAM_RANGES :
+        isnothing(fram_specs) || isempty(fram_specs) ? FRAM_RANGES :
         [_parse_range(r) for r in fram_specs]
     sram_ranges =
-        isnothing(sram_specs) || isempty(sram_specs) ? DEFAULT_SRAM_RANGES :
+        isnothing(sram_specs) || isempty(sram_specs) ? SRAM_RANGES :
         [_parse_range(r) for r in sram_specs]
     return Dict(:fram => fram_ranges, :sram => sram_ranges)
 end
@@ -47,12 +45,12 @@ end
 Classify an address into :fram, :sram, or :other based on configured ranges.
 """
 function classify_region(addr::UInt32, memory_regions)::Symbol
-    for (lo, hi) in get(memory_regions, :sram, DEFAULT_SRAM_RANGES)
+    for (lo, hi) in get(memory_regions, :sram, SRAM_RANGES)
         if lo <= addr <= hi
             return :sram
         end
     end
-    for (lo, hi) in get(memory_regions, :fram, DEFAULT_FRAM_RANGES)
+    for (lo, hi) in get(memory_regions, :fram, FRAM_RANGES)
         if lo <= addr <= hi
             return :fram
         end
