@@ -1,6 +1,9 @@
 # Include the instruction handler dispatch system
 include("instruction_handlers.jl")
 
+const FRAM_RANGES = [(0x4400, 0xFFFFF)]
+const SRAM_RANGES = [(0x1C00, 0x3BFF)]
+
 const CACHE_LINE_SIZE_BYTES = UInt32(8)  # 64-bit lines
 const CACHE_NUM_LINES = 4
 const CACHE_WAYS = 2
@@ -11,8 +14,10 @@ const CACHE_SET_STRIDE = CACHE_LINE_SIZE_BYTES * UInt32(CACHE_SETS)
 Create an empty cache with all lines invalidated.
 """
 function _init_cache()::Vector{Vector{CacheLine}}
-    invalid_line = CacheLine(false, UInt32(0), fill(UInt8(0), Int(CACHE_LINE_SIZE_BYTES)), 0)
-    return [ [deepcopy(invalid_line) for _ in 1:CACHE_WAYS] for _ in 1:CACHE_SETS ]
+    invalid_line = CacheLine(
+        false, UInt32(0), fill(UInt8(0), Int(CACHE_LINE_SIZE_BYTES)), 0
+    )
+    return [[deepcopy(invalid_line) for _ in 1:CACHE_WAYS] for _ in 1:CACHE_SETS]
 end
 
 """
@@ -56,6 +61,8 @@ _cache_set_index(addr::UInt32)::Int =
 _cache_tag(addr::UInt32)::UInt32 = UInt32(addr ÷ CACHE_SET_STRIDE)
 _cache_offset(addr::UInt32)::Int = Int(addr % CACHE_LINE_SIZE_BYTES)
 
+_is_fram_address(addr::UInt32)::Bool = any(r -> r[1] <= addr <= r[2], FRAM_RANGES)
+
 """
 Increment the cache tick used for LRU ordering.
 """
@@ -74,6 +81,14 @@ function _read_byte_uncached(state::MachineState, addr::UInt32)::UInt8
     else
         return UInt8((word >> 8) & 0xFF)
     end
+end
+
+function _read_bytes_uncached(state::MachineState, addr::UInt32, len::Int)::Vector{UInt8}
+    bytes = Vector{UInt8}(undef, len)
+    for i in 0:(len - 1)
+        bytes[i + 1] = _read_byte_uncached(state, addr + UInt32(i))
+    end
+    return bytes
 end
 
 function _select_victim_line(lines::Vector{CacheLine})::CacheLine
@@ -118,6 +133,10 @@ end
 Read a byte through the cache (fill on miss).
 """
 function _cache_read_byte(state::MachineState, addr::UInt32)::UInt8
+    if !_is_fram_address(addr)
+        return _read_byte_uncached(state, addr)
+    end
+
     set_idx = _cache_set_index(addr)
     tag = _cache_tag(addr)
     offset = _cache_offset(addr)
@@ -137,6 +156,9 @@ end
 Invalidate a cache line containing the address, if present.
 """
 function _invalidate_cache_line!(state::MachineState, addr::UInt32)::Nothing
+    if !_is_fram_address(addr)
+        return nothing
+    end
     set_idx = _cache_set_index(addr)
     tag = _cache_tag(addr)
     for line in state.cache[set_idx]
@@ -255,13 +277,21 @@ function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt
     # Notify observers of the memory access
     record_memory_access!(state, addr, :read, data_size)
 
+    use_cache = _is_fram_address(addr)
+
     if data_size == :byte
-        return UInt32(_cache_read_byte(state, addr))
+        return UInt32(
+            use_cache ? _cache_read_byte(state, addr) : _read_byte_uncached(state, addr)
+        )
     elseif data_size == :word
-        bytes = _read_bytes_cached(state, addr, 2)
+        bytes =
+            use_cache ? _read_bytes_cached(state, addr, 2) :
+            _read_bytes_uncached(state, addr, 2)
         return UInt32(bytes[1]) | (UInt32(bytes[2]) << 8)
     elseif data_size == :address
-        bytes = _read_bytes_cached(state, addr, 4)
+        bytes =
+            use_cache ? _read_bytes_cached(state, addr, 4) :
+            _read_bytes_uncached(state, addr, 4)
         lsw = UInt16(bytes[1]) | (UInt16(bytes[2]) << 8)
         msw = UInt16(bytes[3]) | (UInt16(bytes[4]) << 8)
         return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
@@ -358,11 +388,21 @@ function write_memory!(
     state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
 )::Nothing
     record_memory_access!(state, addr, :write, data_size)
-    byte_len = data_size == :byte ? 1 : data_size == :word ? 2 : data_size == :address ? 4 : 0
+    byte_len = if data_size == :byte
+        1
+    elseif data_size == :word
+        2
+    elseif data_size == :address
+        4
+    else
+        0
+    end
     if byte_len == 0
         error("Unknown data size: $data_size")
     end
-    _invalidate_cache_range!(state, addr, byte_len)
+    if _is_fram_address(addr)
+        _invalidate_cache_range!(state, addr, byte_len)
+    end
     # Normal memory write
     if data_size == :word
         # Write 16-bit word to memory
