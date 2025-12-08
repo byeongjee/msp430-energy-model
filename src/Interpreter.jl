@@ -67,6 +67,7 @@ function classify_region(addr::UInt32, memory_regions)::Symbol
             return :fram
         end
     end
+    @warn "Address $addr not in any memory region"
     return :other
 end
 
