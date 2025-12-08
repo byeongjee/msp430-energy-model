@@ -247,13 +247,13 @@ This function uses the instruction handler dispatch system to:
 """
 function execute_instruction!(
     state::MachineState, inst::Instruction, addresses::Vector{UInt32}, current_idx::Int
-)::Vector{Event}
-    events = Event[]
+)::Vector{ExecutionEvent}
+    execution_events = ExecutionEvent[]
 
     # Always include the instruction itself.
-    push!(events, Event(Inst, inst, Any[]))
+    push!(execution_events, ExecutionEvent(Inst, inst, Any[]))
 
-    state.current_events = events
+    state.current_events = execution_events
     state.current_instruction = inst
     try
         state.current_operand_cache_hits = Bool[]
@@ -286,7 +286,7 @@ function execute_instruction!(
         state.current_instruction = nothing
     end
 
-    return events
+    return execution_events
 end
 
 # ============================================================================
@@ -507,13 +507,13 @@ function write_memory!(
 end
 
 """
-Record a memory access as an Event when an event buffer is active.
+Record a memory access as an ExecutionEvent when an event buffer is active.
 """
 function record_memory_access!(
     state::MachineState, addr::UInt32, access_type::Symbol, data_size::Symbol
 )::Nothing
-    events = state.current_events
-    isnothing(events) && return nothing
+    execution_events = state.current_events
+    isnothing(execution_events) && return nothing
 
     event_type = if access_type == :read
         if _is_fram_address(addr)
@@ -533,7 +533,10 @@ function record_memory_access!(
         end
     end
 
-    push!(events, Event(event_type, state.current_instruction, Any[addr, data_size]))
+    push!(
+        execution_events,
+        ExecutionEvent(event_type, state.current_instruction, Any[addr, data_size]),
+    )
     return nothing
 end
 

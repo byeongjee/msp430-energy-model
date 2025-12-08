@@ -2,7 +2,7 @@
 
 module Model
 
-using ..Types: Trace
+using ..Types: ExecutionTrace
 
 export AbstractModel, TrainingConfig, EstimationConfig
 export load_params!, learn_params!, save_params, estimate_energy
@@ -15,7 +15,7 @@ All models must implement the following interface:
 - load_params!(model::AbstractModel, filename::String)
 - learn_params!(model::AbstractModel, training_data::TrainingData, config::TrainingConfig)
 - save_params(model::AbstractModel, filename::String)
-- estimate_energy(model::AbstractModel, program::Trace, config::EstimationConfig)
+- estimate_energy(model::AbstractModel, program::ExecutionTrace, config::EstimationConfig)
 """
 abstract type AbstractModel end
 
@@ -68,7 +68,7 @@ Estimate energy consumption for a program.
 
 # Arguments
 - `model::AbstractModel`: The trained model
-- `program::Trace`: Sequence of traced instructions
+- `program::ExecutionTrace`: Sequence of execution events
 - `config::EstimationConfig`: Configuration for estimation (e.g., number of samples for probabilistic models)
 
 # Returns
@@ -112,14 +112,18 @@ function create_model(model_str::String)::AbstractModel
     elseif model_str == "mean_per_pair_addressing_mode_constant"
         return MeanPerPairAddressingModeConstant()
     else
-        error("Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant, mean_per_pair_addressing_mode_constant")
+        error(
+            "Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant, mean_per_pair_addressing_mode_constant",
+        )
     end
 end
 
 """
 Create training configuration based on model type
 """
-function create_training_config(model::AbstractModel, n_samples::Int, inference_algorithm::String)::TrainingConfig
+function create_training_config(
+    model::AbstractModel, n_samples::Int, inference_algorithm::String
+)::TrainingConfig
     if isa(model, GammaModel)
         return GammaTrainingConfig(n_samples, inference_algorithm)
     elseif isa(model, MeanModel)

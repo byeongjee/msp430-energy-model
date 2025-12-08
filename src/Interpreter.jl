@@ -8,8 +8,8 @@ using ..Types:
     Instruction,
     Operand,
     MachineState,
-    Event,
-    Trace,
+    ExecutionEvent,
+    ExecutionTrace,
     CacheLine,
     Inst,
     FRAMReadHit,
@@ -328,7 +328,7 @@ function interpret_program(
     data_file::Union{String,Nothing}=nothing,
     memory_regions=build_memory_regions(),
     log_memory_access::Bool=false,
-)::Tuple{MachineState,Vector{Trace},Vector{Dict{Symbol,Int}}}
+)::Tuple{MachineState,Vector{ExecutionTrace},Vector{Dict{Symbol,Int}}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
@@ -369,28 +369,30 @@ function interpret_program(
         load_memory_dump!(state, data_file)
     end
 
-    # Track instruction traces between begin_event and end_event
-    event_traces = Vector{Trace}()
+    # Track execution traces between begin_event and end_event
+    execution_traces = Vector{ExecutionTrace}()
     event_accesses = Vector{Dict{Symbol,Int}}()
-    current_trace = Trace()
+    current_execution_trace = ExecutionTrace()
     current_event_access = Ref{Union{Nothing,Dict{Symbol,Int}}}(nothing)
-    update_access_counts! = function (counts::Dict{Symbol,Int}, events::Vector{Event})
-        for evt in events
-            if evt.type == Inst || isempty(evt.operand_addressing_mode_and_constants)
-                continue
+    update_access_counts! =
+        function (counts::Dict{Symbol,Int}, execution_trace::ExecutionTrace)
+            for execution_event in execution_trace
+                if execution_event.type == Inst ||
+                    isempty(execution_event.operand_addressing_mode_and_constants)
+                    continue
+                end
+                addr = execution_event.operand_addressing_mode_and_constants[1]
+                region = classify_region(addr, memory_regions)
+                counts[region] = get(counts, region, 0) + 1
+                if execution_event.type in (FRAMReadHit, FRAMReadMiss, SRAMRead)
+                    counts[:reads] = get(counts, :reads, 0) + 1
+                elseif execution_event.type in (FRAMWrite, SRAMWrite)
+                    counts[:writes] = get(counts, :writes, 0) + 1
+                end
+                counts[:total] = get(counts, :total, 0) + 1
             end
-            addr = evt.operand_addressing_mode_and_constants[1]
-            region = classify_region(addr, memory_regions)
-            counts[region] = get(counts, region, 0) + 1
-            if evt.type in (FRAMReadHit, FRAMReadMiss, SRAMRead)
-                counts[:reads] = get(counts, :reads, 0) + 1
-            elseif evt.type in (FRAMWrite, SRAMWrite)
-                counts[:writes] = get(counts, :writes, 0) + 1
-            end
-            counts[:total] = get(counts, :total, 0) + 1
+            return counts
         end
-        return counts
-    end
     exit_addr = get(func_addrs, "_exit", nothing)
 
     # Show the program
@@ -465,7 +467,7 @@ function interpret_program(
                 # Check for begin_event
                 if get(func_addrs, "begin_event", nothing) == call_target
                     @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
-                    current_trace = Trace()
+                    current_execution_trace = ExecutionTrace()
                     if log_memory_access
                         current_event_access[] = Dict(
                             :fram => 0,
@@ -483,7 +485,7 @@ function interpret_program(
                 # Check for end_event
                 if get(func_addrs, "end_event", nothing) == call_target
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
-                    push!(event_traces, copy(current_trace))
+                    push!(execution_traces, copy(current_execution_trace))
                     if log_memory_access && current_event_access[] !== nothing
                         push!(event_accesses, deepcopy(current_event_access[]))
                         current_event_access[] = nothing
@@ -510,7 +512,7 @@ function interpret_program(
 
             # Execute the instruction
             events = execute_instruction!(state, inst, addresses, current_addr_idx)
-            append!(current_trace, events)
+            append!(current_execution_trace, events)
             if log_memory_access && current_event_access[] !== nothing
                 update_access_counts!(current_event_access[], events)
             end
@@ -549,14 +551,16 @@ function interpret_program(
     @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
     # If an event was started but not ended, flush its access counts and trace.
-    if log_memory_access && current_event_access[] !== nothing && !isempty(current_trace)
-        push!(event_traces, copy(current_trace))
+    if log_memory_access &&
+        current_event_access[] !== nothing &&
+        !isempty(current_execution_trace)
+        push!(execution_traces, copy(current_execution_trace))
         push!(event_accesses, deepcopy(current_event_access[]))
     end
 
-    @info "Event traces collected" count = length(event_traces)
+    @info "Execution traces collected" count = length(execution_traces)
 
-    return (state, event_traces, event_accesses)
+    return (state, execution_traces, event_accesses)
 end
 
 end # module

@@ -4,9 +4,9 @@ module Types
 
 export Operand,
     Instruction,
-    Event,
+    ExecutionEvent,
     EventType,
-    Trace,
+    ExecutionTrace,
     CacheLine,
     MachineState,
     EnergyStats,
@@ -48,7 +48,7 @@ Instruction(
 ) = Instruction(opcode, operands, data_size, rpt_nested)
 
 """
-Event produced by the interpreter.
+ExecutionEvent produced by the interpreter.
 """
 @enum EventType begin
     Inst
@@ -59,7 +59,7 @@ Event produced by the interpreter.
     SRAMWrite
     Other
 end
-struct Event
+struct ExecutionEvent
     type::EventType
     inst::Union{Nothing,Instruction}
     operand_addressing_mode_and_constants::Vector{Any}
@@ -68,12 +68,12 @@ end
 """
 Alias for a single trace of executed instructions.
 """
-const Trace = Vector{Event}
+const ExecutionTrace = Vector{ExecutionEvent}
 
 """
 Extract the underlying instruction from a trace entry.
 """
-get_inst(event::Event)::Instruction = event.inst
+get_inst(event::ExecutionEvent)::Instruction = event.inst
 
 """
 Cache line used by the MSP430FR5994-style cache simulation.
@@ -101,7 +101,7 @@ mutable struct MachineState
     cache_tick::UInt64               # Monotonic counter for LRU
     current_inst_cache_hit::Bool     # Cache hit status for fetched instruction
     current_operand_cache_hits::Vector{Bool}  # Cache hits for operand reads in current instruction
-    current_events::Union{Nothing,Vector{Event}}  # Event buffer for current instruction
+    current_events::Union{Nothing,Vector{ExecutionEvent}}  # ExecutionEvent buffer for current instruction
     current_instruction::Union{Nothing,Instruction}  # Instruction currently executing
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
     repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
@@ -122,7 +122,7 @@ end
 Training data structure containing programs and their energy measurements
 """
 struct TrainingData
-    programs::Vector{Trace}
+    programs::Vector{ExecutionTrace}
     energies::Vector{Float64}
 end
 

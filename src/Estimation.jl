@@ -2,7 +2,7 @@ module Estimation
 
 using JSON
 using Logging
-using ..Types: Trace, Event
+using ..Types
 using ..Interpreter
 using ..Parser
 using ..Model
@@ -50,9 +50,9 @@ function run_estimate(
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
     func_addrs = Parser.find_functions(asm_file)
 
-    @info "Executing program to get event traces"
+    @info "Executing program to get execution traces"
     start_time = time()
-    _, event_traces, _ = Interpreter.interpret_program(
+    _, execution_traces, _ = Interpreter.interpret_program(
         instructions, addresses, func_addrs, max_steps; data_file=data_dump
     )
     inference_time = time() - start_time
@@ -64,9 +64,9 @@ function run_estimate(
 
     config = Model.create_estimation_config(model, n_samples)
 
-    for event_trace in event_traces
-        @info "Event trace" length = length(event_trace)
-        stats = Model.estimate_energy(model, event_trace, config)
+    for execution_trace in execution_traces
+        @info "Execution trace" length = length(execution_trace)
+        stats = Model.estimate_energy(model, execution_trace, config)
         push!(all_stats, stats)
     end
 
@@ -76,13 +76,13 @@ function run_estimate(
     @info "Inference time" time_seconds = round(inference_time; digits=3)
 
     if !isnothing(output_file) && !isempty(all_stats)
-        @info "Saving estimation statistics" path = output_file num_events = length(
+        @info "Saving estimation statistics" path = output_file num_execution_traces = length(
             all_stats
         )
-        events_array = []
+        execution_traces_array = []
         for stats in all_stats
             push!(
-                events_array,
+                execution_traces_array,
                 Dict(
                     "mean" => stats.mean,
                     "std" => stats.std,
@@ -92,7 +92,7 @@ function run_estimate(
                 ),
             )
         end
-        stats_dict = Dict("events" => events_array)
+        stats_dict = Dict("execution_traces" => execution_traces_array)
         open(output_file, "w") do f
             JSON.print(f, stats_dict, 4)
         end

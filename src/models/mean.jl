@@ -15,8 +15,7 @@ end
 """
 Estimation configuration for Mean-based models
 """
-struct MeanEstimationConfig <: EstimationConfig
-end
+struct MeanEstimationConfig <: EstimationConfig end
 
 """
 Generic Mean-based model.
@@ -36,7 +35,7 @@ end
 Get dominant instruction key from a program (most frequent instruction).
 Used for microbenchmarks where one instruction type dominates.
 """
-function get_dominant_key(program::Trace, granularity::ModelGranularity)::ParamKey
+function get_dominant_key(program::ExecutionTrace, granularity::ModelGranularity)::ParamKey
     # Count instruction types
     inst_counts = Dict{ParamKey,Int}()
     for inst in instruction_events(program)
@@ -141,7 +140,9 @@ Supports multiple least-squares algorithms:
 - "least-squares-nnls": Non-negative LS using NNLS algorithm
 - "least-squares-fnnls": Non-negative LS using Fast NNLS algorithm
 """
-function learn_params_least_squares!(model::MeanModel, training_data::TrainingData, inference_algorithm::String)
+function learn_params_least_squares!(
+    model::MeanModel, training_data::TrainingData, inference_algorithm::String
+)
     # Collect all unique instruction keys
     all_keys = Set{ParamKey}()
     for program in training_data.programs
@@ -155,7 +156,9 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     sorted_keys = sort(collect(all_keys))
     key_to_idx = Dict(key => i for (i, key) in enumerate(sorted_keys))
 
-    @info "Building least-squares system" num_programs = length(training_data.programs) num_keys = length(sorted_keys) algorithm = inference_algorithm
+    @info "Building least-squares system" num_programs = length(training_data.programs) num_keys = length(
+        sorted_keys
+    ) algorithm = inference_algorithm
 
     # Build matrix A where A[i,j] = count of key j in program i
     num_programs = length(training_data.programs)
@@ -184,7 +187,9 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     elseif inference_algorithm == "least-squares-fnnls"
         nonneg_lsq(A, B; alg=:fnnls)
     else
-        error("Unknown least-squares algorithm: $inference_algorithm. Must be one of: least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls")
+        error(
+            "Unknown least-squares algorithm: $inference_algorithm. Must be one of: least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls",
+        )
     end
 
     # Store results in model.params
@@ -202,12 +207,12 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     residuals = B .- B_pred
 
     # R² (coefficient of determination)
-    ss_tot = sum((B .- mean(B)).^2)
-    ss_res = sum(residuals.^2)
+    ss_tot = sum((B .- mean(B)) .^ 2)
+    ss_res = sum(residuals .^ 2)
     r_squared = 1 - (ss_res / ss_tot)
 
     # RMSE (Root Mean Squared Error)
-    rmse = sqrt(mean(residuals.^2))
+    rmse = sqrt(mean(residuals .^ 2))
 
     # MAE (Mean Absolute Error)
     mae = mean(abs.(residuals))
@@ -215,7 +220,9 @@ function learn_params_least_squares!(model::MeanModel, training_data::TrainingDa
     # Max absolute error
     max_error = maximum(abs.(residuals))
 
-    @info "Goodness of fit metrics" R²=round(r_squared, digits=6) RMSE=round(rmse, digits=3) MAE=round(mae, digits=3) Max_Error=round(max_error, digits=3)
+    @info "Goodness of fit metrics" R² = round(r_squared; digits=6) RMSE = round(
+        rmse; digits=3
+    ) MAE = round(mae; digits=3) Max_Error = round(max_error; digits=3)
 
     return nothing
 end
@@ -223,7 +230,9 @@ end
 """
 Learn parameters from training data
 """
-function learn_params!(model::MeanModel, training_data::TrainingData, config::MeanTrainingConfig)
+function learn_params!(
+    model::MeanModel, training_data::TrainingData, config::MeanTrainingConfig
+)
     @info "Learning Mean model parameters" granularity = model.granularity num_programs = length(
         training_data.programs
     ) inference_algorithm = config.inference_algorithm
@@ -265,7 +274,7 @@ end
 Estimate energy by summing mean energies from learned parameters
 """
 function estimate_energy_sum_means(
-    model::MeanModel, program::Trace
+    model::MeanModel, program::ExecutionTrace
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
@@ -274,8 +283,8 @@ function estimate_energy_sum_means(
     unknown_keys = Set{ParamKey}()
     default_energy = 1.0  # Default 1nJ per instruction
 
-    for inst in instruction_events(program)
-        key = get_instruction_key(inst, model.granularity)
+    for execution_event in instruction_events(program)
+        key = get_instruction_key(execution_event, model.granularity)
 
         if haskey(model.params, key)
             total_energy += model.params[key]
@@ -307,7 +316,7 @@ end
 Estimate energy for a program (deterministic - just sums mean energies)
 """
 function estimate_energy(
-    model::MeanModel, program::Trace, config::MeanEstimationConfig
+    model::MeanModel, program::ExecutionTrace, config::MeanEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},

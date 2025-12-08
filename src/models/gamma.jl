@@ -29,15 +29,15 @@ end
 epsilon = 1e-12
 
 @gen function single_program_energy_model(
-    instructions::Trace,
+    program::ExecutionTrace,
     params::Dict{ParamKey,Tuple{Float64,Float64}},
     granularity::ModelGranularity,
 )::Float64
     total_energy = 0.0
 
-    for (i, inst) in enumerate(instructions)
+    for (i, execution_event) in enumerate(program)
         # Get parameter key based on granularity
-        param_key = get_instruction_key(inst, granularity)
+        param_key = get_instruction_key(execution_event, granularity)
 
         # Look up parameters - error if not found
         if !haskey(params, param_key)
@@ -402,7 +402,9 @@ end
 """
 Learn parameters from training data using Gamma distributions
 """
-function learn_params!(model::GammaModel, training_data::TrainingData, config::GammaTrainingConfig)
+function learn_params!(
+    model::GammaModel, training_data::TrainingData, config::GammaTrainingConfig
+)
     @info "Learning Gamma model parameters" granularity = model.granularity n_samples =
         config.n_samples algorithm = config.inference_algorithm
 
@@ -442,7 +444,7 @@ end
 Estimate energy distribution for a program
 """
 function estimate_energy(
-    model::GammaModel, program::Trace, config::GammaEstimationConfig
+    model::GammaModel, program::ExecutionTrace, config::GammaEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
