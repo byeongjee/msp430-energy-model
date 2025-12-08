@@ -3,7 +3,7 @@ module Train
 using CSV
 using DataFrames
 using Logging
-using ..Types: Trace, Event, TrainingData
+using ..Types: ExecutionTrace, ExecutionEvent, TrainingData
 using ..Interpreter
 using ..Parser
 using ..Model
@@ -18,7 +18,7 @@ Returns event traces and energy measurements.
 """
 function process_training_file(
     asm_file::String, data_file::String, max_steps::Int
-)::Tuple{Vector{Trace},Vector{Float64}}
+)::Tuple{Vector{ExecutionTrace},Vector{Float64}}
     @info "Processing training file" asm = asm_file data = data_file
 
     instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
@@ -85,7 +85,7 @@ function run_train(
         @info "Output file" path = output_file
     end
 
-    all_event_traces = Vector{Trace}()
+    all_event_traces = Vector{ExecutionTrace}()
     all_energies = Vector{Float64}()
 
     for (asm_file, data_file) in zip(asm_files, data_files)

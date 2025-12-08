@@ -23,7 +23,7 @@ Get dominant instruction pair from a program (most frequent consecutive pair).
 Used for microbenchmarks where one pair type dominates.
 """
 function get_dominant_pair(
-    program::Trace, granularity::ModelGranularity
+    program::ExecutionTrace, granularity::ModelGranularity
 )::Tuple{ParamKey,ParamKey}
     if length(program) < 2
         error("Program must have at least 2 instructions to determine dominant pair")
@@ -31,9 +31,9 @@ function get_dominant_pair(
 
     # Count instruction pairs
     pair_counts = Dict{Tuple{ParamKey,ParamKey},Int}()
-    for i in 1:(length(program)-1)
+    for i in 1:(length(program) - 1)
         key1 = get_instruction_key(program[i], granularity)
-        key2 = get_instruction_key(program[i+1], granularity)
+        key2 = get_instruction_key(program[i + 1], granularity)
         # Normalize to unordered pair
         pair_key = normalize_pair(key1, key2)
         pair_counts[pair_key] = get(pair_counts, pair_key, 0) + 1
@@ -69,7 +69,6 @@ mutable struct MeanPairModel <: AbstractModel
         new(Dict{Tuple{ParamKey,ParamKey},Float64}(), granularity, model_type)
     end
 end
-
 
 """
 Learn parameters from training data using dominant-pair inference algorithm
@@ -182,16 +181,18 @@ Supports multiple least-squares algorithms:
 - "least-squares-nnls": Non-negative LS using NNLS algorithm
 - "least-squares-fnnls": Non-negative LS using Fast NNLS algorithm
 """
-function learn_params_least_squares!(model::MeanPairModel, training_data::TrainingData, inference_algorithm::String)
+function learn_params_least_squares!(
+    model::MeanPairModel, training_data::TrainingData, inference_algorithm::String
+)
     # Collect all unique instruction pairs (as unordered pairs)
     all_pairs = Set{Tuple{ParamKey,ParamKey}}()
     for program in training_data.programs
         if length(program) < 2
             continue
         end
-        for i in 1:(length(program)-1)
+        for i in 1:(length(program) - 1)
             key1 = get_instruction_key(program[i], model.granularity)
-            key2 = get_instruction_key(program[i+1], model.granularity)
+            key2 = get_instruction_key(program[i + 1], model.granularity)
             # Normalize to unordered pair
             unordered_pair = normalize_pair(key1, key2)
             push!(all_pairs, unordered_pair)
@@ -212,10 +213,16 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     unexpected_opcodes = setdiff(all_opcodes, expected_opcodes)
 
     if !isempty(unexpected_opcodes)
-        @warn "Found unexpected opcodes in training data (compiler-generated):" opcodes=sort(collect(unexpected_opcodes))
+        @warn "Found unexpected opcodes in training data (compiler-generated):" opcodes = sort(
+            collect(unexpected_opcodes)
+        )
     end
 
-    @info "Building least-squares system for unordered pairs (before filtering)" num_programs = length(training_data.programs) num_pairs = length(sorted_pairs) algorithm = inference_algorithm total_opcodes = length(all_opcodes) unexpected_opcodes_count = length(unexpected_opcodes)
+    @info "Building least-squares system for unordered pairs (before filtering)" num_programs = length(
+        training_data.programs
+    ) num_pairs = length(sorted_pairs) algorithm = inference_algorithm total_opcodes = length(
+        all_opcodes
+    ) unexpected_opcodes_count = length(unexpected_opcodes)
 
     # Build initial matrix A where A[i,j] = count of pair j in program i
     num_programs = length(training_data.programs)
@@ -226,9 +233,9 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
         if length(program) < 2
             continue
         end
-        for k in 1:(length(program)-1)
+        for k in 1:(length(program) - 1)
             key1 = get_instruction_key(program[k], model.granularity)
-            key2 = get_instruction_key(program[k+1], model.granularity)
+            key2 = get_instruction_key(program[k + 1], model.granularity)
             # Normalize to unordered pair
             pair_key = normalize_pair(key1, key2)
             j = pair_to_idx[pair_key]
@@ -249,13 +256,17 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
         end
     end
 
-    @info "Filtering pairs with excluded opcodes" excluded_opcodes=sort(collect(EXCLUDED_OPCODES)) pairs_before=length(sorted_pairs) pairs_after=length(pairs_to_keep_idx) pairs_removed=length(sorted_pairs)-length(pairs_to_keep_idx)
+    @info "Filtering pairs with excluded opcodes" excluded_opcodes = sort(
+        collect(EXCLUDED_OPCODES)
+    ) pairs_before = length(sorted_pairs) pairs_after = length(pairs_to_keep_idx) pairs_removed =
+        length(sorted_pairs) - length(pairs_to_keep_idx)
 
     # Create filtered matrix and pair list
     A = A_full[:, pairs_to_keep_idx]
     filtered_pairs = sorted_pairs[pairs_to_keep_idx]
 
-    @info "Building least-squares system for unordered pairs (after filtering)" num_programs = num_programs num_pairs = length(filtered_pairs) algorithm = inference_algorithm
+    @info "Building least-squares system for unordered pairs (after filtering)" num_programs =
+        num_programs num_pairs = length(filtered_pairs) algorithm = inference_algorithm
 
     # Build vector B with measured energies
     B = Vector{Float64}(training_data.energies)
@@ -271,7 +282,9 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     elseif inference_algorithm == "least-squares-fnnls"
         nonneg_lsq(A, B; alg=:fnnls)
     else
-        error("Unknown least-squares algorithm: $inference_algorithm. Must be one of: least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls")
+        error(
+            "Unknown least-squares algorithm: $inference_algorithm. Must be one of: least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls",
+        )
     end
 
     # Store results in model.params
@@ -289,12 +302,12 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     residuals = B .- B_pred
 
     # R² (coefficient of determination)
-    ss_tot = sum((B .- mean(B)).^2)
-    ss_res = sum(residuals.^2)
+    ss_tot = sum((B .- mean(B)) .^ 2)
+    ss_res = sum(residuals .^ 2)
     r_squared = 1 - (ss_res / ss_tot)
 
     # RMSE (Root Mean Squared Error)
-    rmse = sqrt(mean(residuals.^2))
+    rmse = sqrt(mean(residuals .^ 2))
 
     # MAE (Mean Absolute Error)
     mae = mean(abs.(residuals))
@@ -302,7 +315,9 @@ function learn_params_least_squares!(model::MeanPairModel, training_data::Traini
     # Max absolute error
     max_error = maximum(abs.(residuals))
 
-    @info "Goodness of fit metrics" R²=round(r_squared, digits=6) RMSE=round(rmse, digits=3) MAE=round(mae, digits=3) Max_Error=round(max_error, digits=3)
+    @info "Goodness of fit metrics" R² = round(r_squared; digits=6) RMSE = round(
+        rmse; digits=3
+    ) MAE = round(mae; digits=3) Max_Error = round(max_error; digits=3)
 
     # Visualize matrix properties
     visualize_training_matrix(A, B, x, filtered_pairs, residuals)
@@ -313,9 +328,13 @@ end
 """
 Visualize and analyze the training matrix properties for debugging.
 """
-function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Vector{Float64},
-                                   sorted_pairs::Vector{Tuple{ParamKey,ParamKey}},
-                                   residuals::Vector{Float64})
+function visualize_training_matrix(
+    A::Matrix{Float64},
+    B::Vector{Float64},
+    x::Vector{Float64},
+    sorted_pairs::Vector{Tuple{ParamKey,ParamKey}},
+    residuals::Vector{Float64},
+)
     println("\n" * "="^60)
     println("MATRIX VISUALIZATION AND ANALYSIS")
     println("="^60)
@@ -336,7 +355,7 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
 
     # Row statistics (pairs per program)
     println("\n=== Pairs per Program (row statistics) ===")
-    nonzero_per_row = sum(A .> 0, dims=2)[:]
+    nonzero_per_row = sum(A .> 0; dims=2)[:]
     println("Min pairs in a program: $(minimum(nonzero_per_row))")
     println("Max pairs in a program: $(maximum(nonzero_per_row))")
     println("Mean pairs per program: $(round(mean(nonzero_per_row), digits=2))")
@@ -344,7 +363,7 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
 
     # Column statistics (how often each pair appears)
     println("\n=== Pair Frequency (column statistics) ===")
-    pair_counts = sum(A, dims=1)[:]
+    pair_counts = sum(A; dims=1)[:]
     println("Min occurrences of a pair: $(minimum(pair_counts))")
     println("Max occurrences of a pair: $(maximum(pair_counts))")
     println("Mean occurrences per pair: $(round(mean(pair_counts), digits=2))")
@@ -356,14 +375,20 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
     rare_pairs_idx = findall(pair_counts .< rare_threshold)
     common_pairs_idx = findall(pair_counts .>= common_threshold)
 
-    println("\nPairs appearing < $rare_threshold times: $(length(rare_pairs_idx)) ($(round(100*length(rare_pairs_idx)/num_pairs, digits=1))%)")
-    println("Pairs appearing >= $(Int(round(common_threshold))) times: $(length(common_pairs_idx)) ($(round(100*length(common_pairs_idx)/num_pairs, digits=1))%)")
+    println(
+        "\nPairs appearing < $rare_threshold times: $(length(rare_pairs_idx)) ($(round(100*length(rare_pairs_idx)/num_pairs, digits=1))%)",
+    )
+    println(
+        "Pairs appearing >= $(Int(round(common_threshold))) times: $(length(common_pairs_idx)) ($(round(100*length(common_pairs_idx)/num_pairs, digits=1))%)",
+    )
 
     # Show sample rare pairs (likely compiler-generated)
     if length(rare_pairs_idx) > 0
-        println("\n=== Sample Rare Pairs (likely compiler-generated, not in benchmarks) ===")
+        println(
+            "\n=== Sample Rare Pairs (likely compiler-generated, not in benchmarks) ==="
+        )
         # Group by opcode to see patterns
-        opcode_pairs = Dict{Tuple{Symbol,Symbol}, Vector{String}}()
+        opcode_pairs = Dict{Tuple{Symbol,Symbol},Vector{String}}()
         for idx in rare_pairs_idx[1:min(100, length(rare_pairs_idx))]
             pair = sorted_pairs[idx]
             key1_str = join(string.(pair[1]), "_")
@@ -374,12 +399,15 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
             if !haskey(opcode_pairs, opcode_key)
                 opcode_pairs[opcode_key] = []
             end
-            push!(opcode_pairs[opcode_key], "$key1_str -> $key2_str (count: $(pair_counts[idx]))")
+            push!(
+                opcode_pairs[opcode_key],
+                "$key1_str -> $key2_str (count: $(pair_counts[idx]))",
+            )
         end
 
         # Show first few from each opcode combination
         shown = 0
-        for ((op1, op2), pairs) in sort(collect(opcode_pairs), by=x->x[1])
+        for ((op1, op2), pairs) in sort(collect(opcode_pairs); by=x -> x[1])
             if shown >= 50  # Limit total output
                 break
             end
@@ -408,8 +436,12 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
     println("  Mean: $(round(mean(x), digits=2))")
     println("  Median: $(round(median(x), digits=2))")
     println("  Std: $(round(std(x), digits=2))")
-    println("  Negative parameters: $(sum(x .< 0)) ($(round(100*sum(x .< 0)/length(x), digits=1))%)")
-    println("  Parameters > 500: $(sum(x .> 500)) ($(round(100*sum(x .> 500)/length(x), digits=1))%)")
+    println(
+        "  Negative parameters: $(sum(x .< 0)) ($(round(100*sum(x .< 0)/length(x), digits=1))%)",
+    )
+    println(
+        "  Parameters > 500: $(sum(x .> 500)) ($(round(100*sum(x .> 500)/length(x), digits=1))%)",
+    )
 
     # Show extreme parameters
     if sum(x .> 500) > 0
@@ -419,7 +451,9 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
             pair = sorted_pairs[idx]
             key1_str = join(string.(pair[1]), "_")
             key2_str = join(string.(pair[2]), "_")
-            println("  $(round(x[idx], digits=2)): $key1_str -> $key2_str (appears $(pair_counts[idx]) times)")
+            println(
+                "  $(round(x[idx], digits=2)): $key1_str -> $key2_str (appears $(pair_counts[idx]) times)",
+            )
         end
     end
 
@@ -430,14 +464,18 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
             pair = sorted_pairs[idx]
             key1_str = join(string.(pair[1]), "_")
             key2_str = join(string.(pair[2]), "_")
-            println("  $(round(x[idx], digits=2)): $key1_str -> $key2_str (appears $(pair_counts[idx]) times)")
+            println(
+                "  $(round(x[idx], digits=2)): $key1_str -> $key2_str (appears $(pair_counts[idx]) times)",
+            )
         end
     end
 
     # Residual analysis
     println("\n=== Residual Analysis ===")
     B_pred = A * x
-    println("Predicted energy range: $(round(minimum(B_pred), digits=2)) to $(round(maximum(B_pred), digits=2)) nJ")
+    println(
+        "Predicted energy range: $(round(minimum(B_pred), digits=2)) to $(round(maximum(B_pred), digits=2)) nJ",
+    )
     println("\nResiduals:")
     println("  Min: $(round(minimum(residuals), digits=2)) nJ")
     println("  Max: $(round(maximum(residuals), digits=2)) nJ")
@@ -448,18 +486,22 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
     # Show worst predictions
     println("\n=== Top 10 Worst Predictions ===")
     abs_residuals = abs.(residuals)
-    worst_indices = sortperm(abs_residuals, rev=true)[1:min(10, num_programs)]
+    worst_indices = sortperm(abs_residuals; rev=true)[1:min(10, num_programs)]
 
     for (rank, idx) in enumerate(worst_indices)
         println("\nRank $rank: Program $idx")
         println("  Measured:  $(round(B[idx], digits=2)) nJ")
         println("  Predicted: $(round(B_pred[idx], digits=2)) nJ")
-        println("  Residual:  $(round(residuals[idx], digits=2)) nJ ($(round(100*residuals[idx]/B[idx], digits=1))%)")
+        println(
+            "  Residual:  $(round(residuals[idx], digits=2)) nJ ($(round(100*residuals[idx]/B[idx], digits=1))%)",
+        )
 
         # Show pairs in this program
         nonzero_cols = findall(A[idx, :] .> 0)
         total_pair_count = sum(A[idx, :])
-        println("  Total pairs executed: $(Int(total_pair_count)) ($(length(nonzero_cols)) unique)")
+        println(
+            "  Total pairs executed: $(Int(total_pair_count)) ($(length(nonzero_cols)) unique)",
+        )
 
         # Show top contributors
         if length(nonzero_cols) <= 5
@@ -472,12 +514,14 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
                 param = x[j]
                 contribution = count * param
                 println("    [$count×] $key1_str -> $key2_str")
-                println("         param=$(round(param, digits=2)), contrib=$(round(contribution, digits=2))")
+                println(
+                    "         param=$(round(param, digits=2)), contrib=$(round(contribution, digits=2))",
+                )
             end
         else
             # Show top 5 contributors by absolute contribution
             contributions = [(j, A[idx, j] * x[j]) for j in nonzero_cols]
-            sort!(contributions, by=x->abs(x[2]), rev=true)
+            sort!(contributions; by=x -> abs(x[2]), rev=true)
             println("  Top 5 contributors by energy:")
             for (j, contrib) in contributions[1:min(5, length(contributions))]
                 pair = sorted_pairs[j]
@@ -486,7 +530,9 @@ function visualize_training_matrix(A::Matrix{Float64}, B::Vector{Float64}, x::Ve
                 count = Int(A[idx, j])
                 param = x[j]
                 println("    [$count×] $key1_str -> $key2_str")
-                println("         param=$(round(param, digits=2)), contrib=$(round(contrib, digits=2))")
+                println(
+                    "         param=$(round(param, digits=2)), contrib=$(round(contrib, digits=2))",
+                )
             end
         end
     end
@@ -499,7 +545,9 @@ end
 """
 Learn parameters from training data
 """
-function learn_params!(model::MeanPairModel, training_data::TrainingData, config::MeanTrainingConfig)
+function learn_params!(
+    model::MeanPairModel, training_data::TrainingData, config::MeanTrainingConfig
+)
     @info "Learning MeanPair model parameters" granularity = model.granularity num_programs = length(
         training_data.programs
     ) inference_algorithm = config.inference_algorithm
@@ -509,7 +557,9 @@ function learn_params!(model::MeanPairModel, training_data::TrainingData, config
     elseif startswith(config.inference_algorithm, "least-squares")
         learn_params_least_squares!(model, training_data, config.inference_algorithm)
     else
-        error("Unknown inference algorithm for MeanPair model: $(config.inference_algorithm)")
+        error(
+            "Unknown inference algorithm for MeanPair model: $(config.inference_algorithm)"
+        )
     end
 
     @info "Learned MeanPair model parameters" num_parameters = length(model.params)
@@ -543,7 +593,7 @@ end
 Estimate energy by summing mean energies for consecutive pairs
 """
 function estimate_energy_sum_pair_means(
-    model::MeanPairModel, program::Trace
+    model::MeanPairModel, program::ExecutionTrace
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
@@ -557,9 +607,9 @@ function estimate_energy_sum_pair_means(
     unknown_pairs = Set{Tuple{ParamKey,ParamKey}}()
     default_energy = 1.0  # Default 1nJ per pair
 
-    for i in 1:(length(program)-1)
+    for i in 1:(length(program) - 1)
         key1 = get_instruction_key(program[i], model.granularity)
-        key2 = get_instruction_key(program[i+1], model.granularity)
+        key2 = get_instruction_key(program[i + 1], model.granularity)
         # Normalize to unordered pair
         pair_key = normalize_pair(key1, key2)
 
@@ -574,8 +624,8 @@ function estimate_energy_sum_pair_means(
 
     if !isempty(unknown_pairs)
         unknown_strs = [
-            join(string.(k1), "_") * " -> " * join(string.(k2), "_")
-            for (k1, k2) in unknown_pairs
+            join(string.(k1), "_") * " -> " * join(string.(k2), "_") for
+            (k1, k2) in unknown_pairs
         ]
         @warn "Unknown instruction pairs. Using default 1.0nJ" pairs = join(
             sort(unknown_strs), ", "
@@ -596,7 +646,7 @@ end
 Estimate energy for a program (deterministic - just sums mean energies for pairs)
 """
 function estimate_energy(
-    model::MeanPairModel, program::Trace, config::MeanEstimationConfig
+    model::MeanPairModel, program::ExecutionTrace, config::MeanEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
