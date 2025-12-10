@@ -87,12 +87,13 @@ function _read_byte_uncached(state::MachineState, addr::UInt32)::UInt8
     end
 end
 
-function _read_bytes_uncached(state::MachineState, addr::UInt32, len::Int)::Vector{UInt8}
-    bytes = Vector{UInt8}(undef, len)
-    for i in 0:(len - 1)
-        bytes[i + 1] = _read_byte_uncached(state, addr + UInt32(i))
-    end
-    return bytes
+"""
+Read an aligned 16-bit word from backing memory without touching the cache.
+Assumes addr is aligned (even address).
+"""
+function _read_word_uncached(state::MachineState, addr::UInt32)::UInt16
+    @assert (addr & 0x1) == 0 "Word read must be aligned, got 0x$(string(addr, base=16))"
+    return get(state.memory, addr, UInt16(0))
 end
 
 function _select_victim_line(lines::Vector{CacheLine})::CacheLine
@@ -157,6 +158,40 @@ function _cache_read_byte(state::MachineState, addr::UInt32)::Tuple{UInt8,Bool}
 end
 
 """
+Read an aligned 16-bit word through the cache (fill on miss).
+This represents the MSP430's 16-bit memory bus - a single aligned word access
+should result in exactly one cache hit or miss, not two.
+Assumes addr is aligned (even address).
+"""
+function _cache_read_word(state::MachineState, addr::UInt32)::Tuple{UInt16,Bool}
+    @assert (addr & 0x1) == 0 "Word read must be aligned, got 0x$(string(addr, base=16))"
+
+    if !_is_fram_address(addr)
+        return _read_word_uncached(state, addr), false
+    end
+
+    set_idx = _cache_set_index(addr)
+    tag = _cache_tag(addr)
+    offset = _cache_offset(addr)
+
+    for line in state.cache[set_idx]
+        if line.valid && line.tag == tag
+            line.last_used = _bump_cache_tick!(state)
+            # Read two consecutive bytes from the cache line as a word
+            low_byte = line.data[offset + 1]
+            high_byte = line.data[offset + 2]
+            return UInt16(low_byte) | (UInt16(high_byte) << 8), true
+        end
+    end
+
+    # Cache miss - fill the line and read the word
+    filled_line = _cache_fill!(state, addr)
+    low_byte = filled_line.data[offset + 1]
+    high_byte = filled_line.data[offset + 2]
+    return UInt16(low_byte) | (UInt16(high_byte) << 8), false
+end
+
+"""
 Check whether the cache currently contains the line for the address without
 mutating cache metadata.
 """
@@ -202,36 +237,23 @@ function _invalidate_cache_range!(state::MachineState, addr::UInt32, len::Int)::
 end
 
 """
-Read N bytes via the cache.
-"""
-function _read_bytes_cached(
-    state::MachineState, addr::UInt32, len::Int
-)::Tuple{Vector{UInt8},Bool}
-    bytes = Vector{UInt8}(undef, len)
-    all_hit = true
-    for i in 0:(len - 1)
-        b, hit = _cache_read_byte(state, addr + UInt32(i))
-        bytes[i + 1] = b
-        all_hit &= hit
-    end
-    return bytes, all_hit
-end
-
-"""
 Simulate instruction fetches through the cache. Instructions reside in FRAM, so
 fetches leverage the same cache logic and record FRAM reads.
+MSP430 instructions are 16-bit aligned and fetched via the 16-bit bus.
 """
 function fetch_instruction_bytes!(state::MachineState, addr::UInt32, len::UInt32)::Nothing
     # Ensure at least one word is fetched even if size is unknown
     len_bytes = max(len, UInt32(2))
-    last_addr = addr + len_bytes - 1
-    current = addr
+    # Round up to word boundary for total fetch size
+    num_words = (len_bytes + UInt32(1)) ÷ UInt32(2)
+
     all_hit = true
-    while current <= last_addr
-        record_memory_access!(state, current, :read, :byte)
-        _, hit = _cache_read_byte(state, current)
+    for i in UInt32(0):(num_words - UInt32(1))
+        word_addr = addr + (i * UInt32(2))
+        # Record memory access for the word (as :word to reflect 16-bit bus access)
+        record_memory_access!(state, word_addr, :read, :word)
+        _, hit = _cache_read_word(state, word_addr)
         all_hit &= hit
-        current += UInt32(1)
     end
     state.current_inst_cache_hit = all_hit
     return nothing
@@ -349,24 +371,22 @@ function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt
         push!(state.current_operand_cache_hits, use_cache && hit)
         return UInt32(byte)
     elseif data_size == :word
-        if use_cache
-            bytes, all_hit = _read_bytes_cached(state, addr, 2)
-            push!(state.current_operand_cache_hits, all_hit)
-        else
-            bytes = _read_bytes_uncached(state, addr, 2)
-            push!(state.current_operand_cache_hits, false)
-        end
-        return UInt32(bytes[1]) | (UInt32(bytes[2]) << 8)
+        # MSP430 has 16-bit memory bus - aligned word access is a single operation
+        word, hit =
+            use_cache ? _cache_read_word(state, addr) :
+            (_read_word_uncached(state, addr), false)
+        push!(state.current_operand_cache_hits, use_cache && hit)
+        return UInt32(word)
     elseif data_size == :address
-        if use_cache
-            bytes, all_hit = _read_bytes_cached(state, addr, 4)
-            push!(state.current_operand_cache_hits, all_hit)
-        else
-            bytes = _read_bytes_uncached(state, addr, 4)
-            push!(state.current_operand_cache_hits, false)
-        end
-        lsw = UInt16(bytes[1]) | (UInt16(bytes[2]) << 8)
-        msw = UInt16(bytes[3]) | (UInt16(bytes[4]) << 8)
+        # 20-bit address = two 16-bit words
+        # Each word access is independent on the 16-bit bus
+        lsw, hit1 =
+            use_cache ? _cache_read_word(state, addr) :
+            (_read_word_uncached(state, addr), false)
+        msw, hit2 =
+            use_cache ? _cache_read_word(state, addr + UInt32(2)) :
+            (_read_word_uncached(state, addr + UInt32(2)), false)
+        push!(state.current_operand_cache_hits, use_cache && (hit1 && hit2))
         return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
     else
         error("Unknown data size: $data_size")
