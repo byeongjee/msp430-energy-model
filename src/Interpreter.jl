@@ -72,6 +72,48 @@ function classify_region(addr::UInt32, memory_regions)::Symbol
 end
 
 """
+Accumulate per-event memory access counts for logging.
+"""
+function update_access_counts!(
+    counts::Dict{Symbol,Int},
+    execution_trace::ExecutionTrace,
+    memory_regions,
+)::Dict{Symbol,Int}
+    for execution_event in execution_trace
+        if execution_event.type == Inst ||
+            isempty(execution_event.operand_addressing_mode_and_constants)
+            continue
+        end
+
+        addr = execution_event.operand_addressing_mode_and_constants[1]
+        region = classify_region(addr, memory_regions)
+
+        if execution_event.type == FRAMReadHit
+            counts[:fram_read_hit] = get(counts, :fram_read_hit, 0) + 1
+            counts[:reads] = get(counts, :reads, 0) + 1
+        elseif execution_event.type == FRAMReadMiss
+            counts[:fram_read_miss] = get(counts, :fram_read_miss, 0) + 1
+            counts[:reads] = get(counts, :reads, 0) + 1
+        elseif execution_event.type == FRAMWrite
+            counts[:fram_write] = get(counts, :fram_write, 0) + 1
+            counts[:writes] = get(counts, :writes, 0) + 1
+        elseif execution_event.type == SRAMRead
+            counts[:sram_read] = get(counts, :sram_read, 0) + 1
+            counts[:reads] = get(counts, :reads, 0) + 1
+        elseif execution_event.type == SRAMWrite
+            counts[:sram_write] = get(counts, :sram_write, 0) + 1
+            counts[:writes] = get(counts, :writes, 0) + 1
+        else
+            counts[:other] = get(counts, :other, 0) + 1
+        end
+
+        counts[region] = get(counts, region, 0) + 1
+        counts[:total] = get(counts, :total, 0) + 1
+    end
+    return counts
+end
+
+"""
 Load bytes from an objdump -s data dump file into machine memory.
 Returns true if any bytes were written.
 """
@@ -375,43 +417,6 @@ function interpret_program(
     event_accesses = Vector{Dict{Symbol,Int}}()
     current_execution_trace = ExecutionTrace()
     current_event_access = Ref{Union{Nothing,Dict{Symbol,Int}}}(nothing)
-    update_access_counts! =
-        function (counts::Dict{Symbol,Int}, execution_trace::ExecutionTrace)
-            for execution_event in execution_trace
-                if execution_event.type == Inst ||
-                    isempty(execution_event.operand_addressing_mode_and_constants)
-                    continue
-                end
-
-                addr = execution_event.operand_addressing_mode_and_constants[1]
-                region = classify_region(addr, memory_regions)
-
-                # Totals by type
-                if execution_event.type == FRAMReadHit
-                    counts[:fram_read_hit] = get(counts, :fram_read_hit, 0) + 1
-                    counts[:reads] = get(counts, :reads, 0) + 1
-                elseif execution_event.type == FRAMReadMiss
-                    counts[:fram_read_miss] = get(counts, :fram_read_miss, 0) + 1
-                    counts[:reads] = get(counts, :reads, 0) + 1
-                elseif execution_event.type == FRAMWrite
-                    counts[:fram_write] = get(counts, :fram_write, 0) + 1
-                    counts[:writes] = get(counts, :writes, 0) + 1
-                elseif execution_event.type == SRAMRead
-                    counts[:sram_read] = get(counts, :sram_read, 0) + 1
-                    counts[:reads] = get(counts, :reads, 0) + 1
-                elseif execution_event.type == SRAMWrite
-                    counts[:sram_write] = get(counts, :sram_write, 0) + 1
-                    counts[:writes] = get(counts, :writes, 0) + 1
-                else
-                    counts[:other] = get(counts, :other, 0) + 1
-                end
-
-                # Region and total rollups (once per access)
-                counts[region] = get(counts, region, 0) + 1
-                counts[:total] = get(counts, :total, 0) + 1
-            end
-            return counts
-        end
     exit_addr = get(func_addrs, "_exit", nothing)
 
     # Show the program
@@ -538,7 +543,7 @@ function interpret_program(
             events = execute_instruction!(state, inst, addresses, current_addr_idx)
             append!(current_execution_trace, events)
             if log_memory_access && current_event_access[] !== nothing
-                update_access_counts!(current_event_access[], events)
+                update_access_counts!(current_event_access[], events, memory_regions)
             end
 
             # Debug logging only when needed
