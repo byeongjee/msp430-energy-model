@@ -386,32 +386,29 @@ function interpret_program(
                 addr = execution_event.operand_addressing_mode_and_constants[1]
                 region = classify_region(addr, memory_regions)
 
-                counts[region] = get(counts, region, 0) + 1
-                counts[:total] = get(counts, :total, 0) + 1
-
+                # Totals by type
                 if execution_event.type == FRAMReadHit
                     counts[:fram_read_hit] = get(counts, :fram_read_hit, 0) + 1
                     counts[:reads] = get(counts, :reads, 0) + 1
-                    counts[:fram] = get(counts, :fram, 0) + 1
                 elseif execution_event.type == FRAMReadMiss
                     counts[:fram_read_miss] = get(counts, :fram_read_miss, 0) + 1
                     counts[:reads] = get(counts, :reads, 0) + 1
-                    counts[:fram] = get(counts, :fram, 0) + 1
                 elseif execution_event.type == FRAMWrite
                     counts[:fram_write] = get(counts, :fram_write, 0) + 1
                     counts[:writes] = get(counts, :writes, 0) + 1
-                    counts[:fram] = get(counts, :fram, 0) + 1
                 elseif execution_event.type == SRAMRead
                     counts[:sram_read] = get(counts, :sram_read, 0) + 1
                     counts[:reads] = get(counts, :reads, 0) + 1
-                    counts[:sram] = get(counts, :sram, 0) + 1
                 elseif execution_event.type == SRAMWrite
                     counts[:sram_write] = get(counts, :sram_write, 0) + 1
                     counts[:writes] = get(counts, :writes, 0) + 1
-                    counts[:sram] = get(counts, :sram, 0) + 1
                 else
                     counts[:other] = get(counts, :other, 0) + 1
                 end
+
+                # Region and total rollups (once per access)
+                counts[region] = get(counts, region, 0) + 1
+                counts[:total] = get(counts, :total, 0) + 1
             end
             return counts
         end
