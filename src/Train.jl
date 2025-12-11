@@ -21,7 +21,7 @@ function process_training_file(
 )::Tuple{Vector{ExecutionTrace},Vector{Float64}}
     @info "Processing training file" asm = asm_file data = data_file
 
-    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
+    instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
 
     func_addrs = Parser.find_functions(asm_file)
     begin_event_addr = get(func_addrs, "begin_event", nothing)
@@ -36,7 +36,7 @@ function process_training_file(
     end
 
     _, event_traces, _ = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps; data_file=nothing
+        instructions, address_info, func_addrs, max_steps; data_file=nothing
     )
 
     @info "Reading measurement data from CSV"

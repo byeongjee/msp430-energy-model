@@ -34,7 +34,7 @@ function test_br_immediate_instruction_count()
         @test isfile(data_file)
 
         # Parse assembly file
-        instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
+        instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
         func_addrs = Parser.find_functions(asm_file)
 
         # Count br instructions in the parsed assembly
@@ -44,7 +44,7 @@ function test_br_immediate_instruction_count()
         # Execute the program
         @info "Running interpreter..."
         final_state, event_traces, _ = Interpreter.interpret_program(
-            instructions, addresses, func_addrs, 100000000; data_file=data_file
+            instructions, address_info, func_addrs, 100000000; data_file=data_file
         )
 
         # Expected: TEXTUAL_REPT (100) br instructions per inner iteration

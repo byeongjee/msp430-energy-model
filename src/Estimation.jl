@@ -47,13 +47,13 @@ function run_estimate(
 
     Model.load_params!(model, params_file)
 
-    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
+    instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
     func_addrs = Parser.find_functions(asm_file)
 
     @info "Executing program to get execution traces"
     start_time = time()
     _, execution_traces, _ = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps; data_file=data_dump
+        instructions, address_info, func_addrs, max_steps; data_file=data_dump
     )
     inference_time = time() - start_time
 

@@ -268,7 +268,10 @@ This function uses the instruction handler dispatch system to:
 3. Centrally manage PC updates based on the handler's should_advance_pc predicate
 """
 function execute_instruction!(
-    state::MachineState, inst::Instruction, addresses::Vector{UInt32}, current_idx::Int
+    state::MachineState,
+    inst::Instruction,
+    address_info::Vector{Tuple{UInt32,UInt32}},
+    current_idx::Int,
 )::Vector{ExecutionEvent}
     execution_events = ExecutionEvent[]
 
@@ -282,26 +285,23 @@ function execute_instruction!(
         state.current_inst_cache_hit = true
 
         # Instruction fetch from FRAM goes through cache simulation
-        instr_len = if current_idx < length(addresses)
-            max(UInt32(2), addresses[current_idx + 1] - addresses[current_idx])
-        else
-            UInt32(2)
-        end
+        # Use the actual instruction length from the disassembly
+        _, instr_len = address_info[current_idx]
         fetch_instruction_bytes!(state, state.registers[:PC], instr_len)
 
         # Get handler for this instruction
         handler = get_handler(inst.opcode)
 
         # Execute instruction using multiple dispatch (RPT has a custom overload)
-        execute!(state, handler, inst, addresses, current_idx)
+        execute!(state, handler, inst, address_info, current_idx)
 
         # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
         # unless it's the RPT instruction itself (which sets the counter)
         if state.repeat_counter > 0 && inst.opcode != :rpt
             state.repeat_counter -= 1
         elseif should_advance_pc(handler, state, inst.operands) &&
-            current_idx < length(addresses)
-            state.registers[:PC] = addresses[current_idx + 1]
+            current_idx < length(address_info)
+            state.registers[:PC] = address_info[current_idx + 1][1]
         end
     finally
         state.current_events = nothing
