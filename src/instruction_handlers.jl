@@ -219,10 +219,10 @@ function execute!(
     state::MachineState,
     handler::AbstractInstructionHandler,
     inst::Instruction,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
-    return execute!(state, handler, inst.operands, inst.data_size, addresses, current_idx)
+    return execute!(state, handler, inst.operands, inst.data_size, address_info, current_idx)
 end
 
 # Each handler implements execute! with its specific logic.
@@ -240,7 +240,7 @@ function execute!(
     ::MovHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -257,7 +257,7 @@ function execute!(
     ::MovaHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -274,7 +274,7 @@ function execute!(
     ::AddHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -294,7 +294,7 @@ function execute!(
     ::AddaHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -314,7 +314,7 @@ function execute!(
     ::AddcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -335,7 +335,7 @@ function execute!(
     ::SubHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -355,7 +355,7 @@ function execute!(
     ::SubcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -376,7 +376,7 @@ function execute!(
     ::CmpHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -395,7 +395,7 @@ function execute!(
     ::DaddHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -415,7 +415,7 @@ function execute!(
     ::BitHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -434,7 +434,7 @@ function execute!(
     ::BicHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -453,7 +453,7 @@ function execute!(
     ::BisHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -472,7 +472,7 @@ function execute!(
     ::XorHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -492,7 +492,7 @@ function execute!(
     ::AndHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -516,7 +516,7 @@ function execute!(
     ::RrcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -539,7 +539,7 @@ function execute!(
     ::RrcmHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -573,7 +573,7 @@ function execute!(
     ::SwpbHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -591,7 +591,7 @@ function execute!(
     ::RraHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -611,7 +611,7 @@ function execute!(
     ::RraxHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -659,7 +659,7 @@ function execute!(
     ::RruxHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -685,7 +685,7 @@ function execute!(
     ::RrumHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -724,7 +724,7 @@ function execute!(
     ::SxtHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -747,7 +747,7 @@ function execute!(
     ::InvHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -788,7 +788,7 @@ function execute!(
     ::PushHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -813,19 +813,19 @@ function execute!(
     ::CallHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
     if length(ops) < 1
         return nothing
     end
-    if current_idx >= length(addresses)
+    if current_idx >= length(address_info)
         error(
             "Call instruction at index $current_idx has no next instruction for return address",
         )
     end
     operand_val = get_operand_value(state, ops[1], data_size)
-    return_addr = addresses[current_idx + 1]
+    return_addr = address_info[current_idx + 1][1]
     # CALL instruction only supports 16-bit return addresses
     if return_addr > 0xFFFF
         error(
@@ -846,7 +846,7 @@ function execute!(
     ::RetHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     return_addr = get(state.memory, state.registers[:SP], UInt16(0))
@@ -863,7 +863,7 @@ function execute!(
     ::RetiHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     state.registers[:SR] = state.memory[state.registers[:SP]]
@@ -883,7 +883,7 @@ function execute!(
     ::ClrHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -899,7 +899,7 @@ function execute!(
     ::IncHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -918,7 +918,7 @@ function execute!(
     ::DecHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -937,7 +937,7 @@ function execute!(
     ::DintHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     state.registers[:SR] = state.registers[:SR] & ~0x0008  # Clear GIE bit (bit 3)
@@ -950,7 +950,7 @@ function execute!(
     ::EintHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     state.registers[:SR] = state.registers[:SR] | 0x0008  # Set GIE bit (bit 3)
@@ -963,7 +963,7 @@ function execute!(
     ::SetcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     state.flags[:C] = true
@@ -977,7 +977,7 @@ function execute!(
     ::ClrcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     state.flags[:C] = false
@@ -991,7 +991,7 @@ function execute!(
     ::RlcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     # RLC rotates left through carry: shifts left and inserts carry into LSB
@@ -1051,7 +1051,7 @@ function execute!(
     ::NopHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     return nothing
@@ -1063,7 +1063,7 @@ function execute!(
     ::BrHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -1080,7 +1080,7 @@ function execute!(
     ::DecdHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -1099,7 +1099,7 @@ function execute!(
     ::IncdHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -1117,15 +1117,15 @@ function execute!(
     state::MachineState,
     ::RptHandler,
     inst::Instruction,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
     nested_inst = inst.rpt_nested
     count = Int(get_operand_value(state, inst.operands[1], inst.data_size))
 
     nested_idx = current_idx + 1
-    nested_addr = addresses[nested_idx]
-    after_nested_idx = nested_idx < length(addresses) ? nested_idx + 1 : nested_idx
+    nested_addr = address_info[nested_idx][1]
+    after_nested_idx = nested_idx < length(address_info) ? nested_idx + 1 : nested_idx
     nested_handler = get_handler(nested_inst.opcode)
 
     for _ in 1:count
@@ -1135,13 +1135,13 @@ function execute!(
             nested_handler,
             nested_inst.operands,
             nested_inst.data_size,
-            addresses,
+            address_info,
             nested_idx,
         )
     end
 
-    if after_nested_idx <= length(addresses) && state.registers[:PC] == nested_addr
-        state.registers[:PC] = addresses[after_nested_idx]
+    if after_nested_idx <= length(address_info) && state.registers[:PC] == nested_addr
+        state.registers[:PC] = address_info[after_nested_idx][1]
     end
 
     return nothing
@@ -1153,7 +1153,7 @@ function execute!(
     ::SbcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -1173,7 +1173,7 @@ function execute!(
     ::AdcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -1193,7 +1193,7 @@ function execute!(
     ::RlaHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 1
@@ -1214,7 +1214,7 @@ function execute!(
     ::RlamHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -1241,7 +1241,7 @@ function execute!(
     ::PushmHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -1282,7 +1282,7 @@ function execute!(
     ::PopmHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    ::Vector{UInt32},
+    ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
 )::Nothing
     if length(ops) < 2
@@ -1326,7 +1326,7 @@ function execute_jump_helper!(
     state::MachineState,
     should_jump::Bool,
     ops::Vector{Operand},
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
     if length(ops) < 1
@@ -1350,8 +1350,8 @@ function execute_jump_helper!(
         )
     else
         # Advance to next instruction
-        if current_idx < length(addresses)
-            state.registers[:PC] = addresses[current_idx + 1]
+        if current_idx < length(address_info)
+            state.registers[:PC] = address_info[current_idx + 1][1]
         end
     end
     return nothing
@@ -1363,10 +1363,10 @@ function execute!(
     ::JmpHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
-    execute_jump_helper!(state, true, ops, addresses, current_idx)
+    execute_jump_helper!(state, true, ops, address_info, current_idx)
 end
 
 # JNZ - Jump if not zero
@@ -1375,10 +1375,10 @@ function execute!(
     ::JnzHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
-    execute_jump_helper!(state, !state.flags[:Z], ops, addresses, current_idx)
+    execute_jump_helper!(state, !state.flags[:Z], ops, address_info, current_idx)
 end
 
 # JZ - Jump if zero
@@ -1387,10 +1387,10 @@ function execute!(
     ::JzHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
-    execute_jump_helper!(state, state.flags[:Z], ops, addresses, current_idx)
+    execute_jump_helper!(state, state.flags[:Z], ops, address_info, current_idx)
 end
 
 # JNC - Jump if no carry
@@ -1399,10 +1399,10 @@ function execute!(
     ::JncHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
-    execute_jump_helper!(state, !state.flags[:C], ops, addresses, current_idx)
+    execute_jump_helper!(state, !state.flags[:C], ops, address_info, current_idx)
 end
 
 # JC - Jump if carry
@@ -1411,10 +1411,10 @@ function execute!(
     ::JcHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
-    execute_jump_helper!(state, state.flags[:C], ops, addresses, current_idx)
+    execute_jump_helper!(state, state.flags[:C], ops, address_info, current_idx)
 end
 
 # JN - Jump if negative
@@ -1423,10 +1423,10 @@ function execute!(
     ::JnHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
-    execute_jump_helper!(state, state.flags[:N], ops, addresses, current_idx)
+    execute_jump_helper!(state, state.flags[:N], ops, address_info, current_idx)
 end
 
 # JGE - Jump if greater or equal (signed)
@@ -1435,11 +1435,11 @@ function execute!(
     ::JgeHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
     execute_jump_helper!(
-        state, !(state.flags[:N] ⊻ state.flags[:V]), ops, addresses, current_idx
+        state, !(state.flags[:N] ⊻ state.flags[:V]), ops, address_info, current_idx
     )
 end
 
@@ -1449,10 +1449,10 @@ function execute!(
     ::JlHandler,
     ops::Vector{Operand},
     data_size::Symbol,
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
 )::Nothing
     execute_jump_helper!(
-        state, (state.flags[:N] ⊻ state.flags[:V]), ops, addresses, current_idx
+        state, (state.flags[:N] ⊻ state.flags[:V]), ops, address_info, current_idx
     )
 end

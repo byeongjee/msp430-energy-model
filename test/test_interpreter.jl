@@ -47,14 +47,14 @@ function run_interpreter(
     end
 
     # Parse assembly file
-    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
+    instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
 
     # Find function addresses
     func_addrs = Parser.find_functions(asm_file)
 
     # Execute program
     final_state, _, _ = Interpreter.interpret_program(
-        instructions, addresses, func_addrs, max_steps; data_file=data_dump
+        instructions, address_info, func_addrs, max_steps; data_file=data_dump
     )
 
     return final_state

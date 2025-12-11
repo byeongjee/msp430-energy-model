@@ -83,7 +83,7 @@ NOINLINE void icache_cycle_same_set(void) {
   begin_event();
   register uint16_t n;
   __asm__ volatile("  jmp 1f\n"
-                   "  .p2align 4\n" // 16-byte alignment => same cache set
+                   "  .p2align 3\n" // 16-byte alignment => same cache set
                    "blockA_same:\n"
                    "  nop\n"
                    "  dec %[cnt]\n"
@@ -106,6 +106,10 @@ NOINLINE void icache_cycle_same_set(void) {
                    "  jmp blockA_same\n"
                    "  .p2align 4\n"
                    "2:\n"
+                   "  nop\n"
+                   "  nop\n"
+                   "  nop\n"
+                   "  nop\n"
                    : [cnt] "=&r"(n)
                    :
                    : "cc", "memory");
@@ -142,6 +146,10 @@ NOINLINE void icache_cycle_split_set(void) {
       "  jmp blockA_split\n"
       "  .p2align 3\n"
       "2:\n"
+      "  nop\n"
+      "  nop\n"
+      "  nop\n"
+      "  nop\n"
       : [cnt] "=&r"(n)
       :
       : "cc", "memory");
@@ -155,14 +163,14 @@ int main(void) {
   initialize();
   begin_measurement_window();
 
-  icache_hot_single_line(); // First loop: 1 miss then all hits
-
-  icache_hot_two_lines(); // Two-line loop: 2 initial misses then hits
-
-  icache_repeat_2byte(); // Repeated 2-byte instruction window
-
-  icache_repeat_4byte(); // Repeated 6-byte instruction window
-
+  //  icache_hot_single_line(); // First loop: 1 miss then all hits
+  //
+  //  icache_hot_two_lines(); // Two-line loop: 2 initial misses then hits
+  //
+  //  icache_repeat_2byte(); // Repeated 2-byte instruction window
+  //
+  //  icache_repeat_4byte(); // Repeated 6-byte instruction window
+  //
   icache_cycle_same_set(); // A/B/C/A in one set; final A should hit
 
   icache_cycle_split_set(); // A/C alias, B in other set; expect mostly misses

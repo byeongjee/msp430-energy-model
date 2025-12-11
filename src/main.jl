@@ -82,7 +82,7 @@ function run_interpret(
         @info "Data dump" path = data_dump
     end
 
-    instructions, addresses, _base_address = Interpreter.parse_asm_file(asm_file)
+    instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
     func_addrs = Parser.find_functions(asm_file)
 
     log_memory_access = get(ENV, "LOG_MEMORY_ACCESS", "0") == "1"
@@ -93,7 +93,7 @@ function run_interpret(
 
     final_state, event_traces, event_accesses = Interpreter.interpret_program(
         instructions,
-        addresses,
+        address_info,
         func_addrs,
         max_steps;
         data_file=data_dump,

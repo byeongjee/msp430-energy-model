@@ -265,14 +265,14 @@ end
 """
 Parse MSP430 assembly file and extract instructions with their addresses
 """
-function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt32},UInt32}
+function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{Tuple{UInt32,UInt32}},UInt32}
     if !isfile(filename)
         error("Assembly file not found: $filename")
     end
 
     lines = readlines(filename)
     instructions = Instruction[]
-    addresses = UInt32[]
+    address_info = Tuple{UInt32,UInt32}[]  # Vector of (address, length) tuples
     base_address = nothing
 
     @info "Parsing assembly file" filename
@@ -296,6 +296,11 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
             addr_str = match_result.captures[1]
             hex_bytes = match_result.captures[2]
             instr_str = strip(match_result.captures[3])
+
+            # Calculate instruction length from hex bytes
+            # Each pair of hex digits (e.g., "31 40") is one byte
+            hex_byte_count = length(split(strip(hex_bytes)))
+            instr_len = UInt32(hex_byte_count)
 
             # Parse address (MSP430X uses 20-bit addressing)
             addr = parse(UInt32, addr_str; base=16)
@@ -322,18 +327,18 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
                         rpt_nested=nested_instr,
                     )
                     push!(instructions, rpt_with_nested)
-                    push!(addresses, addr)
+                    push!(address_info, (addr, UInt32(2)))  # RPT instruction is 2 bytes
                 end
 
                 if !isnothing(nested_instr)
                     push!(instructions, nested_instr)
-                    push!(addresses, addr + 2)
+                    push!(address_info, (addr + UInt32(2), instr_len - UInt32(2)))  # Nested instruction takes remaining bytes
                 end
             else
                 parsed_instr = Parser.parse_line(String(instr_str), addr)
                 if !isnothing(parsed_instr)
                     push!(instructions, parsed_instr)
-                    push!(addresses, addr)
+                    push!(address_info, (addr, instr_len))
                 end
             end
         end
@@ -347,7 +352,7 @@ function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{UInt
         base_address; base=16, pad=4
     )
 
-    return instructions, addresses, base_address
+    return instructions, address_info, base_address
 end
 
 FUNCTIONS_TO_SKIP = [
@@ -365,7 +370,7 @@ Interpret MSP430 program
 """
 function interpret_program(
     instructions::Vector{Instruction},
-    addresses::Vector{UInt32},
+    address_info::Vector{Tuple{UInt32,UInt32}},
     func_addrs::Dict{String,UInt32},
     max_steps::Int;
     data_file::Union{String,Nothing}=nothing,
@@ -406,7 +411,7 @@ function interpret_program(
     end
 
     state = MachineState()
-    state.registers[:PC] = addresses[1]  # Start at the first instruction address
+    state.registers[:PC] = address_info[1][1]  # Start at the first instruction address
 
     if !isnothing(data_file)
         load_memory_dump!(state, data_file)
@@ -430,7 +435,7 @@ function interpret_program(
     end
 
     pc_to_instruction = Dict{UInt32,Tuple{Int,Instruction}}()
-    for (i, (addr, inst)) in enumerate(zip(addresses, instructions))
+    for (i, ((addr, _), inst)) in enumerate(zip(address_info, instructions))
         pc_to_instruction[addr] = (i, inst)
     end
 
@@ -482,8 +487,8 @@ function interpret_program(
                 if haskey(debug_call_targets, call_target)
                     func_sym = debug_call_targets[call_target]
                     handle_debug_function_call!(state, func_sym, old_pc)
-                    if current_addr_idx < length(addresses)
-                        state.registers[:PC] = addresses[current_addr_idx + 1]
+                    if current_addr_idx < length(address_info)
+                        state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     end
                     continue
                 end
@@ -507,7 +512,7 @@ function interpret_program(
                             :total => 0,
                         )
                     end
-                    state.registers[:PC] = addresses[current_addr_idx + 1]
+                    state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
                 end
 
@@ -519,7 +524,7 @@ function interpret_program(
                         push!(event_accesses, deepcopy(current_event_access[]))
                         current_event_access[] = nothing
                     end
-                    state.registers[:PC] = addresses[current_addr_idx + 1]
+                    state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
                 end
 
@@ -528,7 +533,7 @@ function interpret_program(
                 for (func_name, func_addr) in skip_func_addrs
                     if func_addr == call_target
                         @debug "Skipping call to $func_name at 0x$(string(old_pc, base=16, pad=4))"
-                        state.registers[:PC] = addresses[current_addr_idx + 1]
+                        state.registers[:PC] = address_info[current_addr_idx + 1][1]
                         skip_function = true
                         break
                     end
@@ -540,7 +545,7 @@ function interpret_program(
             end
 
             # Execute the instruction
-            events = execute_instruction!(state, inst, addresses, current_addr_idx)
+            events = execute_instruction!(state, inst, address_info, current_addr_idx)
             append!(current_execution_trace, events)
             if log_memory_access && current_event_access[] !== nothing
                 update_access_counts!(current_event_access[], events, memory_regions)
