@@ -121,9 +121,7 @@ function run_interpret(
         i -> begin
             if log_memory_access && i <= length(event_accesses)
                 acc = event_accesses[i]
-                @info "Event $i memory_accesses" fram_read_hit = get(
-                    acc, :fram_read_hit, 0
-                ) fram_read_miss = get(acc, :fram_read_miss, 0) fram_write = get(
+                @info "Event $i memory_accesses" fram_read_hit = get(acc, :fram_read_hit, 0) fram_read_miss = get(acc, :fram_read_miss, 0) fram_write = get(
                     acc, :fram_write, 0
                 ) sram_read = get(acc, :sram_read, 0) sram_write = get(
                     acc, :sram_write, 0
@@ -155,10 +153,10 @@ function run_interpret(
             @info "All events unique_opcodes: $opcodes_str"
         end
     elseif model isa Model.MeanPairModel
-        all_param_pairs = Set{Tuple{Model.ParamKey,Model.ParamKey}}()
+        all_param_pairs = Set{Tuple{Model.Key,Model.Key}}()
         for (i, event) in enumerate(event_traces)
             instruction_events = filter(evt -> evt.type == Types.Inst, event)
-            pair_keys = Tuple{Model.ParamKey,Model.ParamKey}[]
+            pair_keys = Tuple{Model.Key,Model.Key}[]
             for idx in 1:(length(instruction_events) - 1)
                 key1 = Model.get_instruction_key(instruction_events[idx], granularity)
                 key2 = Model.get_instruction_key(instruction_events[idx + 1], granularity)
@@ -181,7 +179,7 @@ function run_interpret(
             @info "All events param_pairs: $pairs_str"
         end
     else
-        all_param_keys = Set{Model.ParamKey}()
+        all_param_keys = Set{Model.Key}()
         for (i, event) in enumerate(event_traces)
             instruction_events = filter(evt -> evt.type == Types.Inst, event)
             unique_param_keys = unique([

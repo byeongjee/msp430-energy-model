@@ -7,7 +7,7 @@ using ..Types:
 Type alias for parameter keys.
 Keys can contain symbols (opcodes, addressing modes) and integers (compile-time constants).
 """
-const ParamKey = Tuple{Vararg{Union{Symbol,Int}}}
+const Key = Tuple{Vararg{Union{Symbol,Int}}}
 
 const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm, :rpt]
 # See table 9-65 of https://www.ti.com/lit/ds/symlink/msp430fr5994.pdf
@@ -63,7 +63,7 @@ Get instruction key for parameter lookup based on granularity level.
 For dual-operand instructions with PerAddressingMode, uses source and destination modes.
 For PerAddressingModeConstant, also includes compile-time constant values for specific instructions.
 """
-function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::ParamKey
+function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::Key
     # Treat RPT blocks as a single instruction keyed by the nested instruction
     if inst.opcode == :rpt && inst.rpt_nested !== nothing
         repeat_count = length(inst.operands) >= 1 ? Int(inst.operands[1].value) : 0
@@ -131,7 +131,7 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
 end
 
 # Allow trace entries in addition to bare instructions.
-get_instruction_key(event::ExecutionEvent, granularity::ModelGranularity)::ParamKey =
+get_instruction_key(event::ExecutionEvent, granularity::ModelGranularity)::Key =
     if event.type == Inst
         get_instruction_key(get_inst(event), granularity)
     else
@@ -144,8 +144,8 @@ Only includes meaningful combinations.
 """
 function get_valid_param_keys(
     training_data::TrainingData, granularity::ModelGranularity
-)::Set{ParamKey}
-    valid_keys = Set{ParamKey}()
+)::Set{Key}
+    valid_keys = Set{Key}()
 
     for program in training_data.programs
         for trace in program
