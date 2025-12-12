@@ -58,16 +58,15 @@ function run_interpreter(
 
     # Execute program
     final_state, event_traces = Interpreter.interpret_program(
-        instructions,
-        address_info,
-        func_addrs,
-        max_steps;
-        data_file=data_dump,
-        log_memory_access=log_memory_access,
+        instructions, address_info, func_addrs, max_steps; data_file=data_dump
     )
 
     # Compute event accesses from traces if memory access logging is enabled
-    event_accesses = log_memory_access ? Interpreter.compute_event_accesses(event_traces, Interpreter.build_memory_regions()) : Vector{Dict{Symbol,Int}}()
+    event_accesses =
+        log_memory_access ?
+        Interpreter.compute_event_accesses(
+            event_traces, Interpreter.build_memory_regions()
+        ) : Vector{Dict{Symbol,Int}}()
 
     return final_state, event_accesses
 end
@@ -203,7 +202,9 @@ function test_fixture(fixture_path::String)
     @testset "Test: $test_name" begin
         # Run interpreter with optional memory access logging
         if has_cache_test
-            final_state, event_accesses = run_interpreter(asm_file, 100000000, data_file, true)
+            final_state, event_accesses = run_interpreter(
+                asm_file, 100000000, data_file, true
+            )
         else
             final_state, _ = run_interpreter(asm_file, 100000000, data_file, false)
         end
@@ -239,7 +240,9 @@ function test_fixture(fixture_path::String)
                 for (event_key, diffs) in cache_diffs
                     println("  $event_key:")
                     for (field, values) in diffs
-                        println("    $field: actual=$(values.actual), expected=$(values.expected)")
+                        println(
+                            "    $field: actual=$(values.actual), expected=$(values.expected)",
+                        )
                     end
                 end
                 println()
