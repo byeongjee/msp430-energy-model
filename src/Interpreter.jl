@@ -76,9 +76,7 @@ end
 Accumulate per-event memory access counts for logging.
 """
 function update_access_counts!(
-    counts::Dict{Symbol,Int},
-    execution_trace::ExecutionTrace,
-    memory_regions,
+    counts::Dict{Symbol,Int}, execution_trace::ExecutionTrace, memory_regions
 )::Dict{Symbol,Int}
     for execution_event in execution_trace
         if execution_event.type == Inst ||
@@ -119,8 +117,7 @@ Compute memory access counts for each execution trace.
 Returns a vector of access count dictionaries, one per trace.
 """
 function compute_event_accesses(
-    event_traces::Vector{ExecutionTrace},
-    memory_regions,
+    event_traces::Vector{ExecutionTrace}, memory_regions
 )::Vector{Dict{Symbol,Int}}
     return [
         update_access_counts!(
@@ -304,7 +301,9 @@ end
 """
 Parse MSP430 assembly file and extract instructions with their addresses
 """
-function parse_asm_file(filename::String)::Tuple{Vector{Instruction},Vector{Tuple{UInt32,UInt32}},UInt32}
+function parse_asm_file(
+    filename::String
+)::Tuple{Vector{Instruction},Vector{Tuple{UInt32,UInt32}},UInt32}
     if !isfile(filename)
         error("Assembly file not found: $filename")
     end
@@ -413,8 +412,6 @@ function interpret_program(
     func_addrs::Dict{String,UInt32},
     max_steps::Int;
     data_file::Union{String,Nothing}=nothing,
-    memory_regions=build_memory_regions(),
-    log_memory_access::Bool=false,
 )::Tuple{MachineState,Vector{ExecutionTrace}}
     @info "="^60
     @info "Interpret Program"
@@ -516,7 +513,9 @@ function interpret_program(
             is_call = inst.opcode == :call
 
             if is_call
-                call_target, _ = get_operand_value(state, inst.operands[1], inst.data_size, inst)
+                call_target, _ = get_operand_value(
+                    state, inst.operands[1], inst.data_size, inst
+                )
 
                 # Check for debug_out_* stubs; handle in interpreter and skip call
                 if haskey(debug_call_targets, call_target)
