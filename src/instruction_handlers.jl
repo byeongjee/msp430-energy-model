@@ -221,8 +221,8 @@ function execute!(
     inst::Instruction,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    return execute!(state, handler, inst.operands, inst.data_size, address_info, current_idx)
+)::Vector{ExecutionEvent}
+    return execute!(state, handler, inst, inst.operands, inst.data_size, address_info, current_idx)
 end
 
 # Each handler implements execute! with its specific logic.
@@ -238,272 +238,338 @@ end
 function execute!(
     state::MachineState,
     ::MovHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    set_operand_value!(state, ops[2], src_val, data_size)
-    return nothing
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_events = set_operand_value!(state, ops[2], src_val, data_size, inst)
+    append!(events, dst_events)
+    return events
 end
 
 # MOVA - Move address (20-bit) - same as MOV, data_size set by parser
 function execute!(
     state::MachineState,
     ::MovaHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    set_operand_value!(state, ops[2], src_val, data_size)
-    return nothing
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_events = set_operand_value!(state, ops[2], src_val, data_size, inst)
+    append!(events, dst_events)
+    return events
 end
 
 # ADD - Add source to destination
 function execute!(
     state::MachineState,
     ::AddHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val + src_val)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # ADDA - Add address-sized source to destination
 function execute!(
     state::MachineState,
     ::AddaHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val + src_val)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # ADDC - Add with carry
 function execute!(
     state::MachineState,
     ::AddcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     carry = state.flags[:C] ? UInt32(1) : UInt32(0)
     result = UInt32(dst_val + src_val + carry)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # SUB - Subtract source from destination
 function execute!(
     state::MachineState,
     ::SubHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val - src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # SUBC - Subtract with carry
 function execute!(
     state::MachineState,
     ::SubcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
     result = UInt32(dst_val - src_val - carry)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # CMP - Compare (subtract without storing)
 function execute!(
     state::MachineState,
     ::CmpHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val - src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    return nothing  # Don't store result for compare
+    return events  # Don't store result for compare
 end
 
 # DADD - Decimal add (BCD addition)
 function execute!(
     state::MachineState,
     ::DaddHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val + src_val)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # BIT - Test bits (AND without storing)
 function execute!(
     state::MachineState,
     ::BitHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val & src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    return nothing  # Don't store result for bit test
+    return events  # Don't store result for bit test
 end
 
 # BIC - Bit clear
 function execute!(
     state::MachineState,
     ::BicHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val & (~src_val))
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # BIS - Bit set
 function execute!(
     state::MachineState,
     ::BisHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val | src_val)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # XOR - Exclusive OR
 function execute!(
     state::MachineState,
     ::XorHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val ⊻ src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # AND - Logical AND
 function execute!(
     state::MachineState,
     ::AndHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    src_val = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, src_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
     result = UInt32(dst_val & src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, result_events)
+    return events
 end
 
 # ----------------------------------------------------------------------------
@@ -514,21 +580,25 @@ end
 function execute!(
     state::MachineState,
     ::RrcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     new_carry = (operand_val & 0x0001) != 0
     result = UInt32((operand_val >> 1) | (state.flags[:C] ? 0x8000 : 0x0000))
     state.flags[:C] = new_carry
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RRCM - Rotate right through carry multiple times
@@ -537,16 +607,20 @@ end
 function execute!(
     state::MachineState,
     ::RrcmHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    shift_count = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    shift_count, shift_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, shift_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
 
     # Determine the MSB position based on data size
     msb_mask = if data_size == :address
@@ -563,61 +637,73 @@ function execute!(
     end
 
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # SWPB - Swap bytes
 function execute!(
     state::MachineState,
     ::SwpbHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = UInt32(((operand_val & 0x00FF) << 8) | ((operand_val & 0xFF00) >> 8))
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RRA - Arithmetic right shift
 function execute!(
     state::MachineState,
     ::RraHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = UInt32(Int32(operand_val) >> 1)
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RRAX - Arithmetic right shift extended (MSP430X, supports 20-bit addressing)
 function execute!(
     state::MachineState,
     ::RraxHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
 
     # Arithmetic right shift (sign-extended)
     # We need to handle sign extension carefully to avoid overflow
@@ -649,31 +735,36 @@ function execute!(
 
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RRUX - Logical right shift extended (MSP430X, no sign extension)
 function execute!(
     state::MachineState,
     ::RruxHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
 
     # Logical right shift (zero fill)
     result = operand_val >> 1
 
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RRUM - Rotate right unsigned multiple times
@@ -683,16 +774,20 @@ end
 function execute!(
     state::MachineState,
     ::RrumHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    shift_count = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    shift_count, shift_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, shift_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
 
     # The carry flag is set to the bit that gets shifted out after n shifts
     # For n shifts, this is bit (n-1) of the original value
@@ -714,46 +809,54 @@ function execute!(
     end
 
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # SXT - Sign extend byte to word
 function execute!(
     state::MachineState,
     ::SxtHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = if (operand_val & 0x0080) != 0
         UInt32(operand_val | 0xFF00)
     else
         UInt32(operand_val & 0x00FF)
     end
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # INV - Bitwise invert
 function execute!(
     state::MachineState,
     ::InvHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = apply_data_size_mask(~operand_val, data_size)
 
     # INV sets C=1, clears V, and updates N/Z based on the masked result.
@@ -778,53 +881,67 @@ function execute!(
         (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # PUSH - Push to stack
 function execute!(
     state::MachineState,
     ::PushHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     bytes_per_val = data_size == :address ? UInt32(4) : UInt32(2)
     state.registers[:SP] = UInt32(
         (state.registers[:SP] - bytes_per_val) & get_register_mask(:SP)
     )
     if data_size == :address
-        write_memory!(state, state.registers[:SP], operand_val, :address)
+        # Direct write for stack push (event tracking handled elsewhere if needed)
+        if operand_val <= 0xFFFF
+            state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
+        else
+            state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
+            state.memory[state.registers[:SP] + 2] = UInt16((operand_val >> 16) & 0xFFFF)
+        end
     else
         state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
     end
-    return nothing
+    # TODO: Track stack writes as events when needed
+    return events
 end
 
 # CALL - Call subroutine
 function execute!(
     state::MachineState,
     ::CallHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
     if current_idx >= length(address_info)
         error(
             "Call instruction at index $current_idx has no next instruction for return address",
         )
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     return_addr = address_info[current_idx + 1][1]
     # CALL instruction only supports 16-bit return addresses
     if return_addr > 0xFFFF
@@ -837,35 +954,39 @@ function execute!(
     )
     state.memory[state.registers[:SP]] = UInt16(return_addr)
     state.registers[:PC] = operand_val
-    return nothing
+    # TODO: Track stack write as event when needed
+    return events
 end
 
 # RET - Return from subroutine
 function execute!(
     state::MachineState,
     ::RetHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     return_addr = get(state.memory, state.registers[:SP], UInt16(0))
     state.registers[:PC] = return_addr
     state.registers[:SP] = UInt32(
         (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
     )
-    return nothing
+    # TODO: Track stack read as event when needed
+    return ExecutionEvent[]
 end
 
 # RETI - Return from interrupt
 function execute!(
     state::MachineState,
     ::RetiHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     state.registers[:SR] = state.memory[state.registers[:SP]]
     state.registers[:SP] = UInt32(
         (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
@@ -874,128 +995,145 @@ function execute!(
     state.registers[:SP] = UInt32(
         (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
     )
-    return nothing
+    # TODO: Track stack reads as events when needed
+    return ExecutionEvent[]
 end
 
 # CLR - Clear (set to zero)
 function execute!(
     state::MachineState,
     ::ClrHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    set_operand_value!(state, ops[1], UInt32(0), data_size)
-    return nothing
+    events = set_operand_value!(state, ops[1], UInt32(0), data_size, inst)
+    return events
 end
 
 # INC - Increment by 1
 function execute!(
     state::MachineState,
     ::IncHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = operand_val + UInt32(1)
     update_flags!(state, result, operand_val, UInt32(1), true, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # DEC - Decrement by 1
 function execute!(
     state::MachineState,
     ::DecHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = operand_val - UInt32(1)
     update_flags!(state, result, operand_val, UInt32(1), false, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # DINT - Disable interrupt
 function execute!(
     state::MachineState,
     ::DintHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     state.registers[:SR] = state.registers[:SR] & ~0x0008  # Clear GIE bit (bit 3)
-    return nothing
+    return ExecutionEvent[]
 end
 
 # EINT - Enable interrupt
 function execute!(
     state::MachineState,
     ::EintHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     state.registers[:SR] = state.registers[:SR] | 0x0008  # Set GIE bit (bit 3)
-    return nothing
+    return ExecutionEvent[]
 end
 
 # SETC - Set carry flag
 function execute!(
     state::MachineState,
     ::SetcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     state.flags[:C] = true
     state.registers[:SR] = state.registers[:SR] | 0x0001  # Set C bit (bit 0)
-    return nothing
+    return ExecutionEvent[]
 end
 
 # CLRC - Clear carry flag
 function execute!(
     state::MachineState,
     ::ClrcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     state.flags[:C] = false
     state.registers[:SR] = state.registers[:SR] & ~0x0001  # Clear C bit (bit 0)
-    return nothing
+    return ExecutionEvent[]
 end
 
 # RLC - Rotate left through carry
 function execute!(
     state::MachineState,
     ::RlcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     # RLC rotates left through carry: shifts left and inserts carry into LSB
-    dst_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    dst_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     carry = (state.registers[:SR] & 0x0001) != 0 ? UInt32(1) : UInt32(0)
 
     # Shift left and add carry
@@ -1041,75 +1179,88 @@ function execute!(
         (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # NOP - No operation
 function execute!(
     state::MachineState,
     ::NopHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
-    return nothing
+)::Vector{ExecutionEvent}
+    return ExecutionEvent[]
 end
 
 # BR - Branch (indirect jump)
 function execute!(
     state::MachineState,
     ::BrHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     state.registers[:PC] = operand_val
-    return nothing
+    return events
 end
 
 # DECD - Double decrement
 function execute!(
     state::MachineState,
     ::DecdHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = operand_val - UInt32(2)
     update_flags!(state, result, operand_val, UInt32(2), false, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # INCD - Double increment
 function execute!(
     state::MachineState,
     ::IncdHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     result = operand_val + UInt32(2)
     update_flags!(state, result, operand_val, UInt32(2), true, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RPT - Repeat next instruction N times (execute nested instruction directly)
@@ -1119,9 +1270,13 @@ function execute!(
     inst::Instruction,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     nested_inst = inst.rpt_nested
-    count = Int(get_operand_value(state, inst.operands[1], inst.data_size))
+    count_val, count_events = get_operand_value(state, inst.operands[1], inst.data_size, inst)
+    count = Int(count_val)
+
+    all_events = ExecutionEvent[]
+    append!(all_events, count_events)
 
     nested_idx = current_idx + 1
     nested_addr = address_info[nested_idx][1]
@@ -1130,98 +1285,116 @@ function execute!(
 
     for _ in 1:count
         state.registers[:PC] = nested_addr
-        execute!(
+        nested_events = execute!(
             state,
             nested_handler,
+            nested_inst,
             nested_inst.operands,
             nested_inst.data_size,
             address_info,
             nested_idx,
         )
+        append!(all_events, nested_events)
     end
 
     if after_nested_idx <= length(address_info) && state.registers[:PC] == nested_addr
         state.registers[:PC] = address_info[after_nested_idx][1]
     end
 
-    return nothing
+    return all_events
 end
 
 # SBC - Subtract carry
 function execute!(
     state::MachineState,
     ::SbcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
     result = UInt32(operand_val - carry)
     update_flags!(state, result, operand_val, carry, false, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # ADC - Add carry
 function execute!(
     state::MachineState,
     ::AdcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     carry = state.flags[:C] ? UInt32(1) : UInt32(0)
     result = UInt32(operand_val + carry)
     update_flags!(state, result, operand_val, carry, true, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RLA - Rotate left arithmetic
 function execute!(
     state::MachineState,
     ::RlaHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
-    operand_val = get_operand_value(state, ops[1], data_size)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, read_events)
     new_carry = (operand_val & 0x8000) != 0
     result = UInt32(operand_val << 1)
     state.flags[:C] = new_carry
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[1], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # RLAM - Rotate left arithmetic multiple
 function execute!(
     state::MachineState,
     ::RlamHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    shift_count = get_operand_value(state, ops[1], data_size)
-    dst_val = get_operand_value(state, ops[2], data_size)
+    events = ExecutionEvent[]
+    shift_count, shift_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, shift_events)
+    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    append!(events, dst_events)
 
     result = dst_val
     for i in 1:shift_count
@@ -1231,23 +1404,28 @@ function execute!(
     end
 
     update_flags_simple!(state, result, data_size)
-    set_operand_value!(state, ops[2], result, data_size)
-    return nothing
+    write_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    append!(events, write_events)
+    return events
 end
 
 # PUSHM - Push multiple registers
 function execute!(
     state::MachineState,
     ::PushmHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    n = Int(get_operand_value(state, ops[1], data_size))
+    events = ExecutionEvent[]
+    n_val, n_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, n_events)
+    n = Int(n_val)
     dst_reg = ops[2].value
     dst_num = Parser.reg_symbol_to_num(dst_reg)
 
@@ -1267,28 +1445,39 @@ function execute!(
             )
 
             if data_size == :address
-                write_memory!(state, state.registers[:SP], reg_val, :address)
+                # Direct write for stack push (event tracking handled elsewhere if needed)
+                if reg_val <= 0xFFFF
+                    state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
+                else
+                    state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
+                    state.memory[state.registers[:SP] + 2] = UInt16((reg_val >> 16) & 0xFFFF)
+                end
             else
                 state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
             end
         end
     end
-    return nothing
+    # TODO: Track stack writes as events when needed
+    return events
 end
 
 # POPM - Pop multiple registers
 function execute!(
     state::MachineState,
     ::PopmHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 2
-        return nothing
+        return ExecutionEvent[]
     end
-    n = Int(get_operand_value(state, ops[1], data_size))
+    events = ExecutionEvent[]
+    n_val, n_events = get_operand_value(state, ops[1], data_size, inst)
+    append!(events, n_events)
+    n = Int(n_val)
     dst_reg = ops[2].value
     dst_num = Parser.reg_symbol_to_num(dst_reg)
 
@@ -1303,7 +1492,9 @@ function execute!(
             reg_sym = Parser.reg_num_to_symbol(i)
 
             reg_val = if data_size == :address
-                read_memory(state, state.registers[:SP], :address)
+                val, read_events = read_memory(state, state.registers[:SP], :address, inst)
+                append!(events, read_events)
+                val
             else
                 UInt32(get(state.memory, state.registers[:SP], UInt16(0)))
             end
@@ -1314,7 +1505,7 @@ function execute!(
             )
         end
     end
-    return nothing
+    return events
 end
 
 # ----------------------------------------------------------------------------
@@ -1328,9 +1519,9 @@ function execute_jump_helper!(
     ops::Vector{Operand},
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
+)::Vector{ExecutionEvent}
     if length(ops) < 1
-        return nothing
+        return ExecutionEvent[]
     end
 
     # Extract jump offset from symbolic addressing
@@ -1354,91 +1545,98 @@ function execute_jump_helper!(
             state.registers[:PC] = address_info[current_idx + 1][1]
         end
     end
-    return nothing
+    return ExecutionEvent[]
 end
 
 # JMP - Unconditional jump
 function execute!(
     state::MachineState,
     ::JmpHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(state, true, ops, address_info, current_idx)
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(state, true, ops, address_info, current_idx)
 end
 
 # JNZ - Jump if not zero
 function execute!(
     state::MachineState,
     ::JnzHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(state, !state.flags[:Z], ops, address_info, current_idx)
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(state, !state.flags[:Z], ops, address_info, current_idx)
 end
 
 # JZ - Jump if zero
 function execute!(
     state::MachineState,
     ::JzHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(state, state.flags[:Z], ops, address_info, current_idx)
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(state, state.flags[:Z], ops, address_info, current_idx)
 end
 
 # JNC - Jump if no carry
 function execute!(
     state::MachineState,
     ::JncHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(state, !state.flags[:C], ops, address_info, current_idx)
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(state, !state.flags[:C], ops, address_info, current_idx)
 end
 
 # JC - Jump if carry
 function execute!(
     state::MachineState,
     ::JcHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(state, state.flags[:C], ops, address_info, current_idx)
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(state, state.flags[:C], ops, address_info, current_idx)
 end
 
 # JN - Jump if negative
 function execute!(
     state::MachineState,
     ::JnHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(state, state.flags[:N], ops, address_info, current_idx)
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(state, state.flags[:N], ops, address_info, current_idx)
 end
 
 # JGE - Jump if greater or equal (signed)
 function execute!(
     state::MachineState,
     ::JgeHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(
         state, !(state.flags[:N] ⊻ state.flags[:V]), ops, address_info, current_idx
     )
 end
@@ -1447,12 +1645,13 @@ end
 function execute!(
     state::MachineState,
     ::JlHandler,
+    inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-)::Nothing
-    execute_jump_helper!(
+)::Vector{ExecutionEvent}
+    return execute_jump_helper!(
         state, (state.flags[:N] ⊻ state.flags[:V]), ops, address_info, current_idx
     )
 end

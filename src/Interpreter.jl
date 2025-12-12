@@ -16,7 +16,8 @@ using ..Types:
     FRAMReadMiss,
     FRAMWrite,
     SRAMRead,
-    SRAMWrite
+    SRAMWrite,
+    WithEvent
 using ..Parser
 
 include("machine_state.jl")
@@ -165,7 +166,8 @@ function load_memory_dump!(state::MachineState, data_file::String)::Bool
         hex_str = join(hex_tokens, "")
         for i in 1:2:length(hex_str)
             byte_val = parse(UInt8, hex_str[i:(i + 1)]; base=16)
-            write_memory!(state, addr + UInt32(div(i - 1, 2)), UInt32(byte_val), :byte)
+            # Direct memory write for initialization (no event tracking needed)
+            state.memory[addr + UInt32(div(i - 1, 2))] = UInt16(byte_val)
             bytes_written += 1
         end
     end
@@ -214,12 +216,30 @@ function _memory_op_debug_msg(
             operand_str = string(operand.value)
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
-            return read_memory(state, addr, data_size)
+            # Use uncached read for debug - no events
+            if data_size == :byte
+                return UInt32(_read_byte_uncached(state, addr))
+            elseif data_size == :word
+                return UInt32(_read_word_uncached(state, addr))
+            else  # :address
+                lsw = _read_word_uncached(state, addr)
+                msw = _read_word_uncached(state, addr + UInt32(2))
+                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
+            end
         elseif operand.mode == :autoincrement
             operand_str = string(operand.value)
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
-            return read_memory(state, addr, data_size)
+            # Use uncached read for debug - no events
+            if data_size == :byte
+                return UInt32(_read_byte_uncached(state, addr))
+            elseif data_size == :word
+                return UInt32(_read_word_uncached(state, addr))
+            else  # :address
+                lsw = _read_word_uncached(state, addr)
+                msw = _read_word_uncached(state, addr + UInt32(2))
+                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
+            end
         elseif operand.mode == :indexed || operand.mode == :symbolic
             offset, reg = operand.value
             base_addr = get(old_regs, reg, UInt32(0))
@@ -227,9 +247,27 @@ function _memory_op_debug_msg(
                 base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
             end
             addr = UInt32((base_addr + offset) & get_register_mask(reg))
-            return read_memory(state, addr, data_size)
+            # Use uncached read for debug - no events
+            if data_size == :byte
+                return UInt32(_read_byte_uncached(state, addr))
+            elseif data_size == :word
+                return UInt32(_read_word_uncached(state, addr))
+            else  # :address
+                lsw = _read_word_uncached(state, addr)
+                msw = _read_word_uncached(state, addr + UInt32(2))
+                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
+            end
         elseif operand.mode == :absolute
-            return read_memory(state, UInt32(operand.value), data_size)
+            # Use uncached read for debug - no events
+            if data_size == :byte
+                return UInt32(_read_byte_uncached(state, UInt32(operand.value)))
+            elseif data_size == :word
+                return UInt32(_read_word_uncached(state, UInt32(operand.value)))
+            else  # :address
+                lsw = _read_word_uncached(state, UInt32(operand.value))
+                msw = _read_word_uncached(state, UInt32(operand.value) + UInt32(2))
+                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
+            end
         else
             return UInt32(0)
         end
@@ -481,7 +519,7 @@ function interpret_program(
             is_call = inst.opcode == :call
 
             if is_call
-                call_target = get_operand_value(state, inst.operands[1])
+                call_target, _ = get_operand_value(state, inst.operands[1], inst.data_size, inst)
 
                 # Check for debug_out_* stubs; handle in interpreter and skip call
                 if haskey(debug_call_targets, call_target)
