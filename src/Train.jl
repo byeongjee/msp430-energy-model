@@ -17,7 +17,7 @@ Process a single assembly file and its corresponding measurement data.
 Returns event traces and energy measurements.
 """
 function process_training_file(
-    asm_file::String, data_file::String, max_steps::Int
+    asm_file::String, data_file::String, max_steps::Int, granularity::Types.ModelGranularity
 )::Tuple{Vector{ExecutionTrace},Vector{Float64}}
     @info "Processing training file" asm = asm_file data = data_file
 
@@ -36,7 +36,7 @@ function process_training_file(
     end
 
     _, event_traces = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps; data_file=nothing
+        instructions, address_info, func_addrs, max_steps, granularity; data_file=nothing
     )
 
     @info "Reading measurement data from CSV"
@@ -80,6 +80,7 @@ function run_train(
 
     model = Model.create_model(model_str)
     @info "Model type" model = model_str
+    granularity = model.granularity
 
     if !isnothing(output_file)
         @info "Output file" path = output_file
@@ -89,7 +90,8 @@ function run_train(
     all_energies = Vector{Float64}()
 
     for (asm_file, data_file) in zip(asm_files, data_files)
-        event_traces, energies = process_training_file(asm_file, data_file, max_steps)
+        event_traces, energies =
+            process_training_file(asm_file, data_file, max_steps, granularity)
         append!(all_event_traces, event_traces)
         append!(all_energies, energies)
     end

@@ -91,8 +91,13 @@ function run_interpret(
         @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
     end
 
+    # Get model and granularity before interpretation
+    model = isnothing(model_str) ? nothing : Model.create_model(model_str)
+    granularity =
+        isnothing(model) ? Types.PerAddressingModeConstant : model.granularity
+
     final_state, event_traces = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps; data_file=data_dump
+        instructions, address_info, func_addrs, max_steps, granularity; data_file=data_dump
     )
 
     # Compute event accesses from traces if memory access logging is enabled
@@ -100,9 +105,6 @@ function run_interpret(
         log_memory_access ?
         Interpreter.compute_event_accesses(event_traces, memory_regions) :
         Vector{Dict{Symbol,Int}}()
-
-    model = isnothing(model_str) ? nothing : Model.create_model(model_str)
-    granularity = isnothing(model) ? nothing : model.granularity
 
     format_param_key = key -> join(string.(key), "_")
     format_pair_key = pair_key -> begin
@@ -158,8 +160,8 @@ function run_interpret(
             instruction_events = filter(evt -> evt.type == Types.Inst, event)
             pair_keys = Tuple{Model.Key,Model.Key}[]
             for idx in 1:(length(instruction_events) - 1)
-                key1 = Model.get_instruction_key(instruction_events[idx], granularity)
-                key2 = Model.get_instruction_key(instruction_events[idx + 1], granularity)
+                key1 = instruction_events[idx].key
+                key2 = instruction_events[idx + 1].key
                 push!(pair_keys, Model.normalize_pair(key1, key2))
             end
             unique_pair_keys = unique(pair_keys)
@@ -182,9 +184,7 @@ function run_interpret(
         all_param_keys = Set{Model.Key}()
         for (i, event) in enumerate(event_traces)
             instruction_events = filter(evt -> evt.type == Types.Inst, event)
-            unique_param_keys = unique([
-                Model.get_instruction_key(inst, granularity) for inst in instruction_events
-            ])
+            unique_param_keys = unique([inst.key for inst in instruction_events])
             sort!(unique_param_keys; by=string)
             union!(all_param_keys, unique_param_keys)
             keys_str = join([format_param_key(key) for key in unique_param_keys], " ")

@@ -44,6 +44,7 @@ function run_estimate(
     model_str = detect_model_type(params_file)
     model = Model.create_model(model_str)
     @info "Detected model type" model = model_str
+    granularity = model.granularity
 
     Model.load_params!(model, params_file)
 
@@ -53,7 +54,7 @@ function run_estimate(
     @info "Executing program to get execution traces"
     start_time = time()
     _, execution_traces = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps; data_file=data_dump
+        instructions, address_info, func_addrs, max_steps, granularity; data_file=data_dump
     )
     inference_time = time() - start_time
 

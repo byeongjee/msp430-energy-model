@@ -41,10 +41,15 @@ function test_br_immediate_instruction_count()
         br_count = count(inst -> inst.opcode == :br, instructions)
         @info "Total br instructions in assembly" br_count
 
-        # Execute the program
+        # Execute the program (use finest granularity for tests)
         @info "Running interpreter..."
         final_state, event_traces = Interpreter.interpret_program(
-            instructions, address_info, func_addrs, 100000000; data_file=data_file
+            instructions,
+            address_info,
+            func_addrs,
+            100000000,
+            Types.PerAddressingModeConstant;
+            data_file=data_file,
         )
 
         # Expected: TEXTUAL_REPT (100) br instructions per inner iteration

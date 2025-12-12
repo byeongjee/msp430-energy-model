@@ -32,8 +32,8 @@ function get_dominant_pair(
     # Count instruction pairs
     pair_counts = Dict{Tuple{Key,Key},Int}()
     for i in 1:(length(program) - 1)
-        key1 = get_instruction_key(program[i], granularity)
-        key2 = get_instruction_key(program[i + 1], granularity)
+        key1 = program[i].key
+        key2 = program[i + 1].key
         # Normalize to unordered pair
         pair_key = normalize_pair(key1, key2)
         pair_counts[pair_key] = get(pair_counts, pair_key, 0) + 1
@@ -191,8 +191,8 @@ function learn_params_least_squares!(
             continue
         end
         for i in 1:(length(program) - 1)
-            key1 = get_instruction_key(program[i], model.granularity)
-            key2 = get_instruction_key(program[i + 1], model.granularity)
+            key1 = program[i].key
+            key2 = program[i + 1].key
             # Normalize to unordered pair
             unordered_pair = normalize_pair(key1, key2)
             push!(all_pairs, unordered_pair)
@@ -234,8 +234,8 @@ function learn_params_least_squares!(
             continue
         end
         for k in 1:(length(program) - 1)
-            key1 = get_instruction_key(program[k], model.granularity)
-            key2 = get_instruction_key(program[k + 1], model.granularity)
+            key1 = program[k].key
+            key2 = program[k + 1].key
             # Normalize to unordered pair
             pair_key = normalize_pair(key1, key2)
             j = pair_to_idx[pair_key]
@@ -608,8 +608,8 @@ function estimate_energy_sum_pair_means(
     default_energy = 1.0  # Default 1nJ per pair
 
     for i in 1:(length(program) - 1)
-        key1 = get_instruction_key(program[i], model.granularity)
-        key2 = get_instruction_key(program[i + 1], model.granularity)
+        key1 = program[i].key
+        key2 = program[i + 1].key
         # Normalize to unordered pair
         pair_key = normalize_pair(key1, key2)
 

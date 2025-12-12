@@ -12,7 +12,44 @@ export Operand,
     MachineState,
     EnergyStats,
     TrainingData,
-    get_inst
+    get_inst,
+    Key,
+    ModelGranularity,
+    PerOpcode,
+    PerAddressingMode,
+    PerAddressingModeConstant
+
+"""
+Type alias for parameter keys.
+Keys can contain symbols (opcodes, addressing modes) and integers (compile-time constants).
+"""
+const Key = Tuple{Vararg{Union{Symbol,Int}}}
+
+"""
+Granularity level for energy model parameters.
+Determines how fine-grained the energy model is.
+"""
+@enum ModelGranularity begin
+    PerOpcode = 1                    # One parameter per opcode (e.g., mov, add, sub)
+    PerAddressingMode = 2            # One parameter per (opcode, addressing_mode) combination
+    PerAddressingModeConstant = 3    # Like PerAddressingMode but includes compile-time constants
+end
+
+# Instructions where immediate constants significantly affect energy
+const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm, :rpt]
+
+# MSP430 multiplier-mapped memory addresses (Table 9-65 of MSP430FR5994 datasheet)
+const multiplier_address_modes = Dict(
+    UInt32(0x04C0) => :MPY,
+    UInt32(0x04C8) => :OP2,
+    UInt32(0x04CA) => :RESLO,
+    UInt32(0x04D0) => :MPY32L,
+    UInt32(0x04D2) => :MPY32H,
+    UInt32(0x04E0) => :OP2L,
+    UInt32(0x04E2) => :OP2H,
+    UInt32(0x04E4) => :RES0,
+    UInt32(0x04E6) => :RES1,
+)
 
 """
 Operand representation with its addressing mode
@@ -63,7 +100,104 @@ end
 struct ExecutionEvent
     type::EventType
     inst::Union{Nothing,Instruction}
-    operand_addressing_mode_and_constants::Vector{Any}
+    memory_access_info::Vector{Any}  # For memory access events: [addr, data_size]; empty for Inst events
+    key::Key
+end
+
+"""
+Get instruction key for parameter lookup based on granularity level.
+For dual-operand instructions with PerAddressingMode, uses source and destination modes.
+For PerAddressingModeConstant, also includes compile-time constant values for specific instructions.
+"""
+function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::Key
+    # Treat RPT blocks as a single instruction keyed by the nested instruction
+    if inst.opcode == :rpt && inst.rpt_nested !== nothing
+        repeat_count = length(inst.operands) >= 1 ? Int(inst.operands[1].value) : 0
+        nested_key = get_instruction_key(inst.rpt_nested, granularity)
+        return (:rpt, repeat_count, nested_key...)
+    end
+
+    # Remap absolute accesses to multiplier-mapped addresses into distinct modes
+    remap_mode(op::Operand)::Symbol = begin
+        if op.mode == :absolute && op.value isa Integer
+            addr = UInt32(op.value)
+            return get(multiplier_address_modes, addr, op.mode)
+        end
+        return op.mode
+    end
+
+    if granularity == PerOpcode
+        # Simple: just the opcode
+        return (inst.opcode,)
+    elseif granularity == PerAddressingMode
+        # Addressing mode aware, but no constant differentiation
+        if length(inst.operands) == 0
+            # No operands (e.g., ret, nop)
+            return (inst.opcode,)
+        elseif length(inst.operands) == 1
+            # Single operand (e.g., push R5, call, jmp)
+            return (inst.opcode, remap_mode(inst.operands[1]))
+        else
+            # Dual operand (e.g., mov, add) - use src and dst modes
+            src_mode = remap_mode(inst.operands[1])
+            dst_mode = remap_mode(inst.operands[2])
+            return (inst.opcode, src_mode, dst_mode)
+        end
+    else  # PerAddressingModeConstant
+        # Like PerAddressingMode but includes compile-time constants
+        if length(inst.operands) == 0
+            # No operands (e.g., ret, nop)
+            return (inst.opcode,)
+        elseif length(inst.operands) == 1
+            # Single operand (e.g., push R5, call, jmp)
+            src_mode = remap_mode(inst.operands[1])
+
+            if inst.opcode in constant_aware_opcodes && src_mode == :immediate
+                constant_value = Int(inst.operands[1].value)
+                return (inst.opcode, src_mode, constant_value)
+            end
+
+            return (inst.opcode, src_mode)
+        else
+            # Dual operand (e.g., mov, add) - use src and dst modes
+            src_mode = remap_mode(inst.operands[1])
+            dst_mode = remap_mode(inst.operands[2])
+
+            # Special handling for instructions with compile-time constants
+            # These instructions have immediate values that significantly affect energy
+            if inst.opcode in constant_aware_opcodes && src_mode == :immediate
+                # Include the constant value in the key (convert to Int for type consistency)
+                constant_value = Int(inst.operands[1].value)
+                return (inst.opcode, src_mode, constant_value, dst_mode)
+            end
+
+            return (inst.opcode, src_mode, dst_mode)
+        end
+    end
+end
+
+"""
+Constructor for ExecutionEvent with granularity (for Inst events).
+Computes key from instruction using get_instruction_key.
+"""
+function ExecutionEvent(
+    ::Type{Val{Inst}},
+    inst::Instruction,
+    granularity::ModelGranularity,
+)::ExecutionEvent
+    key = get_instruction_key(inst, granularity)
+    return ExecutionEvent(Inst, inst, Any[], key)
+end
+
+"""
+Constructor for ExecutionEvent without granularity (for memory access events).
+Key is simply the event type as a tuple.
+"""
+function ExecutionEvent(
+    event_type::EventType, inst::Union{Nothing,Instruction}, memory_access_info::Vector{Any}
+)::ExecutionEvent
+    key = (Symbol(event_type),)
+    return ExecutionEvent(event_type, inst, memory_access_info, key)
 end
 
 """

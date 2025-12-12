@@ -17,7 +17,9 @@ using ..Types:
     FRAMWrite,
     SRAMRead,
     SRAMWrite,
-    WithEvent
+    WithEvent,
+    ModelGranularity,
+    Key
 using ..Parser
 
 include("machine_state.jl")
@@ -79,12 +81,11 @@ function update_access_counts!(
     counts::Dict{Symbol,Int}, execution_trace::ExecutionTrace, memory_regions
 )::Dict{Symbol,Int}
     for execution_event in execution_trace
-        if execution_event.type == Inst ||
-            isempty(execution_event.operand_addressing_mode_and_constants)
+        if execution_event.type == Inst
             continue
         end
 
-        addr = execution_event.operand_addressing_mode_and_constants[1]
+        addr = execution_event.memory_access_info[1]
         region = classify_region(addr, memory_regions)
 
         if execution_event.type == FRAMReadHit
@@ -410,7 +411,8 @@ function interpret_program(
     instructions::Vector{Instruction},
     address_info::Vector{Tuple{UInt32,UInt32}},
     func_addrs::Dict{String,UInt32},
-    max_steps::Int;
+    max_steps::Int,
+    granularity::ModelGranularity;
     data_file::Union{String,Nothing}=nothing,
 )::Tuple{MachineState,Vector{ExecutionTrace}}
     @info "="^60
@@ -560,7 +562,7 @@ function interpret_program(
             end
 
             # Execute the instruction
-            events = execute_instruction!(state, inst, address_info, current_addr_idx)
+            events = execute_instruction!(state, inst, address_info, current_addr_idx, granularity)
             append!(current_execution_trace, events)
 
             # Debug logging only when needed
