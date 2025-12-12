@@ -52,8 +52,6 @@ function MachineState()::MachineState
         0,                      # cache_tick for LRU
         true,                   # current_inst_cache_hit default
         Bool[],                 # current_operand_cache_hits default
-        nothing,                # current_events
-        nothing,                # current_instruction
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
         0,  # repeat_counter initialized to 0
     )
@@ -241,22 +239,25 @@ Simulate instruction fetches through the cache. Instructions reside in FRAM, so
 fetches leverage the same cache logic and record FRAM reads.
 MSP430 instructions are 16-bit aligned and fetched via the 16-bit bus.
 """
-function fetch_instruction_bytes!(state::MachineState, addr::UInt32, len::UInt32)::Nothing
+function fetch_instruction_bytes!(
+    state::MachineState, addr::UInt32, len::UInt32, inst::Instruction
+)::Vector{ExecutionEvent}
     # Ensure at least one word is fetched even if size is unknown
     len_bytes = max(len, UInt32(2))
     # Round up to word boundary for total fetch size
     num_words = (len_bytes + UInt32(1)) ÷ UInt32(2)
 
+    events = ExecutionEvent[]
     all_hit = true
     for i in UInt32(0):(num_words - UInt32(1))
         word_addr = addr + (i * UInt32(2))
         # Record memory access for the word (as :word to reflect 16-bit bus access)
-        record_memory_access!(state, word_addr, :read, :word)
+        append!(events, record_memory_access(state, word_addr, :read, :word, inst))
         _, hit = _cache_read_word(state, word_addr)
         all_hit &= hit
     end
     state.current_inst_cache_hit = all_hit
-    return nothing
+    return events
 end
 
 """
@@ -278,34 +279,29 @@ function execute_instruction!(
     # Always include the instruction itself.
     push!(execution_events, ExecutionEvent(Inst, inst, Any[]))
 
-    state.current_events = execution_events
-    state.current_instruction = inst
-    try
-        state.current_operand_cache_hits = Bool[]
-        state.current_inst_cache_hit = true
+    state.current_operand_cache_hits = Bool[]
+    state.current_inst_cache_hit = true
 
-        # Instruction fetch from FRAM goes through cache simulation
-        # Use the actual instruction length from the disassembly
-        _, instr_len = address_info[current_idx]
-        fetch_instruction_bytes!(state, state.registers[:PC], instr_len)
+    # Instruction fetch from FRAM goes through cache simulation
+    # Use the actual instruction length from the disassembly
+    _, instr_len = address_info[current_idx]
+    fetch_events = fetch_instruction_bytes!(state, state.registers[:PC], instr_len, inst)
+    append!(execution_events, fetch_events)
 
-        # Get handler for this instruction
-        handler = get_handler(inst.opcode)
+    # Get handler for this instruction
+    handler = get_handler(inst.opcode)
 
-        # Execute instruction using multiple dispatch (RPT has a custom overload)
-        execute!(state, handler, inst, address_info, current_idx)
+    # Execute instruction using multiple dispatch (RPT has a custom overload)
+    exec_events = execute!(state, handler, inst, address_info, current_idx)
+    append!(execution_events, exec_events)
 
-        # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
-        # unless it's the RPT instruction itself (which sets the counter)
-        if state.repeat_counter > 0 && inst.opcode != :rpt
-            state.repeat_counter -= 1
-        elseif should_advance_pc(handler, state, inst.operands) &&
-            current_idx < length(address_info)
-            state.registers[:PC] = address_info[current_idx + 1][1]
-        end
-    finally
-        state.current_events = nothing
-        state.current_instruction = nothing
+    # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
+    # unless it's the RPT instruction itself (which sets the counter)
+    if state.repeat_counter > 0 && inst.opcode != :rpt
+        state.repeat_counter -= 1
+    elseif should_advance_pc(handler, state, inst.operands) &&
+        current_idx < length(address_info)
+        state.registers[:PC] = address_info[current_idx + 1][1]
     end
 
     return execution_events
@@ -358,9 +354,11 @@ function apply_data_size_mask(value::UInt32, data_size::Symbol)::UInt32
     end
 end
 
-function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt32
-    # Notify observers of the memory access
-    record_memory_access!(state, addr, :read, data_size)
+function read_memory(
+    state::MachineState, addr::UInt32, data_size::Symbol, inst::Instruction
+)::WithEvent{UInt32}
+    # Record the memory access as an event
+    events = record_memory_access(state, addr, :read, data_size, inst)
 
     use_cache = _is_fram_address(addr)
 
@@ -369,14 +367,14 @@ function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt
             use_cache ? _cache_read_byte(state, addr) :
             (_read_byte_uncached(state, addr), false)
         push!(state.current_operand_cache_hits, use_cache && hit)
-        return UInt32(byte)
+        return (UInt32(byte), events)
     elseif data_size == :word
         # MSP430 has 16-bit memory bus - aligned word access is a single operation
         word, hit =
             use_cache ? _cache_read_word(state, addr) :
             (_read_word_uncached(state, addr), false)
         push!(state.current_operand_cache_hits, use_cache && hit)
-        return UInt32(word)
+        return (UInt32(word), events)
     elseif data_size == :address
         # 20-bit address = two 16-bit words
         # Each word access is independent on the 16-bit bus
@@ -387,7 +385,7 @@ function read_memory(state::MachineState, addr::UInt32, data_size::Symbol)::UInt
             use_cache ? _cache_read_word(state, addr + UInt32(2)) :
             (_read_word_uncached(state, addr + UInt32(2)), false)
         push!(state.current_operand_cache_hits, use_cache && (hit1 && hit2))
-        return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
+        return (UInt32(lsw) | (UInt32(msw & 0xF) << 16), events)
     else
         error("Unknown data size: $data_size")
     end
@@ -398,18 +396,20 @@ const DEBUG_CHAR_BUFFER = IOBuffer()
 """
 Read a null-terminated C string from memory starting at `addr`.
 """
-function read_c_string(state::MachineState, addr::UInt32)::String
+function read_c_string(state::MachineState, addr::UInt32, inst::Instruction)::WithEvent{String}
     io = IOBuffer()
     current = addr
+    events = ExecutionEvent[]
     while true
-        byte_val = UInt8(read_memory(state, current, :byte) & 0xFF)
-        if byte_val == 0x00
+        byte_val, byte_events = read_memory(state, current, :byte, inst)
+        append!(events, byte_events)
+        if UInt8(byte_val & 0xFF) == 0x00
             break
         end
-        write(io, Char(byte_val))
+        write(io, Char(UInt8(byte_val & 0xFF)))
         current += UInt32(1)
     end
-    return String(take!(io))
+    return (String(take!(io)), events)
 end
 
 """
@@ -466,7 +466,9 @@ function handle_debug_function_call!(
         )
     elseif func_name == :debug_out_str
         ptr = get_register_value(state, :R12) & 0xFFFFF
-        text = read_c_string(state, ptr)
+        # Create a dummy instruction for debug string reads
+        dummy_inst = Instruction(:debug_out_str, Operand[], :word)
+        text, _ = read_c_string(state, ptr, dummy_inst)
         printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
         println(
             stderr,
@@ -478,9 +480,9 @@ function handle_debug_function_call!(
 end
 
 function write_memory!(
-    state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol
-)::Nothing
-    record_memory_access!(state, addr, :write, data_size)
+    state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol, inst::Instruction
+)::Vector{ExecutionEvent}
+    events = record_memory_access(state, addr, :write, data_size, inst)
     byte_len = if data_size == :byte
         1
     elseif data_size == :word
@@ -523,18 +525,16 @@ function write_memory!(
     else
         error("Unknown data size: $data_size")
     end
-    return nothing
+    return events
 end
 
 """
-Record a memory access as an ExecutionEvent when an event buffer is active.
+Record a memory access as an ExecutionEvent.
+Pure function that returns the event without mutating state.
 """
-function record_memory_access!(
-    state::MachineState, addr::UInt32, access_type::Symbol, data_size::Symbol
-)::Nothing
-    execution_events = state.current_events
-    isnothing(execution_events) && return nothing
-
+function record_memory_access(
+    state::MachineState, addr::UInt32, access_type::Symbol, data_size::Symbol, inst::Instruction
+)::Vector{ExecutionEvent}
     event_type = if access_type == :read
         if _is_fram_address(addr)
             _cache_has_line(state, addr) ? FRAMReadHit : FRAMReadMiss
@@ -553,41 +553,37 @@ function record_memory_access!(
         end
     end
 
-    push!(
-        execution_events,
-        ExecutionEvent(event_type, state.current_instruction, Any[addr, data_size]),
-    )
-    return nothing
+    return [ExecutionEvent(event_type, inst, Any[addr, data_size])]
 end
 
 """
 Get value from operand (register, immediate, or memory)
 """
 function get_operand_value(
-    state::MachineState, operand::Operand, data_size::Symbol=:word
-)::UInt32
-    value = if operand.mode == :immediate
+    state::MachineState, operand::Operand, data_size::Symbol, inst::Instruction
+)::WithEvent{UInt32}
+    value, events = if operand.mode == :immediate
         # Immediate value
         @assert isa(operand.value, Integer) "Immediate mode: operand.value must be Integer, got $(typeof(operand.value))"
-        UInt32(operand.value)
+        (UInt32(operand.value), ExecutionEvent[])
     elseif operand.mode == :register
         # Register
         @assert isa(operand.value, Symbol) "Register mode: operand.value must be Symbol, got $(typeof(operand.value))"
-        get_register_value(state, operand.value)
+        (get_register_value(state, operand.value), ExecutionEvent[])
     elseif operand.mode == :indirect
         # Indirect addressing: @R1 means "value at address contained in R1"
         @assert isa(operand.value, Symbol) "Indirect mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get_register_value(state, reg_name)
-        read_memory(state, addr, data_size)
+        read_memory(state, addr, data_size, inst)
     elseif operand.mode == :autoincrement
         # Autoincrement addressing: @R1+ means "value at address in R1, then increment R1"
         @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get_register_value(state, reg_name)
-        val = read_memory(state, addr, data_size)
+        val, mem_events = read_memory(state, addr, data_size, inst)
         # Increment register after reading (by 2 for word, 1 for byte)
         increment = if data_size == :byte
             UInt32(1)
@@ -610,7 +606,7 @@ function get_operand_value(
             mask; base=16, pad=5
         ) data_size = data_size new_val = string(new_val; base=16, pad=4)
         state.registers[reg_name] = new_val
-        val
+        (val, mem_events)
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
         # Symbolic addressing: X(PC) -> (PC + X) points to operand
@@ -630,25 +626,25 @@ function get_operand_value(
             base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
         end
         addr = UInt32((base_addr + offset) & get_register_mask(reg))
-        read_memory(state, addr, data_size)
+        read_memory(state, addr, data_size, inst)
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        read_memory(state, operand.value, data_size)
+        read_memory(state, operand.value, data_size, inst)
     else
         error("Unknown addressing mode: $(operand.mode)")
     end
 
     # Apply data size mask
-    return apply_data_size_mask(value, data_size)
+    return (apply_data_size_mask(value, data_size), events)
 end
 
 """
 Set value to operand (register or memory)
 """
 function set_operand_value!(
-    state::MachineState, operand::Operand, value::UInt32, data_size::Symbol=:word
-)::Nothing
+    state::MachineState, operand::Operand, value::UInt32, data_size::Symbol, inst::Instruction
+)::Vector{ExecutionEvent}
     # Apply data size mask to value
     masked_value = apply_data_size_mask(value, data_size)
 
@@ -656,6 +652,7 @@ function set_operand_value!(
         # Register
         @assert isa(operand.value, Symbol) "Register mode: operand.value must be Symbol, got $(typeof(operand.value))"
         set_register_value!(state, operand.value, masked_value)
+        return ExecutionEvent[]
     elseif operand.mode == :indexed || operand.mode == :symbolic
         # Indexed addressing: X(Rn) -> (Rn + X) points to operand
         # Symbolic addressing: X(PC) -> (PC + X) points to operand
@@ -676,25 +673,25 @@ function set_operand_value!(
         # FIXME: for implementation simplicity, we assume that the address is 16-bit aligned
         addr = UInt32((base_addr + offset) & get_register_mask(reg))
 
-        write_memory!(state, addr, masked_value, data_size)
+        return write_memory!(state, addr, masked_value, data_size, inst)
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        write_memory!(state, operand.value, masked_value, data_size)
+        return write_memory!(state, operand.value, masked_value, data_size, inst)
     elseif operand.mode == :indirect
         # Indirect register mode: @Rn -> store to address in Rn
         @assert isa(operand.value, Symbol) "Indirect mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Strip leading @
         addr = get_register_value(state, reg_name)
-        write_memory!(state, addr, masked_value, data_size)
+        return write_memory!(state, addr, masked_value, data_size, inst)
     elseif operand.mode == :autoincrement
         # Autoincrement store: write then increment pointer register
         @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Strip leading @
         addr = get_register_value(state, reg_name)
-        write_memory!(state, addr, masked_value, data_size)
+        events = write_memory!(state, addr, masked_value, data_size, inst)
 
         increment = if data_size == :byte
             UInt32(1)
@@ -707,10 +704,10 @@ function set_operand_value!(
         mask = reg_name in (:PC, :SP) ? get_register_mask(reg_name) : UInt32(0xFFFF)
         new_val = UInt32((addr + increment) & mask)
         state.registers[reg_name] = new_val
+        return events
     else
         error("Cannot set value for addressing mode: $(operand.mode)")
     end
-    return nothing
 end
 
 """

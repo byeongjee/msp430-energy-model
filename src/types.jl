@@ -7,6 +7,7 @@ export Operand,
     ExecutionEvent,
     EventType,
     ExecutionTrace,
+    WithEvent,
     CacheLine,
     MachineState,
     EnergyStats,
@@ -71,6 +72,12 @@ Alias for a single trace of executed instructions.
 const ExecutionTrace = Vector{ExecutionEvent}
 
 """
+Alias for a value with associated execution events.
+Functions return WithEvent{T} to propagate events functionally.
+"""
+const WithEvent{T} = Tuple{T,Vector{ExecutionEvent}}
+
+"""
 Extract the underlying instruction from a trace entry.
 """
 get_inst(event::ExecutionEvent)::Instruction = event.inst
@@ -101,8 +108,6 @@ mutable struct MachineState
     cache_tick::UInt64               # Monotonic counter for LRU
     current_inst_cache_hit::Bool     # Cache hit status for fetched instruction
     current_operand_cache_hits::Vector{Bool}  # Cache hits for operand reads in current instruction
-    current_events::Union{Nothing,Vector{ExecutionEvent}}  # ExecutionEvent buffer for current instruction
-    current_instruction::Union{Nothing,Instruction}  # Instruction currently executing
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
     repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
 end
