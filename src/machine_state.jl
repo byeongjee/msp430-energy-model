@@ -355,10 +355,13 @@ function apply_data_size_mask(value::UInt32, data_size::Symbol)::UInt32
 end
 
 function read_memory(
-    state::MachineState, addr::UInt32, data_size::Symbol, inst::Instruction
+    state::MachineState,
+    addr::UInt32,
+    data_size::Symbol,
+    inst::Union{Nothing,Instruction} = nothing,
 )::WithEvent{UInt32}
-    # Record the memory access as an event
-    events = record_memory_access(state, addr, :read, data_size, inst)
+    # Record the memory access as an event (only if inst is provided)
+    events = isnothing(inst) ? ExecutionEvent[] : record_memory_access(state, addr, :read, data_size, inst)
 
     use_cache = _is_fram_address(addr)
 
@@ -366,14 +369,14 @@ function read_memory(
         byte, hit =
             use_cache ? _cache_read_byte(state, addr) :
             (_read_byte_uncached(state, addr), false)
-        push!(state.current_operand_cache_hits, use_cache && hit)
+        !isnothing(inst) && push!(state.current_operand_cache_hits, use_cache && hit)
         return (UInt32(byte), events)
     elseif data_size == :word
         # MSP430 has 16-bit memory bus - aligned word access is a single operation
         word, hit =
             use_cache ? _cache_read_word(state, addr) :
             (_read_word_uncached(state, addr), false)
-        push!(state.current_operand_cache_hits, use_cache && hit)
+        !isnothing(inst) && push!(state.current_operand_cache_hits, use_cache && hit)
         return (UInt32(word), events)
     elseif data_size == :address
         # 20-bit address = two 16-bit words
@@ -384,7 +387,7 @@ function read_memory(
         msw, hit2 =
             use_cache ? _cache_read_word(state, addr + UInt32(2)) :
             (_read_word_uncached(state, addr + UInt32(2)), false)
-        push!(state.current_operand_cache_hits, use_cache && (hit1 && hit2))
+        !isnothing(inst) && push!(state.current_operand_cache_hits, use_cache && (hit1 && hit2))
         return (UInt32(lsw) | (UInt32(msw & 0xF) << 16), events)
     else
         error("Unknown data size: $data_size")

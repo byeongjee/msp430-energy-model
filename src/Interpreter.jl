@@ -216,30 +216,16 @@ function _memory_op_debug_msg(
             operand_str = string(operand.value)
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
-            # Use uncached read for debug - no events
-            if data_size == :byte
-                return UInt32(_read_byte_uncached(state, addr))
-            elseif data_size == :word
-                return UInt32(_read_word_uncached(state, addr))
-            else  # :address
-                lsw = _read_word_uncached(state, addr)
-                msw = _read_word_uncached(state, addr + UInt32(2))
-                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
-            end
+            # Use read_memory with no inst (no event tracking for debug)
+            val, _ = read_memory(state, addr, data_size, nothing)
+            return val
         elseif operand.mode == :autoincrement
             operand_str = string(operand.value)
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
-            # Use uncached read for debug - no events
-            if data_size == :byte
-                return UInt32(_read_byte_uncached(state, addr))
-            elseif data_size == :word
-                return UInt32(_read_word_uncached(state, addr))
-            else  # :address
-                lsw = _read_word_uncached(state, addr)
-                msw = _read_word_uncached(state, addr + UInt32(2))
-                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
-            end
+            # Use read_memory with no inst (no event tracking for debug)
+            val, _ = read_memory(state, addr, data_size, nothing)
+            return val
         elseif operand.mode == :indexed || operand.mode == :symbolic
             offset, reg = operand.value
             base_addr = get(old_regs, reg, UInt32(0))
@@ -247,27 +233,13 @@ function _memory_op_debug_msg(
                 base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
             end
             addr = UInt32((base_addr + offset) & get_register_mask(reg))
-            # Use uncached read for debug - no events
-            if data_size == :byte
-                return UInt32(_read_byte_uncached(state, addr))
-            elseif data_size == :word
-                return UInt32(_read_word_uncached(state, addr))
-            else  # :address
-                lsw = _read_word_uncached(state, addr)
-                msw = _read_word_uncached(state, addr + UInt32(2))
-                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
-            end
+            # Use read_memory with no inst (no event tracking for debug)
+            val, _ = read_memory(state, addr, data_size, nothing)
+            return val
         elseif operand.mode == :absolute
-            # Use uncached read for debug - no events
-            if data_size == :byte
-                return UInt32(_read_byte_uncached(state, UInt32(operand.value)))
-            elseif data_size == :word
-                return UInt32(_read_word_uncached(state, UInt32(operand.value)))
-            else  # :address
-                lsw = _read_word_uncached(state, UInt32(operand.value))
-                msw = _read_word_uncached(state, UInt32(operand.value) + UInt32(2))
-                return UInt32(lsw) | (UInt32(msw & 0xF) << 16)
-            end
+            # Use read_memory with no inst (no event tracking for debug)
+            val, _ = read_memory(state, UInt32(operand.value), data_size, nothing)
+            return val
         else
             return UInt32(0)
         end
