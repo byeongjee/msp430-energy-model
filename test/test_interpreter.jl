@@ -25,9 +25,13 @@ end
 
 """
 Run the interpreter on an assembly file and return the final machine state
+Optionally returns memory access counts when log_memory_access is true
 """
 function run_interpreter(
-    asm_file::String, max_steps::Int=100000000, data_file::Union{String,Nothing}=nothing
+    asm_file::String,
+    max_steps::Int=100000000,
+    data_file::Union{String,Nothing}=nothing,
+    log_memory_access::Bool=false,
 )
     if !isfile(asm_file)
         error("Assembly file not found: $asm_file")
@@ -53,11 +57,16 @@ function run_interpreter(
     func_addrs = Parser.find_functions(asm_file)
 
     # Execute program
-    final_state, _, _ = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps; data_file=data_dump
+    final_state, _, event_accesses = Interpreter.interpret_program(
+        instructions,
+        address_info,
+        func_addrs,
+        max_steps;
+        data_file=data_dump,
+        log_memory_access=log_memory_access,
     )
 
-    return final_state
+    return final_state, event_accesses
 end
 
 """
@@ -143,6 +152,39 @@ function compare_states(interpreter_state::Dict, gdb_state::Dict)
 end
 
 """
+Compare memory access counts with expected values
+Returns dictionary of differences or empty dict if all match
+"""
+function compare_cache_accesses(actual::Vector{Dict{Symbol,Int}}, expected::Vector)
+    differences = Dict()
+
+    if length(actual) != length(expected)
+        differences["event_count"] = (actual=length(actual), expected=length(expected))
+        return differences
+    end
+
+    for (i, (actual_event, expected_event)) in enumerate(zip(actual, expected))
+        event_diffs = Dict()
+
+        # Check each field
+        for (key_str, expected_val) in expected_event
+            key = Symbol(key_str)
+            actual_val = get(actual_event, key, 0)
+
+            if actual_val != expected_val
+                event_diffs[key] = (actual=actual_val, expected=expected_val)
+            end
+        end
+
+        if !isempty(event_diffs)
+            differences["event_$i"] = event_diffs
+        end
+    end
+
+    return differences
+end
+
+"""
 Run a single test case from a fixture file
 """
 function test_fixture(fixture_path::String)
@@ -152,9 +194,16 @@ function test_fixture(fixture_path::String)
     data_file = get(fixture, "data_file", nothing)
     gdb_result = fixture["gdb_result"]
 
+    # Check if cache testing is needed
+    has_cache_test = haskey(fixture, "cache")
+
     @testset "Test: $test_name" begin
-        # Run interpreter
-        final_state = run_interpreter(asm_file, 100000000, data_file)
+        # Run interpreter with optional memory access logging
+        if has_cache_test
+            final_state, event_accesses = run_interpreter(asm_file, 100000000, data_file, true)
+        else
+            final_state, _ = run_interpreter(asm_file, 100000000, data_file, false)
+        end
 
         # Convert to comparable format
         interpreter_result = state_to_dict(final_state)
@@ -175,6 +224,26 @@ function test_fixture(fixture_path::String)
         end
 
         @test isempty(differences)
+
+        # Test cache accesses if cache field exists
+        if has_cache_test
+            expected_cache = fixture["cache"]
+            cache_diffs = compare_cache_accesses(event_accesses, expected_cache)
+
+            if !isempty(cache_diffs)
+                println("\n⚠️  Cache test FAILED: $test_name")
+                println("Cache access differences:")
+                for (event_key, diffs) in cache_diffs
+                    println("  $event_key:")
+                    for (field, values) in diffs
+                        println("    $field: actual=$(values.actual), expected=$(values.expected)")
+                    end
+                end
+                println()
+            end
+
+            @test isempty(cache_diffs)
+        end
     end
 end
 
