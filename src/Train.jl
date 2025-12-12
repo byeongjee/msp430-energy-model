@@ -35,7 +35,7 @@ function process_training_file(
             "0x" * string(end_event_addr; base=16, pad=4)
     end
 
-    _, event_traces, _ = Interpreter.interpret_program(
+    _, event_traces = Interpreter.interpret_program(
         instructions, address_info, func_addrs, max_steps; data_file=nothing
     )
 

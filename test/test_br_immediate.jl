@@ -43,7 +43,7 @@ function test_br_immediate_instruction_count()
 
         # Execute the program
         @info "Running interpreter..."
-        final_state, event_traces, _ = Interpreter.interpret_program(
+        final_state, event_traces = Interpreter.interpret_program(
             instructions, address_info, func_addrs, 100000000; data_file=data_file
         )
 

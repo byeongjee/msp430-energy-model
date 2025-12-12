@@ -52,7 +52,7 @@ function run_estimate(
 
     @info "Executing program to get execution traces"
     start_time = time()
-    _, execution_traces, _ = Interpreter.interpret_program(
+    _, execution_traces = Interpreter.interpret_program(
         instructions, address_info, func_addrs, max_steps; data_file=data_dump
     )
     inference_time = time() - start_time

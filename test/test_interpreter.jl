@@ -57,7 +57,7 @@ function run_interpreter(
     func_addrs = Parser.find_functions(asm_file)
 
     # Execute program
-    final_state, _, event_accesses = Interpreter.interpret_program(
+    final_state, event_traces = Interpreter.interpret_program(
         instructions,
         address_info,
         func_addrs,
@@ -65,6 +65,9 @@ function run_interpreter(
         data_file=data_dump,
         log_memory_access=log_memory_access,
     )
+
+    # Compute event accesses from traces if memory access logging is enabled
+    event_accesses = log_memory_access ? Interpreter.compute_event_accesses(event_traces, Interpreter.build_memory_regions()) : Vector{Dict{Symbol,Int}}()
 
     return final_state, event_accesses
 end
