@@ -50,8 +50,6 @@ function MachineState()::MachineState
         Dict{UInt32,UInt16}(),  # Empty memory. Each cell is 16 bits.
         _init_cache(),          # Two-way set associative cache
         0,                      # cache_tick for LRU
-        true,                   # current_inst_cache_hit default
-        Bool[],                 # current_operand_cache_hits default
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
         0,  # repeat_counter initialized to 0
     )
@@ -256,7 +254,6 @@ function fetch_instruction_bytes!(
         _, hit = _cache_read_word(state, word_addr)
         all_hit &= hit
     end
-    state.current_inst_cache_hit = all_hit
     return events
 end
 
@@ -278,9 +275,6 @@ function execute_instruction!(
 
     # Always include the instruction itself.
     push!(execution_events, ExecutionEvent(Inst, inst, Any[]))
-
-    state.current_operand_cache_hits = Bool[]
-    state.current_inst_cache_hit = true
 
     # Instruction fetch from FRAM goes through cache simulation
     # Use the actual instruction length from the disassembly
@@ -369,14 +363,12 @@ function read_memory(
         byte, hit =
             use_cache ? _cache_read_byte(state, addr) :
             (_read_byte_uncached(state, addr), false)
-        !isnothing(inst) && push!(state.current_operand_cache_hits, use_cache && hit)
         return (UInt32(byte), events)
     elseif data_size == :word
         # MSP430 has 16-bit memory bus - aligned word access is a single operation
         word, hit =
             use_cache ? _cache_read_word(state, addr) :
             (_read_word_uncached(state, addr), false)
-        !isnothing(inst) && push!(state.current_operand_cache_hits, use_cache && hit)
         return (UInt32(word), events)
     elseif data_size == :address
         # 20-bit address = two 16-bit words
@@ -387,7 +379,6 @@ function read_memory(
         msw, hit2 =
             use_cache ? _cache_read_word(state, addr + UInt32(2)) :
             (_read_word_uncached(state, addr + UInt32(2)), false)
-        !isnothing(inst) && push!(state.current_operand_cache_hits, use_cache && (hit1 && hit2))
         return (UInt32(lsw) | (UInt32(msw & 0xF) << 16), events)
     else
         error("Unknown data size: $data_size")
