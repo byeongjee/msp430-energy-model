@@ -91,7 +91,7 @@ function run_interpret(
         @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
     end
 
-    final_state, event_traces, event_accesses = Interpreter.interpret_program(
+    final_state, event_traces = Interpreter.interpret_program(
         instructions,
         address_info,
         func_addrs,
@@ -100,6 +100,9 @@ function run_interpret(
         memory_regions=memory_regions,
         log_memory_access=log_memory_access,
     )
+
+    # Compute event accesses from traces if memory access logging is enabled
+    event_accesses = log_memory_access ? Interpreter.compute_event_accesses(event_traces, memory_regions) : Vector{Dict{Symbol,Int}}()
 
     model = isnothing(model_str) ? nothing : Model.create_model(model_str)
     granularity = isnothing(model) ? nothing : model.granularity

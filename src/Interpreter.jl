@@ -115,6 +115,35 @@ function update_access_counts!(
 end
 
 """
+Compute memory access counts for each execution trace.
+Returns a vector of access count dictionaries, one per trace.
+"""
+function compute_event_accesses(
+    event_traces::Vector{ExecutionTrace},
+    memory_regions,
+)::Vector{Dict{Symbol,Int}}
+    return [
+        update_access_counts!(
+            Dict{Symbol,Int}(
+                :fram_read_hit => 0,
+                :fram_read_miss => 0,
+                :fram_write => 0,
+                :sram_read => 0,
+                :sram_write => 0,
+                :other => 0,
+                :reads => 0,
+                :writes => 0,
+                :fram => 0,
+                :sram => 0,
+                :total => 0,
+            ),
+            trace,
+            memory_regions,
+        ) for trace in event_traces
+    ]
+end
+
+"""
 Load bytes from an objdump -s data dump file into machine memory.
 Returns true if any bytes were written.
 """
@@ -386,7 +415,7 @@ function interpret_program(
     data_file::Union{String,Nothing}=nothing,
     memory_regions=build_memory_regions(),
     log_memory_access::Bool=false,
-)::Tuple{MachineState,Vector{ExecutionTrace},Vector{Dict{Symbol,Int}}}
+)::Tuple{MachineState,Vector{ExecutionTrace}}
     @info "="^60
     @info "Interpret Program"
     @info "="^60
@@ -429,9 +458,7 @@ function interpret_program(
 
     # Track execution traces between begin_event and end_event
     execution_traces = Vector{ExecutionTrace}()
-    event_accesses = Vector{Dict{Symbol,Int}}()
     current_execution_trace = ExecutionTrace()
-    current_event_access = Ref{Union{Nothing,Dict{Symbol,Int}}}(nothing)
     exit_addr = get(func_addrs, "_exit", nothing)
 
     # Show the program
@@ -505,21 +532,6 @@ function interpret_program(
                 if get(func_addrs, "begin_event", nothing) == call_target
                     @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
                     current_execution_trace = ExecutionTrace()
-                    if log_memory_access
-                        current_event_access[] = Dict(
-                            :fram => 0,
-                            :sram => 0,
-                            :other => 0,
-                            :fram_read_hit => 0,
-                            :fram_read_miss => 0,
-                            :fram_write => 0,
-                            :sram_read => 0,
-                            :sram_write => 0,
-                            :reads => 0,
-                            :writes => 0,
-                            :total => 0,
-                        )
-                    end
                     state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
                 end
@@ -528,10 +540,6 @@ function interpret_program(
                 if get(func_addrs, "end_event", nothing) == call_target
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
                     push!(execution_traces, copy(current_execution_trace))
-                    if log_memory_access && current_event_access[] !== nothing
-                        push!(event_accesses, deepcopy(current_event_access[]))
-                        current_event_access[] = nothing
-                    end
                     state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
                 end
@@ -555,9 +563,6 @@ function interpret_program(
             # Execute the instruction
             events = execute_instruction!(state, inst, address_info, current_addr_idx)
             append!(current_execution_trace, events)
-            if log_memory_access && current_event_access[] !== nothing
-                update_access_counts!(current_event_access[], events, memory_regions)
-            end
 
             # Debug logging only when needed
             if debug_enabled && old_regs !== nothing
@@ -592,17 +597,10 @@ function interpret_program(
     @info "Final machine state" pc = string(state.registers[:PC]; base=16, pad=4)
     @info format_registers(state)
     @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
-    # If an event was started but not ended, flush its access counts and trace.
-    if log_memory_access &&
-        current_event_access[] !== nothing &&
-        !isempty(current_execution_trace)
-        push!(execution_traces, copy(current_execution_trace))
-        push!(event_accesses, deepcopy(current_event_access[]))
-    end
 
     @info "Execution traces collected" count = length(execution_traces)
 
-    return (state, execution_traces, event_accesses)
+    return (state, execution_traces)
 end
 
 end # module
