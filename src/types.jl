@@ -106,8 +106,6 @@ mutable struct MachineState
     memory::Dict{UInt32,UInt16}     # 20-bit address space, 16-bit words
     cache::Vector{Vector{CacheLine}}  # 2-way, 4-line cache
     cache_tick::UInt64               # Monotonic counter for LRU
-    current_inst_cache_hit::Bool     # Cache hit status for fetched instruction
-    current_operand_cache_hits::Vector{Bool}  # Cache hits for operand reads in current instruction
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
     repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
 end

@@ -466,8 +466,6 @@ function interpret_program(
         end
 
         step_count += 1
-        state.current_operand_cache_hits = Bool[]
-        state.current_inst_cache_hit = true
 
         # Get instruction at current PC
         if !haskey(pc_to_instruction, state.registers[:PC])
