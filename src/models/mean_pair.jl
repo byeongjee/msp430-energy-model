@@ -9,7 +9,7 @@ using NonNegLeastSquares
 Helper function to normalize pair to unordered form (canonical order).
 Returns pairs in lexicographically sorted order so (A,B) and (B,A) map to same pair.
 """
-function normalize_pair(key1::ParamKey, key2::ParamKey)::Tuple{ParamKey,ParamKey}
+function normalize_pair(key1::Key, key2::Key)::Tuple{Key,Key}
     # Sort lexicographically to create canonical unordered pair
     if key1 <= key2
         return (key1, key2)
@@ -24,13 +24,13 @@ Used for microbenchmarks where one pair type dominates.
 """
 function get_dominant_pair(
     program::ExecutionTrace, granularity::ModelGranularity
-)::Tuple{ParamKey,ParamKey}
+)::Tuple{Key,Key}
     if length(program) < 2
         error("Program must have at least 2 instructions to determine dominant pair")
     end
 
     # Count instruction pairs
-    pair_counts = Dict{Tuple{ParamKey,ParamKey},Int}()
+    pair_counts = Dict{Tuple{Key,Key},Int}()
     for i in 1:(length(program) - 1)
         key1 = get_instruction_key(program[i], granularity)
         key2 = get_instruction_key(program[i + 1], granularity)
@@ -42,7 +42,7 @@ function get_dominant_pair(
     # nop pairs should not be considered
     # in microbenchmarks, nop is not expected to be executed (they are skipped
     # by jmp instructions)
-    pairs_to_delete = Tuple{ParamKey,ParamKey}[]
+    pairs_to_delete = Tuple{Key,Key}[]
     for (pair_key, _) in pair_counts
         if pair_key[1] == (:nop,) || pair_key[2] == (:nop,)
             push!(pairs_to_delete, pair_key)
@@ -61,12 +61,12 @@ Generic Mean-based model for instruction pairs.
 Uses simple mean energy per consecutive instruction pair based on specified granularity.
 """
 mutable struct MeanPairModel <: AbstractModel
-    params::Dict{Tuple{ParamKey,ParamKey},Float64}
+    params::Dict{Tuple{Key,Key},Float64}
     granularity::ModelGranularity
     model_type::String
 
     function MeanPairModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{Tuple{ParamKey,ParamKey},Float64}(), granularity, model_type)
+        new(Dict{Tuple{Key,Key},Float64}(), granularity, model_type)
     end
 end
 
@@ -75,8 +75,8 @@ Learn parameters from training data using dominant-pair inference algorithm
 """
 function learn_params_dominant_key!(model::MeanPairModel, training_data::TrainingData)
     # Accumulate total energy and pair count for each dominant pair
-    total_energy = Dict{Tuple{ParamKey,ParamKey},Float64}()
-    total_pairs = Dict{Tuple{ParamKey,ParamKey},Int}()
+    total_energy = Dict{Tuple{Key,Key},Float64}()
+    total_pairs = Dict{Tuple{Key,Key},Int}()
 
     for (energy, program) in zip(training_data.energies, training_data.programs)
         if length(program) < 2
@@ -93,7 +93,7 @@ function learn_params_dominant_key!(model::MeanPairModel, training_data::Trainin
     end
 
     # Compute mean energy per pair (weighted average)
-    model.params = Dict{Tuple{ParamKey,ParamKey},Float64}()
+    model.params = Dict{Tuple{Key,Key},Float64}()
 
     for pair_key in keys(total_energy)
         mean_energy = total_energy[pair_key] / total_pairs[pair_key]
@@ -131,7 +131,7 @@ function load_params!(model::MeanPairModel, filename::String)
     params_dict = file_dict["parameters"]
 
     # Convert string keys to tuple pair keys
-    model.params = Dict{Tuple{ParamKey,ParamKey},Float64}()
+    model.params = Dict{Tuple{Key,Key},Float64}()
     for (key_str, mean_energy) in params_dict
         # Split by " -> " to separate the two instruction keys
         parts = split(key_str, " -> ")
@@ -185,7 +185,7 @@ function learn_params_least_squares!(
     model::MeanPairModel, training_data::TrainingData, inference_algorithm::String
 )
     # Collect all unique instruction pairs (as unordered pairs)
-    all_pairs = Set{Tuple{ParamKey,ParamKey}}()
+    all_pairs = Set{Tuple{Key,Key}}()
     for program in training_data.programs
         if length(program) < 2
             continue
@@ -288,7 +288,7 @@ function learn_params_least_squares!(
     end
 
     # Store results in model.params
-    model.params = Dict{Tuple{ParamKey,ParamKey},Float64}()
+    model.params = Dict{Tuple{Key,Key},Float64}()
     for (i, pair_key) in enumerate(filtered_pairs)
         model.params[pair_key] = x[i]
 
@@ -332,7 +332,7 @@ function visualize_training_matrix(
     A::Matrix{Float64},
     B::Vector{Float64},
     x::Vector{Float64},
-    sorted_pairs::Vector{Tuple{ParamKey,ParamKey}},
+    sorted_pairs::Vector{Tuple{Key,Key}},
     residuals::Vector{Float64},
 )
     println("\n" * "="^60)
@@ -604,7 +604,7 @@ function estimate_energy_sum_pair_means(
     end
 
     total_energy = 0.0
-    unknown_pairs = Set{Tuple{ParamKey,ParamKey}}()
+    unknown_pairs = Set{Tuple{Key,Key}}()
     default_energy = 1.0  # Default 1nJ per pair
 
     for i in 1:(length(program) - 1)

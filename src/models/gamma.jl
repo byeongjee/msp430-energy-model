@@ -30,7 +30,7 @@ epsilon = 1e-12
 
 @gen function single_program_energy_model(
     program::ExecutionTrace,
-    params::Dict{ParamKey,Tuple{Float64,Float64}},
+    params::Dict{Key,Tuple{Float64,Float64}},
     granularity::ModelGranularity,
 )::Float64
     total_energy = 0.0
@@ -54,9 +54,9 @@ end
 
 @gen function all_programs_energy_model(
     training_data::TrainingData, granularity::ModelGranularity
-)::Dict{ParamKey,Tuple{Float64,Float64}}
+)::Dict{Key,Tuple{Float64,Float64}}
     # Prior distributions for gamma parameters
-    learned_params = Dict{ParamKey,Tuple{Float64,Float64}}()
+    learned_params = Dict{Key,Tuple{Float64,Float64}}()
 
     # Get all valid parameter keys from training data based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
@@ -113,9 +113,9 @@ end
 Compute posterior means from MCMC traces.
 """
 function compute_posterior_means(
-    traces::Vector, valid_keys::Set{ParamKey}
-)::Dict{ParamKey,Tuple{Float64,Float64}}
-    learned_params = Dict{ParamKey,Tuple{Float64,Float64}}()
+    traces::Vector, valid_keys::Set{Key}
+)::Dict{Key,Tuple{Float64,Float64}}
+    learned_params = Dict{Key,Tuple{Float64,Float64}}()
 
     for param_key in valid_keys
         alphas = Float64[]
@@ -152,7 +152,7 @@ function learn_parameters_mcmc_blocked(
     granularity::ModelGranularity;
     n_samples::Int=1000,
     burn_in::Int=100,
-)::Dict{ParamKey,Tuple{Float64,Float64}}
+)::Dict{Key,Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
 
@@ -237,7 +237,7 @@ Learn parameters using importance sampling
 """
 function learn_parameters_importance_sampling(
     training_data::TrainingData, granularity::ModelGranularity; n_samples::Int=1000
-)::Dict{ParamKey,Tuple{Float64,Float64}}
+)::Dict{Key,Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
     valid_keys = get_valid_param_keys(training_data, granularity)
 
@@ -266,7 +266,7 @@ function learn_parameters_importance_sampling(
 
     @info "Importance sampling complete" effective_sample_size = round(ess; digits=2)
 
-    learned_params = Dict{ParamKey,Tuple{Float64,Float64}}()
+    learned_params = Dict{Key,Tuple{Float64,Float64}}()
 
     @info "Computing weighted parameter averages..."
     for param_key in valid_keys
@@ -320,7 +320,7 @@ function learn_parameters(
     granularity::ModelGranularity,
     algorithm::String;
     n_samples::Int,
-)::Dict{ParamKey,Tuple{Float64,Float64}}
+)::Dict{Key,Tuple{Float64,Float64}}
     if algorithm == "importance-sampling"
         return learn_parameters_importance_sampling(
             training_data, granularity; n_samples=n_samples
@@ -346,12 +346,12 @@ Generic Gamma distribution model.
 Uses Gamma(alpha, beta) distributions for each instruction key based on specified granularity.
 """
 mutable struct GammaModel <: AbstractModel
-    params::Dict{ParamKey,Tuple{Float64,Float64}}
+    params::Dict{Key,Tuple{Float64,Float64}}
     granularity::ModelGranularity
     model_type::String
 
     function GammaModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{ParamKey,Tuple{Float64,Float64}}(), granularity, model_type)
+        new(Dict{Key,Tuple{Float64,Float64}}(), granularity, model_type)
     end
 end
 
@@ -377,7 +377,7 @@ function load_params!(model::GammaModel, filename::String)
     params_dict = file_dict["parameters"]
 
     # Convert string keys to tuple keys
-    model.params = Dict{ParamKey,Tuple{Float64,Float64}}()
+    model.params = Dict{Key,Tuple{Float64,Float64}}()
     for (key_str, param_dict) in params_dict
         # Split by underscore and convert to appropriate types
         key_parts = split(key_str, "_")
@@ -460,7 +460,7 @@ function estimate_energy(
     default_beta = 3.0
 
     # Check for missing instructions
-    missing_keys = Set{ParamKey}()
+    missing_keys = Set{Key}()
     for inst in inst_events
         param_key = get_instruction_key(inst, model.granularity)
         if !haskey(model.params, param_key)

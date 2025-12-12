@@ -22,12 +22,12 @@ Generic Mean-based model.
 Uses simple mean energy per instruction key based on specified granularity.
 """
 mutable struct MeanModel <: AbstractModel
-    params::Dict{ParamKey,Float64}
+    params::Dict{Key,Float64}
     granularity::ModelGranularity
     model_type::String
 
     function MeanModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{ParamKey,Float64}(), granularity, model_type)
+        new(Dict{Key,Float64}(), granularity, model_type)
     end
 end
 
@@ -35,9 +35,9 @@ end
 Get dominant instruction key from a program (most frequent instruction).
 Used for microbenchmarks where one instruction type dominates.
 """
-function get_dominant_key(program::ExecutionTrace, granularity::ModelGranularity)::ParamKey
+function get_dominant_key(program::ExecutionTrace, granularity::ModelGranularity)::Key
     # Count instruction types
-    inst_counts = Dict{ParamKey,Int}()
+    inst_counts = Dict{Key,Int}()
     for inst in instruction_events(program)
         key = get_instruction_key(inst, granularity)
         inst_counts[key] = get(inst_counts, key, 0) + 1
@@ -73,7 +73,7 @@ function load_params!(model::MeanModel, filename::String)
     params_dict = file_dict["parameters"]
 
     # Convert string keys to tuple keys
-    model.params = Dict{ParamKey,Float64}()
+    model.params = Dict{Key,Float64}()
     for (key_str, mean_energy) in params_dict
         # Split by underscore and convert to appropriate types
         key_parts = split(key_str, "_")
@@ -99,8 +99,8 @@ Learn parameters from training data using dominant-key inference algorithm
 """
 function learn_params_dominant_key!(model::MeanModel, training_data::TrainingData)
     # Accumulate total energy and instruction count for each dominant key
-    total_energy = Dict{ParamKey,Float64}()
-    total_instructions = Dict{ParamKey,Int}()
+    total_energy = Dict{Key,Float64}()
+    total_instructions = Dict{Key,Int}()
 
     for (energy, program) in zip(training_data.energies, training_data.programs)
         dominant_key = get_dominant_key(program, model.granularity)
@@ -113,7 +113,7 @@ function learn_params_dominant_key!(model::MeanModel, training_data::TrainingDat
     end
 
     # Compute mean energy per instruction (weighted average)
-    model.params = Dict{ParamKey,Float64}()
+    model.params = Dict{Key,Float64}()
 
     for key in keys(total_energy)
         mean_energy = total_energy[key] / total_instructions[key]
@@ -144,7 +144,7 @@ function learn_params_least_squares!(
     model::MeanModel, training_data::TrainingData, inference_algorithm::String
 )
     # Collect all unique instruction keys
-    all_keys = Set{ParamKey}()
+    all_keys = Set{Key}()
     for program in training_data.programs
         for inst in instruction_events(program)
             key = get_instruction_key(inst, model.granularity)
@@ -193,7 +193,7 @@ function learn_params_least_squares!(
     end
 
     # Store results in model.params
-    model.params = Dict{ParamKey,Float64}()
+    model.params = Dict{Key,Float64}()
     for (i, key) in enumerate(sorted_keys)
         model.params[key] = x[i]
 
@@ -280,7 +280,7 @@ function estimate_energy_sum_means(
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
     total_energy = 0.0
-    unknown_keys = Set{ParamKey}()
+    unknown_keys = Set{Key}()
     default_energy = 1.0  # Default 1nJ per instruction
 
     for execution_event in instruction_events(program)
