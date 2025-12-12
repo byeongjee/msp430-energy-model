@@ -36,8 +36,8 @@ epsilon = 1e-12
     total_energy = 0.0
 
     for (i, execution_event) in enumerate(program)
-        # Get parameter key based on granularity
-        param_key = get_instruction_key(execution_event, granularity)
+        # Get parameter key from event
+        param_key = execution_event.key
 
         # Look up parameters - error if not found
         if !haskey(params, param_key)
@@ -462,7 +462,7 @@ function estimate_energy(
     # Check for missing instructions
     missing_keys = Set{Key}()
     for inst in inst_events
-        param_key = get_instruction_key(inst, model.granularity)
+        param_key = inst.key
         if !haskey(model.params, param_key)
             push!(missing_keys, param_key)
         end
@@ -481,7 +481,7 @@ function estimate_energy(
     @threads for i in 1:(config.n_samples)
         total_cost = 0.0
         for inst in inst_events
-            param_key = get_instruction_key(inst, model.granularity)
+            param_key = inst.key
             alpha, beta = get(model.params, param_key, (default_alpha, default_beta))
             cost = rand(Distributions.Gamma(alpha, beta))
             total_cost += cost

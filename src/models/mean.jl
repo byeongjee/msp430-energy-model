@@ -39,7 +39,7 @@ function get_dominant_key(program::ExecutionTrace, granularity::ModelGranularity
     # Count instruction types
     inst_counts = Dict{Key,Int}()
     for inst in instruction_events(program)
-        key = get_instruction_key(inst, granularity)
+        key = inst.key
         inst_counts[key] = get(inst_counts, key, 0) + 1
     end
     # nop should not be considered
@@ -147,7 +147,7 @@ function learn_params_least_squares!(
     all_keys = Set{Key}()
     for program in training_data.programs
         for inst in instruction_events(program)
-            key = get_instruction_key(inst, model.granularity)
+            key = inst.key
             push!(all_keys, key)
         end
     end
@@ -167,7 +167,7 @@ function learn_params_least_squares!(
 
     for (i, program) in enumerate(training_data.programs)
         for inst in instruction_events(program)
-            key = get_instruction_key(inst, model.granularity)
+            key = inst.key
             j = key_to_idx[key]
             A[i, j] += 1.0
         end
@@ -284,7 +284,7 @@ function estimate_energy_sum_means(
     default_energy = 1.0  # Default 1nJ per instruction
 
     for execution_event in instruction_events(program)
-        key = get_instruction_key(execution_event, model.granularity)
+        key = execution_event.key
 
         if haskey(model.params, key)
             total_energy += model.params[key]

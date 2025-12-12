@@ -270,11 +270,12 @@ function execute_instruction!(
     inst::Instruction,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    granularity::ModelGranularity,
 )::Vector{ExecutionEvent}
     execution_events = ExecutionEvent[]
 
     # Always include the instruction itself.
-    push!(execution_events, ExecutionEvent(Inst, inst, Any[]))
+    push!(execution_events, ExecutionEvent(Val{Inst}, inst, granularity))
 
     # Instruction fetch from FRAM goes through cache simulation
     # Use the actual instruction length from the disassembly
