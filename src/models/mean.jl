@@ -23,11 +23,11 @@ Uses simple mean energy per instruction key based on specified granularity.
 """
 mutable struct MeanModel <: AbstractModel
     params::Dict{Key,Float64}
-    model_granularity::ModelGranularity
+    granularity::ModelGranularity
     model_type::String
 
-    function MeanModel(model_granularity::ModelGranularity, model_type::String)
-        new(Dict{Key,Float64}(), model_granularity, model_type)
+    function MeanModel(granularity::ModelGranularity, model_type::String)
+        new(Dict{Key,Float64}(), granularity, model_type)
     end
 end
 
