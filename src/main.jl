@@ -1,5 +1,6 @@
 include("../src/types.jl")
 include("../src/parser.jl")
+include("../src/TraceMetrics.jl")
 include("../src/Interpreter.jl")
 include("../src/model.jl")
 include("../src/Train.jl")
@@ -7,6 +8,7 @@ include("../src/Estimation.jl")
 
 using .Types
 using .Parser
+using .TraceMetrics
 using .Interpreter
 using .Model
 using .Train
@@ -86,7 +88,7 @@ function run_interpret(
     func_addrs = Parser.find_functions(asm_file)
 
     log_memory_access = get(ENV, "LOG_MEMORY_ACCESS", "0") == "1"
-    memory_regions = Interpreter.build_memory_regions()
+    memory_regions = TraceMetrics.build_memory_regions()
     if log_memory_access
         @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
     end
@@ -103,7 +105,7 @@ function run_interpret(
     # Compute event accesses from traces if memory access logging is enabled
     event_accesses =
         log_memory_access ?
-        Interpreter.compute_event_accesses(event_traces, memory_regions) :
+        TraceMetrics.compute_event_accesses(event_traces, memory_regions) :
         Vector{Dict{Symbol,Int}}()
 
     format_param_key = key -> join(string.(key), "_")

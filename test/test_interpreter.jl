@@ -7,6 +7,9 @@ using .Types: MachineState, Instruction, get_should_track_memory_access, ModelGr
 include("../src/parser.jl")
 using .Parser
 
+include("../src/TraceMetrics.jl")
+using .TraceMetrics
+
 include("../src/Interpreter.jl")
 using .Interpreter
 
@@ -68,8 +71,8 @@ function run_interpreter(
     # Compute event accesses from traces if memory access logging is enabled
     event_accesses =
         get_should_track_memory_access(model_granularity) ?
-        Interpreter.compute_event_accesses(
-            event_traces, Interpreter.build_memory_regions()
+        TraceMetrics.compute_event_accesses(
+            event_traces, TraceMetrics.build_memory_regions()
         ) : Vector{Dict{Symbol,Int}}()
 
     return final_state, event_accesses
