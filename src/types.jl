@@ -17,7 +17,12 @@ export Operand,
     ModelGranularity,
     PerOpcode,
     PerAddressingMode,
-    PerAddressingModeConstant
+    PerAddressingModeConstant,
+    PerOpcodeWithMemAccess,
+    PerAddressingModeWithMemAccess,
+    PerAddressingModeConstantWithMemAccess,
+    get_base_granularity,
+    get_should_track_memory_access
 
 """
 Type alias for parameter keys.
@@ -33,6 +38,37 @@ Determines how fine-grained the energy model is.
     PerOpcode = 1                    # One parameter per opcode (e.g., mov, add, sub)
     PerAddressingMode = 2            # One parameter per (opcode, addressing_mode) combination
     PerAddressingModeConstant = 3    # Like PerAddressingMode but includes compile-time constants
+    PerOpcodeWithMemAccess = 4                    # PerOpcode + memory access events
+    PerAddressingModeWithMemAccess = 5            # PerAddressingMode + memory access events
+    PerAddressingModeConstantWithMemAccess = 6    # PerAddressingModeConstant + memory access events
+end
+
+"""
+Get the base granularity level (without memory access tracking).
+For granularities with memory access, returns the corresponding base granularity.
+For base granularities, returns the same value.
+"""
+function get_base_granularity(g::ModelGranularity)::ModelGranularity
+    if g == PerOpcodeWithMemAccess
+        return PerOpcode
+    elseif g == PerAddressingModeWithMemAccess
+        return PerAddressingMode
+    elseif g == PerAddressingModeConstantWithMemAccess
+        return PerAddressingModeConstant
+    else
+        return g
+    end
+end
+
+"""
+Check if this granularity level tracks memory access events.
+"""
+function get_should_track_memory_access(g::ModelGranularity)::Bool
+    return g in [
+        PerOpcodeWithMemAccess,
+        PerAddressingModeWithMemAccess,
+        PerAddressingModeConstantWithMemAccess,
+    ]
 end
 
 # Instructions where immediate constants significantly affect energy
@@ -109,11 +145,11 @@ Get instruction key for parameter lookup based on granularity level.
 For dual-operand instructions with PerAddressingMode, uses source and destination modes.
 For PerAddressingModeConstant, also includes compile-time constant values for specific instructions.
 """
-function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::Key
+function get_instruction_key(inst::Instruction, model_granularity::ModelGranularity)::Key
     # Treat RPT blocks as a single instruction keyed by the nested instruction
     if inst.opcode == :rpt && inst.rpt_nested !== nothing
         repeat_count = length(inst.operands) >= 1 ? Int(inst.operands[1].value) : 0
-        nested_key = get_instruction_key(inst.rpt_nested, granularity)
+        nested_key = get_instruction_key(inst.rpt_nested, model_granularity)
         return (:rpt, repeat_count, nested_key...)
     end
 
@@ -126,10 +162,14 @@ function get_instruction_key(inst::Instruction, granularity::ModelGranularity)::
         return op.mode
     end
 
-    if granularity == PerOpcode
+    # Use base granularity for instruction key computation
+    # (memory access tracking doesn't affect instruction keys)
+    base_granularity = get_base_granularity(model_granularity)
+
+    if base_granularity == PerOpcode
         # Simple: just the opcode
         return (inst.opcode,)
-    elseif granularity == PerAddressingMode
+    elseif base_granularity == PerAddressingMode
         # Addressing mode aware, but no constant differentiation
         if length(inst.operands) == 0
             # No operands (e.g., ret, nop)
@@ -181,11 +221,9 @@ Constructor for ExecutionEvent with granularity (for Inst events).
 Computes key from instruction using get_instruction_key.
 """
 function ExecutionEvent(
-    ::Type{Val{Inst}},
-    inst::Instruction,
-    granularity::ModelGranularity,
+    ::Type{Val{Inst}}, inst::Instruction, model_granularity::ModelGranularity
 )::ExecutionEvent
-    key = get_instruction_key(inst, granularity)
+    key = get_instruction_key(inst, model_granularity)
     return ExecutionEvent(Inst, inst, Any[], key)
 end
 

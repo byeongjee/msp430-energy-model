@@ -23,11 +23,11 @@ Uses simple mean energy per instruction key based on specified granularity.
 """
 mutable struct MeanModel <: AbstractModel
     params::Dict{Key,Float64}
-    granularity::ModelGranularity
+    model_granularity::ModelGranularity
     model_type::String
 
-    function MeanModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{Key,Float64}(), granularity, model_type)
+    function MeanModel(model_granularity::ModelGranularity, model_type::String)
+        new(Dict{Key,Float64}(), model_granularity, model_type)
     end
 end
 
@@ -35,7 +35,7 @@ end
 Get dominant instruction key from a program (most frequent instruction).
 Used for microbenchmarks where one instruction type dominates.
 """
-function get_dominant_key(program::ExecutionTrace, granularity::ModelGranularity)::Key
+function get_dominant_key(program::ExecutionTrace, model_granularity::ModelGranularity)::Key
     # Count instruction types
     inst_counts = Dict{Key,Int}()
     for inst in instruction_events(program)
@@ -233,7 +233,7 @@ Learn parameters from training data
 function learn_params!(
     model::MeanModel, training_data::TrainingData, config::MeanTrainingConfig
 )
-    @info "Learning Mean model parameters" granularity = model.granularity num_programs = length(
+    @info "Learning Mean model parameters" model_granularity = model.granularity num_programs = length(
         training_data.programs
     ) inference_algorithm = config.inference_algorithm
 
@@ -321,7 +321,7 @@ function estimate_energy(
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
-    @info "Estimating energy with Mean model" granularity = model.granularity num_instructions = length(
+    @info "Estimating energy with Mean model" model_granularity = model.granularity num_instructions = length(
         program
     )
 

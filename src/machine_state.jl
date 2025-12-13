@@ -238,7 +238,11 @@ fetches leverage the same cache logic and record FRAM reads.
 MSP430 instructions are 16-bit aligned and fetched via the 16-bit bus.
 """
 function fetch_instruction_bytes!(
-    state::MachineState, addr::UInt32, len::UInt32, inst::Instruction
+    state::MachineState,
+    addr::UInt32,
+    len::UInt32,
+    inst::Instruction,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     # Ensure at least one word is fetched even if size is unknown
     len_bytes = max(len, UInt32(2))
@@ -246,13 +250,13 @@ function fetch_instruction_bytes!(
     num_words = (len_bytes + UInt32(1)) ÷ UInt32(2)
 
     events = ExecutionEvent[]
-    all_hit = true
     for i in UInt32(0):(num_words - UInt32(1))
         word_addr = addr + (i * UInt32(2))
         # Record memory access for the word (as :word to reflect 16-bit bus access)
-        append!(events, record_memory_access(state, word_addr, :read, :word, inst))
-        _, hit = _cache_read_word(state, word_addr)
-        all_hit &= hit
+        if should_track_memory_access
+            append!(events, record_memory_access(state, word_addr, :read, :word, inst))
+        end
+        _cache_read_word(state, word_addr)
     end
     return events
 end
@@ -270,24 +274,30 @@ function execute_instruction!(
     inst::Instruction,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
-    granularity::ModelGranularity,
+    model_granularity::ModelGranularity,
 )::Vector{ExecutionEvent}
     execution_events = ExecutionEvent[]
 
     # Always include the instruction itself.
-    push!(execution_events, ExecutionEvent(Val{Inst}, inst, granularity))
+    push!(execution_events, ExecutionEvent(Val{Inst}, inst, model_granularity))
+
+    should_track_memory_access = get_should_track_memory_access(model_granularity)
 
     # Instruction fetch from FRAM goes through cache simulation
     # Use the actual instruction length from the disassembly
     _, instr_len = address_info[current_idx]
-    fetch_events = fetch_instruction_bytes!(state, state.registers[:PC], instr_len, inst)
+    fetch_events = fetch_instruction_bytes!(
+        state, state.registers[:PC], instr_len, inst, should_track_memory_access
+    )
     append!(execution_events, fetch_events)
 
     # Get handler for this instruction
     handler = get_handler(inst.opcode)
 
     # Execute instruction using multiple dispatch (RPT has a custom overload)
-    exec_events = execute!(state, handler, inst, address_info, current_idx)
+    exec_events = execute!(
+        state, handler, inst, address_info, current_idx, should_track_memory_access
+    )
     append!(execution_events, exec_events)
 
     # Handle RPT instruction: if repeat_counter > 0, decrement and don't advance PC
@@ -353,10 +363,15 @@ function read_memory(
     state::MachineState,
     addr::UInt32,
     data_size::Symbol,
-    inst::Union{Nothing,Instruction} = nothing,
+    inst::Union{Nothing,Instruction},
+    should_track_memory_access::Bool,
 )::WithEvent{UInt32}
     # Record the memory access as an event (only if inst is provided)
-    events = isnothing(inst) ? ExecutionEvent[] : record_memory_access(state, addr, :read, data_size, inst)
+    if should_track_memory_access
+        events = record_memory_access(state, addr, :read, data_size, inst)
+    else
+        events = ExecutionEvent[]
+    end
 
     use_cache = _is_fram_address(addr)
 
@@ -391,12 +406,13 @@ const DEBUG_CHAR_BUFFER = IOBuffer()
 """
 Read a null-terminated C string from memory starting at `addr`.
 """
-function read_c_string(state::MachineState, addr::UInt32, inst::Instruction)::WithEvent{String}
+function read_c_string(state::MachineState, addr::UInt32)::WithEvent{String}
     io = IOBuffer()
     current = addr
     events = ExecutionEvent[]
     while true
-        byte_val, byte_events = read_memory(state, current, :byte, inst)
+        # do not track memory access for c string reads
+        byte_val, byte_events = read_memory(state, current, :byte, nothing, false)
         append!(events, byte_events)
         if UInt8(byte_val & 0xFF) == 0x00
             break
@@ -461,9 +477,7 @@ function handle_debug_function_call!(
         )
     elseif func_name == :debug_out_str
         ptr = get_register_value(state, :R12) & 0xFFFFF
-        # Create a dummy instruction for debug string reads
-        dummy_inst = Instruction(:debug_out_str, Operand[], :word)
-        text, _ = read_c_string(state, ptr, dummy_inst)
+        text, _ = read_c_string(state, ptr)
         printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
         println(
             stderr,
@@ -475,9 +489,18 @@ function handle_debug_function_call!(
 end
 
 function write_memory!(
-    state::MachineState, addr::UInt32, value::UInt32, data_size::Symbol, inst::Instruction
+    state::MachineState,
+    addr::UInt32,
+    value::UInt32,
+    data_size::Symbol,
+    inst::Instruction,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    events = record_memory_access(state, addr, :write, data_size, inst)
+    if should_track_memory_access
+        events = record_memory_access(state, addr, :write, data_size, inst)
+    else
+        events = ExecutionEvent[]
+    end
     byte_len = if data_size == :byte
         1
     elseif data_size == :word
@@ -526,9 +549,14 @@ end
 """
 Record a memory access as an ExecutionEvent.
 Pure function that returns the event without mutating state.
+Only creates events if the model_granularity tracks memory accesses.
 """
 function record_memory_access(
-    state::MachineState, addr::UInt32, access_type::Symbol, data_size::Symbol, inst::Instruction
+    state::MachineState,
+    addr::UInt32,
+    access_type::Symbol,
+    data_size::Symbol,
+    inst::Union{Nothing,Instruction},
 )::Vector{ExecutionEvent}
     event_type = if access_type == :read
         if _is_fram_address(addr)
@@ -555,7 +583,11 @@ end
 Get value from operand (register, immediate, or memory)
 """
 function get_operand_value(
-    state::MachineState, operand::Operand, data_size::Symbol, inst::Instruction
+    state::MachineState,
+    operand::Operand,
+    data_size::Symbol,
+    inst::Instruction,
+    should_track_memory_access::Bool,
 )::WithEvent{UInt32}
     value, events = if operand.mode == :immediate
         # Immediate value
@@ -571,14 +603,16 @@ function get_operand_value(
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get_register_value(state, reg_name)
-        read_memory(state, addr, data_size, inst)
+        read_memory(state, addr, data_size, inst, should_track_memory_access)
     elseif operand.mode == :autoincrement
         # Autoincrement addressing: @R1+ means "value at address in R1, then increment R1"
         @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Remove @ prefix
         addr = get_register_value(state, reg_name)
-        val, mem_events = read_memory(state, addr, data_size, inst)
+        val, mem_events = read_memory(
+            state, addr, data_size, inst, should_track_memory_access
+        )
         # Increment register after reading (by 2 for word, 1 for byte)
         increment = if data_size == :byte
             UInt32(1)
@@ -621,11 +655,11 @@ function get_operand_value(
             base_addr = UInt32((base_addr + 2) & get_register_mask(reg))
         end
         addr = UInt32((base_addr + offset) & get_register_mask(reg))
-        read_memory(state, addr, data_size, inst)
+        read_memory(state, addr, data_size, inst, should_track_memory_access)
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        read_memory(state, operand.value, data_size, inst)
+        read_memory(state, operand.value, data_size, inst, should_track_memory_access)
     else
         error("Unknown addressing mode: $(operand.mode)")
     end
@@ -638,7 +672,12 @@ end
 Set value to operand (register or memory)
 """
 function set_operand_value!(
-    state::MachineState, operand::Operand, value::UInt32, data_size::Symbol, inst::Instruction
+    state::MachineState,
+    operand::Operand,
+    value::UInt32,
+    data_size::Symbol,
+    inst::Instruction,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     # Apply data size mask to value
     masked_value = apply_data_size_mask(value, data_size)
@@ -668,25 +707,33 @@ function set_operand_value!(
         # FIXME: for implementation simplicity, we assume that the address is 16-bit aligned
         addr = UInt32((base_addr + offset) & get_register_mask(reg))
 
-        return write_memory!(state, addr, masked_value, data_size, inst)
+        return write_memory!(
+            state, addr, masked_value, data_size, inst, should_track_memory_access
+        )
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        return write_memory!(state, operand.value, masked_value, data_size, inst)
+        return write_memory!(
+            state, operand.value, masked_value, data_size, inst, should_track_memory_access
+        )
     elseif operand.mode == :indirect
         # Indirect register mode: @Rn -> store to address in Rn
         @assert isa(operand.value, Symbol) "Indirect mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Strip leading @
         addr = get_register_value(state, reg_name)
-        return write_memory!(state, addr, masked_value, data_size, inst)
+        return write_memory!(
+            state, addr, masked_value, data_size, inst, should_track_memory_access
+        )
     elseif operand.mode == :autoincrement
         # Autoincrement store: write then increment pointer register
         @assert isa(operand.value, Symbol) "Autoincrement mode: operand.value must be Symbol, got $(typeof(operand.value))"
         operand_str = string(operand.value)
         reg_name = Symbol(operand_str[2:end])  # Strip leading @
         addr = get_register_value(state, reg_name)
-        events = write_memory!(state, addr, masked_value, data_size, inst)
+        events = write_memory!(
+            state, addr, masked_value, data_size, inst, should_track_memory_access
+        )
 
         increment = if data_size == :byte
             UInt32(1)

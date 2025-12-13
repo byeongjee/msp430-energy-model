@@ -31,7 +31,7 @@ epsilon = 1e-12
 @gen function single_program_energy_model(
     program::ExecutionTrace,
     params::Dict{Key,Tuple{Float64,Float64}},
-    granularity::ModelGranularity,
+    model_granularity::ModelGranularity,
 )::Float64
     total_energy = 0.0
 
@@ -53,13 +53,13 @@ epsilon = 1e-12
 end
 
 @gen function all_programs_energy_model(
-    training_data::TrainingData, granularity::ModelGranularity
+    training_data::TrainingData, model_granularity::ModelGranularity
 )::Dict{Key,Tuple{Float64,Float64}}
     # Prior distributions for gamma parameters
     learned_params = Dict{Key,Tuple{Float64,Float64}}()
 
     # Get all valid parameter keys from training data based on granularity
-    valid_keys = get_valid_param_keys(training_data, granularity)
+    valid_keys = get_valid_param_keys(training_data, model_granularity)
 
     # For now we are using a stateless model.
     # Assuming that there is a single gamma distribution for each parameter key.
@@ -149,15 +149,15 @@ Learn parameters using MCMC with blocked Gibbs sampling
 """
 function learn_parameters_mcmc_blocked(
     training_data::TrainingData,
-    granularity::ModelGranularity;
+    model_granularity::ModelGranularity;
     n_samples::Int=1000,
     burn_in::Int=100,
 )::Dict{Key,Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
-    valid_keys = get_valid_param_keys(training_data, granularity)
+    valid_keys = get_valid_param_keys(training_data, model_granularity)
 
     @info "Starting MCMC inference (Blocked Gibbs/MH)"
-    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys = length(
+    @info "Training data" num_programs = length(training_data.programs) model_granularity num_param_keys = length(
         valid_keys
     ) n_samples burn_in
 
@@ -172,7 +172,7 @@ function learn_parameters_mcmc_blocked(
 
     # Initialize trace with constraints
     @info "Initializing trace..."
-    trace, = generate(all_programs_energy_model, (training_data, granularity), constraints)
+    trace, = generate(all_programs_energy_model, (training_data, model_granularity), constraints)
     @info "Initial log probability" log_prob = get_score(trace)
 
     @info "Number of parameter blocks" num_blocks = length(valid_keys) + 1
@@ -236,13 +236,13 @@ end
 Learn parameters using importance sampling
 """
 function learn_parameters_importance_sampling(
-    training_data::TrainingData, granularity::ModelGranularity; n_samples::Int=1000
+    training_data::TrainingData, model_granularity::ModelGranularity; n_samples::Int=1000
 )::Dict{Key,Tuple{Float64,Float64}}
     # Get all valid parameter keys based on granularity
-    valid_keys = get_valid_param_keys(training_data, granularity)
+    valid_keys = get_valid_param_keys(training_data, model_granularity)
 
     @info "Starting parameter inference using importance sampling"
-    @info "Training data" num_programs = length(training_data.programs) granularity num_param_keys = length(
+    @info "Training data" num_programs = length(training_data.programs) model_granularity num_param_keys = length(
         valid_keys
     ) n_samples
 
@@ -256,7 +256,7 @@ function learn_parameters_importance_sampling(
 
     @info "Running importance sampling..."
     (traces, log_weights) = importance_sampling(
-        all_programs_energy_model, (training_data, granularity), constraints, n_samples
+        all_programs_energy_model, (training_data, model_granularity), constraints, n_samples
     )
 
     # Compute effective sample size
@@ -317,7 +317,7 @@ Main entry point for parameter learning - dispatches to correct algorithm
 """
 function learn_parameters(
     training_data::TrainingData,
-    granularity::ModelGranularity,
+    model_granularity::ModelGranularity,
     algorithm::String;
     n_samples::Int,
 )::Dict{Key,Tuple{Float64,Float64}}
@@ -347,11 +347,11 @@ Uses Gamma(alpha, beta) distributions for each instruction key based on specifie
 """
 mutable struct GammaModel <: AbstractModel
     params::Dict{Key,Tuple{Float64,Float64}}
-    granularity::ModelGranularity
+    model_granularity::ModelGranularity
     model_type::String
 
-    function GammaModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{Key,Tuple{Float64,Float64}}(), granularity, model_type)
+    function GammaModel(model_granularity::ModelGranularity, model_type::String)
+        new(Dict{Key,Tuple{Float64,Float64}}(), model_granularity, model_type)
     end
 end
 
@@ -405,7 +405,7 @@ Learn parameters from training data using Gamma distributions
 function learn_params!(
     model::GammaModel, training_data::TrainingData, config::GammaTrainingConfig
 )
-    @info "Learning Gamma model parameters" granularity = model.granularity n_samples =
+    @info "Learning Gamma model parameters" model_granularity = model.granularity n_samples =
         config.n_samples algorithm = config.inference_algorithm
 
     model.params = learn_parameters(
@@ -451,7 +451,7 @@ function estimate_energy(
 }
     inst_events = instruction_events(program)
 
-    @info "Estimating energy with Gamma model" granularity = model.granularity num_instructions = length(
+    @info "Estimating energy with Gamma model" model_granularity = model.granularity num_instructions = length(
         inst_events
     ) n_samples = config.n_samples
 

@@ -42,11 +42,11 @@ function is_meaningful_combination(opcode::Symbol, mode::Symbol)::Bool
 end
 
 """
-Extract all valid parameter keys from training data based on granularity level.
+Extract all valid parameter keys from training data based on model_granularity level.
 Only includes meaningful combinations.
 """
 function get_valid_param_keys(
-    training_data::TrainingData, granularity::ModelGranularity
+    training_data::TrainingData, model_granularity::ModelGranularity
 )::Set{Key}
     valid_keys = Set{Key}()
 
@@ -56,7 +56,7 @@ function get_valid_param_keys(
 
             # For PerAddressingMode and PerAddressingModeConstant, filter out meaningless combinations
             if (
-                granularity == PerAddressingMode || granularity == PerAddressingModeConstant
+                model_granularity == PerAddressingMode || model_granularity == PerAddressingModeConstant
             ) && length(key) >= 2
                 # key is (opcode, mode) or (opcode, src_mode, dst_mode)
                 # or (opcode, src_mode, constant, dst_mode) for constant-aware instructions

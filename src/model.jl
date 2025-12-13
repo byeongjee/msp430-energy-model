@@ -91,6 +91,9 @@ include("models/gamma_per_addressing_mode_constant.jl")
 include("models/mean_per_instruction.jl")
 include("models/mean_per_addressing_mode.jl")
 include("models/mean_per_addressing_mode_constant.jl")
+include("models/mean_per_instruction_with_mem_access.jl")
+include("models/mean_per_addressing_mode_with_mem_access.jl")
+include("models/mean_per_addressing_mode_constant_with_mem_access.jl")
 include("models/mean_per_pair_addressing_mode_constant.jl")
 
 """
@@ -109,11 +112,17 @@ function create_model(model_str::String)::AbstractModel
         return MeanPerAddressingMode()
     elseif model_str == "mean_per_addressing_mode_constant"
         return MeanPerAddressingModeConstant()
+    elseif model_str == "mean_per_instruction_with_mem_access"
+        return MeanPerInstructionWithMemAccess()
+    elseif model_str == "mean_per_addressing_mode_with_mem_access"
+        return MeanPerAddressingModeWithMemAccess()
+    elseif model_str == "mean_per_addressing_mode_constant_with_mem_access"
+        return MeanPerAddressingModeConstantWithMemAccess()
     elseif model_str == "mean_per_pair_addressing_mode_constant"
         return MeanPerPairAddressingModeConstant()
     else
         error(
-            "Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant, mean_per_pair_addressing_mode_constant",
+            "Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant, mean_per_instruction_with_mem_access, mean_per_addressing_mode_with_mem_access, mean_per_addressing_mode_constant_with_mem_access, mean_per_pair_addressing_mode_constant",
         )
     end
 end

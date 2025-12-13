@@ -19,7 +19,8 @@ using ..Types:
     SRAMWrite,
     WithEvent,
     ModelGranularity,
-    Key
+    Key,
+    get_should_track_memory_access
 using ..Parser
 
 include("machine_state.jl")
@@ -233,6 +234,8 @@ end
 function _memory_op_debug_msg(
     state::MachineState, inst::Instruction, old_regs::Dict{Symbol,UInt32}
 )::Union{String,Nothing}
+    # do not track memory access for debug
+    should_track_memory_access = false
     # Use a side-effect-free read of operand values using the pre-execution register snapshot
     function _peek_operand_value(operand::Operand, data_size::Symbol)::UInt32
         if operand.mode == :immediate
@@ -244,14 +247,18 @@ function _memory_op_debug_msg(
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
             # Use read_memory with no inst (no event tracking for debug)
-            val, _ = read_memory(state, addr, data_size, nothing)
+            val, _ = read_memory(
+                state, addr, data_size, nothing, should_track_memory_access
+            )
             return val
         elseif operand.mode == :autoincrement
             operand_str = string(operand.value)
             reg_name = Symbol(operand_str[2:end])
             addr = get(old_regs, reg_name, UInt32(0))
             # Use read_memory with no inst (no event tracking for debug)
-            val, _ = read_memory(state, addr, data_size, nothing)
+            val, _ = read_memory(
+                state, addr, data_size, nothing, should_track_memory_access
+            )
             return val
         elseif operand.mode == :indexed || operand.mode == :symbolic
             offset, reg = operand.value
@@ -261,11 +268,15 @@ function _memory_op_debug_msg(
             end
             addr = UInt32((base_addr + offset) & get_register_mask(reg))
             # Use read_memory with no inst (no event tracking for debug)
-            val, _ = read_memory(state, addr, data_size, nothing)
+            val, _ = read_memory(
+                state, addr, data_size, nothing, should_track_memory_access
+            )
             return val
         elseif operand.mode == :absolute
             # Use read_memory with no inst (no event tracking for debug)
-            val, _ = read_memory(state, UInt32(operand.value), data_size, nothing)
+            val, _ = read_memory(
+                state, UInt32(operand.value), data_size, nothing, should_track_memory_access
+            )
             return val
         else
             return UInt32(0)
@@ -412,7 +423,7 @@ function interpret_program(
     address_info::Vector{Tuple{UInt32,UInt32}},
     func_addrs::Dict{String,UInt32},
     max_steps::Int,
-    granularity::ModelGranularity;
+    model_granularity::ModelGranularity;
     data_file::Union{String,Nothing}=nothing,
 )::Tuple{MachineState,Vector{ExecutionTrace}}
     @info "="^60
@@ -516,7 +527,7 @@ function interpret_program(
 
             if is_call
                 call_target, _ = get_operand_value(
-                    state, inst.operands[1], inst.data_size, inst
+                    state, inst.operands[1], inst.data_size, inst, false
                 )
 
                 # Check for debug_out_* stubs; handle in interpreter and skip call
@@ -562,7 +573,9 @@ function interpret_program(
             end
 
             # Execute the instruction
-            events = execute_instruction!(state, inst, address_info, current_addr_idx, granularity)
+            events = execute_instruction!(
+                state, inst, address_info, current_addr_idx, model_granularity
+            )
             append!(current_execution_trace, events)
 
             # Debug logging only when needed
@@ -579,9 +592,11 @@ function interpret_program(
             end
 
         catch e
+            # Log the full exception and backtrace to aid debugging before halting execution
+            bt = catch_backtrace()
             @error "Error executing instruction" pc = string(
                 state.registers[:PC]; base=16, pad=4
-            ) opcode = inst.opcode error = e
+            ) opcode = inst.opcode exception = (e, bt)
             break
         end
     end
