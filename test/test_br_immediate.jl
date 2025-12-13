@@ -6,6 +6,9 @@ using .Types: MachineState, Instruction, Inst, get_inst
 include("../src/parser.jl")
 using .Parser
 
+include("../src/TraceMetrics.jl")
+using .TraceMetrics
+
 include("../src/Interpreter.jl")
 using .Interpreter
 
