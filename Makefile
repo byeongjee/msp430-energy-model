@@ -142,12 +142,7 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c|file.S> [MAX_STEPS
 	elif [ -n "$(MODEL)" ]; then \
 		MODEL_FLAG="--model $(MODEL)"; \
 	fi; \
-	LOG_MEMORY_ACCESS_ENV=""; \
-	if [ "$(LOG_MEMORY_ACCESS)" = "1" ]; then \
-		LOG_MEMORY_ACCESS_ENV="LOG_MEMORY_ACCESS=1"; \
-		echo "  LOG_MEMORY_ACCESS=1 (memory access logging enabled)"; \
-	fi; \
-	env $$LOG_MEMORY_ACCESS_ENV julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG $$MODEL_FLAG
+	julia --project=. src/main.jl interpret --asm $(ASM_DIR)/$$BASENAME.asm $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG $$MODEL_FLAG
 	@echo "✓ Interpret completed!"
 
 train: MODEL?=mean_per_addressing_mode
