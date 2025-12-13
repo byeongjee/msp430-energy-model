@@ -2,7 +2,7 @@ using Test
 using JSON
 
 include("../src/types.jl")
-using .Types: MachineState, Instruction
+using .Types: MachineState, Instruction, get_should_track_memory_access, ModelGranularity
 
 include("../src/parser.jl")
 using .Parser
@@ -25,13 +25,12 @@ end
 
 """
 Run the interpreter on an assembly file and return the final machine state
-Optionally returns memory access counts when log_memory_access is true
 """
 function run_interpreter(
     asm_file::String,
+    model_granularity::ModelGranularity,
     max_steps::Int=100000000,
     data_file::Union{String,Nothing}=nothing,
-    log_memory_access::Bool=false,
 )
     if !isfile(asm_file)
         error("Assembly file not found: $asm_file")
@@ -58,18 +57,17 @@ function run_interpreter(
 
     # Execute program (use finest granularity for tests)
     final_state, event_traces = Interpreter.interpret_program(
-    instructions,
-    address_info,
-    func_addrs,
-    max_steps,
-    log_memory_access ?
-    Types.PerAddressingModeConstantWithMemAccess : Types.PerAddressingModeConstant;
-    data_file=data_dump,
-)
+        instructions,
+        address_info,
+        func_addrs,
+        max_steps,
+        model_granularity;
+        data_file=data_dump,
+    )
 
     # Compute event accesses from traces if memory access logging is enabled
     event_accesses =
-        log_memory_access ?
+        get_should_track_memory_access(model_granularity) ?
         Interpreter.compute_event_accesses(
             event_traces, Interpreter.build_memory_regions()
         ) : Vector{Dict{Symbol,Int}}()
@@ -209,10 +207,12 @@ function test_fixture(fixture_path::String)
         # Run interpreter with optional memory access logging
         if has_cache_test
             final_state, event_accesses = run_interpreter(
-                asm_file, 100000000, data_file, true
+                asm_file, Types.PerAddressingModeConstantWithMemAccess, 100000000, data_file
             )
         else
-            final_state, _ = run_interpreter(asm_file, 100000000, data_file, false)
+            final_state, _ = run_interpreter(
+                asm_file, Types.PerAddressingModeConstant, 100000000, data_file
+            )
         end
 
         # Convert to comparable format

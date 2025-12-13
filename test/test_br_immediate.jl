@@ -71,9 +71,7 @@ function test_br_immediate_instruction_count()
         # Count how many times br was executed by checking event traces
         total_br_executions = 0
         for trace in event_traces
-            br_in_trace = count(
-                event -> event.type == Inst && get_inst(event).opcode == :br, trace
-            )
+            br_in_trace = count(event -> get_inst(event).opcode == :br, trace)
             total_br_executions += br_in_trace
         end
 
