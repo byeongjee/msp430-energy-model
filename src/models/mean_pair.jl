@@ -23,7 +23,7 @@ Get dominant instruction pair from a program (most frequent consecutive pair).
 Used for microbenchmarks where one pair type dominates.
 """
 function get_dominant_pair(
-    program::ExecutionTrace, granularity::ModelGranularity
+    program::ExecutionTrace, model_granularity::ModelGranularity
 )::Tuple{Key,Key}
     if length(program) < 2
         error("Program must have at least 2 instructions to determine dominant pair")
@@ -62,11 +62,11 @@ Uses simple mean energy per consecutive instruction pair based on specified gran
 """
 mutable struct MeanPairModel <: AbstractModel
     params::Dict{Tuple{Key,Key},Float64}
-    granularity::ModelGranularity
+    model_granularity::ModelGranularity
     model_type::String
 
-    function MeanPairModel(granularity::ModelGranularity, model_type::String)
-        new(Dict{Tuple{Key,Key},Float64}(), granularity, model_type)
+    function MeanPairModel(model_granularity::ModelGranularity, model_type::String)
+        new(Dict{Tuple{Key,Key},Float64}(), model_granularity, model_type)
     end
 end
 
@@ -548,7 +548,7 @@ Learn parameters from training data
 function learn_params!(
     model::MeanPairModel, training_data::TrainingData, config::MeanTrainingConfig
 )
-    @info "Learning MeanPair model parameters" granularity = model.granularity num_programs = length(
+    @info "Learning MeanPair model parameters" model_granularity = model.granularity num_programs = length(
         training_data.programs
     ) inference_algorithm = config.inference_algorithm
 
@@ -651,7 +651,7 @@ function estimate_energy(
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
-    @info "Estimating energy with MeanPair model" granularity = model.granularity num_instructions = length(
+    @info "Estimating energy with MeanPair model" model_granularity = model.granularity num_instructions = length(
         program
     ) num_pairs = max(0, length(program) - 1)
 

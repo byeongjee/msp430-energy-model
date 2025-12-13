@@ -58,13 +58,14 @@ function run_interpreter(
 
     # Execute program (use finest granularity for tests)
     final_state, event_traces = Interpreter.interpret_program(
-        instructions,
-        address_info,
-        func_addrs,
-        max_steps,
-        Types.PerAddressingModeConstant;
-        data_file=data_dump,
-    )
+    instructions,
+    address_info,
+    func_addrs,
+    max_steps,
+    log_memory_access ?
+    Types.PerAddressingModeConstantWithMemAccess : Types.PerAddressingModeConstant;
+    data_file=data_dump,
+)
 
     # Compute event accesses from traces if memory access logging is enabled
     event_accesses =

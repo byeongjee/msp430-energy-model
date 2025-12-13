@@ -221,8 +221,18 @@ function execute!(
     inst::Instruction,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return execute!(state, handler, inst, inst.operands, inst.data_size, address_info, current_idx)
+    return execute!(
+        state,
+        handler,
+        inst,
+        inst.operands,
+        inst.data_size,
+        address_info,
+        current_idx,
+        should_track_memory_access,
+    )
 end
 
 # Each handler implements execute! with its specific logic.
@@ -243,14 +253,19 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_events = set_operand_value!(state, ops[2], src_val, data_size, inst)
+    dst_events = set_operand_value!(
+        state, ops[2], src_val, data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     return events
 end
@@ -264,14 +279,19 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_events = set_operand_value!(state, ops[2], src_val, data_size, inst)
+    dst_events = set_operand_value!(
+        state, ops[2], src_val, data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     return events
 end
@@ -285,18 +305,25 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val + src_val)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -310,18 +337,25 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val + src_val)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -335,19 +369,26 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     carry = state.flags[:C] ? UInt32(1) : UInt32(0)
     result = UInt32(dst_val + src_val + carry)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -361,18 +402,25 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val - src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -386,19 +434,26 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
     result = UInt32(dst_val - src_val - carry)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -412,14 +467,19 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val - src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
@@ -435,18 +495,25 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val + src_val)
     update_flags!(state, result, dst_val, src_val, true, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -460,14 +527,19 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val & src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
@@ -483,17 +555,24 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val & (~src_val))
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -507,17 +586,24 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val | src_val)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -531,18 +617,25 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val ⊻ src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -556,18 +649,25 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(state, ops[1], data_size, inst)
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, src_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
     result = UInt32(dst_val & src_val)
     update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    result_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, result_events)
     return events
 end
@@ -585,18 +685,23 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     new_carry = (operand_val & 0x0001) != 0
     result = UInt32((operand_val >> 1) | (state.flags[:C] ? 0x8000 : 0x0000))
     state.flags[:C] = new_carry
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -612,14 +717,19 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    shift_count, shift_events = get_operand_value(state, ops[1], data_size, inst)
+    shift_count, shift_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, shift_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
 
     # Determine the MSB position based on data size
@@ -637,7 +747,9 @@ function execute!(
     end
 
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -651,15 +763,20 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = UInt32(((operand_val & 0x00FF) << 8) | ((operand_val & 0xFF00) >> 8))
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -673,17 +790,22 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = UInt32(Int32(operand_val) >> 1)
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -697,12 +819,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
 
     # Arithmetic right shift (sign-extended)
@@ -735,7 +860,9 @@ function execute!(
 
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -749,12 +876,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
 
     # Logical right shift (zero fill)
@@ -762,7 +892,9 @@ function execute!(
 
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -779,14 +911,19 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    shift_count, shift_events = get_operand_value(state, ops[1], data_size, inst)
+    shift_count, shift_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, shift_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
 
     # The carry flag is set to the bit that gets shifted out after n shifts
@@ -809,7 +946,9 @@ function execute!(
     end
 
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -823,12 +962,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = if (operand_val & 0x0080) != 0
         UInt32(operand_val | 0xFF00)
@@ -836,7 +978,9 @@ function execute!(
         UInt32(operand_val & 0x00FF)
     end
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -850,12 +994,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = apply_data_size_mask(~operand_val, data_size)
 
@@ -881,7 +1028,9 @@ function execute!(
         (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -895,12 +1044,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     bytes_per_val = data_size == :address ? UInt32(4) : UInt32(2)
     state.registers[:SP] = UInt32(
@@ -930,6 +1082,7 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
@@ -940,7 +1093,9 @@ function execute!(
         )
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     return_addr = address_info[current_idx + 1][1]
     # CALL instruction only supports 16-bit return addresses
@@ -967,6 +1122,7 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     return_addr = get(state.memory, state.registers[:SP], UInt16(0))
     state.registers[:PC] = return_addr
@@ -986,6 +1142,7 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     state.registers[:SR] = state.memory[state.registers[:SP]]
     state.registers[:SP] = UInt32(
@@ -1008,11 +1165,14 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
-    events = set_operand_value!(state, ops[1], UInt32(0), data_size, inst)
+    events = set_operand_value!(
+        state, ops[1], UInt32(0), data_size, inst, should_track_memory_access
+    )
     return events
 end
 
@@ -1025,16 +1185,21 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = operand_val + UInt32(1)
     update_flags!(state, result, operand_val, UInt32(1), true, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1048,16 +1213,21 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = operand_val - UInt32(1)
     update_flags!(state, result, operand_val, UInt32(1), false, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1071,6 +1241,7 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     state.registers[:SR] = state.registers[:SR] & ~0x0008  # Clear GIE bit (bit 3)
     return ExecutionEvent[]
@@ -1085,6 +1256,7 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     state.registers[:SR] = state.registers[:SR] | 0x0008  # Set GIE bit (bit 3)
     return ExecutionEvent[]
@@ -1099,6 +1271,7 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     state.flags[:C] = true
     state.registers[:SR] = state.registers[:SR] | 0x0001  # Set C bit (bit 0)
@@ -1114,6 +1287,7 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     state.flags[:C] = false
     state.registers[:SR] = state.registers[:SR] & ~0x0001  # Clear C bit (bit 0)
@@ -1129,10 +1303,13 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     # RLC rotates left through carry: shifts left and inserts carry into LSB
     events = ExecutionEvent[]
-    dst_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    dst_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     carry = (state.registers[:SR] & 0x0001) != 0 ? UInt32(1) : UInt32(0)
 
@@ -1179,7 +1356,9 @@ function execute!(
         (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1193,6 +1372,7 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     return ExecutionEvent[]
 end
@@ -1206,12 +1386,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     state.registers[:PC] = operand_val
     return events
@@ -1226,16 +1409,21 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = operand_val - UInt32(2)
     update_flags!(state, result, operand_val, UInt32(2), false, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1249,16 +1437,21 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     result = operand_val + UInt32(2)
     update_flags!(state, result, operand_val, UInt32(2), true, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1270,9 +1463,12 @@ function execute!(
     inst::Instruction,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     nested_inst = inst.rpt_nested
-    count_val, count_events = get_operand_value(state, inst.operands[1], inst.data_size, inst)
+    count_val, count_events = get_operand_value(
+        state, inst.operands[1], inst.data_size, inst, should_track_memory_access
+    )
     count = Int(count_val)
 
     all_events = ExecutionEvent[]
@@ -1293,6 +1489,7 @@ function execute!(
             nested_inst.data_size,
             address_info,
             nested_idx,
+            should_track_memory_access,
         )
         append!(all_events, nested_events)
     end
@@ -1313,17 +1510,22 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
     result = UInt32(operand_val - carry)
     update_flags!(state, result, operand_val, carry, false, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1337,17 +1539,22 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     carry = state.flags[:C] ? UInt32(1) : UInt32(0)
     result = UInt32(operand_val + carry)
     update_flags!(state, result, operand_val, carry, true, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1361,18 +1568,23 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(state, ops[1], data_size, inst)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, read_events)
     new_carry = (operand_val & 0x8000) != 0
     result = UInt32(operand_val << 1)
     state.flags[:C] = new_carry
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[1], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1386,14 +1598,19 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    shift_count, shift_events = get_operand_value(state, ops[1], data_size, inst)
+    shift_count, shift_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, shift_events)
-    dst_val, dst_events = get_operand_value(state, ops[2], data_size, inst)
+    dst_val, dst_events = get_operand_value(
+        state, ops[2], data_size, inst, should_track_memory_access
+    )
     append!(events, dst_events)
 
     result = dst_val
@@ -1404,7 +1621,9 @@ function execute!(
     end
 
     update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(state, ops[2], result, data_size, inst)
+    write_events = set_operand_value!(
+        state, ops[2], result, data_size, inst, should_track_memory_access
+    )
     append!(events, write_events)
     return events
 end
@@ -1418,12 +1637,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    n_val, n_events = get_operand_value(state, ops[1], data_size, inst)
+    n_val, n_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, n_events)
     n = Int(n_val)
     dst_reg = ops[2].value
@@ -1450,7 +1672,9 @@ function execute!(
                     state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
                 else
                     state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
-                    state.memory[state.registers[:SP] + 2] = UInt16((reg_val >> 16) & 0xFFFF)
+                    state.memory[state.registers[:SP] + 2] = UInt16(
+                        (reg_val >> 16) & 0xFFFF
+                    )
                 end
             else
                 state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
@@ -1470,12 +1694,15 @@ function execute!(
     data_size::Symbol,
     ::Vector{Tuple{UInt32,UInt32}},
     ::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 2
         return ExecutionEvent[]
     end
     events = ExecutionEvent[]
-    n_val, n_events = get_operand_value(state, ops[1], data_size, inst)
+    n_val, n_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
     append!(events, n_events)
     n = Int(n_val)
     dst_reg = ops[2].value
@@ -1492,7 +1719,9 @@ function execute!(
             reg_sym = Parser.reg_num_to_symbol(i)
 
             reg_val = if data_size == :address
-                val, read_events = read_memory(state, state.registers[:SP], :address, inst)
+                val, read_events = read_memory(
+                    state, state.registers[:SP], :address, inst, should_track_memory_access
+                )
                 append!(events, read_events)
                 val
             else
@@ -1519,6 +1748,7 @@ function execute_jump_helper!(
     ops::Vector{Operand},
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     if length(ops) < 1
         return ExecutionEvent[]
@@ -1557,8 +1787,11 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return execute_jump_helper!(state, true, ops, address_info, current_idx)
+    return execute_jump_helper!(
+        state, true, ops, address_info, current_idx, should_track_memory_access
+    )
 end
 
 # JNZ - Jump if not zero
@@ -1570,8 +1803,11 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return execute_jump_helper!(state, !state.flags[:Z], ops, address_info, current_idx)
+    return execute_jump_helper!(
+        state, !state.flags[:Z], ops, address_info, current_idx, should_track_memory_access
+    )
 end
 
 # JZ - Jump if zero
@@ -1583,8 +1819,11 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return execute_jump_helper!(state, state.flags[:Z], ops, address_info, current_idx)
+    return execute_jump_helper!(
+        state, state.flags[:Z], ops, address_info, current_idx, should_track_memory_access
+    )
 end
 
 # JNC - Jump if no carry
@@ -1596,8 +1835,11 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return execute_jump_helper!(state, !state.flags[:C], ops, address_info, current_idx)
+    return execute_jump_helper!(
+        state, !state.flags[:C], ops, address_info, current_idx, should_track_memory_access
+    )
 end
 
 # JC - Jump if carry
@@ -1609,8 +1851,11 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return execute_jump_helper!(state, state.flags[:C], ops, address_info, current_idx)
+    return execute_jump_helper!(
+        state, state.flags[:C], ops, address_info, current_idx, should_track_memory_access
+    )
 end
 
 # JN - Jump if negative
@@ -1622,8 +1867,11 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return execute_jump_helper!(state, state.flags[:N], ops, address_info, current_idx)
+    return execute_jump_helper!(
+        state, state.flags[:N], ops, address_info, current_idx, should_track_memory_access
+    )
 end
 
 # JGE - Jump if greater or equal (signed)
@@ -1635,9 +1883,15 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     return execute_jump_helper!(
-        state, !(state.flags[:N] ⊻ state.flags[:V]), ops, address_info, current_idx
+        state,
+        !(state.flags[:N] ⊻ state.flags[:V]),
+        ops,
+        address_info,
+        current_idx,
+        should_track_memory_access,
     )
 end
 
@@ -1650,8 +1904,14 @@ function execute!(
     data_size::Symbol,
     address_info::Vector{Tuple{UInt32,UInt32}},
     current_idx::Int,
+    should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     return execute_jump_helper!(
-        state, (state.flags[:N] ⊻ state.flags[:V]), ops, address_info, current_idx
+        state,
+        (state.flags[:N] ⊻ state.flags[:V]),
+        ops,
+        address_info,
+        current_idx,
+        should_track_memory_access,
     )
 end
