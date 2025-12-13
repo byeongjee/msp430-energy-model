@@ -253,7 +253,7 @@ def main():
     measured_energies, event_labels = load_measured_data(args.measured_data)
 
     # Extract all events from estimated stats
-    events = estimated_stats_dict["events"]
+    events = estimated_stats_dict["execution_traces"]
     num_events = len(events)
     num_repeat = args.num_repeat
 
