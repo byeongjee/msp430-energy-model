@@ -347,11 +347,11 @@ Uses Gamma(alpha, beta) distributions for each instruction key based on specifie
 """
 mutable struct GammaModel <: AbstractModel
     params::Dict{Key,Tuple{Float64,Float64}}
-    model_granularity::ModelGranularity
+    granularity::ModelGranularity
     model_type::String
 
-    function GammaModel(model_granularity::ModelGranularity, model_type::String)
-        new(Dict{Key,Tuple{Float64,Float64}}(), model_granularity, model_type)
+    function GammaModel(granularity::ModelGranularity, model_type::String)
+        new(Dict{Key,Tuple{Float64,Float64}}(), granularity, model_type)
     end
 end
 

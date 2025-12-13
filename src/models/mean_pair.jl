@@ -62,11 +62,11 @@ Uses simple mean energy per consecutive instruction pair based on specified gran
 """
 mutable struct MeanPairModel <: AbstractModel
     params::Dict{Tuple{Key,Key},Float64}
-    model_granularity::ModelGranularity
+    granularity::ModelGranularity
     model_type::String
 
-    function MeanPairModel(model_granularity::ModelGranularity, model_type::String)
-        new(Dict{Tuple{Key,Key},Float64}(), model_granularity, model_type)
+    function MeanPairModel(granularity::ModelGranularity, model_type::String)
+        new(Dict{Tuple{Key,Key},Float64}(), granularity, model_type)
     end
 end
 
