@@ -32,7 +32,6 @@ make interpret FILE=<file.c|file.S>
 make interpret FILE=examples/misc/simple.c MAX_STEPS=1000
 make interpret FILE=<file.c> GRANULARITY=addressing_mode
 make interpret FILE=<file.c> MODEL=mean_per_addressing_mode
-make interpret FILE=<file.c> LOG_MEMORY_ACCESS=1
 
 # Valid GRANULARITY values: opcode, addressing_mode, addressing_mode_constant, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair
 ```

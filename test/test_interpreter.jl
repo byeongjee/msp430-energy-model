@@ -68,7 +68,7 @@ function run_interpreter(
         data_file=data_dump,
     )
 
-    # Compute event accesses from traces if memory access logging is enabled
+    # Compute event accesses when model granularity tracks memory
     event_accesses =
         get_should_track_memory_access(model_granularity) ?
         TraceMetrics.compute_event_accesses(
@@ -207,7 +207,7 @@ function test_fixture(fixture_path::String)
     has_cache_test = haskey(fixture, "cache")
 
     @testset "Test: $test_name" begin
-        # Run interpreter with optional memory access logging
+        # Run interpreter; memory access tracking depends on granularity
         if has_cache_test
             final_state, event_accesses = run_interpreter(
                 asm_file, Types.PerAddressingModeConstantWithMemAccess, 100000000, data_file

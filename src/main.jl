@@ -87,24 +87,23 @@ function run_interpret(
     instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
     func_addrs = Parser.find_functions(asm_file)
 
-    log_memory_access = get(ENV, "LOG_MEMORY_ACCESS", "0") == "1"
-    memory_regions = TraceMetrics.build_memory_regions()
-    if log_memory_access
-        @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
-    end
-
     # Get model and granularity before interpretation
     model = isnothing(model_str) ? nothing : Model.create_model(model_str)
     granularity =
         isnothing(model) ? Types.PerAddressingModeConstant : model.granularity
+    should_track_memory_access = Types.get_should_track_memory_access(granularity)
+    memory_regions = TraceMetrics.build_memory_regions()
+    if should_track_memory_access
+        @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
+    end
 
     final_state, event_traces = Interpreter.interpret_program(
         instructions, address_info, func_addrs, max_steps, granularity; data_file=data_dump
     )
 
-    # Compute event accesses from traces if memory access logging is enabled
+    # Compute event accesses from traces if model granularity requires it
     event_accesses =
-        log_memory_access ?
+        should_track_memory_access ?
         TraceMetrics.compute_event_accesses(event_traces, memory_regions) :
         Vector{Dict{Symbol,Int}}()
 
@@ -123,7 +122,7 @@ function run_interpret(
 
     log_event_memory =
         i -> begin
-            if log_memory_access && i <= length(event_accesses)
+            if should_track_memory_access && i <= length(event_accesses)
                 acc = event_accesses[i]
                 @info "Event $i memory_accesses" fram_read_hit = get(acc, :fram_read_hit, 0) fram_read_miss = get(acc, :fram_read_miss, 0) fram_write = get(
                     acc, :fram_write, 0
