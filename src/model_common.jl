@@ -18,9 +18,6 @@ using ..Types:
     PerAddressingModeConstantWithMemAccess,
     get_instruction_key
 
-instruction_events(program::ExecutionTrace)::Vector{ExecutionEvent} =
-    filter(evt -> evt.type == Inst, program)
-
 """
 Check if an (opcode, addressing_mode) combination is meaningful for energy modeling.
 Some combinations are meaningless because:
@@ -53,13 +50,14 @@ function get_valid_param_keys(
 )::Set{Key}
     valid_keys = Set{Key}()
 
-    for program in training_data.programs
-        for trace in program
-            key = trace.key
+    for execution_trace in training_data.execution_traces
+        for execution_event in execution_trace
+            key = execution_event.key
 
             # For PerAddressingMode and PerAddressingModeConstant, filter out meaningless combinations
             if (
-                model_granularity == PerAddressingMode || model_granularity == PerAddressingModeConstant
+                model_granularity == PerAddressingMode ||
+                model_granularity == PerAddressingModeConstant
             ) && length(key) >= 2
                 # key is (opcode, mode) or (opcode, src_mode, dst_mode)
                 # or (opcode, src_mode, constant, dst_mode) for constant-aware instructions

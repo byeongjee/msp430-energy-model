@@ -29,13 +29,13 @@ end
 epsilon = 1e-12
 
 @gen function single_program_energy_model(
-    program::ExecutionTrace,
+    execution_trace::ExecutionTrace,
     params::Dict{Key,Tuple{Float64,Float64}},
     model_granularity::ModelGranularity,
 )::Float64
     total_energy = 0.0
 
-    for (i, execution_event) in enumerate(program)
+    for (i, execution_event) in enumerate(execution_trace)
         # Get parameter key from event
         param_key = execution_event.key
 
@@ -96,11 +96,11 @@ end
     log_sigma = {:log_obs_sigma} ~ normal(log(rho * m + epsilon), tau)
     sigma = exp(log_sigma)
 
-    # Generate energy observations for each program
-    for (i, program) in enumerate(training_data.programs)
+    # Generate energy observations for each execution_trace
+    for (i, execution_trace) in enumerate(training_data.execution_traces)
         actual_energy_consumption =
             {(:actual_energy_consumption, i)} ~ single_program_energy_model(
-                program, learned_params, granularity
+                execution_trace, learned_params, model_granularity
             )
 
         {(:observed_energy_consumption, i)} ~ normal(actual_energy_consumption, sigma)
@@ -157,7 +157,7 @@ function learn_parameters_mcmc_blocked(
     valid_keys = get_valid_param_keys(training_data, model_granularity)
 
     @info "Starting MCMC inference (Blocked Gibbs/MH)"
-    @info "Training data" num_programs = length(training_data.programs) model_granularity num_param_keys = length(
+    @info "Training data" num_programs = length(training_data.execution_traces) model_granularity num_param_keys = length(
         valid_keys
     ) n_samples burn_in
 
@@ -172,7 +172,9 @@ function learn_parameters_mcmc_blocked(
 
     # Initialize trace with constraints
     @info "Initializing trace..."
-    trace, = generate(all_programs_energy_model, (training_data, model_granularity), constraints)
+    trace, = generate(
+        all_programs_energy_model, (training_data, model_granularity), constraints
+    )
     @info "Initial log probability" log_prob = get_score(trace)
 
     @info "Number of parameter blocks" num_blocks = length(valid_keys) + 1
@@ -242,7 +244,7 @@ function learn_parameters_importance_sampling(
     valid_keys = get_valid_param_keys(training_data, model_granularity)
 
     @info "Starting parameter inference using importance sampling"
-    @info "Training data" num_programs = length(training_data.programs) model_granularity num_param_keys = length(
+    @info "Training data" num_programs = length(training_data.execution_traces) model_granularity num_param_keys = length(
         valid_keys
     ) n_samples
 
@@ -256,7 +258,10 @@ function learn_parameters_importance_sampling(
 
     @info "Running importance sampling..."
     (traces, log_weights) = importance_sampling(
-        all_programs_energy_model, (training_data, model_granularity), constraints, n_samples
+        all_programs_energy_model,
+        (training_data, model_granularity),
+        constraints,
+        n_samples,
     )
 
     # Compute effective sample size
@@ -441,28 +446,26 @@ function save_params(model::GammaModel, filename::String)
 end
 
 """
-Estimate energy distribution for a program
+Estimate energy distribution for a execution_trace
 """
 function estimate_energy(
-    model::GammaModel, program::ExecutionTrace, config::GammaEstimationConfig
+    model::GammaModel, execution_trace::ExecutionTrace, config::GammaEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
-    inst_events = instruction_events(program)
-
-    @info "Estimating energy with Gamma model" model_granularity = model.granularity num_instructions = length(
-        inst_events
+    @info "Estimating energy with Gamma model" model_granularity = model.granularity num_events = length(
+        execution_trace
     ) n_samples = config.n_samples
 
-    # Default parameters for unknown instructions
+    # Default parameters for unknown events
     default_alpha = 1.0
     default_beta = 3.0
 
-    # Check for missing instructions
+    # Check for missing events
     missing_keys = Set{Key}()
-    for inst in inst_events
-        param_key = inst.key
+    for event in execution_trace
+        param_key = event.key
         if !haskey(model.params, param_key)
             push!(missing_keys, param_key)
         end
@@ -480,8 +483,8 @@ function estimate_energy(
 
     @threads for i in 1:(config.n_samples)
         total_cost = 0.0
-        for inst in inst_events
-            param_key = inst.key
+        for event in execution_trace
+            param_key = event.key
             alpha, beta = get(model.params, param_key, (default_alpha, default_beta))
             cost = rand(Distributions.Gamma(alpha, beta))
             total_cost += cost
