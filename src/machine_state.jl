@@ -370,28 +370,25 @@ function read_memory(
         events = ExecutionEvent[]
     end
 
-    use_cache = _is_fram_address(addr)
+    # MSP430 automatically aligns word accesses to even addresses
+    aligned_addr = addr & ~UInt32(1)
+    use_cache = _is_fram_address(aligned_addr)
+
+    # Helper to read a word from aligned address
+    read_word = (a) -> use_cache ? _cache_read_word(state, a) : (_read_word_uncached(state, a), false)
 
     if data_size == :byte
-        byte, hit =
-            use_cache ? _cache_read_byte(state, addr) :
-            (_read_byte_uncached(state, addr), false)
+        word, _ = read_word(aligned_addr)
+        # Extract the correct byte based on original address alignment
+        byte = (addr & 1) == 0 ? UInt8(word & 0xFF) : UInt8((word >> 8) & 0xFF)
         return (UInt32(byte), events)
     elseif data_size == :word
-        # MSP430 has 16-bit memory bus - aligned word access is a single operation
-        word, hit =
-            use_cache ? _cache_read_word(state, addr) :
-            (_read_word_uncached(state, addr), false)
+        word, _ = read_word(aligned_addr)
         return (UInt32(word), events)
     elseif data_size == :address
         # 20-bit address = two 16-bit words
-        # Each word access is independent on the 16-bit bus
-        lsw, hit1 =
-            use_cache ? _cache_read_word(state, addr) :
-            (_read_word_uncached(state, addr), false)
-        msw, hit2 =
-            use_cache ? _cache_read_word(state, addr + UInt32(2)) :
-            (_read_word_uncached(state, addr + UInt32(2)), false)
+        lsw, _ = read_word(aligned_addr)
+        msw, _ = read_word(aligned_addr + UInt32(2))
         return (UInt32(lsw) | (UInt32(msw & 0xF) << 16), events)
     else
         error("Unknown data size: $data_size")
@@ -498,48 +495,32 @@ function write_memory!(
     else
         events = ExecutionEvent[]
     end
-    byte_len = if data_size == :byte
-        1
-    elseif data_size == :word
-        2
-    elseif data_size == :address
-        4
-    else
-        0
-    end
-    if byte_len == 0
-        error("Unknown data size: $data_size")
-    end
-    if _is_fram_address(addr)
-        _invalidate_cache_range!(state, addr, byte_len)
-    end
-    # Normal memory write
-    if data_size == :word
-        # Write 16-bit word to memory
-        state.memory[addr] = UInt16(value & 0xFFFF)
-    elseif data_size == :byte
-        # Write byte to memory
-        # For even addresses: write to lower byte
-        # For odd addresses: write to upper byte
-        aligned_addr = addr & ~UInt32(1)  # Align to even address
+
+    # MSP430 automatically aligns word accesses to even addresses
+    aligned_addr = addr & ~UInt32(1)
+
+    # Determine byte length for cache invalidation
+    byte_len = data_size == :byte ? 1 : data_size == :word ? 2 : data_size == :address ? 4 : 0
+    byte_len == 0 && error("Unknown data size: $data_size")
+
+    # Invalidate cache for FRAM writes
+    _is_fram_address(aligned_addr) && _invalidate_cache_range!(state, aligned_addr, byte_len)
+
+    # Write to memory
+    if data_size == :byte
         old_word = get(state.memory, aligned_addr, UInt16(0))
-        if (addr & 1) == 0
-            # Even address: write to lower byte
-            new_word = UInt16((old_word & 0xFF00) | (value & 0xFF))
-        else
-            # Odd address: write to upper byte
-            new_word = UInt16((old_word & 0x00FF) | ((value & 0xFF) << 8))
-        end
+        new_word = (addr & 1) == 0 ?
+            UInt16((old_word & 0xFF00) | (value & 0xFF)) :  # Even: lower byte
+            UInt16((old_word & 0x00FF) | ((value & 0xFF) << 8))  # Odd: upper byte
         state.memory[aligned_addr] = new_word
+    elseif data_size == :word
+        state.memory[aligned_addr] = UInt16(value & 0xFFFF)
     elseif data_size == :address
-        # Write 20-bit address (two words: lsw at addr, msw at addr+2)
-        lsw = UInt16(value & 0xFFFF)
-        msw = UInt16((value >> 16) & 0xF)
-        state.memory[addr] = lsw
-        state.memory[addr + 2] = msw
-    else
-        error("Unknown data size: $data_size")
+        # 20-bit address = two 16-bit words
+        state.memory[aligned_addr] = UInt16(value & 0xFFFF)
+        state.memory[aligned_addr + UInt32(2)] = UInt16((value >> 16) & 0xF)
     end
+
     return events
 end
 
