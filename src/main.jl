@@ -76,7 +76,7 @@ function run_interpret(
     asm_file::String,
     max_steps::Int;
     data_dump::Union{String,Nothing}=nothing,
-    model_str::Union{String,Nothing}=nothing,
+    model_str::Union{String,Nothing}="mean_per_addressing_mode_constant",
 )
     @info "Running in INTERPRET mode"
     @info "Assembly file" path = asm_file
@@ -88,16 +88,20 @@ function run_interpret(
     func_addrs = Parser.find_functions(asm_file)
 
     # Get model and granularity before interpretation
-    model = isnothing(model_str) ? nothing : Model.create_model(model_str)
-    granularity = isnothing(model) ? Types.PerAddressingModeConstant : model.granularity
-    should_track_memory_access = Types.get_should_track_memory_access(granularity)
+    model = Model.create_model(model_str)
+    should_track_memory_access = Types.get_should_track_memory_access(model.granularity)
     memory_regions = TraceMetrics.build_memory_regions()
     if should_track_memory_access
         @info "Memory access logging enabled" fram = memory_regions[:fram] sram = memory_regions[:sram]
     end
 
     final_state, event_traces = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps, granularity; data_file=data_dump
+        instructions,
+        address_info,
+        func_addrs,
+        max_steps,
+        model.granularity;
+        data_file=data_dump,
     )
 
     # Compute event accesses from traces if model granularity requires it
@@ -135,26 +139,7 @@ function run_interpret(
             end
         end
 
-    if isnothing(granularity)
-        all_opcodes = Set{String}()
-        for (i, event) in enumerate(event_traces)
-            instruction_events = filter(evt -> evt.type == Types.Inst, event)
-            unique_opcodes = unique([
-                string(get_inst(inst).opcode) for inst in instruction_events
-            ])
-            sort!(unique_opcodes)
-            union!(all_opcodes, unique_opcodes)
-            opcodes_str = join(unique_opcodes, " ")
-            @info "Event $i unique_opcodes: $opcodes_str" instruction_events = length(
-                instruction_events
-            )
-            log_event_memory(i)
-        end
-        if !isempty(all_opcodes)
-            opcodes_str = join(sort(collect(all_opcodes)), " ")
-            @info "All events unique_opcodes: $opcodes_str"
-        end
-    elseif model isa Model.MeanPairModel
+    if model isa Model.MeanPairModel
         all_param_pairs = Set{Tuple{Model.Key,Model.Key}}()
         for (i, event) in enumerate(event_traces)
             instruction_events = filter(evt -> evt.type == Types.Inst, event)
