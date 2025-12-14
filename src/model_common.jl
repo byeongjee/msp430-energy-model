@@ -13,6 +13,9 @@ using ..Types:
     PerOpcode,
     PerAddressingMode,
     PerAddressingModeConstant,
+    PerOpcodeWithMemAccess,
+    PerAddressingModeWithMemAccess,
+    PerAddressingModeConstantWithMemAccess,
     get_instruction_key
 
 instruction_events(program::ExecutionTrace)::Vector{ExecutionEvent} =
