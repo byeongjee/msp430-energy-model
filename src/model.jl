@@ -15,7 +15,7 @@ All models must implement the following interface:
 - load_params!(model::AbstractModel, filename::String)
 - learn_params!(model::AbstractModel, training_data::TrainingData, config::TrainingConfig)
 - save_params(model::AbstractModel, filename::String)
-- estimate_energy(model::AbstractModel, program::ExecutionTrace, config::EstimationConfig)
+- estimate_energy(model::AbstractModel, execution_trace::ExecutionTrace, config::EstimationConfig)
 """
 abstract type AbstractModel end
 
@@ -64,11 +64,11 @@ Nothing
 function save_params end
 
 """
-Estimate energy consumption for a program.
+Estimate energy consumption for an execution trace.
 
 # Arguments
 - `model::AbstractModel`: The trained model
-- `program::ExecutionTrace`: Sequence of execution events
+- `execution_trace::ExecutionTrace`: Sequence of execution events
 - `config::EstimationConfig`: Configuration for estimation (e.g., number of samples for probabilistic models)
 
 # Returns

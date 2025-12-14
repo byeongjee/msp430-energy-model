@@ -89,8 +89,7 @@ function run_interpret(
 
     # Get model and granularity before interpretation
     model = isnothing(model_str) ? nothing : Model.create_model(model_str)
-    granularity =
-        isnothing(model) ? Types.PerAddressingModeConstant : model.granularity
+    granularity = isnothing(model) ? Types.PerAddressingModeConstant : model.granularity
     should_track_memory_access = Types.get_should_track_memory_access(granularity)
     memory_regions = TraceMetrics.build_memory_regions()
     if should_track_memory_access
@@ -146,7 +145,7 @@ function run_interpret(
             sort!(unique_opcodes)
             union!(all_opcodes, unique_opcodes)
             opcodes_str = join(unique_opcodes, " ")
-            @info "Event $i unique_opcodes: $opcodes_str" instructions = length(
+            @info "Event $i unique_opcodes: $opcodes_str" instruction_events = length(
                 instruction_events
             )
             log_event_memory(i)
@@ -169,7 +168,7 @@ function run_interpret(
             sort!(unique_pair_keys; by=string)
             union!(all_param_pairs, unique_pair_keys)
             pairs_str = join([format_pair_key(key) for key in unique_pair_keys], " ")
-            @info "Event $i param_pairs: $pairs_str" instructions = length(
+            @info "Event $i param_pairs: $pairs_str" instruction_events = length(
                 instruction_events
             )
             log_event_memory(i)
@@ -189,7 +188,9 @@ function run_interpret(
             sort!(unique_param_keys; by=string)
             union!(all_param_keys, unique_param_keys)
             keys_str = join([format_param_key(key) for key in unique_param_keys], " ")
-            @info "Event $i param_keys: $keys_str" instructions = length(instruction_events)
+            @info "Event $i param_keys: $keys_str" instruction_events = length(
+                instruction_events
+            )
             log_event_memory(i)
         end
         if !isempty(all_param_keys)

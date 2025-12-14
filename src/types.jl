@@ -297,7 +297,7 @@ end
 Training data structure containing programs and their energy measurements
 """
 struct TrainingData
-    programs::Vector{ExecutionTrace}
+    execution_traces::Vector{ExecutionTrace}
     energies::Vector{Float64}
 end
 

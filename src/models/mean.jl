@@ -32,23 +32,25 @@ mutable struct MeanModel <: AbstractModel
 end
 
 """
-Get dominant instruction key from a program (most frequent instruction).
-Used for microbenchmarks where one instruction type dominates.
+Get dominant event key from an execution trace (most frequent event key).
+Used for microbenchmarks where one event type dominates.
 """
-function get_dominant_key(program::ExecutionTrace, model_granularity::ModelGranularity)::Key
-    # Count instruction types
-    inst_counts = Dict{Key,Int}()
-    for inst in instruction_events(program)
-        key = inst.key
-        inst_counts[key] = get(inst_counts, key, 0) + 1
+function get_dominant_key(
+    execution_trace::ExecutionTrace, model_granularity::ModelGranularity
+)::Key
+    # Count event types
+    key_counts = Dict{Key,Int}()
+    for execution_event in execution_trace
+        key = execution_event.key
+        key_counts[key] = get(key_counts, key, 0) + 1
     end
     # nop should not be considered
     # in microbenchmarks, nop is not expected to be executed (they are skipped
     # by jmp instructions)
-    delete!(inst_counts, :nop)
+    delete!(key_counts, :nop)
 
     # Return key with maximum count
-    return argmax(inst_counts)
+    return argmax(key_counts)
 end
 
 """
@@ -98,30 +100,30 @@ end
 Learn parameters from training data using dominant-key inference algorithm
 """
 function learn_params_dominant_key!(model::MeanModel, training_data::TrainingData)
-    # Accumulate total energy and instruction count for each dominant key
+    # Accumulate total energy and event count for each dominant key
     total_energy = Dict{Key,Float64}()
-    total_instructions = Dict{Key,Int}()
+    total_events = Dict{Key,Int}()
 
-    for (energy, program) in zip(training_data.energies, training_data.programs)
-        dominant_key = get_dominant_key(program, model.granularity)
+    for (energy, execution_trace) in
+        zip(training_data.energies, training_data.execution_traces)
+        dominant_key = get_dominant_key(execution_trace, model.granularity)
 
         # Accumulate for this key
-        num_instructions = length(program)
+        num_events = length(execution_trace)
         total_energy[dominant_key] = get(total_energy, dominant_key, 0.0) + energy
-        total_instructions[dominant_key] =
-            get(total_instructions, dominant_key, 0) + num_instructions
+        total_events[dominant_key] = get(total_events, dominant_key, 0) + num_events
     end
 
-    # Compute mean energy per instruction (weighted average)
+    # Compute mean energy per event (weighted average)
     model.params = Dict{Key,Float64}()
 
     for key in keys(total_energy)
-        mean_energy = total_energy[key] / total_instructions[key]
+        mean_energy = total_energy[key] / total_events[key]
         model.params[key] = mean_energy
 
-        @debug "Learned mean energy per instruction" param_key = key mean_energy = round(
+        @debug "Learned mean energy per event" param_key = key mean_energy = round(
             mean_energy; digits=6
-        ) total_insts = total_instructions[key]
+        ) total_events = total_events[key]
     end
 
     return nothing
@@ -130,9 +132,9 @@ end
 """
 Learn parameters from training data using least-squares inference algorithm.
 Formulates the problem as finding x that minimizes ||Ax - B||^2 where:
-- A[i,j] = count of key j in program i
-- B[i] = measured energy of program i
-- x[j] = mean energy per instruction for key j
+- A[i,j] = count of key j in execution trace i
+- B[i] = measured energy of execution trace i
+- x[j] = mean energy per event for key j
 
 Supports multiple least-squares algorithms:
 - "least-squares": Standard unconstrained LS using A \\ B
@@ -145,10 +147,9 @@ function learn_params_least_squares!(
 )
     # Collect all unique instruction keys
     all_keys = Set{Key}()
-    for program in training_data.programs
-        for inst in instruction_events(program)
-            key = inst.key
-            push!(all_keys, key)
+    for execution_trace in training_data.execution_traces
+        for execution_event in execution_trace
+            push!(all_keys, execution_event.key)
         end
     end
 
@@ -156,19 +157,18 @@ function learn_params_least_squares!(
     sorted_keys = sort(collect(all_keys))
     key_to_idx = Dict(key => i for (i, key) in enumerate(sorted_keys))
 
-    @info "Building least-squares system" num_programs = length(training_data.programs) num_keys = length(
-        sorted_keys
-    ) algorithm = inference_algorithm
+    @info "Building least-squares system" num_execution_traces = length(
+        training_data.execution_traces
+    ) num_keys = length(sorted_keys) algorithm = inference_algorithm
 
-    # Build matrix A where A[i,j] = count of key j in program i
-    num_programs = length(training_data.programs)
+    # Build matrix A where A[i,j] = count of key j in execution trace i
+    num_execution_traces = length(training_data.execution_traces)
     num_keys = length(sorted_keys)
-    A = zeros(Float64, num_programs, num_keys)
+    A = zeros(Float64, num_execution_traces, num_keys)
 
-    for (i, program) in enumerate(training_data.programs)
-        for inst in instruction_events(program)
-            key = inst.key
-            j = key_to_idx[key]
+    for (i, execution_trace) in enumerate(training_data.execution_traces)
+        for execution_event in execution_trace
+            j = key_to_idx[execution_event.key]
             A[i, j] += 1.0
         end
     end
@@ -234,7 +234,7 @@ function learn_params!(
     model::MeanModel, training_data::TrainingData, config::MeanTrainingConfig
 )
     @info "Learning Mean model parameters" model_granularity = model.granularity num_programs = length(
-        training_data.programs
+        training_data.execution_traces
     ) inference_algorithm = config.inference_algorithm
 
     if config.inference_algorithm == "dominant-key"
@@ -274,7 +274,7 @@ end
 Estimate energy by summing mean energies from learned parameters
 """
 function estimate_energy_sum_means(
-    model::MeanModel, program::ExecutionTrace
+    model::MeanModel, execution_trace::ExecutionTrace
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
@@ -283,7 +283,7 @@ function estimate_energy_sum_means(
     unknown_keys = Set{Key}()
     default_energy = 1.0  # Default 1nJ per instruction
 
-    for execution_event in instruction_events(program)
+    for execution_event in execution_trace
         key = execution_event.key
 
         if haskey(model.params, key)
@@ -313,19 +313,19 @@ function estimate_energy_sum_means(
 end
 
 """
-Estimate energy for a program (deterministic - just sums mean energies)
+Estimate energy for an execution trace (deterministic - just sums mean energies)
 """
 function estimate_energy(
-    model::MeanModel, program::ExecutionTrace, config::MeanEstimationConfig
+    model::MeanModel, execution_trace::ExecutionTrace, config::MeanEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
-    @info "Estimating energy with Mean model" model_granularity = model.granularity num_instructions = length(
-        program
+    @info "Estimating energy with Mean model" model_granularity = model.granularity num_events = length(
+        execution_trace
     )
 
-    result = estimate_energy_sum_means(model, program)
+    result = estimate_energy_sum_means(model, execution_trace)
 
     @info "Energy estimation complete" total_energy = round(result.mean; digits=3)
     return result

@@ -19,21 +19,21 @@ function normalize_pair(key1::Key, key2::Key)::Tuple{Key,Key}
 end
 
 """
-Get dominant instruction pair from a program (most frequent consecutive pair).
+Get dominant event pair from an execution trace (most frequent consecutive pair).
 Used for microbenchmarks where one pair type dominates.
 """
 function get_dominant_pair(
-    program::ExecutionTrace, model_granularity::ModelGranularity
+    execution_trace::ExecutionTrace, model_granularity::ModelGranularity
 )::Tuple{Key,Key}
-    if length(program) < 2
-        error("Program must have at least 2 instructions to determine dominant pair")
+    if length(execution_trace) < 2
+        error("Execution trace must have at least 2 events to determine dominant pair")
     end
 
-    # Count instruction pairs
+    # Count event pairs
     pair_counts = Dict{Tuple{Key,Key},Int}()
-    for i in 1:(length(program) - 1)
-        key1 = program[i].key
-        key2 = program[i + 1].key
+    for i in 1:(length(execution_trace) - 1)
+        key1 = execution_trace[i].key
+        key2 = execution_trace[i + 1].key
         # Normalize to unordered pair
         pair_key = normalize_pair(key1, key2)
         pair_counts[pair_key] = get(pair_counts, pair_key, 0) + 1
@@ -78,16 +78,17 @@ function learn_params_dominant_key!(model::MeanPairModel, training_data::Trainin
     total_energy = Dict{Tuple{Key,Key},Float64}()
     total_pairs = Dict{Tuple{Key,Key},Int}()
 
-    for (energy, program) in zip(training_data.energies, training_data.programs)
-        if length(program) < 2
-            @warn "Skipping program with less than 2 instructions"
+    for (energy, execution_trace) in
+        zip(training_data.energies, training_data.execution_traces)
+        if length(execution_trace) < 2
+            @warn "Skipping execution trace with less than 2 instructions"
             continue
         end
 
-        dominant_pair = get_dominant_pair(program, model.granularity)
+        dominant_pair = get_dominant_pair(execution_trace, model.granularity)
 
         # Accumulate for this pair
-        num_pairs = length(program) - 1
+        num_pairs = length(execution_trace) - 1
         total_energy[dominant_pair] = get(total_energy, dominant_pair, 0.0) + energy
         total_pairs[dominant_pair] = get(total_pairs, dominant_pair, 0) + num_pairs
     end
@@ -171,8 +172,8 @@ end
 """
 Learn parameters from training data using least-squares inference algorithm.
 Formulates the problem as finding x that minimizes ||Ax - B||^2 where:
-- A[i,j] = count of pair j in program i
-- B[i] = measured energy of program i
+- A[i,j] = count of pair j in execution trace i
+- B[i] = measured energy of execution trace i
 - x[j] = mean energy per pair for pair j
 
 Supports multiple least-squares algorithms:
@@ -186,13 +187,13 @@ function learn_params_least_squares!(
 )
     # Collect all unique instruction pairs (as unordered pairs)
     all_pairs = Set{Tuple{Key,Key}}()
-    for program in training_data.programs
-        if length(program) < 2
+    for execution_trace in training_data.execution_traces
+        if length(execution_trace) < 2
             continue
         end
-        for i in 1:(length(program) - 1)
-            key1 = program[i].key
-            key2 = program[i + 1].key
+        for i in 1:(length(execution_trace) - 1)
+            key1 = execution_trace[i].key
+            key2 = execution_trace[i + 1].key
             # Normalize to unordered pair
             unordered_pair = normalize_pair(key1, key2)
             push!(all_pairs, unordered_pair)
@@ -219,23 +220,23 @@ function learn_params_least_squares!(
     end
 
     @info "Building least-squares system for unordered pairs (before filtering)" num_programs = length(
-        training_data.programs
+        training_data.execution_traces
     ) num_pairs = length(sorted_pairs) algorithm = inference_algorithm total_opcodes = length(
         all_opcodes
     ) unexpected_opcodes_count = length(unexpected_opcodes)
 
-    # Build initial matrix A where A[i,j] = count of pair j in program i
-    num_programs = length(training_data.programs)
+    # Build initial matrix A where A[i,j] = count of pair j in execution trace i
+    num_programs = length(training_data.execution_traces)
     num_pairs = length(sorted_pairs)
     A_full = zeros(Float64, num_programs, num_pairs)
 
-    for (i, program) in enumerate(training_data.programs)
-        if length(program) < 2
+    for (i, execution_trace) in enumerate(training_data.execution_traces)
+        if length(execution_trace) < 2
             continue
         end
-        for k in 1:(length(program) - 1)
-            key1 = program[k].key
-            key2 = program[k + 1].key
+        for k in 1:(length(execution_trace) - 1)
+            key1 = execution_trace[k].key
+            key2 = execution_trace[k + 1].key
             # Normalize to unordered pair
             pair_key = normalize_pair(key1, key2)
             j = pair_to_idx[pair_key]
@@ -353,13 +354,13 @@ function visualize_training_matrix(
     sparsity = 100 * (1 - nonzero_elements / total_elements)
     println("Matrix sparsity: $(round(sparsity, digits=2))%")
 
-    # Row statistics (pairs per program)
-    println("\n=== Pairs per Program (row statistics) ===")
+    # Row statistics (pairs per execution trace)
+    println("\n=== Pairs per Execution Trace (row statistics) ===")
     nonzero_per_row = sum(A .> 0; dims=2)[:]
-    println("Min pairs in a program: $(minimum(nonzero_per_row))")
-    println("Max pairs in a program: $(maximum(nonzero_per_row))")
-    println("Mean pairs per program: $(round(mean(nonzero_per_row), digits=2))")
-    println("Median pairs per program: $(median(nonzero_per_row))")
+    println("Min pairs in an execution trace: $(minimum(nonzero_per_row))")
+    println("Max pairs in an execution trace: $(maximum(nonzero_per_row))")
+    println("Mean pairs per execution trace: $(round(mean(nonzero_per_row), digits=2))")
+    println("Median pairs per execution trace: $(median(nonzero_per_row))")
 
     # Column statistics (how often each pair appears)
     println("\n=== Pair Frequency (column statistics) ===")
@@ -496,7 +497,7 @@ function visualize_training_matrix(
             "  Residual:  $(round(residuals[idx], digits=2)) nJ ($(round(100*residuals[idx]/B[idx], digits=1))%)",
         )
 
-        # Show pairs in this program
+        # Show pairs in this execution trace
         nonzero_cols = findall(A[idx, :] .> 0)
         total_pair_count = sum(A[idx, :])
         println(
@@ -548,8 +549,8 @@ Learn parameters from training data
 function learn_params!(
     model::MeanPairModel, training_data::TrainingData, config::MeanTrainingConfig
 )
-    @info "Learning MeanPair model parameters" model_granularity = model.granularity num_programs = length(
-        training_data.programs
+    @info "Learning MeanPair model parameters" model_granularity = model.granularity num_execution_traces = length(
+        training_data.execution_traces
     ) inference_algorithm = config.inference_algorithm
 
     if config.inference_algorithm == "dominant-key"
@@ -593,13 +594,13 @@ end
 Estimate energy by summing mean energies for consecutive pairs
 """
 function estimate_energy_sum_pair_means(
-    model::MeanPairModel, program::ExecutionTrace
+    model::MeanPairModel, execution_trace::ExecutionTrace
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
-    if length(program) < 2
-        @warn "Program has less than 2 instructions, cannot estimate pair-based energy"
+    if length(execution_trace) < 2
+        @warn "Execution trace has less than 2 events, cannot estimate pair-based energy"
         return (mean=0.0, std=0.0, min=0.0, max=0.0, samples=[0.0])
     end
 
@@ -607,9 +608,9 @@ function estimate_energy_sum_pair_means(
     unknown_pairs = Set{Tuple{Key,Key}}()
     default_energy = 1.0  # Default 1nJ per pair
 
-    for i in 1:(length(program) - 1)
-        key1 = program[i].key
-        key2 = program[i + 1].key
+    for i in 1:(length(execution_trace) - 1)
+        key1 = execution_trace[i].key
+        key2 = execution_trace[i + 1].key
         # Normalize to unordered pair
         pair_key = normalize_pair(key1, key2)
 
@@ -643,19 +644,19 @@ function estimate_energy_sum_pair_means(
 end
 
 """
-Estimate energy for a program (deterministic - just sums mean energies for pairs)
+Estimate energy for an execution trace (deterministic - just sums mean energies for pairs)
 """
 function estimate_energy(
-    model::MeanPairModel, program::ExecutionTrace, config::MeanEstimationConfig
+    model::MeanPairModel, execution_trace::ExecutionTrace, config::MeanEstimationConfig
 )::NamedTuple{
     (:mean, :std, :min, :max, :samples),
     Tuple{Float64,Float64,Float64,Float64,Vector{Float64}},
 }
-    @info "Estimating energy with MeanPair model" model_granularity = model.granularity num_instructions = length(
-        program
-    ) num_pairs = max(0, length(program) - 1)
+    @info "Estimating energy with MeanPair model" model_granularity = model.granularity num_events = length(
+        execution_trace
+    ) num_pairs = max(0, length(execution_trace) - 1)
 
-    result = estimate_energy_sum_pair_means(model, program)
+    result = estimate_energy_sum_pair_means(model, execution_trace)
 
     @info "Energy estimation complete" total_energy = round(result.mean; digits=3)
     return result
