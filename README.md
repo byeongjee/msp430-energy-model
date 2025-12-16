@@ -79,6 +79,41 @@ Run `make help` for a list of available commands.
 The main features include:
 - `train`: Train the energy model from measurement data.
 - `estimate`: Estimate energy consumption of a new program using the trained model.
+- `analyze_cfg`: Compile a C file to LLVM IR, visualize its control-flow graph, and count basic blocks and bounded paths.
+
+### CFG analysis
+
+Requirements:
+- Host LLVM tools: `clang` and `opt`
+- Graphviz: `dot`
+- MSP430 headers available via `MSP430GCC_SUPPORT_PATH` (source `env.sh` to set it). The analysis script uses the `DEVICE`/`MSP430_DEVICE` environment variable to select the correct device macro (set by the Makefile).
+
+Annotate loops with a maximum iteration hint using the macro below so the path counter can bound cycles:
+
+```c
+#ifndef LOOP_MAX
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define LOOP_MAX(N) _Pragma(TOSTRING(clang loop unroll_count(N)))
+#endif
+```
+
+Example:
+
+```c
+LOOP_MAX(5)
+for (int i = 0; i < n; ++i) {
+    // ...
+}
+```
+
+Run CFG analysis:
+
+```bash
+make analyze_cfg FILE=examples/misc/simple.c
+```
+
+Outputs are written to `build/cfg_analysis/<file_stem>/` (LLVM IR, per-function CFG PNGs) and the console shows basic block and bounded path counts.
 
 ## Testing
 

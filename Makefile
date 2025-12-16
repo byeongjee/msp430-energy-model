@@ -64,7 +64,7 @@ JULIA_NUM_THREADS ?= auto
 export JULIA_NUM_THREADS
 
 # Default target
-.PHONY: all clean help interpret train estimate test flash create_fixture train_and_estimate analyze_distribution
+.PHONY: all clean help interpret train estimate test flash create_fixture train_and_estimate analyze_distribution analyze_cfg
 
 all: help
 
@@ -219,6 +219,13 @@ endif
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	./scripts/analyze_distribution.sh "$${ARGS[@]}"
+
+analyze_cfg: ## Compile to LLVM IR, emit CFG graph, and count blocks/paths (FILE=<file.c>)
+ifndef FILE
+	$(error Please specify FILE=<filename.c>)
+endif
+	@echo "Analyzing control-flow graph for $(FILE)..."
+	@python scripts/analyze_cfg.py --file "$(FILE)" --build-dir "$(BUILD_DIR)"
 
 BENCH_GRANULARITY ?= addressing_mode_constant
 BENCH_OUTPUT_DIR ?= $(TEMP_DIR)

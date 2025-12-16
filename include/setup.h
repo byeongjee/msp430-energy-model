@@ -1,6 +1,11 @@
 #include <msp430.h>
 #include <stdint.h>
 
+#ifndef __delay_cycles
+// Host-side stub so clang can compile for analysis without MSP430 intrinsics.
+static inline void __delay_cycles(unsigned long) {}
+#endif
+
 // 16 MHz
 #define CLOCK_HZ 16000000UL
 #define NOINLINE __attribute__((noinline))

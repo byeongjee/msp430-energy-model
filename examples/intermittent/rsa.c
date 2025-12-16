@@ -2,6 +2,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifndef LOOP_MAX
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define LOOP_MAX(N) _Pragma(TOSTRING(clang loop unroll_count(N)))
+#endif
+
 // --- Configuration & Constants ---
 
 // Adjust these based on your specific board headers/setup
@@ -61,6 +67,7 @@ unsigned g_cyphertext_len = 0;
 
 INLINE void print_hex_ascii(const uint8_t *m, unsigned len) {
   int i, j;
+  LOOP_MAX(32)
   for (i = 0; i < len; i += PRINT_HEX_ASCII_COLS) {
     for (j = 0; j < PRINT_HEX_ASCII_COLS && i + j < len; ++j)
       DEBUG_OUT_STR("0x");
@@ -102,13 +109,16 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
   digit_t p = 0;
 
   // Clear product buffer first
+  LOOP_MAX(NUM_DIGITS * 2)
   for (i = 0; i < NUM_DIGITS * 2; i++)
     g_product[i] = 0;
 
+  LOOP_MAX(NUM_DIGITS * 2)
   for (int digit = 0; digit < NUM_DIGITS * 2; ++digit) {
     p = c; // carry from previous
     c = 0; // new carry
 
+    LOOP_MAX(NUM_DIGITS)
     for (i = 0; i < NUM_DIGITS; ++i) {
       if (digit - i >= 0 && digit - i < NUM_DIGITS) {
         digit_t a_val = A[digit - i];
@@ -133,6 +143,7 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
   // Find Most Significant Digit (MSD)
   int d = 2 * NUM_DIGITS;
   digit_t m;
+  LOOP_MAX(2 * NUM_DIGITS)
   do {
     d--;
     m = g_product[d];
@@ -150,6 +161,7 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
   // add, subtract We implement this as a while loop that reduces 'd' (current
   // digit index)
 
+  LOOP_MAX(2 * NUM_DIGITS + 1)
   while (1) {
 
     // --- Original Task: task_reduce_normalizable ---
@@ -244,6 +256,7 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
       unsigned mul_offset = current_d - NUM_DIGITS;
       digit_t mul_c = 0;
 
+      LOOP_MAX(2 * NUM_DIGITS)
       for (i = mul_offset; i < 2 * NUM_DIGITS; ++i) {
         digit_t m_curr = mul_c;
         if (i < mul_offset + NUM_DIGITS) {
@@ -255,6 +268,7 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
 
       // --- Original Task: task_reduce_compare ---
       char relation = '=';
+      LOOP_MAX(2 * NUM_DIGITS)
       for (i = NUM_DIGITS * 2 - 1; i >= 0; --i) {
         if (g_product[i] > qn_arr[i]) {
           relation = '>';
@@ -271,6 +285,7 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
         // Used to correct estimation error
         unsigned add_offset = current_d - NUM_DIGITS;
         digit_t add_c = 0;
+        LOOP_MAX(2 * NUM_DIGITS)
         for (i = add_offset; i < 2 * NUM_DIGITS; ++i) {
           digit_t add_n =
               (i < add_offset + NUM_DIGITS) ? pubkey.n[i - add_offset] : 0;
@@ -285,6 +300,7 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
       unsigned sub_offset = current_d - NUM_DIGITS;
       unsigned sub_borrow = 0;
 
+      LOOP_MAX(2 * NUM_DIGITS)
       for (i = 0; i < 2 * NUM_DIGITS; ++i) {
         if (i >= sub_offset) {
           digit_t sub_qn =
@@ -306,6 +322,7 @@ INLINE void mult_mod_operation(digit_t *A, digit_t *B, digit_t *result_buffer) {
   }
 
   // Copy result to output buffer
+  LOOP_MAX(NUM_DIGITS)
   for (i = 0; i < NUM_DIGITS; i++) {
     result_buffer[i] = g_product[i];
   }
@@ -338,6 +355,7 @@ int main(void) {
 
   begin_event();
   // Main Loop handling blocks
+  LOOP_MAX(NUM_PLAINTEXT_BLOCKS)
   while (block_offset < message_length) {
 
     // --- Original Task: task_pad ---
@@ -349,17 +367,20 @@ int main(void) {
 
     // Construct the base for this block
     int i;
+    LOOP_MAX(NUM_DIGITS - NUM_PAD_DIGITS)
     for (i = 0; i < NUM_DIGITS - NUM_PAD_DIGITS; ++i) {
       g_base[i] = (block_offset + i < message_length)
                       ? PLAINTEXT[block_offset + i]
                       : 0xFF;
     }
+    LOOP_MAX(NUM_PAD_DIGITS)
     for (int j = 0; i < NUM_DIGITS; ++i, ++j) {
       g_base[i] = PAD_DIGITS[j];
     }
 
     // Initialize block (which accumulates result) to 1
     g_block[0] = 1;
+    LOOP_MAX(NUM_DIGITS - 1)
     for (i = 1; i < NUM_DIGITS; ++i)
       g_block[i] = 0;
 
@@ -372,6 +393,7 @@ int main(void) {
     DEBUG_OUT_HEX(e);
     DEBUG_OUT_STR("\r\n");
 
+    LOOP_MAX(16)
     while (e > 0) {
       bool multiply = e & 0x1;
       e >>= 1;
@@ -395,8 +417,10 @@ int main(void) {
       if (e > 0) {
         // --- Original Task: task_square_base ---
         // base = (base * base) % N
+        LOOP_MAX(NUM_DIGITS)
         for (int k = 0; k < NUM_DIGITS; k++)
           g_A[k] = g_base[k];
+        LOOP_MAX(NUM_DIGITS)
         for (int k = 0; k < NUM_DIGITS; k++)
           g_B[k] = g_base[k];
 
@@ -407,6 +431,7 @@ int main(void) {
     // --- Original Task: task_mult_block_get_result (Final save) ---
     // Exponentiation done for this block. Save g_block to cyphertext.
     if (g_cyphertext_len + NUM_DIGITS <= CYPHERTEXT_SIZE) {
+      LOOP_MAX(NUM_DIGITS)
       for (i = 0; i < NUM_DIGITS; ++i) {
         g_cyphertext[g_cyphertext_len++] = g_block[i];
       }
@@ -424,6 +449,7 @@ int main(void) {
   volatile char line[PRINT_HEX_ASCII_COLS];
   int j = 0;
 
+  LOOP_MAX(CYPHERTEXT_SIZE)
   for (int i = 0; i < g_cyphertext_len; ++i) {
     digit_t c = g_cyphertext[i];
     DEBUG_OUT_STR("0x");

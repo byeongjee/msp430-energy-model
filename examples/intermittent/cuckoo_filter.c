@@ -3,6 +3,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifndef LOOP_MAX
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define LOOP_MAX(N) _Pragma(TOSTRING(clang loop unroll_count(N)))
+#endif
+
 #define NUM_BUCKETS 256 // must be a power of 2
 #define MAX_RELOCATIONS 8
 
@@ -45,6 +51,7 @@ INLINE uint16_t simple_rand(void) {
 INLINE hash_t djb_hash(uint8_t *data, unsigned len) {
   uint32_t hash = 5381;
   unsigned int i;
+  LOOP_MAX(4)
   for (i = 0; i < len; data++, i++)
     hash = ((hash << 5) + hash) + (*data);
   return hash & 0xFFFF;
@@ -106,6 +113,7 @@ INLINE bool insert(fingerprint_t *filter, value_t key) {
   filter[index_victim] = fp; // Place new item, holding victim in hand
 
   // Relocation Loop (The "Cuckoo" part)
+  LOOP_MAX(MAX_RELOCATIONS)
   do {
     // Calculate the "other" address for the victim
     fp_hash_victim = hash_fp_to_index(fp_victim);
@@ -152,6 +160,7 @@ void print_filter(fingerprint_t *f) {
   DEBUG_OUT_STR("\n--- Filter State (Partial View) ---\n");
   int occupied = 0;
   // Only printing first 64 buckets to save UART time, or all if you prefer
+  LOOP_MAX(NUM_BUCKETS)
   for (int i = 0; i < NUM_BUCKETS; i++) {
     if (f[i] != 0) {
       occupied++;
@@ -185,6 +194,7 @@ int main() {
   lfsr_state = 0xACE1u;
 
   // Clear Filter
+  LOOP_MAX(NUM_BUCKETS)
   for (int i = 0; i < NUM_BUCKETS; i++)
     filter[i] = 0;
 
@@ -206,6 +216,7 @@ int main() {
   // 1. Insertion Phase
   DEBUG_OUT_STR("\n[Phase 1] Inserting...\n");
   begin_event();
+  LOOP_MAX(NUM_KEYS)
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool success = insert(filter, key);
@@ -237,6 +248,7 @@ int main() {
   volatile unsigned found = 0; // volatile to prevent optimization
 
   begin_event();
+  LOOP_MAX(NUM_KEYS)
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool member = lookup(filter, key);

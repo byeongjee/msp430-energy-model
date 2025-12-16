@@ -3,6 +3,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifndef LOOP_MAX
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define LOOP_MAX(N) _Pragma(TOSTRING(clang loop unroll_count(N)))
+#endif
+
 // --- Hardware & Configuration ---
 
 // LED Definitions for MSP430FR5994 LaunchPad
@@ -70,6 +76,7 @@ typedef struct {
 INLINE unsigned sqrt16(unsigned long n) {
   unsigned long c = 0x8000;
   unsigned long g = 0x8000;
+  LOOP_MAX(16)
   for (;;) {
     if (g * g > n)
       g ^= c;
@@ -113,6 +120,7 @@ INLINE void acquire_window(accelWindow window) {
   accelReading sample;
   unsigned samplesInWindow = 0;
 
+  LOOP_MAX(ACCEL_WINDOW_SIZE)
   while (samplesInWindow < ACCEL_WINDOW_SIZE) {
     accel_sample(&sample);
     window[samplesInWindow++] = sample;
@@ -121,6 +129,7 @@ INLINE void acquire_window(accelWindow window) {
 
 INLINE void transform(accelWindow window) {
   unsigned i = 0;
+  LOOP_MAX(ACCEL_WINDOW_SIZE)
   for (i = 0; i < ACCEL_WINDOW_SIZE; i++) {
     accelReading *sample = &window[i];
 
@@ -140,6 +149,7 @@ INLINE void featurize(volatile features_t *features, accelWindow aWin) {
   int i;
 
   // Calculate Mean
+  LOOP_MAX(ACCEL_WINDOW_SIZE)
   for (i = 0; i < ACCEL_WINDOW_SIZE; i++) {
     mean_x += aWin[i].x;
     mean_y += aWin[i].y;
@@ -150,6 +160,7 @@ INLINE void featurize(volatile features_t *features, accelWindow aWin) {
   mean_z /= ACCEL_WINDOW_SIZE;
 
   // Calculate Deviation
+  LOOP_MAX(ACCEL_WINDOW_SIZE)
   for (i = 0; i < ACCEL_WINDOW_SIZE; i++) {
     std_x += abs(aWin[i].x - mean_x);
     std_y += abs(aWin[i].y - mean_y);
@@ -173,6 +184,7 @@ INLINE class_t classify(features_t *features, volatile model_t *model) {
   int i;
 
   // Nearest Centroid-ish classification
+  LOOP_MAX(MODEL_SIZE)
   for (i = 0; i < MODEL_SIZE; ++i) {
     model_features = &model->stationary[i];
     long stat_mean_err =
@@ -204,6 +216,7 @@ INLINE void warmup_sensor() {
   unsigned discarded = 0;
   accelReading sample;
   DEBUG_OUT_STR("Warmup...\n");
+  LOOP_MAX(NUM_WARMUP_SAMPLES)
   while (discarded++ < NUM_WARMUP_SAMPLES) {
     accel_sample(&sample);
   }
@@ -216,6 +229,7 @@ INLINE void train(volatile features_t *classModel) {
 
   warmup_sensor();
 
+  LOOP_MAX(MODEL_SIZE)
   for (i = 0; i < MODEL_SIZE; ++i) {
     acquire_window(sampleWindow);
     transform(sampleWindow);
@@ -245,6 +259,7 @@ INLINE void recognize_loop(volatile model_t *model) {
 
   DEBUG_OUT_STR("Starting Recognition Loop...\n");
 
+  LOOP_MAX(SAMPLES_TO_COLLECT)
   for (i = 0; i < SAMPLES_TO_COLLECT; ++i) {
     // Toggle Mock Scenario halfway through to prove it works
     if (i == SAMPLES_TO_COLLECT / 2) {
