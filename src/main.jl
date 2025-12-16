@@ -84,8 +84,10 @@ function run_interpret(
         @info "Data dump" path = data_dump
     end
 
-    instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
-    func_addrs = Parser.find_functions(asm_file)
+    # Read and parse assembly file
+    asm_content = read(asm_file, String)
+    instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
+    func_addrs = Parser.find_functions_from_string(asm_content)
 
     # Get model and granularity before interpretation
     model = Model.create_model(model_str)
@@ -223,13 +225,22 @@ function main()
             if isnothing(data_files) || isempty(data_files)
                 error("--data is required for train mode")
             end
+
+            # Read assembly files into strings
+            @info "Reading assembly files" files = asm_files
+            asm_contents = [read(file, String) for file in asm_files]
+
+            # Read CSV files into DataFrames
+            @info "Reading energy measurement files" files = data_files
+            energy_dfs = [CSV.read(file, DataFrame) for file in data_files]
+
             output_file = args["output"]
             n_samples = args["n-samples"]
             model_str = args["model"]
             inference = args["inference"]
             Train.run_train(
-                asm_files,
-                data_files,
+                asm_contents,
+                energy_dfs,
                 output_file,
                 max_steps,
                 n_samples,

@@ -48,8 +48,10 @@ function run_estimate(
 
     Model.load_params!(model, params_file)
 
-    instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
-    func_addrs = Parser.find_functions(asm_file)
+    # Read and parse assembly file
+    asm_content = read(asm_file, String)
+    instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
+    func_addrs = Parser.find_functions_from_string(asm_content)
 
     @info "Executing program to get execution traces"
     start_time = time()
