@@ -404,15 +404,11 @@ function validate_instruction(inst::Instruction)::Bool
 end
 
 """
-Find all functions in an assembly file
-Returns a dictionary mapping function names to their addresses
+Find function labels in assembly content.
+Returns a dictionary mapping function names to their addresses.
 """
-function find_functions(filename::String)::Dict{String,UInt32}
-    if !isfile(filename)
-        error("Assembly file not found: $filename")
-    end
-
-    lines = readlines(filename)
+function find_functions_from_string(content::String)::Dict{String,UInt32}
+    lines = split(content, '\n')
     functions = Dict{String,UInt32}()
 
     for line in lines

@@ -52,11 +52,12 @@ function run_interpreter(
         end
     end
 
-    # Parse assembly file
-    instructions, address_info, _base_address = Interpreter.parse_asm_file(asm_file)
+    # Read and parse assembly file
+    asm_content = read(asm_file, String)
+    instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
 
     # Find function addresses
-    func_addrs = Parser.find_functions(asm_file)
+    func_addrs = Parser.find_functions_from_string(asm_content)
 
     # Execute program (use finest granularity for tests)
     final_state, event_traces = Interpreter.interpret_program(

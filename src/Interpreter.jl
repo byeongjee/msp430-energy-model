@@ -197,21 +197,16 @@ function _memory_op_debug_msg(
 end
 
 """
-Parse MSP430 assembly file and extract instructions with their addresses
+Parse MSP430 assembly content from a string and extract instructions with their addresses.
+Returns (instructions, address_info, base_address).
 """
-function parse_asm_file(
-    filename::String
+function parse_asm_string(
+    content::String
 )::Tuple{Vector{Instruction},Vector{Tuple{UInt32,UInt32}},UInt32}
-    if !isfile(filename)
-        error("Assembly file not found: $filename")
-    end
-
-    lines = readlines(filename)
+    lines = split(content, '\n')
     instructions = Instruction[]
     address_info = Tuple{UInt32,UInt32}[]  # Vector of (address, length) tuples
     base_address = nothing
-
-    @info "Parsing assembly file" filename
 
     for line in lines
         line = strip(line)
@@ -281,7 +276,7 @@ function parse_asm_file(
     end
 
     if isempty(instructions)
-        error("No parseable instructions found in assembly file")
+        error("No parseable instructions found in assembly content")
     end
 
     @info "Successfully parsed MSP430 instructions" count = length(instructions) base_address = string(
