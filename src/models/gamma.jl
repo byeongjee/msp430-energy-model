@@ -361,29 +361,23 @@ mutable struct GammaModel <: AbstractModel
 end
 
 """
-Load parameters from JSON file for Gamma model
+Load parameters from dictionary for Gamma model
 """
-function load_params!(model::GammaModel, filename::String)
-    if !isfile(filename)
-        error("Parameter file not found: $filename")
-    end
-
-    file_dict = JSON.parsefile(filename)
-
+function load_params!(model::GammaModel, params_dict::Dict)
     # Verify it's the right model type
-    if !haskey(file_dict, "model")
-        error("Parameter file missing 'model' field")
+    if !haskey(params_dict, "model")
+        error("Parameter dictionary missing 'model' field")
     end
 
-    if file_dict["model"] != model.model_type
-        @warn "Expected $(model.model_type) model, got $(file_dict["model"])"
+    if params_dict["model"] != model.model_type
+        @warn "Expected $(model.model_type) model, got $(params_dict["model"])"
     end
 
-    params_dict = file_dict["parameters"]
+    parameters = params_dict["parameters"]
 
     # Convert string keys to tuple keys
     model.params = Dict{Key,Tuple{Float64,Float64}}()
-    for (key_str, param_dict) in params_dict
+    for (key_str, param_dict) in parameters
         # Split by underscore and convert to appropriate types
         key_parts = split(key_str, "_")
         param_key = tuple(

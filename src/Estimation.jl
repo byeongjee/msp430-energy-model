@@ -10,46 +10,41 @@ using ..Model
 export run_estimate
 
 """
-Detect model type from params file by reading the 'model' field
+Detect model type from params dictionary by reading the 'model' field
 """
-function detect_model_type(params_file::String)::String
-    file_dict = JSON.parsefile(params_file)
-
-    if !haskey(file_dict, "model")
-        error("Parameter file missing 'model' field")
+function detect_model_type(params_dict::Dict)::String
+    if !haskey(params_dict, "model")
+        error("Parameter dictionary missing 'model' field")
     end
 
-    return file_dict["model"]
+    return params_dict["model"]
 end
 
 """
 Estimate mode: Predict energy consumption using learned parameters
 """
 function run_estimate(
-    asm_file::String,
-    params_file::String,
+    asm_content::String,
+    params_dict::Dict,
     max_steps::Int,
     n_samples::Int,
     output_file::Union{String,Nothing}=nothing,
     data_dump::Union{String,Nothing}=nothing,
 )::Nothing
     @info "Running in ESTIMATE mode"
-    @info "Assembly file" path = asm_file
-    @info "Energy parameters" path = params_file
 
     if !isnothing(output_file)
         @info "Statistics output file" path = output_file
     end
 
-    model_str = detect_model_type(params_file)
+    model_str = detect_model_type(params_dict)
     model = Model.create_model(model_str)
     @info "Detected model type" model = model_str
     granularity = model.granularity
 
-    Model.load_params!(model, params_file)
+    Model.load_params!(model, params_dict)
 
-    # Read and parse assembly file
-    asm_content = read(asm_file, String)
+    # Parse assembly content
     instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
     func_addrs = Parser.find_functions_from_string(asm_content)
 
