@@ -1,6 +1,10 @@
 using Test
 using JSON
 using DataFrames
+using Logging
+
+# Suppress INFO level logs during tests
+global_logger(ConsoleLogger(stderr, Logging.Warn))
 
 # Load common modules once
 include("../src/types.jl")
