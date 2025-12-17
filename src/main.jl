@@ -261,10 +261,18 @@ function main()
             if isnothing(params_file)
                 error("--params is required for estimate mode")
             end
+
+            # Read assembly file and params file
+            @info "Reading assembly file" file = asm_files[1]
+            asm_content = read(asm_files[1], String)
+
+            @info "Reading parameters file" file = params_file
+            params_dict = JSON.parsefile(params_file)
+
             output_file = args["output"]
             n_samples = args["n-samples"]
             Estimation.run_estimate(
-                asm_files[1], params_file, max_steps, n_samples, output_file, data_dump
+                asm_content, params_dict, max_steps, n_samples, output_file, data_dump
             )
 
         else

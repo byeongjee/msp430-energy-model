@@ -111,29 +111,23 @@ function learn_params_dominant_key!(model::MeanPairModel, training_data::Trainin
 end
 
 """
-Load parameters from JSON file for MeanPair model
+Load parameters from dictionary for MeanPair model
 """
-function load_params!(model::MeanPairModel, filename::String)
-    if !isfile(filename)
-        error("Parameter file not found: $filename")
-    end
-
-    file_dict = JSON.parsefile(filename)
-
+function load_params!(model::MeanPairModel, params_dict::Dict)
     # Verify it's the right model type
-    if !haskey(file_dict, "model")
-        error("Parameter file missing 'model' field")
+    if !haskey(params_dict, "model")
+        error("Parameter dictionary missing 'model' field")
     end
 
-    if file_dict["model"] != model.model_type
-        @warn "Expected $(model.model_type) model, got $(file_dict["model"])"
+    if params_dict["model"] != model.model_type
+        @warn "Expected $(model.model_type) model, got $(params_dict["model"])"
     end
 
-    params_dict = file_dict["parameters"]
+    parameters = params_dict["parameters"]
 
     # Convert string keys to tuple pair keys
     model.params = Dict{Tuple{Key,Key},Float64}()
-    for (key_str, mean_energy) in params_dict
+    for (key_str, mean_energy) in parameters
         # Split by " -> " to separate the two instruction keys
         parts = split(key_str, " -> ")
         if length(parts) != 2

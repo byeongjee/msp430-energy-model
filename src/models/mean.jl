@@ -54,29 +54,23 @@ function get_dominant_key(
 end
 
 """
-Load parameters from JSON file for Mean model
+Load parameters from dictionary for Mean model
 """
-function load_params!(model::MeanModel, filename::String)
-    if !isfile(filename)
-        error("Parameter file not found: $filename")
-    end
-
-    file_dict = JSON.parsefile(filename)
-
+function load_params!(model::MeanModel, params_dict::Dict)
     # Verify it's the right model type
-    if !haskey(file_dict, "model")
-        error("Parameter file missing 'model' field")
+    if !haskey(params_dict, "model")
+        error("Parameter dictionary missing 'model' field")
     end
 
-    if file_dict["model"] != model.model_type
-        @warn "Expected $(model.model_type) model, got $(file_dict["model"])"
+    if params_dict["model"] != model.model_type
+        @warn "Expected $(model.model_type) model, got $(params_dict["model"])"
     end
 
-    params_dict = file_dict["parameters"]
+    parameters = params_dict["parameters"]
 
     # Convert string keys to tuple keys
     model.params = Dict{Key,Float64}()
-    for (key_str, mean_energy) in params_dict
+    for (key_str, mean_energy) in parameters
         # Split by underscore and convert to appropriate types
         key_parts = split(key_str, "_")
         param_key = tuple(
