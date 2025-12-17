@@ -21,9 +21,13 @@ using .Model
 include("../src/Train.jl")
 using .Train
 
+include("../src/Estimation.jl")
+using .Estimation
+
 # Include test files
 include("test_interpreter.jl")
 include("test_train.jl")
+include("test_estimate.jl")
 
 # Parse command-line arguments for test filtering
 filter_pattern = nothing
