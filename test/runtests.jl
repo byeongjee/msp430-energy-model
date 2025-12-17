@@ -1,7 +1,29 @@
 using Test
+using JSON
+using DataFrames
+
+# Load common modules once
+include("../src/types.jl")
+using .Types
+
+include("../src/parser.jl")
+using .Parser
+
+include("../src/TraceMetrics.jl")
+using .TraceMetrics
+
+include("../src/Interpreter.jl")
+using .Interpreter
+
+include("../src/model.jl")
+using .Model
+
+include("../src/Train.jl")
+using .Train
 
 # Include test files
 include("test_interpreter.jl")
+include("test_train.jl")
 
 # Parse command-line arguments for test filtering
 filter_pattern = nothing
