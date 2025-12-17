@@ -1,17 +1,6 @@
-using Test
-using JSON
-
-include("../src/types.jl")
+# Modules are loaded in runtests.jl
+# Import specific types we need
 using .Types: MachineState, Instruction, get_should_track_memory_access, ModelGranularity
-
-include("../src/parser.jl")
-using .Parser
-
-include("../src/TraceMetrics.jl")
-using .TraceMetrics
-
-include("../src/Interpreter.jl")
-using .Interpreter
 
 """
 Load a test fixture from JSON file
