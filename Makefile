@@ -256,6 +256,9 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	@echo "Running br_immediate benchmark test..."
 	@julia --project=. test/test_br_immediate.jl
 	@echo ""
+	@echo "Running SRAM code execution test..."
+	@julia --project=. test/test_sram_code.jl
+	@echo ""
 	@echo "Running Python test suite..."
 	@uv run python scripts/test_generate_pair_benchmarks.py
 	@uv run python scripts/test_generate_addressing_mode_benchmarks.py
