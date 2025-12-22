@@ -7,6 +7,38 @@
 #define INLINE static inline __attribute__((always_inline))
 
 // ============================================================================
+// SRAM Code Execution Support
+// ============================================================================
+// Place functions in SRAM to isolate FRAM data access costs from instruction
+// fetch costs during energy benchmarking.
+//
+// Usage:
+//   SRAM_CODE void my_benchmark(void) {
+//       // This code executes from SRAM
+//       volatile uint16_t* fram_ptr = (uint16_t*)0x4000;
+//       *fram_ptr;  // FRAM read - generates cache events
+//   }
+//
+// The function is stored in FRAM but copied to SRAM at startup by
+// copy_text_sram(). Call copy_text_sram() before using any SRAM_CODE functions.
+// ============================================================================
+#define SRAM_CODE __attribute__((section(".text_sram")))
+
+// Linker symbols for .text_sram section
+extern char __text_sram_start[];
+extern char __text_sram_end[];
+extern char __text_sram_load[];
+
+// Copy .text_sram section from FRAM (load address) to RAM (execution address)
+static inline void copy_text_sram(void) {
+    char* src = __text_sram_load;
+    char* dst = __text_sram_start;
+    while (dst < __text_sram_end) {
+        *dst++ = *src++;
+    }
+}
+
+// ============================================================================
 // Unified Debug Output System
 // ============================================================================
 // Usage:
@@ -219,6 +251,9 @@ int putchar(int c) {
 NOINLINE void initialize(void) {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
   PM5CTL0 &= ~LOCKLPM5;     // Unlock I/O (FRAM parts)
+
+  // Copy SRAM-resident code from FRAM load address to RAM execution address
+  copy_text_sram();
 
   clockSetup();
 

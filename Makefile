@@ -19,7 +19,7 @@ ifeq ($(origin MSP430_DEVICE), environment)
 DEVICE := $(MSP430_DEVICE)
 endif
 # Sections to dump for interpreter data preload
-DATA_SECTIONS := .rodata .rodata2 .data .lower.data .upper.data .persistent .text
+DATA_SECTIONS := .rodata .rodata2 .data .lower.data .upper.data .persistent .text .text_sram
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MKFILE_DIR := $(dir $(MKFILE_PATH))
@@ -43,7 +43,8 @@ DEFINE_FLAGS :=
 endif
 
 INCLUDES := -I$(MSP430GCC_SUPPORT_PATH)/include -I$(MEASUREMENT_INCLUDE_PATH)
-LDFLAGS := -L$(MSP430GCC_SUPPORT_PATH)/include
+# Use custom linker script that includes .text_sram section for SRAM-resident code
+LDFLAGS := -L$(MSP430GCC_SUPPORT_PATH)/include -T $(MEASUREMENT_INCLUDE_PATH)/msp430fr5994.ld
 export INCLUDES LDFLAGS
 
 # Directories

@@ -230,9 +230,13 @@ function _invalidate_cache_range!(state::MachineState, addr::UInt32, len::Int)::
 end
 
 """
-Simulate instruction fetches through the cache. Instructions reside in FRAM, so
-fetches leverage the same cache logic and record FRAM reads.
+Simulate instruction fetches through the cache. Instructions typically reside in FRAM,
+so fetches leverage the same cache logic and record FRAM reads.
 MSP430 instructions are 16-bit aligned and fetched via the 16-bit bus.
+
+For code executing from SRAM (e.g., .text_sram section), no cache events are
+generated since SRAM does not use the FRAM cache. This allows energy benchmarks
+to isolate FRAM data access costs from instruction fetch costs.
 """
 function fetch_instruction_bytes!(
     state::MachineState,
@@ -241,6 +245,11 @@ function fetch_instruction_bytes!(
     inst::Instruction,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
+    # Skip cache events for SRAM instruction fetch - SRAM doesn't use FRAM cache
+    if _is_sram_address(addr)
+        return ExecutionEvent[]
+    end
+
     # Ensure at least one word is fetched even if size is unknown
     len_bytes = max(len, UInt32(2))
     # Round up to word boundary for total fetch size
