@@ -222,6 +222,103 @@ class InstructionSpec:
 
 
 # ============================================================================
+# Constraint Builder
+# ============================================================================
+
+
+class ConstraintBuilder:
+    """Type-safe builder for GCC inline assembly constraints.
+
+    Avoids error-prone string concatenation when building constraints.
+
+    Example:
+        builder = ConstraintBuilder()
+        builder.add_output("dst", "+r", "dst")
+        builder.add_input("src", "r", "src")
+        builder.add_memory_clobber()
+        constraints = builder.build()
+    """
+
+    def __init__(self):
+        self._outputs: List[str] = []
+        self._inputs: List[str] = []
+        self._clobbers: List[str] = ['"cc"']  # Always clobber condition codes
+
+    def add_output(self, name: str, constraint: str, var: str) -> "ConstraintBuilder":
+        """Add an output operand.
+
+        Args:
+            name: Operand name (e.g., "dst")
+            constraint: Constraint string (e.g., "+r" for read-write register)
+            var: C variable name
+        """
+        self._outputs.append(f'[{name}] "{constraint}"({var})')
+        return self
+
+    def add_input(self, name: str, constraint: str, var: str) -> "ConstraintBuilder":
+        """Add an input operand.
+
+        Args:
+            name: Operand name (e.g., "src")
+            constraint: Constraint string (e.g., "r" for register)
+            var: C variable name
+        """
+        self._inputs.append(f'[{name}] "{constraint}"({var})')
+        return self
+
+    def add_immediate_input(self, name: str, value: str) -> "ConstraintBuilder":
+        """Add an immediate (compile-time constant) input.
+
+        Args:
+            name: Operand name (e.g., "offs")
+            value: Compile-time constant expression (e.g., "OFFS")
+        """
+        self._inputs.append(f'[{name}] "i"({value})')
+        return self
+
+    def add_memory_clobber(self) -> "ConstraintBuilder":
+        """Mark that this instruction may read/write memory."""
+        if '"memory"' not in self._clobbers:
+            self._clobbers.append('"memory"')
+        return self
+
+    def add_register_clobber(self, reg: str) -> "ConstraintBuilder":
+        """Mark that this instruction clobbers a specific register.
+
+        Args:
+            reg: Register name without quotes (e.g., "r10")
+        """
+        quoted = f'"{reg}"'
+        if quoted not in self._clobbers:
+            self._clobbers.append(quoted)
+        return self
+
+    def merge(self, other: "ConstraintBuilder") -> "ConstraintBuilder":
+        """Merge another builder's constraints into this one.
+
+        Useful for combining constraints from two instructions in a pair.
+        """
+        for output in other._outputs:
+            if output not in self._outputs:
+                self._outputs.append(output)
+        for inp in other._inputs:
+            if inp not in self._inputs:
+                self._inputs.append(inp)
+        for clobber in other._clobbers:
+            if clobber not in self._clobbers:
+                self._clobbers.append(clobber)
+        return self
+
+    def build(self) -> Dict[str, str]:
+        """Build the final constraints dictionary."""
+        return {
+            "outputs": ", ".join(self._outputs),
+            "inputs": ", ".join(self._inputs),
+            "clobbers": ", ".join(self._clobbers),
+        }
+
+
+# ============================================================================
 # Instruction Specification Generators
 # ============================================================================
 
