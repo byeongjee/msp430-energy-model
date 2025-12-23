@@ -786,8 +786,6 @@ def create_opcode_specs() -> List[InstructionSpec]:
 
     specs.extend(create_call_specs())
     specs.extend(create_push_specs())
-    specs.extend(create_push_specs())
-    specs.extend(create_push_specs())
 
     specs.extend(create_no_operand_specs("clrc"))
     specs.extend(create_dint_specs())
