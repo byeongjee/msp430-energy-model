@@ -24,12 +24,13 @@ from typing import List
 from benchmark_common import (
     InstructionSpec,
     get_instruction_specs,
+    get_hardcoded_benchmarks,
     normalize_granularity,
     UNSAFE_OPCODES,
 )
 
 
-def list_instruction_keys(specs: List[InstructionSpec]) -> dict:
+def list_instruction_keys(specs: List[InstructionSpec], granularity: str) -> dict:
     """Create JSON payload for instruction-level benchmarks"""
     instructions = []
     for spec in specs:
@@ -40,16 +41,30 @@ def list_instruction_keys(specs: List[InstructionSpec]) -> dict:
             "opcode": spec.opcode,
         }
 
-        # Add hardcoded benchmark path if present
-        if spec.hardcoded_benchmark_path:
-            entry["hardcoded_benchmark_path"] = spec.hardcoded_benchmark_path
-
         instructions.append(entry)
 
-    return {
+    # Get hardcoded benchmarks for this granularity
+    hardcoded = get_hardcoded_benchmarks(granularity)
+    hardcoded_list = [
+        {
+            "name": name,
+            "path": info["path"],
+            "description": info["description"],
+            "is_hardcoded": True,
+        }
+        for name, info in hardcoded.items()
+    ]
+
+    result = {
         "num_keys": len(specs),
         "instructions": instructions,
     }
+
+    if hardcoded_list:
+        result["num_hardcoded"] = len(hardcoded_list)
+        result["hardcoded_benchmarks"] = hardcoded_list
+
+    return result
 
 
 def list_pair_keys(specs: List[InstructionSpec]) -> dict:
@@ -98,6 +113,8 @@ def main():
             "opcode",
             "addressing_mode",
             "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
             "opcode_pair",
             "addressing_mode_pair",
             "addressing_mode_constant_pair",
@@ -127,7 +144,7 @@ def main():
     if normalized.endswith("pair"):
         output_data = list_pair_keys(specs)
     else:
-        output_data = list_instruction_keys(specs)
+        output_data = list_instruction_keys(specs, normalized)
 
     if args.output:
         args.output.write_text(json.dumps(output_data, indent=2))
