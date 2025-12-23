@@ -39,6 +39,8 @@ MULTIPLIER_REGISTERS = [
     ("RES1", 0x04E6),
 ]
 
+JUMP_OPCODES = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
+
 # ============================================================================
 # Hardcoded Benchmarks Registry
 # ============================================================================
@@ -484,108 +486,15 @@ def create_constant_imm_to_reg_specs(
     return specs
 
 
-def create_jmp_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jmp"""
-    return [
-        InstructionSpec(
-            opcode="jmp",
-            src_mode="symbolic",
-            asm_template="jmp 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
-
-
-def create_jge_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jge (conditional jump)"""
-    return [
-        InstructionSpec(
-            opcode="jge",
-            src_mode="symbolic",
-            asm_template="jge 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
-
-
-def create_jl_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jl (jump if less)"""
-    return [
-        InstructionSpec(
-            opcode="jl",
-            src_mode="symbolic",
-            asm_template="jl 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
-
-
-def create_jnz_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jnz (jump if not zero)"""
-    return [
-        InstructionSpec(
-            opcode="jnz",
-            src_mode="symbolic",
-            asm_template="jnz 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
-
-
-def create_jz_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jz (jump if zero)"""
-    return [
-        InstructionSpec(
-            opcode="jz",
-            src_mode="symbolic",
-            asm_template="jz 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
-
-
-def create_jnc_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jnc (jump if no carry)"""
-    return [
-        InstructionSpec(
-            opcode="jnc",
-            src_mode="symbolic",
-            asm_template="jnc 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
-
-
-def create_jc_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jc (jump if carry)"""
-    return [
-        InstructionSpec(
-            opcode="jc",
-            src_mode="symbolic",
-            asm_template="jc 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
-
-
-def create_jn_specs() -> List[InstructionSpec]:
-    """Create instruction specs for jn (jump if negative)"""
-    return [
-        InstructionSpec(
-            opcode="jn",
-            src_mode="symbolic",
-            asm_template="jn 1f\\n1:",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
-        )
-    ]
+def create_jump_spec(opcode: str) -> InstructionSpec:
+    """Create instruction spec for any jump opcode (jmp, jge, jl, jnz, jz, jnc, jc, jn)"""
+    return InstructionSpec(
+        opcode=opcode,
+        src_mode="symbolic",
+        asm_template=f"{opcode} 1f\\n1:",
+        variables=[],
+        constraints={"outputs": "", "inputs": "", "clobbers": '"cc"'},
+    )
 
 
 def create_call_specs() -> List[InstructionSpec]:
@@ -792,8 +701,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
     specs.extend(create_no_operand_specs("ret", composite_group=COMPOSITE_CALL_AND_RET))
     specs.extend(create_reti_specs())
 
-    jump_opcodes = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
-    for opcode in jump_opcodes:
+    for opcode in JUMP_OPCODES:
         specs.append(
             InstructionSpec(
                 opcode=opcode,
@@ -883,14 +791,8 @@ def create_addressing_mode_specs(
     specs.extend(create_call_specs())
     specs.extend(create_push_specs())
 
-    specs.extend(create_jmp_specs())
-    specs.extend(create_jge_specs())
-    specs.extend(create_jl_specs())
-    specs.extend(create_jnz_specs())
-    specs.extend(create_jz_specs())
-    specs.extend(create_jnc_specs())
-    specs.extend(create_jc_specs())
-    specs.extend(create_jn_specs())
+    for jmp_opcode in JUMP_OPCODES:
+        specs.append(create_jump_spec(jmp_opcode))
 
     specs.extend(create_dint_specs())
     specs.extend(create_no_operand_specs("ret", composite_group=COMPOSITE_CALL_AND_RET))
