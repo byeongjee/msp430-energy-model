@@ -21,7 +21,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import List
 
-from benchmark_common import (
+from benchmark.common import (
     InstructionSpec,
     get_instruction_specs,
     get_hardcoded_benchmarks,
