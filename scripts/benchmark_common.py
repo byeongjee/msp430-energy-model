@@ -41,6 +41,24 @@ MULTIPLIER_REGISTERS = [
 
 JUMP_OPCODES = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
 
+# Dual-operand instructions: opcode src, dst
+DUAL_OPERAND_OPCODES = [
+    "add", "addc", "mov", "mova", "cmp", "sub", "subc",
+    "and", "or", "xor", "bit", "bic", "bis",
+]
+
+# Single-operand instructions: opcode dst
+SINGLE_OPERAND_OPCODES = [
+    "inc", "incd", "dec", "decd", "clr", "inv",
+    "rla", "rlc", "rrc", "rrax", "rrux", "sxt",
+]
+
+# Instructions with immediate constant operand: opcode #const, reg
+CONSTANT_OPCODES = ["rlam", "rrum", "pushm", "popm"]
+
+# No-operand instructions
+NO_OPERAND_OPCODES = ["clrc", "nop"]
+
 # ============================================================================
 # Hardcoded Benchmarks Registry
 # ============================================================================
@@ -614,22 +632,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
     """Create one representative spec per opcode (granularity: opcode)"""
     specs = []
 
-    dual_opcodes = [
-        "add",
-        "addc",
-        "mov",
-        "mova",
-        "cmp",
-        "sub",
-        "subc",
-        "and",
-        "or",
-        "xor",
-        "bit",
-        "bic",
-        "bis",
-    ]
-    for opcode in dual_opcodes:
+    for opcode in DUAL_OPERAND_OPCODES:
         specs.append(
             InstructionSpec(
                 opcode=opcode,
@@ -648,21 +651,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
             )
         )
 
-    single_opcodes = [
-        "inc",
-        "incd",
-        "dec",
-        "decd",
-        "clr",
-        "inv",
-        "rla",
-        "rlc",
-        "rrc",
-        "rrax",
-        "rrux",
-        "sxt",
-    ]
-    for opcode in single_opcodes:
+    for opcode in SINGLE_OPERAND_OPCODES:
         specs.append(
             InstructionSpec(
                 opcode=opcode,
@@ -677,8 +666,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
             )
         )
 
-    constant_opcodes = ["rlam", "rrum", "pushm", "popm"]
-    for opcode in constant_opcodes:
+    for opcode in CONSTANT_OPCODES:
         specs.append(
             InstructionSpec(
                 opcode=opcode,
@@ -728,41 +716,10 @@ def create_addressing_mode_specs(
     """
     specs: List[InstructionSpec] = []
 
-    dual_opcodes = [
-        "add",
-        "addc",
-        "mov",
-        "mova",
-        "cmp",
-        "sub",
-        "subc",
-        "and",
-        "or",
-        "xor",
-        "bit",
-        "bic",
-        "bis",
-    ]
-    single_opcodes = [
-        "inc",
-        "incd",
-        "dec",
-        "decd",
-        "clr",
-        "inv",
-        "rla",
-        "rlc",
-        "rrc",
-        "rrax",
-        "rrux",
-        "sxt",
-    ]
-    no_operand_opcodes = ["clrc", "nop"]
-
-    for opcode in dual_opcodes:
+    for opcode in DUAL_OPERAND_OPCODES:
         specs.extend(create_dual_operand_specs(opcode))
 
-    for opcode in single_opcodes:
+    for opcode in SINGLE_OPERAND_OPCODES:
         specs.extend(create_single_operand_specs(opcode))
 
     specs.extend(create_multiplier_mov_specs(include_constant=include_constant))
