@@ -11,9 +11,10 @@ and generate_addressing_mode_benchmarks.py, including:
 """
 
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 import copy
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Union
 from jinja2 import Template
 
 
@@ -60,6 +61,61 @@ CONSTANT_OPCODES = ["rlam", "rrum", "pushm", "popm"]
 # No-operand instructions
 NO_OPERAND_OPCODES = ["clrc", "nop"]
 
+
+# ============================================================================
+# Granularity Enum
+# ============================================================================
+
+
+class Granularity(Enum):
+    """Benchmark granularity levels.
+
+    Controls how instruction benchmarks are grouped and what parameters
+    are tracked in the energy model.
+    """
+
+    OPCODE = "opcode"
+    ADDRESSING_MODE = "addressing_mode"
+    ADDRESSING_MODE_CONSTANT = "addressing_mode_constant"
+    ADDRESSING_MODE_WITH_MEM_ACCESS = "addressing_mode_with_mem_access"
+    ADDRESSING_MODE_CONSTANT_WITH_MEM_ACCESS = "addressing_mode_constant_with_mem_access"
+    OPCODE_PAIR = "opcode_pair"
+    ADDRESSING_MODE_PAIR = "addressing_mode_pair"
+    ADDRESSING_MODE_CONSTANT_PAIR = "addressing_mode_constant_pair"
+
+    @property
+    def includes_constant(self) -> bool:
+        """Whether this granularity tracks constant values in keys."""
+        return "constant" in self.value
+
+    @property
+    def is_pair(self) -> bool:
+        """Whether this is a pair granularity (tracks instruction sequences)."""
+        return "pair" in self.value
+
+    @property
+    def includes_mem_access(self) -> bool:
+        """Whether this granularity includes memory access tracking."""
+        return "mem_access" in self.value
+
+    @property
+    def base_granularity(self) -> "Granularity":
+        """Get the base granularity (without _pair or _with_mem_access suffixes)."""
+        base = self.value.replace("_with_mem_access", "").replace("_pair", "")
+        return Granularity(base) if base != self.value else self
+
+    @classmethod
+    def from_string(cls, s: str) -> "Granularity":
+        """Parse a granularity string, handling aliases."""
+        normalized = s.lower()
+        aliases = {
+            "instruction": "addressing_mode",
+            "pair": "addressing_mode_pair",
+        }
+        normalized = aliases.get(normalized, normalized)
+        return cls(normalized)
+
+
 # ============================================================================
 # Hardcoded Benchmarks Registry
 # ============================================================================
@@ -96,11 +152,11 @@ HARDCODED_BENCHMARKS = {
 }
 
 
-def get_hardcoded_benchmarks(granularity: str) -> Dict[str, Dict[str, Any]]:
+def get_hardcoded_benchmarks(granularity: Union[str, Granularity]) -> Dict[str, Dict[str, Any]]:
     """Return hardcoded benchmarks that apply to the given granularity.
 
     Args:
-        granularity: The benchmark granularity (e.g., "addressing_mode")
+        granularity: The benchmark granularity (Granularity enum or string)
 
     Returns:
         Dictionary of benchmark_name -> benchmark_info for matching benchmarks
@@ -752,61 +808,58 @@ def create_addressing_mode_specs(
     return specs
 
 
-def normalize_granularity(granularity: str) -> str:
-    """Normalize user-facing granularity string to canonical form"""
-    g = granularity.lower()
-    aliases = {
-        "instruction": "addressing_mode",
-        "pair": "addressing_mode_pair",
-    }
-    return aliases.get(g, g)
+def normalize_granularity(granularity: Union[str, Granularity]) -> str:
+    """Normalize user-facing granularity to canonical string form.
+
+    Args:
+        granularity: Either a Granularity enum or a string (with optional aliases)
+
+    Returns:
+        Canonical granularity string
+    """
+    if isinstance(granularity, Granularity):
+        return granularity.value
+    return Granularity.from_string(granularity).value
 
 
-def get_instruction_specs(granularity: str) -> List[InstructionSpec]:
+def get_instruction_specs(granularity: Union[str, Granularity]) -> List[InstructionSpec]:
     """Return instruction specs for the requested benchmark granularity.
 
     This returns only programmatically-generated instruction benchmarks.
     For hardcoded benchmarks (br_immediate, fram_cache), use get_hardcoded_benchmarks().
 
-    Supported granularities:
-        - opcode
-        - addressing_mode
-        - addressing_mode_constant
-        - addressing_mode_with_mem_access
-        - addressing_mode_constant_with_mem_access
-        - opcode_pair
-        - addressing_mode_pair
-        - addressing_mode_constant_pair
+    Args:
+        granularity: A Granularity enum value or string
 
     Note: _with_mem_access variants return the same instruction specs as their
     base variants. The difference is in which hardcoded benchmarks are included.
     """
-    g = normalize_granularity(granularity)
+    if isinstance(granularity, str):
+        g = Granularity.from_string(granularity)
+    else:
+        g = granularity
 
-    if g == "opcode":
+    # Get the base granularity (strip _pair and _with_mem_access)
+    base = g.base_granularity
+
+    if base == Granularity.OPCODE:
         return create_opcode_specs()
-    if g in ("addressing_mode", "addressing_mode_with_mem_access"):
+
+    if base == Granularity.ADDRESSING_MODE:
         specs = create_addressing_mode_specs(include_constant=False)
-        specs.extend(create_rpt_specs(specs, include_constant=False))
+        if not g.is_pair:
+            specs.extend(create_rpt_specs(specs, include_constant=False))
         return specs
-    if g in ("addressing_mode_constant", "addressing_mode_constant_with_mem_access"):
+
+    if base == Granularity.ADDRESSING_MODE_CONSTANT:
         specs = create_addressing_mode_specs(include_constant=True)
-        specs.extend(create_rpt_specs(specs, include_constant=True))
-        return specs
-    if g == "opcode_pair":
-        return create_opcode_specs()
-    if g == "addressing_mode_pair":
-        specs = create_addressing_mode_specs(include_constant=False)
-        return specs
-    if g == "addressing_mode_constant_pair":
-        specs = create_addressing_mode_specs(include_constant=True)
+        if not g.is_pair:
+            specs.extend(create_rpt_specs(specs, include_constant=True))
         return specs
 
     raise ValueError(
-        f"Unsupported granularity '{granularity}'. Expected one of: "
-        "opcode, addressing_mode, addressing_mode_constant, "
-        "addressing_mode_with_mem_access, addressing_mode_constant_with_mem_access, "
-        "opcode_pair, addressing_mode_pair, addressing_mode_constant_pair."
+        f"Unsupported granularity '{granularity}'. "
+        f"Expected one of: {[g.value for g in Granularity]}"
     )
 
 
