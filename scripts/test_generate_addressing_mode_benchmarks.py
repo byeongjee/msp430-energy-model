@@ -16,7 +16,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from benchmark_common import (
+from benchmark.common import (
     InstructionSpec,
     FILE_TEMPLATE,
     get_instruction_specs,
@@ -293,7 +293,7 @@ INLINE void bench_inc_register(void) {
         - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, autoincrement
         - 4 destination modes: register, indexed, symbolic, absolute
         """
-        from benchmark_common import create_dual_operand_specs
+        from benchmark.common import create_dual_operand_specs
 
         specs = create_dual_operand_specs("add")
         self.assertEqual(len(specs), 28)

@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 from jinja2 import Template
 
-from benchmark_common import (
+from benchmark.common import (
     InstructionSpec,
     generate_benchmark_file,
     generate_batched_files,
