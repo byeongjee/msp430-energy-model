@@ -32,8 +32,10 @@ from benchmark_common import (
     generate_benchmark_file,
     generate_batched_files,
     get_instruction_specs,
+    get_hardcoded_benchmarks,
     normalize_granularity,
     UNSAFE_OPCODES,
+    HARDCODED_BENCHMARKS,
     COMPOSITE_CALL_AND_RET,
     COMPOSITE_PUSHM_AND_POPM,
     COMPOSITE_PUSH_AND_RETI,
@@ -402,6 +404,8 @@ def main():
             "opcode",
             "addressing_mode",
             "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
             "opcode_pair",
             "addressing_mode_pair",
             "addressing_mode_constant_pair",
@@ -441,18 +445,6 @@ def main():
     normalized = normalize_granularity(args.granularity)
     payload = load_payload(args.input, normalized)
 
-    # Separate hardcoded benchmarks from regular ones
-    is_pair = normalized.endswith("pair")
-
-    hardcoded_items = []
-    regular_items = []
-
-    for item in payload:
-        if "hardcoded_benchmark_path" in item:
-            hardcoded_items.append(item)
-        else:
-            regular_items.append(item)
-
     def is_safe(spec):
         outer_ok = spec.opcode not in UNSAFE_OPCODES
         inner = getattr(spec, "inner_opcode", None)
@@ -463,19 +455,20 @@ def main():
     spec_lookup = {spec.get_key_str(): spec for spec in specs}
     print(f"Loaded {len(spec_lookup)} instruction specifications", file=sys.stderr)
 
-    # Generate regular benchmarks
+    # Generate benchmarks from payload
     if normalized.endswith("pair"):
-        benchmarks = generate_pair_benchmarks(regular_items, spec_lookup)
+        benchmarks = generate_pair_benchmarks(payload, spec_lookup)
         file_prefix = f"{normalized}_batch"
     else:
-        benchmarks = generate_instruction_benchmarks(
-            regular_items, spec_lookup, normalized
-        )
+        benchmarks = generate_instruction_benchmarks(payload, spec_lookup, normalized)
         file_prefix = f"{normalized}_batch"
 
-    print(f"Generated {len(benchmarks)} regular benchmarks", file=sys.stderr)
-    if hardcoded_items:
-        print(f"Found {len(hardcoded_items)} hardcoded benchmarks", file=sys.stderr)
+    print(f"Generated {len(benchmarks)} benchmarks", file=sys.stderr)
+
+    # Get hardcoded benchmarks for this granularity from the registry
+    hardcoded = get_hardcoded_benchmarks(normalized)
+    if hardcoded:
+        print(f"Found {len(hardcoded)} hardcoded benchmarks for granularity", file=sys.stderr)
 
     # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -507,14 +500,13 @@ def main():
         generate_benchmark_file(benchmarks, output_file)
         print(f"✓ Generated {output_file}", file=sys.stderr)
 
-    # Generate and copy hardcoded benchmark files
-    if hardcoded_items:
+    # Generate and copy hardcoded benchmark files from registry
+    if hardcoded:
         script_dir = Path(__file__).parent.parent  # Go up to repo root
         compile_script = script_dir / "scripts" / "compile_hardcoded_benchmarks.sh"
 
-        for item in hardcoded_items:
-            name = item["name"]
-            hardcoded_path = item["hardcoded_benchmark_path"]
+        for name, info in hardcoded.items():
+            hardcoded_path = info["path"]
             src_c_file = script_dir / hardcoded_path
 
             # Run two-pass compilation to generate .S file
@@ -525,10 +517,13 @@ def main():
                     check=True,
                     cwd=str(script_dir),
                     capture_output=True,
-                    text=True
+                    text=True,
                 )
             except subprocess.CalledProcessError as e:
-                print(f"ERROR: Failed to compile hardcoded benchmark {name}", file=sys.stderr)
+                print(
+                    f"ERROR: Failed to compile hardcoded benchmark {name}",
+                    file=sys.stderr,
+                )
                 print(f"STDOUT: {e.stdout}", file=sys.stderr)
                 print(f"STDERR: {e.stderr}", file=sys.stderr)
                 raise
@@ -539,11 +534,16 @@ def main():
             dst_s_file = args.output_dir / f"{name}.S"
 
             if not src_s_file.exists():
-                print(f"ERROR: Expected .S file not found: {src_s_file}", file=sys.stderr)
+                print(
+                    f"ERROR: Expected .S file not found: {src_s_file}", file=sys.stderr
+                )
                 raise FileNotFoundError(f"Generated .S file not found: {src_s_file}")
 
             shutil.copy(src_s_file, dst_s_file)
-            print(f"✓ Generated and copied hardcoded benchmark: {dst_s_file}", file=sys.stderr)
+            print(
+                f"✓ Generated and copied hardcoded benchmark: {dst_s_file}",
+                file=sys.stderr,
+            )
 
 
 if __name__ == "__main__":

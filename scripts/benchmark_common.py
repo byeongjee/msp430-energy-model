@@ -21,7 +21,6 @@ from jinja2 import Template
 # ============================================================================
 
 # Benchmarks for these opcodes can corrupt memory or are not yet safely handled.
-# Note: br_immediate is handled as a hardcoded benchmark, not generated here.
 UNSAFE_OPCODES = set()
 
 COMPOSITE_CALL_AND_RET = "call_and_ret"
@@ -40,6 +39,58 @@ MULTIPLIER_REGISTERS = [
     ("RES1", 0x04E6),
 ]
 
+# ============================================================================
+# Hardcoded Benchmarks Registry
+# ============================================================================
+# Special benchmarks that cannot be generated programmatically and require
+# handwritten C code. These are handled separately from InstructionSpec.
+#
+# Each entry maps a benchmark name to:
+#   - path: Path to the hardcoded C source file
+#   - granularities: List of granularities that should include this benchmark
+#   - description: Human-readable description
+#
+# The generation pipeline will copy these files to the output directory
+# when generating for matching granularities.
+
+HARDCODED_BENCHMARKS = {
+    "br_immediate": {
+        "path": "scripts/hardcoded_benchmarks/br_immediate_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "Branch with immediate addressing (requires two-pass compilation)",
+    },
+    "fram_cache_read": {
+        "path": "scripts/hardcoded_benchmarks/fram_cache_benchmark.c",
+        "granularities": [
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "FRAM cache hit/miss benchmarks for memory access tracking models",
+    },
+}
+
+
+def get_hardcoded_benchmarks(granularity: str) -> Dict[str, Dict[str, Any]]:
+    """Return hardcoded benchmarks that apply to the given granularity.
+
+    Args:
+        granularity: The benchmark granularity (e.g., "addressing_mode")
+
+    Returns:
+        Dictionary of benchmark_name -> benchmark_info for matching benchmarks
+    """
+    g = normalize_granularity(granularity)
+    return {
+        name: info
+        for name, info in HARDCODED_BENCHMARKS.items()
+        if g in info["granularities"]
+    }
+
 
 # ============================================================================
 # Instruction Specification
@@ -47,7 +98,13 @@ MULTIPLIER_REGISTERS = [
 
 
 class InstructionSpec:
-    """Specification for generating a single instruction instance"""
+    """Specification for generating a single instruction benchmark.
+
+    This class represents instruction-level benchmarks that can be generated
+    programmatically from a template. For special benchmarks that require
+    handwritten code (like br_immediate or fram_cache), use the
+    HARDCODED_BENCHMARKS registry instead.
+    """
 
     def __init__(
         self,
@@ -61,7 +118,6 @@ class InstructionSpec:
         constraints: Dict[str, str] = None,
         key_override: tuple = None,
         inner_opcode: str = None,
-        hardcoded_benchmark_path: str = None,
         composite_group: str = None,
     ):
         self.opcode = opcode
@@ -78,7 +134,6 @@ class InstructionSpec:
         }
         self.key_override = key_override
         self.inner_opcode = inner_opcode
-        self.hardcoded_benchmark_path = hardcoded_benchmark_path
         self.composite_group = composite_group
 
     def get_key(self) -> Tuple:
@@ -533,27 +588,6 @@ def create_jn_specs() -> List[InstructionSpec]:
     ]
 
 
-def create_br_specs() -> List[InstructionSpec]:
-    """Create instruction specs for br (branch)
-
-    Note: br supports multiple addressing modes (register, indexed, symbolic, absolute, etc.),
-    but we currently only support br with immediate addressing (br_immediate).
-    This is a placeholder spec. The actual implementation uses hardcoded addresses
-    and is in scripts/hardcoded_benchmarks/br_immediate_benchmark.c
-    This spec is only used for listing purposes.
-    """
-    return [
-        InstructionSpec(
-            opcode="br",
-            src_mode="immediate",
-            asm_template="# HARDCODED BENCHMARK",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"memory"'},
-            hardcoded_benchmark_path="scripts/hardcoded_benchmarks/br_immediate_benchmark.c",
-        )
-    ]
-
-
 def create_call_specs() -> List[InstructionSpec]:
     """Create instruction specs for call (single operand)"""
     specs = []
@@ -778,7 +812,14 @@ def create_opcode_specs() -> List[InstructionSpec]:
 def create_addressing_mode_specs(
     include_constant: bool = False,
 ) -> List[InstructionSpec]:
-    """Create specs for addressing-mode-based granularities"""
+    """Create specs for addressing-mode-based granularities.
+
+    Args:
+        include_constant: Include constant values in keys for constant-aware instructions
+
+    Note: Hardcoded benchmarks (br_immediate, fram_cache) are handled separately
+    via the HARDCODED_BENCHMARKS registry.
+    """
     specs: List[InstructionSpec] = []
 
     dual_opcodes = [
@@ -852,13 +893,15 @@ def create_addressing_mode_specs(
     specs.extend(create_jnc_specs())
     specs.extend(create_jc_specs())
     specs.extend(create_jn_specs())
-    specs.extend(create_br_specs())
 
     specs.extend(create_dint_specs())
     specs.extend(create_no_operand_specs("ret", composite_group=COMPOSITE_CALL_AND_RET))
     specs.extend(create_reti_specs())
     specs.extend(create_no_operand_specs("nop"))
     specs.extend(create_no_operand_specs("clrc"))
+
+    # Note: br_immediate and fram_cache benchmarks are handled separately
+    # via HARDCODED_BENCHMARKS registry, not through InstructionSpec
 
     return specs
 
@@ -876,23 +919,31 @@ def normalize_granularity(granularity: str) -> str:
 def get_instruction_specs(granularity: str) -> List[InstructionSpec]:
     """Return instruction specs for the requested benchmark granularity.
 
+    This returns only programmatically-generated instruction benchmarks.
+    For hardcoded benchmarks (br_immediate, fram_cache), use get_hardcoded_benchmarks().
+
     Supported granularities:
         - opcode
         - addressing_mode
         - addressing_mode_constant
+        - addressing_mode_with_mem_access
+        - addressing_mode_constant_with_mem_access
         - opcode_pair
         - addressing_mode_pair
         - addressing_mode_constant_pair
+
+    Note: _with_mem_access variants return the same instruction specs as their
+    base variants. The difference is in which hardcoded benchmarks are included.
     """
     g = normalize_granularity(granularity)
 
     if g == "opcode":
         return create_opcode_specs()
-    if g == "addressing_mode":
+    if g in ("addressing_mode", "addressing_mode_with_mem_access"):
         specs = create_addressing_mode_specs(include_constant=False)
         specs.extend(create_rpt_specs(specs, include_constant=False))
         return specs
-    if g == "addressing_mode_constant":
+    if g in ("addressing_mode_constant", "addressing_mode_constant_with_mem_access"):
         specs = create_addressing_mode_specs(include_constant=True)
         specs.extend(create_rpt_specs(specs, include_constant=True))
         return specs
@@ -907,8 +958,9 @@ def get_instruction_specs(granularity: str) -> List[InstructionSpec]:
 
     raise ValueError(
         f"Unsupported granularity '{granularity}'. Expected one of: "
-        "opcode, addressing_mode, addressing_mode_constant, opcode_pair, "
-        "addressing_mode_pair, addressing_mode_constant_pair."
+        "opcode, addressing_mode, addressing_mode_constant, "
+        "addressing_mode_with_mem_access, addressing_mode_constant_with_mem_access, "
+        "opcode_pair, addressing_mode_pair, addressing_mode_constant_pair."
     )
 
 
