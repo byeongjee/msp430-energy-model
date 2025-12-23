@@ -319,6 +319,96 @@ class ConstraintBuilder:
 
 
 # ============================================================================
+# Addressing Mode Definitions
+# ============================================================================
+
+
+@dataclass
+class AddressingModeSpec:
+    """Specification for an MSP430 addressing mode.
+
+    Describes how to generate assembly syntax and C variables/constraints
+    for a particular addressing mode used as source or destination operand.
+    """
+
+    # Assembly template pattern (use {prefix} for variable name prefix)
+    asm_pattern: str
+
+    # Variables to declare (list of dicts with name_suffix, type, value)
+    # name_suffix is appended to the operand prefix (e.g., "src" + "_reset" = "src_reset")
+    variables: List[Dict[str, str]] = field(default_factory=list)
+
+    # Whether this mode requires memory clobber
+    needs_memory_clobber: bool = False
+
+    # Post-assembly cleanup code (for autoincrement reset)
+    post_asm: str = ""
+
+    # For building constraints - list of (name_suffix, constraint_type, is_output)
+    # constraint_type is "r" for register, "i" for immediate, "+r" for read-write
+    constraint_specs: List[Tuple[str, str, bool]] = field(default_factory=list)
+
+
+def _build_addressing_mode_specs() -> Dict[str, AddressingModeSpec]:
+    """Build the addressing mode specification registry."""
+    return {
+        # Source modes
+        "register": AddressingModeSpec(
+            asm_pattern="%[{prefix}]",
+            variables=[{"name_suffix": "", "type": "uint16_t", "value": "0x5678"}],
+            constraint_specs=[("", "r", False)],  # input
+        ),
+        "immediate": AddressingModeSpec(
+            asm_pattern="#0x1357",
+            # No variables or constraints for immediate
+        ),
+        "indexed": AddressingModeSpec(
+            asm_pattern="%c[offs_{prefix}](%[base_{prefix}])",
+            variables=[{"name_suffix": "", "type": "uint16_t*", "value": "BASE_PTR"}],
+            needs_memory_clobber=True,
+            constraint_specs=[
+                ("", "r", False),  # base register (input) - named base_{prefix}
+            ],
+        ),
+        "symbolic": AddressingModeSpec(
+            asm_pattern="sym_data",
+            needs_memory_clobber=True,
+        ),
+        "absolute": AddressingModeSpec(
+            asm_pattern="&sym_data",
+            needs_memory_clobber=True,
+        ),
+        "indirect": AddressingModeSpec(
+            asm_pattern="@%[p{prefix}]",
+            variables=[{"name_suffix": "", "type": "uint16_t*", "value": "BASE_PTR"}],
+            needs_memory_clobber=True,
+            constraint_specs=[("", "+r", True)],  # output (read-write pointer)
+        ),
+        "autoincrement": AddressingModeSpec(
+            asm_pattern="@%[p{prefix}]+",
+            variables=[
+                {"name_suffix": "", "type": "uint16_t*", "value": "BASE_PTR"},
+                {"name_suffix": "_reset", "type": "uint16_t*", "value": "BASE_PTR"},
+            ],
+            needs_memory_clobber=True,
+            post_asm="mov %[{prefix}_reset], %[p{prefix}]",
+            constraint_specs=[
+                ("", "+r", True),  # output (read-write pointer)
+                ("_reset", "r", False),  # input (reset value)
+            ],
+        ),
+    }
+
+
+# Global registry of addressing mode specifications
+ADDRESSING_MODE_SPECS = _build_addressing_mode_specs()
+
+# Source and destination mode lists
+SOURCE_MODES = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "autoincrement"]
+DESTINATION_MODES = ["register", "indexed", "symbolic", "absolute"]
+
+
+# ============================================================================
 # Instruction Specification Generators
 # ============================================================================
 
@@ -332,18 +422,6 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     Total: 7 × 4 = 28 variants per opcode
     """
     specs = []
-
-    # Define all source and destination modes
-    src_modes = [
-        "register",
-        "immediate",
-        "indexed",
-        "symbolic",
-        "absolute",
-        "indirect",
-        "autoincrement",
-    ]
-    dst_modes = ["register", "indexed", "symbolic", "absolute"]
 
     # Helper function to generate assembly template and variables/constraints
     def create_spec(src_mode: str, dst_mode: str) -> InstructionSpec:
@@ -423,8 +501,8 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
         )
 
     # Generate all combinations
-    for src_mode in src_modes:
-        for dst_mode in dst_modes:
+    for src_mode in SOURCE_MODES:
+        for dst_mode in DESTINATION_MODES:
             specs.append(create_spec(src_mode, dst_mode))
 
     return specs
