@@ -10,9 +10,10 @@ and generate_addressing_mode_benchmarks.py, including:
 - File generation utilities
 """
 
+from dataclasses import dataclass, field
 from pathlib import Path
 import copy
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from jinja2 import Template
 
 
@@ -117,6 +118,12 @@ def get_hardcoded_benchmarks(granularity: str) -> Dict[str, Dict[str, Any]]:
 # ============================================================================
 
 
+def _default_constraints() -> Dict[str, str]:
+    """Factory for default constraints dict."""
+    return {"outputs": "", "inputs": "", "clobbers": '"cc"'}
+
+
+@dataclass
 class InstructionSpec:
     """Specification for generating a single instruction benchmark.
 
@@ -126,35 +133,17 @@ class InstructionSpec:
     HARDCODED_BENCHMARKS registry instead.
     """
 
-    def __init__(
-        self,
-        opcode: str,
-        src_mode: str,
-        dst_mode: str = None,
-        constant: int = None,
-        asm_template: str = "",
-        post_asm: str = "",
-        variables: List[Dict[str, str]] = None,
-        constraints: Dict[str, str] = None,
-        key_override: tuple = None,
-        inner_opcode: str = None,
-        composite_group: str = None,
-    ):
-        self.opcode = opcode
-        self.src_mode = src_mode
-        self.dst_mode = dst_mode
-        self.constant = constant
-        self.asm_template = asm_template
-        self.post_asm = post_asm
-        self.variables = variables or []
-        self.constraints = constraints or {
-            "outputs": "",
-            "inputs": "",
-            "clobbers": '"cc"',
-        }
-        self.key_override = key_override
-        self.inner_opcode = inner_opcode
-        self.composite_group = composite_group
+    opcode: str
+    src_mode: Optional[str] = None
+    dst_mode: Optional[str] = None
+    constant: Optional[int] = None
+    asm_template: str = ""
+    post_asm: str = ""
+    variables: List[Dict[str, str]] = field(default_factory=list)
+    constraints: Dict[str, str] = field(default_factory=_default_constraints)
+    key_override: Optional[Tuple] = None
+    inner_opcode: Optional[str] = None
+    composite_group: Optional[str] = None
 
     def get_key(self) -> Tuple:
         """Get the parameter key for this instruction (matches model_common.jl)"""
