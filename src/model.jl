@@ -96,34 +96,31 @@ include("models/mean_per_addressing_mode_with_mem_access.jl")
 include("models/mean_per_addressing_mode_constant_with_mem_access.jl")
 include("models/mean_per_pair_addressing_mode_constant.jl")
 
+# Model registry: maps model name strings to constructor functions
+const MODEL_REGISTRY = Dict{String,Function}(
+    "gamma_per_instruction" => GammaPerInstruction,
+    "gamma_per_addressing_mode" => GammaPerAddressingMode,
+    "gamma_per_addressing_mode_constant" => GammaPerAddressingModeConstant,
+    "mean_per_instruction" => MeanPerInstruction,
+    "mean_per_addressing_mode" => MeanPerAddressingMode,
+    "mean_per_addressing_mode_constant" => MeanPerAddressingModeConstant,
+    "mean_per_instruction_with_mem_access" => MeanPerInstructionWithMemAccess,
+    "mean_per_addressing_mode_with_mem_access" => MeanPerAddressingModeWithMemAccess,
+    "mean_per_addressing_mode_constant_with_mem_access" => MeanPerAddressingModeConstantWithMemAccess,
+    "mean_per_pair_addressing_mode_constant" => MeanPerPairAddressingModeConstant,
+)
+
 """
-Create a model instance based on the model name
+Create a model instance based on the model name.
+
+Available models: $(join(sort(collect(keys(MODEL_REGISTRY))), ", "))
 """
 function create_model(model_str::String)::AbstractModel
-    if model_str == "gamma_per_instruction"
-        return GammaPerInstruction()
-    elseif model_str == "gamma_per_addressing_mode"
-        return GammaPerAddressingMode()
-    elseif model_str == "gamma_per_addressing_mode_constant"
-        return GammaPerAddressingModeConstant()
-    elseif model_str == "mean_per_instruction"
-        return MeanPerInstruction()
-    elseif model_str == "mean_per_addressing_mode"
-        return MeanPerAddressingMode()
-    elseif model_str == "mean_per_addressing_mode_constant"
-        return MeanPerAddressingModeConstant()
-    elseif model_str == "mean_per_instruction_with_mem_access"
-        return MeanPerInstructionWithMemAccess()
-    elseif model_str == "mean_per_addressing_mode_with_mem_access"
-        return MeanPerAddressingModeWithMemAccess()
-    elseif model_str == "mean_per_addressing_mode_constant_with_mem_access"
-        return MeanPerAddressingModeConstantWithMemAccess()
-    elseif model_str == "mean_per_pair_addressing_mode_constant"
-        return MeanPerPairAddressingModeConstant()
+    if haskey(MODEL_REGISTRY, model_str)
+        return MODEL_REGISTRY[model_str]()
     else
-        error(
-            "Unknown model type: $model_str. Must be one of: gamma_per_instruction, gamma_per_addressing_mode, gamma_per_addressing_mode_constant, mean_per_instruction, mean_per_addressing_mode, mean_per_addressing_mode_constant, mean_per_instruction_with_mem_access, mean_per_addressing_mode_with_mem_access, mean_per_addressing_mode_constant_with_mem_access, mean_per_pair_addressing_mode_constant",
-        )
+        available_models = join(sort(collect(keys(MODEL_REGISTRY))), ", ")
+        error("Unknown model type: $model_str. Must be one of: $available_models")
     end
 end
 
