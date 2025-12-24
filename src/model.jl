@@ -84,17 +84,43 @@ include("models/gamma.jl")
 include("models/mean.jl")
 include("models/mean_pair.jl")
 
-# Include specific model constructors
-include("models/gamma_per_instruction.jl")
-include("models/gamma_per_addressing_mode.jl")
-include("models/gamma_per_addressing_mode_constant.jl")
-include("models/mean_per_instruction.jl")
-include("models/mean_per_addressing_mode.jl")
-include("models/mean_per_addressing_mode_constant.jl")
-include("models/mean_per_instruction_with_mem_access.jl")
-include("models/mean_per_addressing_mode_with_mem_access.jl")
-include("models/mean_per_addressing_mode_constant_with_mem_access.jl")
-include("models/mean_per_pair_addressing_mode_constant.jl")
+# ============================================================================
+# Model Factory Functions
+# ============================================================================
+
+# Gamma models
+"""Gamma distribution model with per-instruction (opcode) granularity."""
+GammaPerInstruction() = GammaModel(PerOpcode, "gamma_per_instruction")
+
+"""Gamma distribution model with per-addressing-mode granularity."""
+GammaPerAddressingMode() = GammaModel(PerAddressingMode, "gamma_per_addressing_mode")
+
+"""Gamma distribution model with per-addressing-mode-constant granularity."""
+GammaPerAddressingModeConstant() = GammaModel(PerAddressingModeConstant, "gamma_per_addressing_mode_constant")
+
+# Mean models (single instruction)
+"""Mean-based model with per-instruction (opcode) granularity."""
+MeanPerInstruction() = MeanModel(PerOpcode, "mean_per_instruction")
+
+"""Mean-based model with per-addressing-mode granularity."""
+MeanPerAddressingMode() = MeanModel(PerAddressingMode, "mean_per_addressing_mode")
+
+"""Mean-based model with per-addressing-mode-constant granularity."""
+MeanPerAddressingModeConstant() = MeanModel(PerAddressingModeConstant, "mean_per_addressing_mode_constant")
+
+# Mean models with memory access tracking
+"""Mean-based model with per-instruction granularity and memory access event tracking."""
+MeanPerInstructionWithMemAccess() = MeanModel(PerOpcodeWithMemAccess, "mean_per_instruction_with_mem_access")
+
+"""Mean-based model with per-addressing-mode granularity and memory access event tracking."""
+MeanPerAddressingModeWithMemAccess() = MeanModel(PerAddressingModeWithMemAccess, "mean_per_addressing_mode_with_mem_access")
+
+"""Mean-based model with per-addressing-mode-constant granularity and memory access event tracking."""
+MeanPerAddressingModeConstantWithMemAccess() = MeanModel(PerAddressingModeConstantWithMemAccess, "mean_per_addressing_mode_constant_with_mem_access")
+
+# Mean pair model
+"""Mean-based model for consecutive instruction pairs with per-addressing-mode-constant granularity."""
+MeanPerPairAddressingModeConstant() = MeanPairModel(PerAddressingModeConstant, "mean_per_pair_addressing_mode_constant")
 
 # Model registry: maps model name strings to constructor functions
 const MODEL_REGISTRY = Dict{String,Function}(
