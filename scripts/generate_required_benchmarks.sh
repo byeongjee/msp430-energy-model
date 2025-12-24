@@ -126,9 +126,10 @@ python "$REPO_ROOT/scripts/list_benchmarks.py" --granularity "$GRANULARITY" \
        | ($list | map(.name)) as $available_instructions
        | ((.hardcoded_benchmarks // []) | map(select(.name as $n | $wanted | index($n)))) as $filtered_hardcoded
        | ((.hardcoded_benchmarks // []) | map(.name)) as $available_hardcoded
+       | (.model_benchmarks // []) as $model_benchmarks
        | ($available_instructions + $available_hardcoded) as $all_available
        | ($wanted - $all_available) as $truly_missing
-       | {($payload_name): $filtered_instructions, hardcoded_benchmarks: $filtered_hardcoded, missing: $truly_missing}' \
+       | {($payload_name): $filtered_instructions, hardcoded_benchmarks: $filtered_hardcoded, model_benchmarks: $model_benchmarks, missing: $truly_missing}' \
   > "$FILTERED_JSON"
 
 MISSING_COUNT=$(jq '.missing | length' "$FILTERED_JSON")

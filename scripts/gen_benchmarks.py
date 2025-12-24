@@ -359,13 +359,14 @@ def generate_pair_benchmarks(
 
 def load_payload(
     input_path: Path, granularity: str
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Load instructions or pairs from JSON input.
 
     Returns:
-        Tuple of (payload, hardcoded_benchmarks) where:
+        Tuple of (payload, hardcoded_benchmarks, model_benchmarks) where:
         - payload: List of instruction/pair specifications to generate
-        - hardcoded_benchmarks: List of hardcoded benchmark entries that are needed
+        - hardcoded_benchmarks: List of hardcoded benchmark entries (instruction-specific)
+        - model_benchmarks: List of model benchmark entries (always included)
     """
     if input_path:
         with open(input_path, "r") as f:
@@ -378,19 +379,21 @@ def load_payload(
     is_pair = normalize_granularity(granularity).endswith("pair")
     key = "pairs" if is_pair else "instructions"
     hardcoded: List[Dict[str, Any]] = []
+    model_benchmarks: List[Dict[str, Any]] = []
 
     if isinstance(data, dict):
         if key not in data:
             raise ValueError(f"Invalid JSON format. Expected object with '{key}' array")
         payload = data[key]
         hardcoded = data.get("hardcoded_benchmarks", [])
+        model_benchmarks = data.get("model_benchmarks", [])
     elif isinstance(data, list):
         payload = data
     else:
         raise ValueError("Invalid JSON format. Expected object or array")
 
     print(f"Loaded {len(payload)} {key} from {source}", file=sys.stderr)
-    return payload, hardcoded
+    return payload, hardcoded, model_benchmarks
 
 
 def get_all_instruction_specs(
@@ -454,7 +457,7 @@ def main():
     args = parser.parse_args()
 
     normalized = normalize_granularity(args.granularity)
-    payload, requested_hardcoded = load_payload(args.input, normalized)
+    payload, requested_hardcoded, model_benchmarks = load_payload(args.input, normalized)
 
     def is_safe(spec):
         outer_ok = spec.opcode not in UNSAFE_OPCODES
@@ -568,13 +571,17 @@ def main():
                     file=sys.stderr,
                 )
             else:
-                # Other hardcoded benchmarks (e.g., fram_cache) can be copied directly
-                dst_c_file = args.output_dir / f"{name}.c"
-                shutil.copy(src_c_file, dst_c_file)
-                print(
-                    f"✓ Copied hardcoded benchmark: {dst_c_file}",
-                    file=sys.stderr,
-                )
+                raise ValueError(f"Unknown hardcoded benchmark: {name}")
+
+    # Copy model benchmarks (always included for certain granularities)
+    if model_benchmarks:
+        script_dir = Path(__file__).parent.parent  # Go up to repo root
+
+        for entry in model_benchmarks:
+            src_path = script_dir / entry["path"]
+            dst_file = args.output_dir / src_path.name
+            shutil.copy(src_path, dst_file)
+            print(f"✓ Copied model benchmark: {dst_file}", file=sys.stderr)
 
 
 if __name__ == "__main__":

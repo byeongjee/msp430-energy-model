@@ -142,16 +142,17 @@ class Granularity(Enum):
 # ============================================================================
 # Hardcoded Benchmarks Registry
 # ============================================================================
-# Special benchmarks that cannot be generated programmatically and require
-# handwritten C code. These are handled separately from InstructionSpec.
+# Instruction-specific benchmarks that cannot be generated programmatically
+# and require handwritten C code. These correspond to specific instruction keys
+# and are filtered based on whether the instruction is used in the target program.
 #
-# Each entry maps a benchmark name to:
+# Each entry maps an instruction key to:
 #   - path: Path to the hardcoded C source file
 #   - granularities: List of granularities that should include this benchmark
 #   - description: Human-readable description
 #
 # The generation pipeline will copy these files to the output directory
-# when generating for matching granularities.
+# when the instruction key is required.
 
 HARDCODED_BENCHMARKS = {
     "br_immediate": {
@@ -164,14 +165,31 @@ HARDCODED_BENCHMARKS = {
         ],
         "description": "Branch with immediate addressing (requires two-pass compilation)",
     },
-    "fram_cache": {
-        "path": "scripts/hardcoded_benchmarks/fram_cache_benchmark.c",
-        "granularities": [
-            "addressing_mode_with_mem_access",
-            "addressing_mode_constant_with_mem_access",
-        ],
-        "description": "FRAM cache hit/miss benchmarks for memory access tracking models",
-    },
+}
+
+
+# ============================================================================
+# Model Benchmarks Registry
+# ============================================================================
+# Benchmarks that are always included for certain model types (granularities).
+# Unlike HARDCODED_BENCHMARKS, these are not tied to specific instruction keys
+# but are needed to train model-specific parameters (e.g., memory access energy).
+#
+# Keyed by granularity, each entry is a list of benchmarks to include.
+
+MODEL_BENCHMARKS: Dict[str, List[Dict[str, str]]] = {
+    "addressing_mode_with_mem_access": [
+        {
+            "path": "scripts/hardcoded_benchmarks/fram_cache_benchmark.c",
+            "description": "FRAM cache hit/miss benchmarks for memory access energy",
+        },
+    ],
+    "addressing_mode_constant_with_mem_access": [
+        {
+            "path": "scripts/hardcoded_benchmarks/fram_cache_benchmark.c",
+            "description": "FRAM cache hit/miss benchmarks for memory access energy",
+        },
+    ],
 }
 
 
@@ -194,6 +212,24 @@ def get_hardcoded_benchmarks(
     }
 
 
+def get_model_benchmarks(
+    granularity: Union[str, Granularity],
+) -> List[Dict[str, str]]:
+    """Return model-specific benchmarks for the given granularity.
+
+    These benchmarks are always included when using the specified granularity,
+    regardless of which instructions are used in the target program.
+
+    Args:
+        granularity: The benchmark granularity (Granularity enum or string)
+
+    Returns:
+        List of benchmark info dicts with 'path' and 'description' keys
+    """
+    g = normalize_granularity(granularity)
+    return MODEL_BENCHMARKS.get(g, [])
+
+
 # ============================================================================
 # Instruction Specification
 # ============================================================================
@@ -210,8 +246,8 @@ class InstructionSpec:
 
     This class represents instruction-level benchmarks that can be generated
     programmatically from a template. For special benchmarks that require
-    handwritten code (like br_immediate or fram_cache), use the
-    HARDCODED_BENCHMARKS registry instead.
+    handwritten code (like br_immediate), use the HARDCODED_BENCHMARKS registry.
+    For model-specific benchmarks, use the MODEL_BENCHMARKS registry.
     """
 
     opcode: str

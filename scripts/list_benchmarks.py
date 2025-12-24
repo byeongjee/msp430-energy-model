@@ -25,6 +25,7 @@ from benchmark.common import (
     InstructionSpec,
     get_instruction_specs,
     get_hardcoded_benchmarks,
+    get_model_benchmarks,
     normalize_granularity,
     UNSAFE_OPCODES,
 )
@@ -43,7 +44,7 @@ def list_instruction_keys(specs: List[InstructionSpec], granularity: str) -> dic
 
         instructions.append(entry)
 
-    # Get hardcoded benchmarks for this granularity
+    # Get hardcoded benchmarks for this granularity (instruction-specific)
     hardcoded = get_hardcoded_benchmarks(granularity)
     hardcoded_list = [
         {
@@ -55,6 +56,9 @@ def list_instruction_keys(specs: List[InstructionSpec], granularity: str) -> dic
         for name, info in hardcoded.items()
     ]
 
+    # Get model benchmarks for this granularity (always included)
+    model_benchmarks = get_model_benchmarks(granularity)
+
     result = {
         "num_keys": len(specs),
         "instructions": instructions,
@@ -63,6 +67,10 @@ def list_instruction_keys(specs: List[InstructionSpec], granularity: str) -> dic
     if hardcoded_list:
         result["num_hardcoded"] = len(hardcoded_list)
         result["hardcoded_benchmarks"] = hardcoded_list
+
+    if model_benchmarks:
+        result["num_model_benchmarks"] = len(model_benchmarks)
+        result["model_benchmarks"] = model_benchmarks
 
     return result
 
