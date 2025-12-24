@@ -14,7 +14,7 @@ function run_br_immediate_tests()
             # Generate br_immediate_benchmark.S using two-pass compilation
             @info "Generating br_immediate_benchmark.S (two-pass compilation)..."
             run(
-                `bash -c "./scripts/compile_hardcoded_benchmarks.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c"`,
+                `bash -c "./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c"`,
             )
 
             # Now compile and disassemble the .S file
