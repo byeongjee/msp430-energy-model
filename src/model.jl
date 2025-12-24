@@ -128,35 +128,51 @@ function create_model(model_str::String)::AbstractModel
 end
 
 """
-Create training configuration based on model type
+Create training configuration for Gamma models.
 """
 function create_training_config(
-    model::AbstractModel, n_samples::Int, inference_algorithm::String
+    model::GammaModel, n_samples::Int, inference_algorithm::String
 )::TrainingConfig
-    if isa(model, GammaModel)
-        return GammaTrainingConfig(n_samples, inference_algorithm)
-    elseif isa(model, MeanModel)
-        return MeanTrainingConfig(inference_algorithm)
-    elseif isa(model, MeanPairModel)
-        return MeanTrainingConfig(inference_algorithm)
-    else
-        error("Unknown model type: $(typeof(model))")
-    end
+    return GammaTrainingConfig(n_samples, inference_algorithm)
 end
 
 """
-Create estimation configuration based on model type
+Create training configuration for Mean models.
 """
-function create_estimation_config(model::AbstractModel, n_samples::Int)::EstimationConfig
-    if isa(model, GammaModel)
-        return GammaEstimationConfig(n_samples)
-    elseif isa(model, MeanModel)
-        return MeanEstimationConfig()
-    elseif isa(model, MeanPairModel)
-        return MeanEstimationConfig()
-    else
-        error("Unknown model type: $(typeof(model))")
-    end
+function create_training_config(
+    model::MeanModel, n_samples::Int, inference_algorithm::String
+)::TrainingConfig
+    return MeanTrainingConfig(inference_algorithm)
+end
+
+"""
+Create training configuration for MeanPair models.
+"""
+function create_training_config(
+    model::MeanPairModel, n_samples::Int, inference_algorithm::String
+)::TrainingConfig
+    return MeanTrainingConfig(inference_algorithm)
+end
+
+"""
+Create estimation configuration for Gamma models.
+"""
+function create_estimation_config(model::GammaModel, n_samples::Int)::EstimationConfig
+    return GammaEstimationConfig(n_samples)
+end
+
+"""
+Create estimation configuration for Mean models.
+"""
+function create_estimation_config(model::MeanModel, n_samples::Int)::EstimationConfig
+    return MeanEstimationConfig()
+end
+
+"""
+Create estimation configuration for MeanPair models.
+"""
+function create_estimation_config(model::MeanPairModel, n_samples::Int)::EstimationConfig
+    return MeanEstimationConfig()
 end
 
 end # module Model
