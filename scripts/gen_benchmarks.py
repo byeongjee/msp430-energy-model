@@ -132,7 +132,10 @@ INLINE void bench_%(name)s(void) {
       : 
       : "r10", "r11", "cc", "memory"));
 }
-""" % {"name": name, "cnt": word_count}
+""" % {
+        "name": name,
+        "cnt": word_count,
+    }
     return {
         "name": name,
         "code": code,
@@ -235,9 +238,7 @@ def generate_instruction_benchmarks(
             for s in specs:
                 counts.add(s.constant if s.constant else 1)
             for count in sorted(counts):
-                benchmarks.append(
-                    generate_pushm_and_popm_benchmark(source_keys, count)
-                )
+                benchmarks.append(generate_pushm_and_popm_benchmark(source_keys, count))
         elif group == COMPOSITE_PUSH_AND_RETI:
             benchmarks.append(generate_push_and_reti_benchmark(source_keys))
         else:
@@ -478,7 +479,10 @@ def main():
     # Get requested hardcoded benchmarks (filtered by what's actually needed)
     # requested_hardcoded contains entries like {"name": "br_immediate", "path": "...", ...}
     if requested_hardcoded:
-        print(f"Found {len(requested_hardcoded)} requested hardcoded benchmarks", file=sys.stderr)
+        print(
+            f"Found {len(requested_hardcoded)} requested hardcoded benchmarks",
+            file=sys.stderr,
+        )
 
     # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -521,8 +525,12 @@ def main():
 
             if name == "br_immediate":
                 # br_immediate requires two-pass compilation to resolve addresses
-                compile_script = script_dir / "scripts" / "compile_br_immediate_benchmark.sh"
-                print(f"Generating {name}.S via two-pass compilation...", file=sys.stderr)
+                compile_script = (
+                    script_dir / "scripts" / "compile_br_immediate_benchmark.sh"
+                )
+                print(
+                    f"Generating {name}.S via two-pass compilation...", file=sys.stderr
+                )
                 try:
                     subprocess.run(
                         [str(compile_script), "--file", str(src_c_file)],
@@ -547,9 +555,12 @@ def main():
 
                 if not src_s_file.exists():
                     print(
-                        f"ERROR: Expected .S file not found: {src_s_file}", file=sys.stderr
+                        f"ERROR: Expected .S file not found: {src_s_file}",
+                        file=sys.stderr,
                     )
-                    raise FileNotFoundError(f"Generated .S file not found: {src_s_file}")
+                    raise FileNotFoundError(
+                        f"Generated .S file not found: {src_s_file}"
+                    )
 
                 shutil.copy(src_s_file, dst_s_file)
                 print(
@@ -557,7 +568,7 @@ def main():
                     file=sys.stderr,
                 )
             else:
-                # Other hardcoded benchmarks (e.g., fram_cache_read) can be copied directly
+                # Other hardcoded benchmarks (e.g., fram_cache) can be copied directly
                 dst_c_file = args.output_dir / f"{name}.c"
                 shutil.copy(src_c_file, dst_c_file)
                 print(

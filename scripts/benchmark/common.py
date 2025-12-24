@@ -45,14 +45,35 @@ JUMP_OPCODES = ["jmp", "jge", "jl", "jnz", "jz", "jnc", "jc", "jn"]
 
 # Dual-operand instructions: opcode src, dst
 DUAL_OPERAND_OPCODES = [
-    "add", "addc", "mov", "mova", "cmp", "sub", "subc",
-    "and", "or", "xor", "bit", "bic", "bis",
+    "add",
+    "addc",
+    "mov",
+    "mova",
+    "cmp",
+    "sub",
+    "subc",
+    "and",
+    "or",
+    "xor",
+    "bit",
+    "bic",
+    "bis",
 ]
 
 # Single-operand instructions: opcode dst
 SINGLE_OPERAND_OPCODES = [
-    "inc", "incd", "dec", "decd", "clr", "inv",
-    "rla", "rlc", "rrc", "rrax", "rrux", "sxt",
+    "inc",
+    "incd",
+    "dec",
+    "decd",
+    "clr",
+    "inv",
+    "rla",
+    "rlc",
+    "rrc",
+    "rrax",
+    "rrux",
+    "sxt",
 ]
 
 # Instructions with immediate constant operand: opcode #const, reg
@@ -78,7 +99,9 @@ class Granularity(Enum):
     ADDRESSING_MODE = "addressing_mode"
     ADDRESSING_MODE_CONSTANT = "addressing_mode_constant"
     ADDRESSING_MODE_WITH_MEM_ACCESS = "addressing_mode_with_mem_access"
-    ADDRESSING_MODE_CONSTANT_WITH_MEM_ACCESS = "addressing_mode_constant_with_mem_access"
+    ADDRESSING_MODE_CONSTANT_WITH_MEM_ACCESS = (
+        "addressing_mode_constant_with_mem_access"
+    )
     OPCODE_PAIR = "opcode_pair"
     ADDRESSING_MODE_PAIR = "addressing_mode_pair"
     ADDRESSING_MODE_CONSTANT_PAIR = "addressing_mode_constant_pair"
@@ -141,7 +164,7 @@ HARDCODED_BENCHMARKS = {
         ],
         "description": "Branch with immediate addressing (requires two-pass compilation)",
     },
-    "fram_cache_read": {
+    "fram_cache": {
         "path": "scripts/hardcoded_benchmarks/fram_cache_benchmark.c",
         "granularities": [
             "addressing_mode_with_mem_access",
@@ -152,7 +175,9 @@ HARDCODED_BENCHMARKS = {
 }
 
 
-def get_hardcoded_benchmarks(granularity: Union[str, Granularity]) -> Dict[str, Dict[str, Any]]:
+def get_hardcoded_benchmarks(
+    granularity: Union[str, Granularity],
+) -> Dict[str, Dict[str, Any]]:
     """Return hardcoded benchmarks that apply to the given granularity.
 
     Args:
@@ -404,7 +429,15 @@ def _build_addressing_mode_specs() -> Dict[str, AddressingModeSpec]:
 ADDRESSING_MODE_SPECS = _build_addressing_mode_specs()
 
 # Source and destination mode lists
-SOURCE_MODES = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "autoincrement"]
+SOURCE_MODES = [
+    "register",
+    "immediate",
+    "indexed",
+    "symbolic",
+    "absolute",
+    "indirect",
+    "autoincrement",
+]
 DESTINATION_MODES = ["register", "indexed", "symbolic", "absolute"]
 
 
@@ -457,7 +490,9 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
         elif src_mode == "autoincrement":
             src_asm = "@%[psrc]+"
             variables.append({"name": "psrc", "type": "uint16_t*", "value": "BASE_PTR"})
-            variables.append({"name": "psrc_reset", "type": "uint16_t*", "value": "BASE_PTR"})
+            variables.append(
+                {"name": "psrc_reset", "type": "uint16_t*", "value": "BASE_PTR"}
+            )
             constraints["outputs"] = '[psrc] "+r"(psrc)'
             constraints["inputs"] = '[psrc_reset] "r"(psrc_reset)'
             constraints["clobbers"] = '"cc", "memory"'
@@ -716,7 +751,9 @@ def create_constant_imm_to_reg_specs(
                 constraints={
                     "outputs": '[dst] "+r"(dst)',
                     "inputs": "",
-                    "clobbers": '"cc", "memory"' if opcode in {"pushm", "popm"} else '"cc"',
+                    "clobbers": (
+                        '"cc", "memory"' if opcode in {"pushm", "popm"} else '"cc"'
+                    ),
                 },
                 composite_group=composite_group,
             )
@@ -997,7 +1034,9 @@ def normalize_granularity(granularity: Union[str, Granularity]) -> str:
     return Granularity.from_string(granularity).value
 
 
-def get_instruction_specs(granularity: Union[str, Granularity]) -> List[InstructionSpec]:
+def get_instruction_specs(
+    granularity: Union[str, Granularity],
+) -> List[InstructionSpec]:
     """Return instruction specs for the requested benchmark granularity.
 
     This returns only programmatically-generated instruction benchmarks.
