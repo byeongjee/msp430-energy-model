@@ -317,7 +317,7 @@ function interpret_program(
         func_addr = get(func_addrs, func_name, nothing)
         if !isnothing(func_addr)
             skip_func_addrs[func_name] = func_addr
-            @info "$func_name found in assembly file" address =
+            @debug "$func_name found in assembly file" address =
                 "0x" * string(func_addr; base=16, pad=4)
         end
     end
@@ -491,9 +491,9 @@ function interpret_program(
     @info "Execution completed" time = execution_time steps = step_count
 
     # Show final state
-    @info "Final machine state" pc = string(state.registers[:PC]; base=16, pad=4)
-    @info format_registers(state)
-    @info "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
+    @debug "Final machine state" pc = string(state.registers[:PC]; base=16, pad=4)
+    @debug format_registers(state)
+    @debug "Flags" V = state.flags[:V] N = state.flags[:N] Z = state.flags[:Z] C = state.flags[:C]
 
     @info "Execution traces collected" count = length(execution_traces)
 
