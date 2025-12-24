@@ -136,8 +136,10 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c|file.S> [MAX_STEPS
 			opcode) MODEL_NAME="mean_per_instruction";; \
 			addressing_mode) MODEL_NAME="mean_per_addressing_mode";; \
 			addressing_mode_constant) MODEL_NAME="mean_per_addressing_mode_constant";; \
+			addressing_mode_with_mem_access) MODEL_NAME="mean_per_addressing_mode_with_mem_access";; \
+			addressing_mode_constant_with_mem_access) MODEL_NAME="mean_per_addressing_mode_constant_with_mem_access";; \
 			opcode_pair|addressing_mode_pair|addressing_mode_constant_pair) MODEL_NAME="mean_per_pair_addressing_mode_constant";; \
-			*) echo "Unknown GRANULARITY: $(GRANULARITY). Expected: opcode, addressing_mode, addressing_mode_constant, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair."; exit 1;; \
+			*) echo "Unknown GRANULARITY: $(GRANULARITY). Expected: opcode, addressing_mode, addressing_mode_constant, addressing_mode_with_mem_access, addressing_mode_constant_with_mem_access, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair."; exit 1;; \
 		esac; \
 		MODEL_FLAG="--model $$MODEL_NAME"; \
 	elif [ -n "$(MODEL)" ]; then \

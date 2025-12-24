@@ -77,10 +77,12 @@ case "$GRANULARITY" in
     opcode) MODEL="mean_per_instruction" ;;
     addressing_mode) MODEL="mean_per_addressing_mode" ;;
     addressing_mode_constant) MODEL="mean_per_addressing_mode_constant" ;;
+    addressing_mode_with_mem_access) MODEL="mean_per_addressing_mode_with_mem_access" ;;
+    addressing_mode_constant_with_mem_access) MODEL="mean_per_addressing_mode_constant_with_mem_access" ;;
     opcode_pair|addressing_mode_pair|addressing_mode_constant_pair) MODEL="mean_per_pair_addressing_mode_constant" ;;
     *)
         echo "Unknown granularity: $GRANULARITY" >&2
-        echo "Expected one of: opcode, addressing_mode, addressing_mode_constant, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair" >&2
+        echo "Expected one of: opcode, addressing_mode, addressing_mode_constant, addressing_mode_with_mem_access, addressing_mode_constant_with_mem_access, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair" >&2
         exit 1 ;;
 esac
 
@@ -120,10 +122,13 @@ python "$REPO_ROOT/scripts/list_benchmarks.py" --granularity "$GRANULARITY" \
        | ($payload_key // "instructions") as $payload_name
        | .[$payload_name] as $all
        | ($all // []) as $list
-       | ($list | map(select(.name as $n | $wanted | index($n)))) as $filtered
-       | ($list | map(.name)) as $available
-       | ($wanted - $available) as $missing
-       | {($payload_name): $filtered, missing: $missing}' \
+       | ($list | map(select(.name as $n | $wanted | index($n)))) as $filtered_instructions
+       | ($list | map(.name)) as $available_instructions
+       | ((.hardcoded_benchmarks // []) | map(select(.name as $n | $wanted | index($n)))) as $filtered_hardcoded
+       | ((.hardcoded_benchmarks // []) | map(.name)) as $available_hardcoded
+       | ($available_instructions + $available_hardcoded) as $all_available
+       | ($wanted - $all_available) as $truly_missing
+       | {($payload_name): $filtered_instructions, hardcoded_benchmarks: $filtered_hardcoded, missing: $truly_missing}' \
   > "$FILTERED_JSON"
 
 MISSING_COUNT=$(jq '.missing | length' "$FILTERED_JSON")

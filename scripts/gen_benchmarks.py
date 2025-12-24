@@ -24,7 +24,7 @@ import sys
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from jinja2 import Template
 
 from benchmark.common import (
@@ -356,8 +356,16 @@ def generate_pair_benchmarks(
 # ============================================================================
 
 
-def load_payload(input_path: Path, granularity: str) -> List[Dict[str, Any]]:
-    """Load instructions or pairs from JSON input"""
+def load_payload(
+    input_path: Path, granularity: str
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Load instructions or pairs from JSON input.
+
+    Returns:
+        Tuple of (payload, hardcoded_benchmarks) where:
+        - payload: List of instruction/pair specifications to generate
+        - hardcoded_benchmarks: List of hardcoded benchmark entries that are needed
+    """
     if input_path:
         with open(input_path, "r") as f:
             data = json.load(f)
@@ -368,18 +376,20 @@ def load_payload(input_path: Path, granularity: str) -> List[Dict[str, Any]]:
 
     is_pair = normalize_granularity(granularity).endswith("pair")
     key = "pairs" if is_pair else "instructions"
+    hardcoded: List[Dict[str, Any]] = []
 
     if isinstance(data, dict):
         if key not in data:
             raise ValueError(f"Invalid JSON format. Expected object with '{key}' array")
         payload = data[key]
+        hardcoded = data.get("hardcoded_benchmarks", [])
     elif isinstance(data, list):
         payload = data
     else:
         raise ValueError("Invalid JSON format. Expected object or array")
 
     print(f"Loaded {len(payload)} {key} from {source}", file=sys.stderr)
-    return payload
+    return payload, hardcoded
 
 
 def get_all_instruction_specs(
@@ -443,7 +453,7 @@ def main():
     args = parser.parse_args()
 
     normalized = normalize_granularity(args.granularity)
-    payload = load_payload(args.input, normalized)
+    payload, requested_hardcoded = load_payload(args.input, normalized)
 
     def is_safe(spec):
         outer_ok = spec.opcode not in UNSAFE_OPCODES
@@ -465,10 +475,10 @@ def main():
 
     print(f"Generated {len(benchmarks)} benchmarks", file=sys.stderr)
 
-    # Get hardcoded benchmarks for this granularity from the registry
-    hardcoded = get_hardcoded_benchmarks(normalized)
-    if hardcoded:
-        print(f"Found {len(hardcoded)} hardcoded benchmarks for granularity", file=sys.stderr)
+    # Get requested hardcoded benchmarks (filtered by what's actually needed)
+    # requested_hardcoded contains entries like {"name": "br_immediate", "path": "...", ...}
+    if requested_hardcoded:
+        print(f"Found {len(requested_hardcoded)} requested hardcoded benchmarks", file=sys.stderr)
 
     # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -500,50 +510,60 @@ def main():
         generate_benchmark_file(benchmarks, output_file)
         print(f"✓ Generated {output_file}", file=sys.stderr)
 
-    # Generate and copy hardcoded benchmark files from registry
-    if hardcoded:
+    # Generate and copy hardcoded benchmark files (only those that are requested)
+    if requested_hardcoded:
         script_dir = Path(__file__).parent.parent  # Go up to repo root
-        compile_script = script_dir / "scripts" / "compile_hardcoded_benchmarks.sh"
 
-        for name, info in hardcoded.items():
-            hardcoded_path = info["path"]
+        for entry in requested_hardcoded:
+            name = entry["name"]
+            hardcoded_path = entry["path"]
             src_c_file = script_dir / hardcoded_path
 
-            # Run two-pass compilation to generate .S file
-            print(f"Generating {name}.S via two-pass compilation...", file=sys.stderr)
-            try:
-                subprocess.run(
-                    [str(compile_script), "--file", str(src_c_file)],
-                    check=True,
-                    cwd=str(script_dir),
-                    capture_output=True,
-                    text=True,
-                )
-            except subprocess.CalledProcessError as e:
+            if name == "br_immediate":
+                # br_immediate requires two-pass compilation to resolve addresses
+                compile_script = script_dir / "scripts" / "compile_br_immediate_benchmark.sh"
+                print(f"Generating {name}.S via two-pass compilation...", file=sys.stderr)
+                try:
+                    subprocess.run(
+                        [str(compile_script), "--file", str(src_c_file)],
+                        check=True,
+                        cwd=str(script_dir),
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    print(
+                        f"ERROR: Failed to compile hardcoded benchmark {name}",
+                        file=sys.stderr,
+                    )
+                    print(f"STDOUT: {e.stdout}", file=sys.stderr)
+                    print(f"STDERR: {e.stderr}", file=sys.stderr)
+                    raise
+
+                # Copy the generated .S file from build/asm/ to output directory
+                basename = src_c_file.stem  # e.g., "br_immediate_benchmark"
+                src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
+                dst_s_file = args.output_dir / f"{name}.S"
+
+                if not src_s_file.exists():
+                    print(
+                        f"ERROR: Expected .S file not found: {src_s_file}", file=sys.stderr
+                    )
+                    raise FileNotFoundError(f"Generated .S file not found: {src_s_file}")
+
+                shutil.copy(src_s_file, dst_s_file)
                 print(
-                    f"ERROR: Failed to compile hardcoded benchmark {name}",
+                    f"✓ Generated and copied hardcoded benchmark: {dst_s_file}",
                     file=sys.stderr,
                 )
-                print(f"STDOUT: {e.stdout}", file=sys.stderr)
-                print(f"STDERR: {e.stderr}", file=sys.stderr)
-                raise
-
-            # Copy the generated .S file from build/asm/ to output directory
-            basename = src_c_file.stem  # e.g., "br_immediate_benchmark"
-            src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
-            dst_s_file = args.output_dir / f"{name}.S"
-
-            if not src_s_file.exists():
+            else:
+                # Other hardcoded benchmarks (e.g., fram_cache_read) can be copied directly
+                dst_c_file = args.output_dir / f"{name}.c"
+                shutil.copy(src_c_file, dst_c_file)
                 print(
-                    f"ERROR: Expected .S file not found: {src_s_file}", file=sys.stderr
+                    f"✓ Copied hardcoded benchmark: {dst_c_file}",
+                    file=sys.stderr,
                 )
-                raise FileNotFoundError(f"Generated .S file not found: {src_s_file}")
-
-            shutil.copy(src_s_file, dst_s_file)
-            print(
-                f"✓ Generated and copied hardcoded benchmark: {dst_s_file}",
-                file=sys.stderr,
-            )
 
 
 if __name__ == "__main__":
