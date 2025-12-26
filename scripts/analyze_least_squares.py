@@ -11,32 +11,37 @@ import sys
 import numpy as np
 from collections import defaultdict
 
+
 def load_debug_data(filepath):
     """Load the debug dump JSON file."""
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         return json.load(f)
+
 
 def reconstruct_matrix_A(data):
     """Reconstruct the full A matrix from sparse representation."""
-    shape = data['matrix_A_shape']
+    shape = data["matrix_A_shape"]
     A = np.zeros((int(shape[0]), int(shape[1])))
-    for entry in data['matrix_A_sparse']:
+    for entry in data["matrix_A_sparse"]:
         row, col, val = entry
-        A[int(row)-1, int(col)-1] = val  # Convert from 1-indexed to 0-indexed
+        A[int(row) - 1, int(col) - 1] = val  # Convert from 1-indexed to 0-indexed
     return A
+
 
 def analyze_rank_deficiency(A, key_labels, singular_values):
     """Analyze which columns contribute to rank deficiency."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("RANK DEFICIENCY ANALYSIS")
-    print("="*60)
+    print("=" * 60)
 
     n_samples, n_keys = A.shape
     rank = np.linalg.matrix_rank(A)
 
     print(f"Matrix shape: {n_samples} samples × {n_keys} keys")
     print(f"Matrix rank: {rank}")
-    print(f"Rank deficiency: {n_keys - rank} (need {n_keys - rank} more independent samples)")
+    print(
+        f"Rank deficiency: {n_keys - rank} (need {n_keys - rank} more independent samples)"
+    )
 
     # SVD analysis
     U, S, Vt = np.linalg.svd(A, full_matrices=False)
@@ -63,11 +68,12 @@ def analyze_rank_deficiency(A, key_labels, singular_values):
                 for col in significant:
                     print(f"    - {key_labels[col]} (coef: {v[col]:.4f})")
 
+
 def analyze_column_coverage(A, key_labels, column_coverage):
     """Analyze how well each key is covered by training data."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("COLUMN COVERAGE ANALYSIS")
-    print("="*60)
+    print("=" * 60)
 
     # Sort by coverage
     coverage_with_labels = list(zip(key_labels, column_coverage))
@@ -79,23 +85,28 @@ def analyze_column_coverage(A, key_labels, column_coverage):
 
     # Find keys that appear in very few samples
     low_coverage_threshold = 5
-    low_coverage_keys = [(l, c) for l, c in coverage_with_labels if c <= low_coverage_threshold]
+    low_coverage_keys = [
+        (l, c) for l, c in coverage_with_labels if c <= low_coverage_threshold
+    ]
 
     if low_coverage_keys:
-        print(f"\n⚠️  {len(low_coverage_keys)} keys have coverage ≤ {low_coverage_threshold}:")
+        print(
+            f"\n⚠️  {len(low_coverage_keys)} keys have coverage ≤ {low_coverage_threshold}:"
+        )
         for label, cov in low_coverage_keys:
             print(f"    {label}: {cov}")
 
+
 def analyze_residuals(data, key_labels):
     """Analyze training residuals to find poorly-fit samples."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("RESIDUAL ANALYSIS")
-    print("="*60)
+    print("=" * 60)
 
-    residuals = np.array(data['residuals'])
-    relative_errors = np.array(data['relative_errors_percent'])
-    measured_B = np.array(data['measured_B'])
-    predicted_B = np.array(data['predicted_B'])
+    residuals = np.array(data["residuals"])
+    relative_errors = np.array(data["relative_errors_percent"])
+    measured_B = np.array(data["measured_B"])
+    predicted_B = np.array(data["predicted_B"])
 
     print(f"\nResidual statistics:")
     print(f"  Mean residual: {np.mean(residuals):.2f} nJ")
@@ -110,10 +121,14 @@ def analyze_residuals(data, key_labels):
     worst_indices = np.argsort(np.abs(residuals))[-10:][::-1]
 
     print(f"\nTop 10 samples with largest residuals:")
-    print(f"  {'Sample':<8} {'Measured':>12} {'Predicted':>12} {'Residual':>12} {'Error%':>10}")
+    print(
+        f"  {'Sample':<8} {'Measured':>12} {'Predicted':>12} {'Residual':>12} {'Error%':>10}"
+    )
     print(f"  {'-'*8} {'-'*12} {'-'*12} {'-'*12} {'-'*10}")
     for idx in worst_indices:
-        print(f"  {idx:<8} {measured_B[idx]:>12.2f} {predicted_B[idx]:>12.2f} {residuals[idx]:>12.2f} {relative_errors[idx]:>10.2f}%")
+        print(
+            f"  {idx:<8} {measured_B[idx]:>12.2f} {predicted_B[idx]:>12.2f} {residuals[idx]:>12.2f} {relative_errors[idx]:>10.2f}%"
+        )
 
     # Determine which file each sample came from based on the known structure
     # From output: 200 + 200 + 200 + 100 + 1 + 30 = 731
@@ -124,7 +139,7 @@ def analyze_residuals(data, key_labels):
         (400, 600, "batch_0002"),
         (600, 700, "batch_0003"),
         (700, 701, "br_immediate"),
-        (701, 731, "fram_cache_benchmark"),
+        (701, 731, "cache_benchmark"),
     ]
 
     for idx in range(len(residuals)):
@@ -143,15 +158,18 @@ def analyze_residuals(data, key_labels):
         mean_res = np.mean(res_list)
         std_res = np.std(res_list)
         max_res = np.max(np.abs(res_list))
-        print(f"  {name}: mean={mean_res:.2f}, std={std_res:.2f}, max_abs={max_res:.2f}")
+        print(
+            f"  {name}: mean={mean_res:.2f}, std={std_res:.2f}, max_abs={max_res:.2f}"
+        )
+
 
 def analyze_solution(data, key_labels):
     """Analyze the learned solution parameters."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("SOLUTION ANALYSIS")
-    print("="*60)
+    print("=" * 60)
 
-    x = np.array(data['solution_x'])
+    x = np.array(data["solution_x"])
 
     print(f"\nLearned parameter statistics:")
     print(f"  Min: {np.min(x):.4f} nJ")
@@ -162,7 +180,9 @@ def analyze_solution(data, key_labels):
     # Find negative parameters (shouldn't happen for energy!)
     negative_params = [(key_labels[i], x[i]) for i in range(len(x)) if x[i] < 0]
     if negative_params:
-        print(f"\n⚠️  {len(negative_params)} NEGATIVE parameters found (physically impossible for energy):")
+        print(
+            f"\n⚠️  {len(negative_params)} NEGATIVE parameters found (physically impossible for energy):"
+        )
         for label, val in sorted(negative_params, key=lambda x: x[1]):
             print(f"    {label}: {val:.4f} nJ")
 
@@ -185,11 +205,12 @@ def analyze_solution(data, key_labels):
     for label, val in sorted_params[-10:][::-1]:
         print(f"  {label}: {val:.4f} nJ")
 
+
 def analyze_collinearity(A, key_labels):
     """Find pairs/groups of columns that are highly correlated."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("COLLINEARITY ANALYSIS")
-    print("="*60)
+    print("=" * 60)
 
     n_keys = A.shape[1]
 
@@ -205,16 +226,19 @@ def analyze_collinearity(A, key_labels):
     # Find highly correlated pairs
     high_corr_pairs = []
     for i in range(n_keys):
-        for j in range(i+1, n_keys):
+        for j in range(i + 1, n_keys):
             if abs(corr[i, j]) > 0.9:
                 high_corr_pairs.append((key_labels[i], key_labels[j], corr[i, j]))
 
     if high_corr_pairs:
-        print(f"\n⚠️  {len(high_corr_pairs)} highly correlated column pairs (|r| > 0.9):")
+        print(
+            f"\n⚠️  {len(high_corr_pairs)} highly correlated column pairs (|r| > 0.9):"
+        )
         for k1, k2, r in sorted(high_corr_pairs, key=lambda x: -abs(x[2])):
             print(f"  {k1} ↔ {k2}: r={r:.4f}")
     else:
         print("\nNo highly correlated column pairs found.")
+
 
 def main():
     if len(sys.argv) < 2:
@@ -227,28 +251,29 @@ def main():
     data = load_debug_data(filepath)
 
     # Print metadata
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("METADATA")
-    print("="*60)
-    for k, v in data['metadata'].items():
+    print("=" * 60)
+    for k, v in data["metadata"].items():
         if isinstance(v, float):
             print(f"  {k}: {v:.6g}")
         else:
             print(f"  {k}: {v}")
 
-    key_labels = data['key_labels']
+    key_labels = data["key_labels"]
     A = reconstruct_matrix_A(data)
 
     # Run analyses
-    analyze_rank_deficiency(A, key_labels, data['singular_values'])
-    analyze_column_coverage(A, key_labels, data['column_coverage'])
+    analyze_rank_deficiency(A, key_labels, data["singular_values"])
+    analyze_column_coverage(A, key_labels, data["column_coverage"])
     analyze_collinearity(A, key_labels)
     analyze_solution(data, key_labels)
     analyze_residuals(data, key_labels)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ANALYSIS COMPLETE")
-    print("="*60)
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     main()
