@@ -1,20 +1,22 @@
 /**
- * FRAM Cache Benchmark
+ * Memory Access Benchmark (FRAM Cache + SRAM)
  *
- * This benchmark generates controlled FRAMReadHit and FRAMReadMiss events
- * for training energy models. Code executes from SRAM to eliminate instruction
- * fetch cache events, isolating FRAM data access costs.
+ * This benchmark generates controlled memory access events for training energy
+ * models. Code executes from SRAM to eliminate instruction fetch cache events,
+ * isolating data access costs.
  *
- * MSP430FR5994 Cache Architecture:
+ * MSP430FR5994 Cache Architecture (for FRAM only):
  * - 2-way set-associative cache
  * - 4 lines total (2 sets x 2 ways)
  * - 8 bytes per line
  * - Set index = (addr / 8) % 2
+ * - SRAM has no cache (direct access)
  *
  * Benchmarks:
- * 1. fram_read_hit: Repeated reads to same location (mostly hits)
- * 2. fram_read_miss: Reads to 3 conflicting addresses in same set (all misses)
- * 3. fram_read_mixed: Mix of hits and misses for calibration
+ * 1. fram_read_hit: Repeated FRAM reads to same location (mostly cache hits)
+ * 2. fram_read_miss: FRAM reads to 3 conflicting addresses (all cache misses)
+ * 3. fram_read_mixed: Mix of FRAM cache hits and misses for calibration
+ * 4. sram_read: SRAM reads (no cache, used to isolate mov_indirect cost)
  */
 #include "setup.h"
 
