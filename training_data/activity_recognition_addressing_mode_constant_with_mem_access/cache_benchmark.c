@@ -16,7 +16,9 @@
  * 1. fram_read_hit: Repeated FRAM reads to same location (mostly cache hits)
  * 2. fram_read_miss: FRAM reads to 3 conflicting addresses (all cache misses)
  * 3. fram_read_mixed: Mix of FRAM cache hits and misses for calibration
- * 4. sram_read: SRAM reads (no cache, used to isolate mov_indirect cost)
+ * 4. sram_read: SRAM reads (no cache, isolates mov_indirect read cost)
+ * 5. fram_write: FRAM writes (isolates FRAMWrite cost)
+ * 6. sram_write: SRAM writes (no cache, isolates mov_indexed write cost)
  */
 #include "setup.h"
 
@@ -52,6 +54,18 @@ static const volatile uint16_t fram_miss_data[48] __attribute__((section(".rodat
 
 // SRAM data for read benchmark (.data section is in SRAM by default)
 static volatile uint16_t sram_read_target __attribute__((section(".data"))) = 0xBEEF;
+
+// SRAM data for write benchmark
+static volatile uint16_t sram_write_target __attribute__((section(".data"))) = 0xDEAD;
+
+// ============================================================================
+// FRAM Writable Data Layout
+// ============================================================================
+// For write benchmarks, we need writable FRAM (not .rodata).
+// Using .persistent section which maps to FRAM.
+
+// FRAM data for write benchmark
+static volatile uint16_t fram_write_target __attribute__((section(".persistent"))) = 0xFACE;
 
 // ============================================================================
 // Benchmark 1: Cache Hit (repeated reads to same location)
@@ -166,6 +180,48 @@ SRAM_CODE NOINLINE void bench_sram_read(void) {
     (void)val;
 }
 
+// ============================================================================
+// Benchmark 5: FRAM Write
+// ============================================================================
+// Writes to FRAM. FRAM writes bypass the cache (write-through).
+// This benchmark isolates the cost of FRAMWrite events.
+SRAM_CODE NOINLINE void bench_fram_write(void) {
+    register volatile uint16_t* ptr = &fram_write_target;
+    register uint16_t val = 0x1234;
+
+    REPEAT_INNER_ITERS(
+        __asm__ volatile(
+            ".rept " STR(TEXTUAL_REPT) "\n"
+            "  mov.w %[val], 0(%[ptr])\n"
+            ".endr\n"
+            :
+            : [val] "r"(val), [ptr] "r"(ptr)
+            : "memory"
+        )
+    );
+}
+
+// ============================================================================
+// Benchmark 6: SRAM Write
+// ============================================================================
+// Writes to SRAM. SRAM has no cache - direct memory access.
+// This benchmark isolates the cost of mov_indexed_register (write) from FRAM events.
+SRAM_CODE NOINLINE void bench_sram_write(void) {
+    register volatile uint16_t* ptr = &sram_write_target;
+    register uint16_t val = 0x5678;
+
+    REPEAT_INNER_ITERS(
+        __asm__ volatile(
+            ".rept " STR(TEXTUAL_REPT) "\n"
+            "  mov.w %[val], 0(%[ptr])\n"
+            ".endr\n"
+            :
+            : [val] "r"(val), [ptr] "r"(ptr)
+            : "memory"
+        )
+    );
+}
+
 int main(void) {
     initialize();
     begin_measurement_window();
@@ -174,6 +230,8 @@ int main(void) {
     BENCH(bench_fram_read_miss());
     BENCH(bench_fram_read_mixed());
     BENCH(bench_sram_read());
+    BENCH(bench_fram_write());
+    BENCH(bench_sram_write());
 
     end_measurement_window();
     return 0;
