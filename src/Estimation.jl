@@ -21,6 +21,87 @@ function detect_model_type(params_dict::Dict)::String
 end
 
 """
+Parse a key string (e.g., "mov_immediate_register") back to a tuple key.
+"""
+function parse_key_string(key_str::String)::Key
+    key_parts = split(key_str, "_")
+    return tuple(
+        [
+            let parsed = tryparse(Int, string(p))
+                parsed !== nothing ? parsed : Symbol(p)
+            end for p in key_parts
+        ]...
+    )
+end
+
+"""
+Collect debug info for a single execution trace (event).
+Returns a Dict with key counts and energy contributions.
+"""
+function collect_event_debug_info(
+    event_idx::Int,
+    execution_trace::ExecutionTrace,
+    estimated_energy::Float64,
+    model_params::Dict{Key,Float64},
+)::Dict{String,Any}
+    # Count occurrences of each instruction key
+    key_counts = Dict{String,Int}()
+    for execution_event in execution_trace
+        key_str = join(string.(execution_event.key), "_")
+        key_counts[key_str] = get(key_counts, key_str, 0) + 1
+    end
+
+    # Calculate energy contribution per key
+    key_energies = Dict{String,Float64}()
+    for (key_str, count) in key_counts
+        param_key = parse_key_string(key_str)
+        if haskey(model_params, param_key)
+            key_energies[key_str] = model_params[param_key] * count
+        else
+            key_energies[key_str] = 1.0 * count  # default energy
+        end
+    end
+
+    return Dict(
+        "event_index" => event_idx,
+        "num_events" => length(execution_trace),
+        "estimated_energy" => estimated_energy,
+        "key_counts" => key_counts,
+        "key_energies" => key_energies,
+    )
+end
+
+"""
+Save estimation debug data to a JSON file.
+"""
+function save_estimation_debug_dump(
+    debug_path::String,
+    model_str::String,
+    model_params::Dict{Key,Float64},
+    event_debug_info::Vector,
+)
+    @info "Dumping estimation debug data" path = debug_path
+
+    # Convert model params to string keys
+    params_str = Dict{String,Float64}()
+    for (k, v) in model_params
+        params_str[join(string.(k), "_")] = v
+    end
+
+    debug_data = Dict{String,Any}(
+        "model_type" => model_str,
+        "num_events" => length(event_debug_info),
+        "learned_params" => params_str,
+        "events" => event_debug_info,
+    )
+
+    open(debug_path, "w") do f
+        JSON.print(f, debug_data, 2)
+    end
+    @info "Estimation debug data saved" path = debug_path
+end
+
+"""
 Estimate mode: Predict energy consumption using learned parameters
 """
 function run_estimate(
@@ -61,11 +142,26 @@ function run_estimate(
     }[]
 
     config = Model.create_estimation_config(model, n_samples)
+    event_debug_info = Vector{Dict{String,Any}}()
 
-    for execution_trace in execution_traces
+    for (event_idx, execution_trace) in enumerate(execution_traces)
         @info "Execution trace" length = length(execution_trace)
         stats = Model.estimate_energy(model, execution_trace, config)
         push!(all_stats, stats)
+
+        # Collect debug info for this event
+        debug_info = collect_event_debug_info(
+            event_idx, execution_trace, stats.mean, model.params
+        )
+        push!(event_debug_info, debug_info)
+    end
+
+    # Save debug dump if environment variable is set
+    estimate_debug_path = get(ENV, "JULIA_ESTIMATE_DEBUG_DUMP_PATH", nothing)
+    if !isnothing(estimate_debug_path)
+        save_estimation_debug_dump(
+            estimate_debug_path, model_str, model.params, event_debug_info
+        )
     end
 
     @info "="^60

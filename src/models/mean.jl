@@ -218,6 +218,76 @@ function learn_params_least_squares!(
         rmse; digits=3
     ) MAE = round(mae; digits=3) Max_Error = round(max_error; digits=3)
 
+    # Debug dump: save matrices for analysis if environment variable is set
+    debug_dump_path = get(ENV, "JULIA_LS_DEBUG_DUMP_PATH", nothing)
+    if !isnothing(debug_dump_path)
+        @info "Dumping least-squares debug data" path = debug_dump_path
+
+        # Convert keys to string representations for JSON
+        key_labels = [join(string.(k), "_") for k in sorted_keys]
+
+        # Per-sample key counts for detailed analysis
+        sample_key_counts = Vector{Dict{String,Int}}()
+        for (i, execution_trace) in enumerate(training_data.execution_traces)
+            counts = Dict{String,Int}()
+            for execution_event in execution_trace
+                key_str = join(string.(execution_event.key), "_")
+                counts[key_str] = get(counts, key_str, 0) + 1
+            end
+            push!(sample_key_counts, counts)
+        end
+
+        # Compute per-sample relative error
+        relative_errors = [(B[i] - B_pred[i]) / B[i] * 100 for i in 1:length(B)]
+
+        # Column statistics: coverage (how many samples use each key)
+        column_coverage = [count(A[:, j] .> 0) for j in 1:num_keys]
+
+        # Compute matrix rank and condition number
+        matrix_rank = rank(A)
+        # Condition number (use SVD to avoid issues with non-square matrices)
+        svd_result = svd(A)
+        singular_values = svd_result.S
+        # Condition number is ratio of largest to smallest non-zero singular value
+        nonzero_sv = filter(s -> s > 1e-10, singular_values)
+        condition_number = length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
+
+        debug_data = Dict{String,Any}(
+            "metadata" => Dict(
+                "num_samples" => num_execution_traces,
+                "num_keys" => num_keys,
+                "algorithm" => inference_algorithm,
+                "r_squared" => r_squared,
+                "rmse" => rmse,
+                "mae" => mae,
+                "max_error" => max_error,
+                "matrix_rank" => matrix_rank,
+                "condition_number" => condition_number,
+            ),
+            "key_labels" => key_labels,
+            "solution_x" => x,
+            "measured_B" => B,
+            "predicted_B" => B_pred,
+            "residuals" => residuals,
+            "relative_errors_percent" => relative_errors,
+            "column_coverage" => column_coverage,
+            "sample_key_counts" => sample_key_counts,
+            "singular_values" => singular_values,
+            # Store A as a sparse representation to save space
+            # Each entry is [row, col, value] for non-zero entries
+            "matrix_A_sparse" => [
+                [i, j, A[i, j]] for i in 1:num_execution_traces for
+                j in 1:num_keys if A[i, j] > 0
+            ],
+            "matrix_A_shape" => [num_execution_traces, num_keys],
+        )
+
+        open(debug_dump_path, "w") do f
+            JSON.print(f, debug_data, 2)
+        end
+        @info "Debug data saved successfully" path = debug_dump_path
+    end
+
     return nothing
 end
 
