@@ -180,13 +180,13 @@ HARDCODED_BENCHMARKS = {
 MODEL_BENCHMARKS: Dict[str, List[Dict[str, str]]] = {
     "addressing_mode_with_mem_access": [
         {
-            "path": "scripts/hardcoded_benchmarks/fram_cache_benchmark.c",
+            "path": "scripts/hardcoded_benchmarks/cache_benchmark.c",
             "description": "FRAM cache hit/miss benchmarks for memory access energy",
         },
     ],
     "addressing_mode_constant_with_mem_access": [
         {
-            "path": "scripts/hardcoded_benchmarks/fram_cache_benchmark.c",
+            "path": "scripts/hardcoded_benchmarks/cache_benchmark.c",
             "description": "FRAM cache hit/miss benchmarks for memory access energy",
         },
     ],
