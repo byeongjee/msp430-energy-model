@@ -537,8 +537,10 @@ end
 Record a memory access as an ExecutionEvent.
 Pure function that returns the event without mutating state.
 
-Only FRAM accesses generate events. SRAM access cost is absorbed into
-instruction energy, so FRAM events represent the delta cost over SRAM baseline.
+Generates events for both FRAM and SRAM accesses:
+- FRAM: FRAMReadHit, FRAMReadMiss, FRAMWrite (with cache simulation)
+- SRAM: SRAMRead, SRAMWrite (direct access, no cache)
+- Unknown regions: no event
 """
 function record_memory_access(
     state::MachineState,
@@ -547,19 +549,24 @@ function record_memory_access(
     data_size::Symbol,
     inst::Union{Nothing,Instruction},
 )::Vector{ExecutionEvent}
-    # SRAM and unknown regions: no event (cost absorbed in instruction energy)
-    if !_is_fram_address(addr)
-        return ExecutionEvent[]
+    # FRAM accesses: generate event with cache hit/miss tracking
+    if _is_fram_address(addr)
+        event_type = if access_type == :read
+            _cache_has_line(state, addr) ? FRAMReadHit : FRAMReadMiss
+        else
+            FRAMWrite
+        end
+        return [ExecutionEvent(event_type, inst, Any[addr, data_size])]
     end
 
-    # FRAM accesses: generate delta-cost event
-    event_type = if access_type == :read
-        _cache_has_line(state, addr) ? FRAMReadHit : FRAMReadMiss
-    else
-        FRAMWrite
+    # SRAM accesses: generate SRAMRead/SRAMWrite event (no cache)
+    if _is_sram_address(addr)
+        event_type = access_type == :read ? SRAMRead : SRAMWrite
+        return [ExecutionEvent(event_type, inst, Any[addr, data_size])]
     end
 
-    return [ExecutionEvent(event_type, inst, Any[addr, data_size])]
+    # Unknown regions: no event
+    return ExecutionEvent[]
 end
 
 """
