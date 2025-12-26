@@ -111,11 +111,11 @@ This design reduces the parameter space from 5 memory event types to 3, making t
 
 | Event Type | Description |
 |------------|-------------|
-| `FRAMReadHit` | Delta cost for FRAM read with cache hit (vs SRAM read) |
-| `FRAMReadMiss` | Delta cost for FRAM read with cache miss (vs SRAM read) |
-| `FRAMWrite` | Delta cost for FRAM write (vs SRAM write) |
-
-Note: `SRAMRead` and `SRAMWrite` event types exist in the enum for backward compatibility but are never generated.
+| `FRAMReadHit` | FRAM read with cache hit |
+| `FRAMReadMiss` | FRAM read with cache miss |
+| `FRAMWrite` | FRAM write |
+| `SRAMRead` | SRAM read (no cache) |
+| `SRAMWrite` | SRAM write (no cache) |
 
 ### Models
 
