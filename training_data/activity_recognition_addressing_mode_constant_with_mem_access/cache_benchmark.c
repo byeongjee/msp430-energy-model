@@ -45,6 +45,15 @@ static const volatile uint16_t fram_miss_data[48] __attribute__((section(".rodat
 };
 
 // ============================================================================
+// SRAM Data Layout
+// ============================================================================
+// SRAM has no cache - direct memory access.
+// This benchmark isolates the cost of mov_indirect_register from FRAM cache events.
+
+// SRAM data for read benchmark (.data section is in SRAM by default)
+static volatile uint16_t sram_read_target __attribute__((section(".data"))) = 0xBEEF;
+
+// ============================================================================
 // Benchmark 1: Cache Hit (repeated reads to same location)
 // ============================================================================
 // First read is a miss, subsequent reads are hits.
@@ -133,6 +142,30 @@ SRAM_CODE NOINLINE void bench_fram_read_mixed(void) {
     (void)val;
 }
 
+// ============================================================================
+// Benchmark 4: SRAM Read (no cache, direct memory access)
+// ============================================================================
+// SRAM has no cache - every read is a direct memory access.
+// This benchmark isolates the cost of mov_indirect_register from FRAM cache events.
+// By comparing with FRAM benchmarks, we can separate instruction cost from memory cost.
+SRAM_CODE NOINLINE void bench_sram_read(void) {
+    register volatile uint16_t* ptr = &sram_read_target;
+    register uint16_t val;
+
+    REPEAT_INNER_ITERS(
+        __asm__ volatile(
+            ".rept " STR(TEXTUAL_REPT) "\n"
+            "  mov.w @%[ptr], %[val]\n"
+            ".endr\n"
+            : [val] "=r"(val)
+            : [ptr] "r"(ptr)
+            : "memory"
+        )
+    );
+
+    (void)val;
+}
+
 int main(void) {
     initialize();
     begin_measurement_window();
@@ -140,6 +173,7 @@ int main(void) {
     BENCH(bench_fram_read_hit());
     BENCH(bench_fram_read_miss());
     BENCH(bench_fram_read_mixed());
+    BENCH(bench_sram_read());
 
     end_measurement_window();
     return 0;
