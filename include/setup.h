@@ -160,16 +160,30 @@ NOINLINE void delay(uint32_t cycles) {
 }
 
 // Target for call/ret composite benchmarks; kept non-inline and non-empty.
+// Contains 50 NOPs (100 bytes) to ensure function body exceeds the 64-byte
+// FRAM cache, forcing cache misses when returning to caller.
 NOINLINE __attribute__((used)) void bench_empty_function(void) {
-  __asm__ volatile("" ::: "memory");
+  __asm__ volatile(
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 10
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 20
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 30
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 40
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 50
+      ::: "memory");
 }
 
 // Interrupt-style stub for push/reti composite benchmark.
+// Contains 50 NOPs (100 bytes) to ensure function body exceeds the 64-byte
+// FRAM cache, forcing cache misses when returning to caller.
 NOINLINE __attribute__((used, naked)) void bench_empty_interrupt(void) {
   __asm__ volatile(
       "push r2\n"
       "dint\n"
-      "nop\n"
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 10
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 20
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 30
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 40
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 50
       "reti\n");
 }
 
