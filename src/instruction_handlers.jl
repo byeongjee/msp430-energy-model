@@ -82,6 +82,7 @@ struct NopHandler <: SingleOperandHandler end
 struct BrHandler <: SingleOperandHandler end
 struct PushmHandler <: SingleOperandHandler end
 struct PopmHandler <: SingleOperandHandler end
+struct PopHandler <: SingleOperandHandler end
 struct RlaHandler <: SingleOperandHandler end
 struct RlamHandler <: SingleOperandHandler end
 struct SbcHandler <: SingleOperandHandler end
@@ -150,6 +151,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :br => BrHandler(),
     :pushm => PushmHandler(),
     :popm => PopmHandler(),
+    :pop => PopHandler(),
     :rla => RlaHandler(),
     :rlam => RlamHandler(),
     :sbc => SbcHandler(),
@@ -1734,6 +1736,52 @@ function execute!(
             )
         end
     end
+    return events
+end
+
+# pop dst - Pop value from stack to destination register
+# Equivalent to: mov @SP+, dst
+function execute!(
+    state::MachineState,
+    ::PopHandler,
+    inst::Instruction,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{Tuple{UInt32,UInt32}},
+    ::Int,
+    should_track_memory_access::Bool,
+)::Vector{ExecutionEvent}
+    if length(ops) < 1
+        return ExecutionEvent[]
+    end
+    events = ExecutionEvent[]
+
+    bytes_per_val = if data_size == :address
+        UInt32(4)  # 20-bit = 2 words = 4 bytes
+    else
+        UInt32(2)  # 16-bit = 1 word = 2 bytes
+    end
+
+    # Read value from stack
+    reg_val = if data_size == :address
+        val, read_events = read_memory(
+            state, state.registers[:SP], :address, inst, should_track_memory_access
+        )
+        append!(events, read_events)
+        val
+    else
+        UInt32(get(state.memory, state.registers[:SP], UInt16(0)))
+    end
+
+    # Store to destination register
+    dst_reg = ops[1].value
+    set_register_value!(state, dst_reg, reg_val)
+
+    # Increment stack pointer
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] + bytes_per_val) & get_register_mask(:SP)
+    )
+
     return events
 end
 
