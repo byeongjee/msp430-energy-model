@@ -113,7 +113,7 @@ disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)
 	else \
 		BASENAME=$$(basename $(FILE) .c); \
 	fi; \
-	$(OBJDUMP) -d $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.asm; \
+	source scripts/disasm.sh && disasm $(BUILD_DIR)/$$BASENAME.elf $(ASM_DIR)/$$BASENAME.asm; \
 	echo "✓ Disassembly saved to: $(ASM_DIR)/$$BASENAME.asm"; \
 	$(OBJDUMP) -s $(addprefix -j ,$(DATA_SECTIONS)) $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.data; \
 	echo "✓ Data dump saved to: $(ASM_DIR)/$$BASENAME.data"
