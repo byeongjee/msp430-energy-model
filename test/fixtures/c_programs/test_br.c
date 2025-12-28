@@ -9,26 +9,27 @@ volatile uint16_t jump_target_2 = 0;
 
 void test_br_instruction(void) {
   // Use inline assembly to test br instruction with computed goto
+  // Use local labels (1:, 2:) to avoid duplicate label issues with inlining
   __asm__ volatile(
-      // Test 1: Load address of label1 into R12 and branch to it
-      "mov #label1, r12\n\t"
+      // Test 1: Load address of label1 and branch to it
+      "mov #1f, r12\n\t"
       "br r12\n\t"  // Branch to label1
 
       // This should be skipped
       "mov #99, %0\n\t"
 
-      "label1:\n\t"
+      "1:\n\t"
       // We successfully branched here
       "mov #42, %0\n\t"
 
       // Test 2: Branch to label2 using R13
-      "mov #label2, r13\n\t"
+      "mov #2f, r13\n\t"
       "br r13\n\t"  // Branch to label2
 
       // This should be skipped
       "mov #88, %1\n\t"
 
-      "label2:\n\t"
+      "2:\n\t"
       // We successfully branched here
       "mov #84, %1\n\t"
       : "=m"(jump_target_1), "=m"(jump_target_2)

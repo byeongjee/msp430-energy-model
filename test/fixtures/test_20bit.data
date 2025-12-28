@@ -8,13 +8,13 @@
 # .data 00000000 00001c00 00001c00
 # .upper.data 00000002 00010000 00004000
 # .lower.bss 00000000 00001c00 00001c00
-# .bss 00000002 00001c00 00001c00
+# .bss 00000000 00001c00 00001c00
 # .upper.bss 00000000 00010002 00010002
-# .noinit 00000000 00001c02 00001c02
-# .heap 00000004 00001c02 00001c02
+# .noinit 00000000 00001c00 00001c00
+# .heap 00000004 00001c00 00001c00
 # .lower.text 00000000 00004002 00004002
-# .text 00000042 00004002 00004002
-# .text_sram 00000000 00001c06 00001c06
+# .text 0000003e 00004002 00004002
+# .text_sram 00000000 00001c04 00001c04
 # .upper.text 00000000 00010002 00010002
 # .MSP430.attributes 00000017 00000000 00000000
 # .comment 00000039 00000000 00000000
@@ -27,13 +27,12 @@
 # .debug_ranges 00000010 00000000 00000000
 
 
-/Users/byeongjee/migration/probabilistic-energy-modeling/build/test_pop_simple.elf:     file format elf32-msp430
+/Users/byeongjee/migration/probabilistic-energy-modeling/build/test_20bit.elf:     file format elf32-msp430
 
 Contents of section .upper.data:
  10000 0100                                 ..              
 Contents of section .text:
- 4002 3140002c 3c40001c 0d433e40 0200b012  1@.,<@...C>@....
- 4012 32400c43 b0121e40 b0123040 3f403412  2@.C...@..0@?@4.
- 4022 0f123e41 0c4e824c 001c4c43 3041ff3f  ..>A.N.L..LC0A.?
- 4032 0e5c0f4c 0f9e0120 30411f53 cf4dffff  .\.L... 0A.S.M..
- 4042 f93f                                 .?              
+ 4002 3140002c 0c43b012 2640b012 3e408c01  1@.,.C..&@..>@..
+ 4012 45238d0a debc1d14 8c000000 8d000000  E#..............
+ 4022 1c163041 8c014523 8d0adebc 1d148c00  ..0A..E#........
+ 4032 00008d00 00001c16 4c433041 ff3f      ........LC0A.?  

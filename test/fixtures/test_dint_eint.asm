@@ -1,5 +1,5 @@
 
-/Users/byeongjee/migration/probabilistic-energy-modeling/build/test_dint_eint.elf:     file format elf32-msp430
+/Users/byeongjee/migration/probabilistic-energy-modeling/build/test_dint_eint_cleaned.elf:     file format elf32-msp430
 
 
 Disassembly of section .text:
@@ -9,225 +9,277 @@ Disassembly of section .text:
 
 00004006 <__crt0_call_main>:
     4006:	0c 43       	clr	r12		;
-
-00004008 <.Loc.254.1>:
-    4008:	b0 12 5c 41 	call	#16732		;#0x415c
+    4008:	b0 12 2c 42 	call	#16940		;#0x422c
 
 0000400c <__crt0_call_exit>:
-    400c:	b0 12 6e 41 	call	#16750		;#0x416e
+    400c:	b0 12 50 42 	call	#16976		;#0x4250
 
 00004010 <clockSetup>:
     4010:	f2 40 a5 ff 	mov.b	#-91,	&0x0161	;#0xffa5
     4014:	61 01 
-
-00004016 <.Loc.13.1>:
     4016:	82 43 62 01 	mov	#0,	&0x0162	;r3 As==00
-
-0000401a <.Loc.15.1>:
     401a:	b2 40 33 01 	mov	#307,	&0x0164	;#0x0133
     401e:	64 01 
-
-00004020 <.Loc.20.1>:
     4020:	b2 40 22 02 	mov	#546,	&0x0166	;#0x0222
     4024:	66 01 
-
-00004026 <.Loc.21.1>:
     4026:	b2 40 48 00 	mov	#72,	&0x0162	;#0x0048
     402a:	62 01 
-
-0000402c <.Loc.23.1>:
     402c:	0d 14       	pushm.a	#1,	r13	;20-bit words
     402e:	3d 40 10 00 	mov	#16,	r13	;#0x0010
-
-00004032 <.L1^B1>:
     4032:	1d 83       	dec	r13		;
     4034:	fe 23       	jnz	$-2      	;abs 0x4032
     4036:	0d 16       	popm.a	#1,	r13	;20-bit words
-
-00004038 <L0^A>:
     4038:	00 3c       	jmp	$+2      	;abs 0x403a
-
-0000403a <.Loc.26.1>:
     403a:	82 43 66 01 	mov	#0,	&0x0166	;r3 As==00
+    403e:	b2 c2 68 01 	bic	#8,	&0x0168	;r2 As==11
+    4042:	c2 43 61 01 	mov.b	#0,	&0x0161	;r3 As==00
+    4046:	30 41       	ret			
 
-0000403e <.Loc.29.1>:
-    403e:	1c 42 68 01 	mov	&0x0168,r12	;0x0168
-    4042:	3c c2       	bic	#8,	r12	;r2 As==11
-    4044:	82 4c 68 01 	mov	r12,	&0x0168	;
+00004048 <toggle_gpio>:
+    4048:	f2 e2 02 02 	xor.b	#8,	&0x0202	;r2 As==11
+    404c:	30 41       	ret			
 
-00004048 <.Loc.30.1>:
-    4048:	c2 43 61 01 	mov.b	#0,	&0x0161	;r3 As==00
+0000404e <begin_event>:
+    404e:	1e 14       	pushm.a	#2,	r14	;20-bit words
+    4050:	3d 40 7c 5a 	mov	#23164,	r13	;#0x5a7c
+    4054:	3e 40 05 00 	mov	#5,	r14	;
+    4058:	1d 83       	dec	r13		;
+    405a:	0e 73       	sbc	r14		;
+    405c:	fd 23       	jnz	$-4      	;abs 0x4058
+    405e:	0d 93       	cmp	#0,	r13	;r3 As==00
+    4060:	fb 23       	jnz	$-8      	;abs 0x4058
+    4062:	1d 16       	popm.a	#2,	r14	;20-bit words
+    4064:	f2 d2 02 02 	bis.b	#8,	&0x0202	;r2 As==11
+    4068:	30 41       	ret			
 
-0000404c <.Loc.31.1>:
-    404c:	03 43       	nop			
-    404e:	30 41       	ret			
+0000406a <end_event>:
+    406a:	f2 c2 02 02 	bic.b	#8,	&0x0202	;r2 As==11
+    406e:	1e 14       	pushm.a	#2,	r14	;20-bit words
+    4070:	3d 40 7c 5a 	mov	#23164,	r13	;#0x5a7c
+    4074:	3e 40 05 00 	mov	#5,	r14	;
+    4078:	1d 83       	dec	r13		;
+    407a:	0e 73       	sbc	r14		;
+    407c:	fd 23       	jnz	$-4      	;abs 0x4078
+    407e:	0d 93       	cmp	#0,	r13	;r3 As==00
+    4080:	fb 23       	jnz	$-8      	;abs 0x4078
+    4082:	1d 16       	popm.a	#2,	r14	;20-bit words
+    4084:	30 41       	ret			
 
-00004050 <toggle_gpio>:
-    4050:	5c 42 02 02 	mov.b	&0x0202,r12	;0x0202
-    4054:	7c e2       	xor.b	#8,	r12	;r2 As==11
-    4056:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    405a:	c2 4c 02 02 	mov.b	r12,	&0x0202	;
+00004086 <begin_measurement_window>:
+    4086:	1e 14       	pushm.a	#2,	r14	;20-bit words
+    4088:	3d 40 fc 6c 	mov	#27900,	r13	;#0x6cfc
+    408c:	3e 40 30 01 	mov	#304,	r14	;#0x0130
+    4090:	1d 83       	dec	r13		;
+    4092:	0e 73       	sbc	r14		;
+    4094:	fd 23       	jnz	$-4      	;abs 0x4090
+    4096:	0d 93       	cmp	#0,	r13	;r3 As==00
+    4098:	fb 23       	jnz	$-8      	;abs 0x4090
+    409a:	1d 16       	popm.a	#2,	r14	;20-bit words
+    409c:	e2 d2 02 02 	bis.b	#4,	&0x0202	;r2 As==10
+    40a0:	30 41       	ret			
 
-0000405e <.Loc.33.1>:
-    405e:	03 43       	nop			
-    4060:	30 41       	ret			
+000040a2 <end_measurement_window>:
+    40a2:	e2 c2 02 02 	bic.b	#4,	&0x0202	;r2 As==10
+    40a6:	1e 14       	pushm.a	#2,	r14	;20-bit words
+    40a8:	3d 40 fc 6c 	mov	#27900,	r13	;#0x6cfc
+    40ac:	3e 40 30 01 	mov	#304,	r14	;#0x0130
+    40b0:	1d 83       	dec	r13		;
+    40b2:	0e 73       	sbc	r14		;
+    40b4:	fd 23       	jnz	$-4      	;abs 0x40b0
+    40b6:	0d 93       	cmp	#0,	r13	;r3 As==00
+    40b8:	fb 23       	jnz	$-8      	;abs 0x40b0
+    40ba:	1d 16       	popm.a	#2,	r14	;20-bit words
+    40bc:	30 41       	ret			
 
-00004062 <begin_event>:
-    4062:	1e 14       	pushm.a	#2,	r14	;20-bit words
-    4064:	3d 40 7c 5a 	mov	#23164,	r13	;#0x5a7c
-    4068:	3e 40 05 00 	mov	#5,	r14	;
+000040be <delay>:
+    40be:	0e 4c       	mov	r12,	r14	;
+    40c0:	3e 53       	add	#-1,	r14	;r3 As==11
+    40c2:	0f 4d       	mov	r13,	r15	;
+    40c4:	3f 63       	addc	#-1,	r15	;r3 As==11
+    40c6:	0c 4e       	mov	r14,	r12	;
+    40c8:	0c df       	bis	r15,	r12	;
+    40ca:	0c 93       	cmp	#0,	r12	;r3 As==00
+    40cc:	07 24       	jz	$+16     	;abs 0x40dc
+    40ce:	03 43       	nop			
+    40d0:	3e 53       	add	#-1,	r14	;r3 As==11
+    40d2:	3f 63       	addc	#-1,	r15	;r3 As==11
+    40d4:	0c 4e       	mov	r14,	r12	;
+    40d6:	0c df       	bis	r15,	r12	;
+    40d8:	0c 93       	cmp	#0,	r12	;r3 As==00
+    40da:	f9 23       	jnz	$-12     	;abs 0x40ce
+    40dc:	30 41       	ret			
 
-0000406c <.L1^B2>:
-    406c:	1d 83       	dec	r13		;
-    406e:	0e 73       	sbc	r14		;
-    4070:	fd 23       	jnz	$-4      	;abs 0x406c
-    4072:	0d 93       	cmp	#0,	r13	;r3 As==00
-    4074:	fb 23       	jnz	$-8      	;abs 0x406c
-    4076:	1d 16       	popm.a	#2,	r14	;20-bit words
-
-00004078 <.Loc.37.1>:
-    4078:	5c 42 02 02 	mov.b	&0x0202,r12	;0x0202
-    407c:	7c d2       	bis.b	#8,	r12	;r2 As==11
-    407e:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    4082:	c2 4c 02 02 	mov.b	r12,	&0x0202	;
-
-00004086 <.Loc.38.1>:
-    4086:	03 43       	nop			
-    4088:	30 41       	ret			
-
-0000408a <end_event>:
-    408a:	5c 42 02 02 	mov.b	&0x0202,r12	;0x0202
-    408e:	7c c2       	bic.b	#8,	r12	;r2 As==11
-    4090:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    4094:	c2 4c 02 02 	mov.b	r12,	&0x0202	;
-
-00004098 <.Loc.41.1>:
-    4098:	1e 14       	pushm.a	#2,	r14	;20-bit words
-    409a:	3d 40 7c 5a 	mov	#23164,	r13	;#0x5a7c
-    409e:	3e 40 05 00 	mov	#5,	r14	;
-
-000040a2 <.L1^B3>:
-    40a2:	1d 83       	dec	r13		;
-    40a4:	0e 73       	sbc	r14		;
-    40a6:	fd 23       	jnz	$-4      	;abs 0x40a2
-    40a8:	0d 93       	cmp	#0,	r13	;r3 As==00
-    40aa:	fb 23       	jnz	$-8      	;abs 0x40a2
-    40ac:	1d 16       	popm.a	#2,	r14	;20-bit words
-
-000040ae <.Loc.42.1>:
-    40ae:	03 43       	nop			
-    40b0:	30 41       	ret			
-
-000040b2 <begin_measurement_window>:
-    40b2:	1e 14       	pushm.a	#2,	r14	;20-bit words
-    40b4:	3d 40 fc 6c 	mov	#27900,	r13	;#0x6cfc
-    40b8:	3e 40 30 01 	mov	#304,	r14	;#0x0130
-
-000040bc <.L1^B4>:
-    40bc:	1d 83       	dec	r13		;
-    40be:	0e 73       	sbc	r14		;
-    40c0:	fd 23       	jnz	$-4      	;abs 0x40bc
-    40c2:	0d 93       	cmp	#0,	r13	;r3 As==00
-    40c4:	fb 23       	jnz	$-8      	;abs 0x40bc
-    40c6:	1d 16       	popm.a	#2,	r14	;20-bit words
-
-000040c8 <.Loc.46.1>:
-    40c8:	5c 42 02 02 	mov.b	&0x0202,r12	;0x0202
-    40cc:	6c d2       	bis.b	#4,	r12	;r2 As==10
-    40ce:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    40d2:	c2 4c 02 02 	mov.b	r12,	&0x0202	;
-
-000040d6 <.Loc.47.1>:
-    40d6:	03 43       	nop			
-    40d8:	30 41       	ret			
-
-000040da <end_measurement_window>:
-    40da:	5c 42 02 02 	mov.b	&0x0202,r12	;0x0202
-    40de:	6c c2       	bic.b	#4,	r12	;r2 As==10
-    40e0:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    40e4:	c2 4c 02 02 	mov.b	r12,	&0x0202	;
-
-000040e8 <.Loc.50.1>:
-    40e8:	1e 14       	pushm.a	#2,	r14	;20-bit words
-    40ea:	3d 40 fc 6c 	mov	#27900,	r13	;#0x6cfc
-    40ee:	3e 40 30 01 	mov	#304,	r14	;#0x0130
-
-000040f2 <.L1^B5>:
-    40f2:	1d 83       	dec	r13		;
-    40f4:	0e 73       	sbc	r14		;
-    40f6:	fd 23       	jnz	$-4      	;abs 0x40f2
-    40f8:	0d 93       	cmp	#0,	r13	;r3 As==00
-    40fa:	fb 23       	jnz	$-8      	;abs 0x40f2
-    40fc:	1d 16       	popm.a	#2,	r14	;20-bit words
-
-000040fe <.Loc.51.1>:
+000040de <bench_empty_function>:
+    40de:	03 43       	nop			
+    40e0:	03 43       	nop			
+    40e2:	03 43       	nop			
+    40e4:	03 43       	nop			
+    40e6:	03 43       	nop			
+    40e8:	03 43       	nop			
+    40ea:	03 43       	nop			
+    40ec:	03 43       	nop			
+    40ee:	03 43       	nop			
+    40f0:	03 43       	nop			
+    40f2:	03 43       	nop			
+    40f4:	03 43       	nop			
+    40f6:	03 43       	nop			
+    40f8:	03 43       	nop			
+    40fa:	03 43       	nop			
+    40fc:	03 43       	nop			
     40fe:	03 43       	nop			
-    4100:	30 41       	ret			
+    4100:	03 43       	nop			
+    4102:	03 43       	nop			
+    4104:	03 43       	nop			
+    4106:	03 43       	nop			
+    4108:	03 43       	nop			
+    410a:	03 43       	nop			
+    410c:	03 43       	nop			
+    410e:	03 43       	nop			
+    4110:	03 43       	nop			
+    4112:	03 43       	nop			
+    4114:	03 43       	nop			
+    4116:	03 43       	nop			
+    4118:	03 43       	nop			
+    411a:	03 43       	nop			
+    411c:	03 43       	nop			
+    411e:	03 43       	nop			
+    4120:	03 43       	nop			
+    4122:	03 43       	nop			
+    4124:	03 43       	nop			
+    4126:	03 43       	nop			
+    4128:	03 43       	nop			
+    412a:	03 43       	nop			
+    412c:	03 43       	nop			
+    412e:	03 43       	nop			
+    4130:	03 43       	nop			
+    4132:	03 43       	nop			
+    4134:	03 43       	nop			
+    4136:	03 43       	nop			
+    4138:	03 43       	nop			
+    413a:	03 43       	nop			
+    413c:	03 43       	nop			
+    413e:	03 43       	nop			
+    4140:	03 43       	nop			
+    4142:	30 41       	ret			
 
-00004102 <initialize>:
-    4102:	b2 40 80 5a 	mov	#23168,	&0x015c	;#0x5a80
-    4106:	5c 01 
-
-00004108 <.Loc.136.1>:
-    4108:	1c 42 30 01 	mov	&0x0130,r12	;0x0130
-    410c:	1c c3       	bic	#1,	r12	;r3 As==01
-    410e:	82 4c 30 01 	mov	r12,	&0x0130	;
-
-00004112 <.Loc.138.1>:
-    4112:	b0 12 10 40 	call	#16400		;#0x4010
-
-00004116 <.Loc.141.1>:
-    4116:	5c 42 04 02 	mov.b	&0x0204,r12	;0x0204
-    411a:	7c d0 0c 00 	bis.b	#12,	r12	;#0x000c
-    411e:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    4122:	c2 4c 04 02 	mov.b	r12,	&0x0204	;
-
-00004126 <.Loc.142.1>:
-    4126:	5c 42 02 02 	mov.b	&0x0202,r12	;0x0202
-    412a:	7c c2       	bic.b	#8,	r12	;r2 As==11
-    412c:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    4130:	c2 4c 02 02 	mov.b	r12,	&0x0202	;
-
-00004134 <.Loc.143.1>:
-    4134:	5c 42 02 02 	mov.b	&0x0202,r12	;0x0202
-    4138:	6c c2       	bic.b	#4,	r12	;r2 As==10
-    413a:	3c f0 ff 00 	and	#255,	r12	;#0x00ff
-    413e:	c2 4c 02 02 	mov.b	r12,	&0x0202	;
-
-00004142 <.Loc.145.1>:
-    4142:	1e 14       	pushm.a	#2,	r14	;20-bit words
-    4144:	3d 40 fc 6c 	mov	#27900,	r13	;#0x6cfc
-    4148:	3e 40 30 01 	mov	#304,	r14	;#0x0130
-
-0000414c <.L1^B6>:
-    414c:	1d 83       	dec	r13		;
-    414e:	0e 73       	sbc	r14		;
-    4150:	fd 23       	jnz	$-4      	;abs 0x414c
-    4152:	0d 93       	cmp	#0,	r13	;r3 As==00
-    4154:	fb 23       	jnz	$-8      	;abs 0x414c
-    4156:	1d 16       	popm.a	#2,	r14	;20-bit words
-
-00004158 <.Loc.155.1>:
+00004144 <bench_empty_interrupt>:
+    4144:	02 12       	push	r2		;
+    4146:	32 c2       	dint			
+    4148:	03 43       	nop			
+    414a:	03 43       	nop			
+    414c:	03 43       	nop			
+    414e:	03 43       	nop			
+    4150:	03 43       	nop			
+    4152:	03 43       	nop			
+    4154:	03 43       	nop			
+    4156:	03 43       	nop			
     4158:	03 43       	nop			
-    415a:	30 41       	ret			
-
-0000415c <main>:
-    415c:	b0 12 02 41 	call	#16642		;#0x4102
-
-00004160 <.Loc.7.2>:
+    415a:	03 43       	nop			
+    415c:	03 43       	nop			
+    415e:	03 43       	nop			
     4160:	03 43       	nop			
-    4162:	32 d2       	eint			
+    4162:	03 43       	nop			
     4164:	03 43       	nop			
-
-00004166 <.Loc.10.2>:
-    4166:	32 c2       	dint			
+    4166:	03 43       	nop			
     4168:	03 43       	nop			
+    416a:	03 43       	nop			
+    416c:	03 43       	nop			
+    416e:	03 43       	nop			
+    4170:	03 43       	nop			
+    4172:	03 43       	nop			
+    4174:	03 43       	nop			
+    4176:	03 43       	nop			
+    4178:	03 43       	nop			
+    417a:	03 43       	nop			
+    417c:	03 43       	nop			
+    417e:	03 43       	nop			
+    4180:	03 43       	nop			
+    4182:	03 43       	nop			
+    4184:	03 43       	nop			
+    4186:	03 43       	nop			
+    4188:	03 43       	nop			
+    418a:	03 43       	nop			
+    418c:	03 43       	nop			
+    418e:	03 43       	nop			
+    4190:	03 43       	nop			
+    4192:	03 43       	nop			
+    4194:	03 43       	nop			
+    4196:	03 43       	nop			
+    4198:	03 43       	nop			
+    419a:	03 43       	nop			
+    419c:	03 43       	nop			
+    419e:	03 43       	nop			
+    41a0:	03 43       	nop			
+    41a2:	03 43       	nop			
+    41a4:	03 43       	nop			
+    41a6:	03 43       	nop			
+    41a8:	03 43       	nop			
+    41aa:	03 43       	nop			
+    41ac:	00 13       	reti			
 
-0000416a <.Loc.12.2>:
-    416a:	4c 43       	clr.b	r12		;
+000041ae <initialize>:
+    41ae:	b2 40 80 5a 	mov	#23168,	&0x015c	;#0x5a80
+    41b2:	5c 01 
+    41b4:	92 c3 30 01 	bic	#1,	&0x0130	;r3 As==01
+    41b8:	3c 40 04 1c 	mov	#7172,	r12	;#0x1c04
+    41bc:	3c 90 04 1c 	cmp	#7172,	r12	;#0x1c04
+    41c0:	07 2c       	jc	$+16     	;abs 0x41d0
+    41c2:	3e 40 04 1c 	mov	#7172,	r14	;#0x1c04
+    41c6:	0e 8c       	sub	r12,	r14	;
+    41c8:	3d 40 52 42 	mov	#16978,	r13	;#0x4252
+    41cc:	b0 12 3e 42 	call	#16958		;#0x423e
+    41d0:	f2 40 a5 ff 	mov.b	#-91,	&0x0161	;#0xffa5
+    41d4:	61 01 
+    41d6:	82 43 62 01 	mov	#0,	&0x0162	;r3 As==00
+    41da:	b2 40 33 01 	mov	#307,	&0x0164	;#0x0133
+    41de:	64 01 
+    41e0:	b2 40 22 02 	mov	#546,	&0x0166	;#0x0222
+    41e4:	66 01 
+    41e6:	b2 40 48 00 	mov	#72,	&0x0162	;#0x0048
+    41ea:	62 01 
+    41ec:	0d 14       	pushm.a	#1,	r13	;20-bit words
+    41ee:	3d 40 10 00 	mov	#16,	r13	;#0x0010
+    41f2:	1d 83       	dec	r13		;
+    41f4:	fe 23       	jnz	$-2      	;abs 0x41f2
+    41f6:	0d 16       	popm.a	#1,	r13	;20-bit words
+    41f8:	00 3c       	jmp	$+2      	;abs 0x41fa
+    41fa:	82 43 66 01 	mov	#0,	&0x0166	;r3 As==00
+    41fe:	b2 c2 68 01 	bic	#8,	&0x0168	;r2 As==11
+    4202:	c2 43 61 01 	mov.b	#0,	&0x0161	;r3 As==00
+    4206:	f2 d0 0c 00 	bis.b	#12,	&0x0204	;#0x000c
+    420a:	04 02 
+    420c:	f2 c2 02 02 	bic.b	#8,	&0x0202	;r2 As==11
+    4210:	e2 c2 02 02 	bic.b	#4,	&0x0202	;r2 As==10
+    4214:	1e 14       	pushm.a	#2,	r14	;20-bit words
+    4216:	3d 40 fc 6c 	mov	#27900,	r13	;#0x6cfc
+    421a:	3e 40 30 01 	mov	#304,	r14	;#0x0130
+    421e:	1d 83       	dec	r13		;
+    4220:	0e 73       	sbc	r14		;
+    4222:	fd 23       	jnz	$-4      	;abs 0x421e
+    4224:	0d 93       	cmp	#0,	r13	;r3 As==00
+    4226:	fb 23       	jnz	$-8      	;abs 0x421e
+    4228:	1d 16       	popm.a	#2,	r14	;20-bit words
+    422a:	30 41       	ret			
 
-0000416c <.Loc.13.2>:
-    416c:	30 41       	ret			
+0000422c <main>:
+    422c:	b0 12 ae 41 	call	#16814		;#0x41ae
+    4230:	03 43       	nop			
+    4232:	32 d2       	eint			
+    4234:	03 43       	nop			
+    4236:	32 c2       	dint			
+    4238:	03 43       	nop			
+    423a:	4c 43       	clr.b	r12		;
+    423c:	30 41       	ret			
 
-0000416e <_exit>:
-    416e:	ff 3f       	jmp	$+0      	;abs 0x416e
+0000423e <memcpy>:
+    423e:	0f 4c       	mov	r12,	r15	;
+    4240:	0e 5d       	add	r13,	r14	;
+    4242:	0d 9e       	cmp	r14,	r13	;
+    4244:	01 20       	jnz	$+4      	;abs 0x4248
+    4246:	30 41       	ret			
+    4248:	ff 4d 00 00 	mov.b	@r13+,	0(r15)	;
+    424c:	1f 53       	inc	r15		;
+    424e:	f9 3f       	jmp	$-12     	;abs 0x4242
+
+00004250 <_exit>:
+    4250:	ff 3f       	jmp	$+0      	;abs 0x4250

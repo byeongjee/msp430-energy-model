@@ -3,8 +3,9 @@
   "asm_file": "test/fixtures/activity_recognition.asm",
   "data_file": "test/fixtures/activity_recognition.data",
   "gdb_result": {
+
   "registers": {
-    "PC": 24112,
+    "PC": 24656,
     "SP": 11262,
     "SR": 8,
     "R3": 0,
@@ -15,11 +16,11 @@
     "R8": 0,
     "R9": 0,
     "R10": 0,
-    "R11": 16383,
+    "R11": 0,
     "R12": 0,
-    "R13": 0,
-    "R14": 7170,
-    "R15": 0
+    "R13": 3,
+    "R14": 8,
+    "R15": 8
   },
   "flags": {
     "C": false,
@@ -27,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 24112
+  "pc": 24656
 }
 }

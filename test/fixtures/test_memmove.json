@@ -1,9 +1,11 @@
 {
   "test_name": "test_memmove",
   "asm_file": "test/fixtures/test_memmove.asm",
+  "data_file": "test/fixtures/test_memmove.data",
   "gdb_result": {
+  "memory": { "0x1c00": 4369, "0x1c02": 8738, "0x1c04": 13107, "0x1c06": 17476, "0x1c08": 4660 },
   "registers": {
-    "PC": 16466,
+    "PC": 16468,
     "SP": 11262,
     "SR": 3,
     "R3": 0,
@@ -26,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 16466
+  "pc": 16468
 }
 }

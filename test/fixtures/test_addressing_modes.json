@@ -1,9 +1,11 @@
 {
   "test_name": "test_addressing_modes",
   "asm_file": "test/fixtures/test_addressing_modes.asm",
+  "data_file": "test/fixtures/test_addressing_modes.data",
   "gdb_result": {
+  "memory": { "0x1c00": 4369, "0x1c02": 8738, "0x1c04": 13107, "0x1c06": 17476, "0x1c08": 4660 },
   "registers": {
-    "PC": 16516,
+    "PC": 16478,
     "SP": 11262,
     "SR": 0,
     "R3": 0,
@@ -16,7 +18,7 @@
     "R10": 0,
     "R11": 0,
     "R12": 4369,
-    "R13": 4369,
+    "R13": 7170,
     "R14": 7178,
     "R15": 16394
   },
@@ -26,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 16516
+  "pc": 16478
 }
 }

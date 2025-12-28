@@ -1,9 +1,11 @@
 {
   "test_name": "test_20bit",
   "asm_file": "test/fixtures/test_20bit.asm",
+  "data_file": "test/fixtures/test_20bit.data",
   "gdb_result": {
+
   "registers": {
-    "PC": 16432,
+    "PC": 16446,
     "SP": 11262,
     "SR": 0,
     "R3": 0,
@@ -26,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 16432
+  "pc": 16446
 }
 }

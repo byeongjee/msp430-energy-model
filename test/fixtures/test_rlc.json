@@ -1,11 +1,13 @@
 {
   "test_name": "test_rlc",
   "asm_file": "test/fixtures/test_rlc.asm",
+  "data_file": "test/fixtures/test_rlc.data",
   "gdb_result": {
+
   "registers": {
-    "PC": 16760,
+    "PC": 16972,
     "SP": 11262,
-    "SR": 0,
+    "SR": 129,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -21,11 +23,11 @@
     "R15": 0
   },
   "flags": {
-    "C": false,
+    "C": true,
     "Z": false,
     "N": false,
     "V": false
   },
-  "pc": 16760
+  "pc": 16972
 }
 }

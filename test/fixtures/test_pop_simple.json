@@ -3,6 +3,7 @@
   "asm_file": "test/fixtures/test_pop_simple.asm",
   "data_file": "test/fixtures/test_pop_simple.data",
   "gdb_result": {
+  "memory": { "0x1c00": 4660 },
   "registers": {
     "PC": 16432,
     "SP": 11262,
