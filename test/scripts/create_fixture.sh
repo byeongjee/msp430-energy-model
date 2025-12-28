@@ -113,7 +113,11 @@ echo "✓ Disassembled: $ASM_FILE"
 echo ""
 
 echo "Step 2b: Dumping data sections..."
-"$OBJDUMP" -s $(printf ' -j %s' "${DATA_SECTIONS[@]}") "$ELF_FILE" > "$DATA_FILE"
+# Include section headers for VMA->LMA mapping, then dump section contents
+echo "# Section headers: Name Size VMA LMA" > "$DATA_FILE"
+"$OBJDUMP" -h "$ELF_FILE" | awk '/^[[:space:]]+[0-9]+[[:space:]]/ { print "# " $2, $3, $4, $5 }' >> "$DATA_FILE"
+echo "" >> "$DATA_FILE"
+"$OBJDUMP" -s $(printf ' -j %s' "${DATA_SECTIONS[@]}") "$ELF_FILE" >> "$DATA_FILE"
 echo "✓ Data dump: $DATA_FILE"
 echo ""
 

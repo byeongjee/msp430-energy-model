@@ -115,7 +115,10 @@ disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)
 	fi; \
 	source scripts/disasm.sh && disasm $(BUILD_DIR)/$$BASENAME.elf $(ASM_DIR)/$$BASENAME.asm; \
 	echo "✓ Disassembly saved to: $(ASM_DIR)/$$BASENAME.asm"; \
-	$(OBJDUMP) -s $(addprefix -j ,$(DATA_SECTIONS)) $(BUILD_DIR)/$$BASENAME.elf > $(ASM_DIR)/$$BASENAME.data; \
+	echo "# Section headers: Name Size VMA LMA" > $(ASM_DIR)/$$BASENAME.data; \
+	$(OBJDUMP) -h $(BUILD_DIR)/$$BASENAME.elf | awk '/^[[:space:]]+[0-9]+[[:space:]]/ { print "# " $$2, $$3, $$4, $$5 }' >> $(ASM_DIR)/$$BASENAME.data; \
+	echo "" >> $(ASM_DIR)/$$BASENAME.data; \
+	$(OBJDUMP) -s $(addprefix -j ,$(DATA_SECTIONS)) $(BUILD_DIR)/$$BASENAME.elf >> $(ASM_DIR)/$$BASENAME.data; \
 	echo "✓ Data dump saved to: $(ASM_DIR)/$$BASENAME.data"
 
 

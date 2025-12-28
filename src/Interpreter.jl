@@ -30,6 +30,8 @@ const _HEX_CHARS = Set("0123456789abcdefABCDEF")
 
 """
 Load bytes from an objdump -s data dump file into machine memory.
+Loads data at LMA (Load Memory Address) rather than VMA (Virtual Memory Address)
+so that the C runtime startup code can properly copy initialized data from ROM to RAM.
 Returns true if any bytes were written.
 """
 function load_memory_dump!(state::MachineState, data_file::String)::Bool
@@ -38,13 +40,47 @@ function load_memory_dump!(state::MachineState, data_file::String)::Bool
         return false
     end
 
+    # First pass: parse section headers to build VMA→LMA mapping
+    # Format: "# section_name size vma lma"
+    section_info = Dict{String,Tuple{UInt32,UInt32}}()  # section_name => (vma, lma)
+
+    for raw_line in eachline(data_file)
+        if startswith(raw_line, "# ") && !startswith(raw_line, "# Section headers")
+            parts = split(strip(raw_line[3:end]))
+            if length(parts) >= 4
+                section_name = parts[1]
+                # parts[2] is size, parts[3] is VMA, parts[4] is LMA
+                vma = tryparse(UInt32, parts[3]; base=16)
+                lma = tryparse(UInt32, parts[4]; base=16)
+                if !isnothing(vma) && !isnothing(lma)
+                    section_info[section_name] = (vma, lma)
+                end
+            end
+        end
+    end
+
+    @debug "Parsed section headers" sections = keys(section_info)
+
+    # Second pass: load data at LMA addresses
     bytes_written = 0
     current_section = nothing
+    current_vma_offset = UInt32(0)  # LMA - VMA for current section
 
     for raw_line in eachline(data_file)
         if startswith(raw_line, "Contents of section ")
             m = match(r"Contents of section (\S+):", raw_line)
             current_section = isnothing(m) ? nothing : m.captures[1]
+            if !isnothing(current_section) && haskey(section_info, current_section)
+                vma, lma = section_info[current_section]
+                current_vma_offset = lma - vma
+                if current_vma_offset != 0
+                    @debug "Section has VMA≠LMA, will load at LMA" section = current_section vma =
+                        "0x" * string(vma; base=16, pad=4) lma =
+                        "0x" * string(lma; base=16, pad=4)
+                end
+            else
+                current_vma_offset = UInt32(0)
+            end
             continue
         end
 
@@ -63,7 +99,9 @@ function load_memory_dump!(state::MachineState, data_file::String)::Bool
             continue
         end
 
-        addr = parse(UInt32, addr_str; base=16)
+        vma_addr = parse(UInt32, addr_str; base=16)
+        # Translate VMA to LMA
+        lma_addr = vma_addr + current_vma_offset
 
         hex_tokens = String[]
         for token in parts[2:end]
@@ -81,7 +119,7 @@ function load_memory_dump!(state::MachineState, data_file::String)::Bool
         for i in 1:2:length(hex_str)
             byte_val = parse(UInt8, hex_str[i:(i + 1)]; base=16)
             # Direct memory write for initialization (no event tracking needed)
-            state.memory[addr + UInt32(div(i - 1, 2))] = UInt16(byte_val)
+            state.memory[lma_addr + UInt32(div(i - 1, 2))] = UInt16(byte_val)
             bytes_written += 1
         end
     end
