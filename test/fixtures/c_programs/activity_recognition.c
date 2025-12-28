@@ -315,7 +315,9 @@ int main() {
   begin_event();
   train(global_model.stationary);
   end_event();
+#ifdef DEBUG
   delay(SEC_TO_CYCLES);
+#endif
 
   // 2. Train "Moving"
   // We set mock_scenario to 1 (Moving)
@@ -324,7 +326,9 @@ int main() {
   begin_event();
   train(global_model.moving);
   end_event();
+#ifdef DEBUG
   delay(SEC_TO_CYCLES);
+#endif
 
   // 3. Recognize
   // We reset mock to 0, but recognize_loop will flip it halfway

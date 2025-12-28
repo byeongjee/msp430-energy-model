@@ -63,7 +63,7 @@ if [ -n "$DATA_FILE" ] && [ -f "$DATA_FILE" ]; then
                 GDB_MEMORY_ARGS+=(-ex "x/${num_words}hx 0x${vma_hex}")
             fi
         fi
-    done < <(grep -E "^# \.(data|bss|upper\.data|upper\.bss|lower\.data|lower\.bss) " "$DATA_FILE" 2>/dev/null || true)
+    done < <(grep -E "^# \.(data|bss|noinit|upper\.data|upper\.bss|lower\.data|lower\.bss) " "$DATA_FILE" 2>/dev/null || true)
 fi
 
 # Run GDB with array-based arguments

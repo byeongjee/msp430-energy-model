@@ -3,9 +3,9 @@
   "asm_file": "test/fixtures/activity_recognition.asm",
   "data_file": "test/fixtures/activity_recognition.data",
   "gdb_result": {
-
+  "memory": { "0x1c40": 16, "0x1c42": 17, "0x1c44": 23, "0x1c46": 21, "0x1c48": 17, "0x1c4a": 25, "0x1c4c": 12, "0x1c4e": 20, "0x1c50": 7, "0x1c52": 30, "0x1c54": 13, "0x1c56": 16, "0x1c58": 17, "0x1c5a": 12, "0x1c5c": 19, "0x1c5e": 16, "0x1c60": 21, "0x1c62": 14, "0x1c64": 20, "0x1c66": 22, "0x1c68": 27, "0x1c6a": 12, "0x1c6c": 19, "0x1c6e": 7, "0x1c70": 27, "0x1c72": 3, "0x1c74": 11, "0x1c76": 22, "0x1c78": 18, "0x1c7a": 23, "0x1c7c": 16, "0x1c7e": 17, "0x1c80": 1, "0x1c82": 50298 },
   "registers": {
-    "PC": 24660,
+    "PC": 24636,
     "SP": 11262,
     "SR": 8,
     "R3": 0,
@@ -28,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 24660
+  "pc": 24636
 }
 }
