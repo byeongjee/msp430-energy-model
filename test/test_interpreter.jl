@@ -151,6 +151,26 @@ function compare_states(interpreter_state::Dict, gdb_state::Dict)
 end
 
 """
+Compare interpreter's memory state against expected memory values.
+expected_memory is a Dict like {"0x1c00" => 7, "0x1c02" => 14}
+Returns dictionary of differences or empty dict if all match
+"""
+function compare_memory(state::MachineState, expected_memory::Dict)
+    differences = Dict()
+    for (addr_str, expected_value) in expected_memory
+        address = parse(UInt32, replace(addr_str, r"^0[xX]" => ""); base=16)
+        actual = Int(get(state.memory, address, UInt16(0)))
+        if actual != expected_value
+            differences[addr_str] = Dict(
+                "interpreter" => "0x" * string(actual; base=16, pad=4),
+                "expected" => "0x" * string(expected_value; base=16, pad=4),
+            )
+        end
+    end
+    return differences
+end
+
+"""
 Compare memory access counts with expected values
 Returns dictionary of differences or empty dict if all match
 """
@@ -248,6 +268,23 @@ function test_fixture(fixture_path::String)
             end
 
             @test isempty(cache_diffs)
+        end
+
+        # Test memory values if memory field exists
+        if haskey(fixture, "memory")
+            expected_memory = fixture["memory"]
+            memory_diffs = compare_memory(final_state, expected_memory)
+
+            if !isempty(memory_diffs)
+                println("\n⚠️  Memory test FAILED: $test_name")
+                println("Memory differences:")
+                for (addr, diff) in memory_diffs
+                    println("  $addr: got $(diff["interpreter"]), expected $(diff["expected"])")
+                end
+                println()
+            end
+
+            @test isempty(memory_diffs)
         end
     end
 end
