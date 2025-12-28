@@ -507,8 +507,9 @@ ESTIMATE_DEFINE_FLAGS_FOR_ESTIMATION=$(process_defines "$ESTIMATE_DEFINES_FOR_ES
 
 $CC $CFLAGS $ESTIMATE_DEFINE_FLAGS_FOR_ESTIMATION $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
 log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
-disasm "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ASM_DIR/${ESTIMATE_BASENAME}.asm"
+disasm "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ASM_DIR/${ESTIMATE_BASENAME}.asm" "$ASM_DIR/${ESTIMATE_BASENAME}.data"
 log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"
+log_success "Data dump: $ASM_DIR/${ESTIMATE_BASENAME}.data"
 
 # Estimate energy consumption
 log_step "Estimating energy consumption"
@@ -516,6 +517,7 @@ julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" estimate \
     --asm "$ASM_DIR/${ESTIMATE_BASENAME}.asm" \
     --params "$PARAMS_FILE" \
     --output "$ESTIMATED_STATS_JSON" \
+    --data-dump "$ASM_DIR/${ESTIMATE_BASENAME}.data" \
     $MAX_STEPS_FLAG
 log_success "Estimation complete: $ESTIMATED_STATS_JSON"
 

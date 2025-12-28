@@ -96,7 +96,6 @@ FIXTURE_ASM_FILE="$FIXTURE_DIR/${TEST_NAME}.asm"
 FIXTURE_DATA_FILE="$FIXTURE_DIR/${TEST_NAME}.data"
 GDB_RESULT_FILE="$BUILD_DIR/${TEST_NAME}_gdb.json"
 FIXTURE_FILE="$FIXTURE_DIR/${TEST_NAME}.json"
-DATA_SECTIONS=(.rodata .rodata2 .data .lower.data .upper.data .persistent .text)
 
 echo "Step 1: Compiling C to MSP430 ELF..."
 echo "         CC=$CC"
@@ -107,17 +106,9 @@ echo "   LDFLAGS=$LDFLAGS"
 echo "✓ Compiled: $ELF_FILE"
 echo ""
 
-echo "Step 2: Disassembling to assembly..."
-disasm "$ELF_FILE" "$ASM_FILE"
+echo "Step 2: Disassembling to assembly and dumping data sections..."
+disasm "$ELF_FILE" "$ASM_FILE" "$DATA_FILE"
 echo "✓ Disassembled: $ASM_FILE"
-echo ""
-
-echo "Step 2b: Dumping data sections..."
-# Include section headers for VMA->LMA mapping, then dump section contents
-echo "# Section headers: Name Size VMA LMA" > "$DATA_FILE"
-"$OBJDUMP" -h "$ELF_FILE" | awk '/^[[:space:]]+[0-9]+[[:space:]]/ { print "# " $2, $3, $4, $5 }' >> "$DATA_FILE"
-echo "" >> "$DATA_FILE"
-"$OBJDUMP" -s $(printf ' -j %s' "${DATA_SECTIONS[@]}") "$ELF_FILE" >> "$DATA_FILE"
 echo "✓ Data dump: $DATA_FILE"
 echo ""
 

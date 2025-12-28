@@ -11,10 +11,14 @@
 # We use objcopy to remove only these problematic symbols while keeping
 # function labels intact.
 #
-# Usage: disasm <elf_file> <output_asm_file>
+# Usage: disasm <elf_file> <output_asm_file> <output_data_file>
+#
+# Generates both assembly disassembly and data dump with section headers
+# for VMA→LMA translation (needed for initialized global variables).
 disasm() {
     local elf_file="$1"
     local output_file="$2"
+    local data_file="$3"
     local cleaned_elf="${elf_file%.elf}_cleaned.elf"
     local objcopy_cmd="${MSP430GCC_TOOLCHAIN_PATH}/bin/msp430-elf-objcopy"
 
@@ -35,4 +39,11 @@ disasm() {
 
     "$OBJDUMP" -d "$cleaned_elf" > "$output_file"
     rm -f "$cleaned_elf"
+
+    # Generate data dump with section headers
+    local data_sections=(.rodata .rodata2 .data .lower.data .upper.data .persistent .text)
+    echo "# Section headers: Name Size VMA LMA" > "$data_file"
+    "$OBJDUMP" -h "$elf_file" | awk '/^[[:space:]]+[0-9]+[[:space:]]/ { print "# " $2, $3, $4, $5 }' >> "$data_file"
+    echo "" >> "$data_file"
+    "$OBJDUMP" -s $(printf ' -j %s' "${data_sections[@]}") "$elf_file" >> "$data_file"
 }

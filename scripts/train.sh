@@ -404,8 +404,9 @@ for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
 
     # Always disassemble
-    disasm "$BUILD_DIR/${train_basename}.elf" "$ASM_DIR/${train_basename}.asm"
+    disasm "$BUILD_DIR/${train_basename}.elf" "$ASM_DIR/${train_basename}.asm" "$ASM_DIR/${train_basename}.data"
     log_info "Disassembled: $ASM_DIR/${train_basename}.asm"
+    log_info "Data dump: $ASM_DIR/${train_basename}.data"
     ASM_FILES+=("$ASM_DIR/${train_basename}.asm")
 done
 
