@@ -1,7 +1,9 @@
 {
   "test_name": "test_add_wrap_address",
   "asm_file": "test/fixtures/test_add_wrap_address.asm",
+  "data_file": "test/fixtures/test_add_wrap_address.data",
   "gdb_result": {
+
   "registers": {
     "PC": 16412,
     "SP": 11262,

@@ -1,11 +1,13 @@
 {
   "test_name": "simple",
   "asm_file": "test/fixtures/simple.asm",
+  "data_file": "test/fixtures/simple.data",
   "gdb_result": {
+  "memory": { "0x1c00": 30 },
   "registers": {
-    "PC": 16436,
+    "PC": 16426,
     "SP": 11262,
-    "SR": 0,
+    "SR": 3,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -17,15 +19,15 @@
     "R11": 0,
     "R12": 30,
     "R13": 0,
-    "R14": 0,
-    "R15": 0
+    "R14": 7170,
+    "R15": 7170
   },
   "flags": {
-    "C": false,
-    "Z": false,
+    "C": true,
+    "Z": true,
     "N": false,
     "V": false
   },
-  "pc": 16436
+  "pc": 16426
 }
 }

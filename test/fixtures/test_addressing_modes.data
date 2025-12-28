@@ -1,0 +1,45 @@
+# Section headers: Name Size VMA LMA
+# __reset_vector 00000002 0000fffe 0000fffe
+# .lower.rodata 00000000 00004000 00004000
+# .rodata 00000000 00004000 00004000
+# .rodata2 00000000 00004000 00004000
+# .persistent 00000000 00004000 00004000
+# .lower.data 00000000 00001c00 00001c00
+# .data 0000000a 00001c00 00004000
+# .upper.data 00000002 00010000 0000400a
+# .lower.bss 00000000 00001c0a 00001c0a
+# .bss 00000000 00001c0a 00001c0a
+# .upper.bss 00000000 00010002 00010002
+# .noinit 00000000 00001c0a 00001c0a
+# .heap 00000004 00001c0a 00001c0a
+# .lower.text 00000000 0000400c 0000400c
+# .text 00000090 0000400c 0000400c
+# .text_sram 00000000 00001c0e 00001c0e
+# .upper.text 00000000 00010002 00010002
+# .MSP430.attributes 00000017 00000000 00000000
+# .comment 00000039 00000000 00000000
+# .debug_aranges 00000020 00000000 00000000
+# .debug_info 0000004f 00000000 00000000
+# .debug_abbrev 0000004f 00000000 00000000
+# .debug_line 0000007e 00000000 00000000
+# .debug_frame 00000024 00000000 00000000
+# .debug_str 00000089 00000000 00000000
+# .debug_ranges 00000010 00000000 00000000
+
+
+/Users/byeongjee/migration/probabilistic-energy-modeling/build/test_addressing_modes.elf:     file format elf32-msp430
+
+Contents of section .data:
+ 1c00 11112222 33334444 3412               ..""33DD4.      
+Contents of section .upper.data:
+ 10000 0100                                 ..              
+Contents of section .text:
+ 400c 3140002c 3c40001c 3d400040 0d9c0424  1@.,<@..=@.@...$
+ 401c 3e400a00 b0126040 0c43b012 2e40b012  >@....`@.C...@..
+ 402c 5e40b240 3412081c 3d40001c bd401111  ^@.@4...=@...@..
+ 403c 0000bd40 22220200 bd403333 0400bd40  ...@""...@33...@
+ 404c 44440600 4c431c50 b4db3c5d 805caedb  DD..LC.P..<].\..
+ 405c 3041ff3f 1a150f4d 0f5e0d9c 022c0c9f  0A.?...M.^...,..
+ 406c 07280e4c 0d9f0a24 fe4d0000 1e53fa3f  .(.L...$.M...S.?
+ 407c 094e39e3 4d433d53 099d0220 19173041  .N9.MC=S... ..0A
+ 408c 0b4e0b5d 0b5c0a4f 0a5deb4a 0000f33f  .N.].\.O.].J...?
