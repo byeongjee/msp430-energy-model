@@ -18,8 +18,6 @@ DEVICE ?= MSP430FR5994
 ifeq ($(origin MSP430_DEVICE), environment)
 DEVICE := $(MSP430_DEVICE)
 endif
-# Sections to dump for interpreter data preload
-DATA_SECTIONS := .rodata .rodata2 .data .lower.data .upper.data .persistent .text .text_sram
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MKFILE_DIR := $(dir $(MKFILE_PATH))
@@ -113,12 +111,8 @@ disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)
 	else \
 		BASENAME=$$(basename $(FILE) .c); \
 	fi; \
-	source scripts/disasm.sh && disasm $(BUILD_DIR)/$$BASENAME.elf $(ASM_DIR)/$$BASENAME.asm; \
+	source scripts/disasm.sh && disasm $(BUILD_DIR)/$$BASENAME.elf $(ASM_DIR)/$$BASENAME.asm $(ASM_DIR)/$$BASENAME.data; \
 	echo "✓ Disassembly saved to: $(ASM_DIR)/$$BASENAME.asm"; \
-	echo "# Section headers: Name Size VMA LMA" > $(ASM_DIR)/$$BASENAME.data; \
-	$(OBJDUMP) -h $(BUILD_DIR)/$$BASENAME.elf | awk '/^[[:space:]]+[0-9]+[[:space:]]/ { print "# " $$2, $$3, $$4, $$5 }' >> $(ASM_DIR)/$$BASENAME.data; \
-	echo "" >> $(ASM_DIR)/$$BASENAME.data; \
-	$(OBJDUMP) -s $(addprefix -j ,$(DATA_SECTIONS)) $(BUILD_DIR)/$$BASENAME.elf >> $(ASM_DIR)/$$BASENAME.data; \
 	echo "✓ Data dump saved to: $(ASM_DIR)/$$BASENAME.data"
 
 
