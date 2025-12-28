@@ -9,10 +9,10 @@ Disassembly of section .text:
 
 00004006 <__crt0_call_main>:
     4006:	0c 43       	clr	r12		;
-    4008:	b0 12 2c 42 	call	#16940		;#0x422c
+    4008:	b0 12 30 42 	call	#16944		;#0x4230
 
 0000400c <__crt0_call_exit>:
-    400c:	b0 12 4c 42 	call	#16972		;#0x424c
+    400c:	b0 12 50 42 	call	#16976		;#0x4250
 
 00004010 <clockSetup>:
     4010:	f2 40 a5 ff 	mov.b	#-91,	&0x0161	;#0xffa5
@@ -226,8 +226,8 @@ Disassembly of section .text:
     41c0:	07 2c       	jc	$+16     	;abs 0x41d0
     41c2:	3e 40 04 1c 	mov	#7172,	r14	;#0x1c04
     41c6:	0e 8c       	sub	r12,	r14	;
-    41c8:	3d 40 4e 42 	mov	#16974,	r13	;#0x424e
-    41cc:	b0 12 3a 42 	call	#16954		;#0x423a
+    41c8:	3d 40 52 42 	mov	#16978,	r13	;#0x4252
+    41cc:	b0 12 3e 42 	call	#16958		;#0x423e
     41d0:	f2 40 a5 ff 	mov.b	#-91,	&0x0161	;#0xffa5
     41d4:	61 01 
     41d6:	82 43 62 01 	mov	#0,	&0x0162	;r3 As==00
@@ -259,25 +259,26 @@ Disassembly of section .text:
     4224:	0d 93       	cmp	#0,	r13	;r3 As==00
     4226:	fb 23       	jnz	$-8      	;abs 0x421e
     4228:	1d 16       	popm.a	#2,	r14	;20-bit words
-    422a:	30 41       	ret			
+    422a:	32 c0 07 01 	bic	#263,	r2	;#0x0107
+    422e:	30 41       	ret			
 
-0000422c <main>:
-    422c:	b0 12 ae 41 	call	#16814		;#0x41ae
-    4230:	03 43       	nop			
-    4232:	32 d2       	eint			
+00004230 <main>:
+    4230:	b0 12 ae 41 	call	#16814		;#0x41ae
     4234:	03 43       	nop			
-    4236:	4c 43       	clr.b	r12		;
-    4238:	30 41       	ret			
+    4236:	32 d2       	eint			
+    4238:	03 43       	nop			
+    423a:	4c 43       	clr.b	r12		;
+    423c:	30 41       	ret			
 
-0000423a <memcpy>:
-    423a:	0f 4c       	mov	r12,	r15	;
-    423c:	0e 5d       	add	r13,	r14	;
-    423e:	0d 9e       	cmp	r14,	r13	;
-    4240:	01 20       	jnz	$+4      	;abs 0x4244
-    4242:	30 41       	ret			
-    4244:	ff 4d 00 00 	mov.b	@r13+,	0(r15)	;
-    4248:	1f 53       	inc	r15		;
-    424a:	f9 3f       	jmp	$-12     	;abs 0x423e
+0000423e <memcpy>:
+    423e:	0f 4c       	mov	r12,	r15	;
+    4240:	0e 5d       	add	r13,	r14	;
+    4242:	0d 9e       	cmp	r14,	r13	;
+    4244:	01 20       	jnz	$+4      	;abs 0x4248
+    4246:	30 41       	ret			
+    4248:	ff 4d 00 00 	mov.b	@r13+,	0(r15)	;
+    424c:	1f 53       	inc	r15		;
+    424e:	f9 3f       	jmp	$-12     	;abs 0x4242
 
-0000424c <_exit>:
-    424c:	ff 3f       	jmp	$+0      	;abs 0x424c
+00004250 <_exit>:
+    4250:	ff 3f       	jmp	$+0      	;abs 0x4250
