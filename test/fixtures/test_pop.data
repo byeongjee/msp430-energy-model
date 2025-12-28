@@ -1,0 +1,22 @@
+
+/Users/byeongjee/migration/probabilistic-energy-modeling/build/test_pop.elf:     file format elf32-msp430
+
+Contents of section .data:
+ 1c00 0700                                 ..              
+Contents of section .upper.data:
+ 10000 0100                                 ..              
+Contents of section .text:
+ 4004 3140002c 3c40021c 0d433e40 0200b012  1@.,<@...C>@....
+ 4014 c6403c40 001c3d40 00400d9c 04243e40  .@<@..=@.@...$>@
+ 4024 0200b012 8a400c43 b0123440 b0128840  .....@.C..4@...@
+ 4034 1d42001c 7c406400 b0128040 824c021c  .B..|@d....@.L..
+ 4044 4c433041 0f4c7c40 11005b43 0d9f052c  LC0A.L|@..[C...,
+ 4054 3c530c93 05240d93 07344c43 0b930720  <S...$...4LC... 
+ 4064 0e930124 0c4f3041 5d025b02 ef3f0f9d  ...$.O0A].[..?..
+ 4074 02280f8d 0cdb5b03 5d03f03f 4e43b012  .(....[.]..?NC..
+ 4084 48403041 ff3f1a15 0f4d0f5e 0d9c022c  H@0A.?...M.^...,
+ 4094 0c9f0728 0e4c0d9f 0a24fe4d 00001e53  ...(.L...$.M...S
+ 40a4 fa3f094e 39e34d43 3d53099d 02201917  .?.N9.MC=S... ..
+ 40b4 30410b4e 0b5d0b5c 0a4f0a5d eb4a0000  0A.N.].\.O.].J..
+ 40c4 f33f0e5c 0f4c0f9e 01203041 1f53cf4d  .?.\.L... 0A.S.M
+ 40d4 fffff93f                             ...?            

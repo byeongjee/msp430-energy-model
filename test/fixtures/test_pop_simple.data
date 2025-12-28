@@ -1,0 +1,11 @@
+
+/Users/byeongjee/migration/probabilistic-energy-modeling/build/test_pop_simple.elf:     file format elf32-msp430
+
+Contents of section .upper.data:
+ 10000 0100                                 ..              
+Contents of section .text:
+ 4002 3140002c 3c40001c 0d433e40 0200b012  1@.,<@...C>@....
+ 4012 32400c43 b0121e40 b0123040 3f403412  2@.C...@..0@?@4.
+ 4022 0f123e41 0c4e824c 001c4c43 3041ff3f  ..>A.N.L..LC0A.?
+ 4032 0e5c0f4c 0f9e0120 30411f53 cf4dffff  .\.L... 0A.S.M..
+ 4042 f93f                                 .?              
