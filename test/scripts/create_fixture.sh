@@ -13,6 +13,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Source disassembly utility
+source "$PROJECT_ROOT/scripts/disasm.sh"
+
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <c_file> <test_name>"
     echo "Example: $0 examples/c_programs/simple.c simple"
@@ -105,7 +108,7 @@ echo "✓ Compiled: $ELF_FILE"
 echo ""
 
 echo "Step 2: Disassembling to assembly..."
-"$OBJDUMP" -d "$ELF_FILE" > "$ASM_FILE"
+disasm "$ELF_FILE" "$ASM_FILE"
 echo "✓ Disassembled: $ASM_FILE"
 echo ""
 
