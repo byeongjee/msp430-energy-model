@@ -1,7 +1,7 @@
 {
-  "test_name": "test_pop",
-  "asm_file": "test/fixtures/test_pop.asm",
-  "data_file": "test/fixtures/test_pop.data",
+  "test_name": "test_division",
+  "asm_file": "test/fixtures/test_division.asm",
+  "data_file": "test/fixtures/test_division.data",
   "gdb_result": {
   "registers": {
     "PC": 16520,
