@@ -28,6 +28,7 @@ UNSAFE_OPCODES = set()
 COMPOSITE_CALL_AND_RET = "call_and_ret"
 COMPOSITE_PUSHM_AND_POPM = "pushm_and_popm"
 COMPOSITE_PUSH_AND_RETI = "push_and_reti"
+COMPOSITE_PUSH_AND_POP = "push_and_pop"
 
 MULTIPLIER_REGISTERS = [
     ("MPY", 0x04C0),
@@ -921,6 +922,35 @@ def create_push_specs() -> List[InstructionSpec]:
     return specs
 
 
+def create_pop_specs() -> List[InstructionSpec]:
+    """Create instruction specs for pop (single operand, register only)
+
+    Pop is an emulated instruction equivalent to: mov @SP+, dst
+    It only supports register destination mode.
+    Pop needs to be paired with push for correct stack behavior.
+    """
+    specs = []
+
+    # Pop only supports register destination
+    specs.append(
+        InstructionSpec(
+            opcode="pop",
+            src_mode="register",
+            asm_template="pop.w %[dst]",
+            variables=[{"name": "dst", "type": "uint16_t", "value": "0"}],
+            constraints={
+                "outputs": '[dst] "=r"(dst)',
+                "inputs": "",
+                "clobbers": '"cc"',
+            },
+            # Pop must be paired with push for correct stack behavior
+            composite_group=COMPOSITE_PUSH_AND_POP,
+        )
+    )
+
+    return specs
+
+
 def create_opcode_specs() -> List[InstructionSpec]:
     """Create one representative spec per opcode (granularity: opcode)"""
     specs = []
@@ -976,6 +1006,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
 
     specs.extend(create_call_specs())
     specs.extend(create_push_specs())
+    specs.extend(create_pop_specs())
 
     specs.extend(create_no_operand_specs("clrc"))
     specs.extend(create_dint_specs())
@@ -1040,6 +1071,7 @@ def create_addressing_mode_specs(
 
     specs.extend(create_call_specs())
     specs.extend(create_push_specs())
+    specs.extend(create_pop_specs())
 
     for jmp_opcode in JUMP_OPCODES:
         specs.append(create_jump_spec(jmp_opcode))
