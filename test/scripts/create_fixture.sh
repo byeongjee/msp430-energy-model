@@ -113,7 +113,7 @@ echo "✓ Data dump: $DATA_FILE"
 echo ""
 
 echo "Step 3: Running in GDB simulator..."
-"$SCRIPT_DIR/run_gdb.sh" "$ELF_FILE" "$GDB_RESULT_FILE"
+"$SCRIPT_DIR/run_gdb.sh" "$ELF_FILE" "$GDB_RESULT_FILE" "$DATA_FILE"
 echo "✓ GDB execution complete: $GDB_RESULT_FILE"
 echo ""
 
