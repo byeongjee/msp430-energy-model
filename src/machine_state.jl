@@ -649,7 +649,7 @@ function get_operand_value(
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        read_memory(state, operand.value, data_size, inst, should_track_memory_access)
+        read_memory(state, UInt32(operand.value), data_size, inst, should_track_memory_access)
     else
         error("Unknown addressing mode: $(operand.mode)")
     end
