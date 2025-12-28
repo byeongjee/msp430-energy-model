@@ -286,6 +286,11 @@ NOINLINE void initialize(void) {
   printf("DEBUG UART ready @ %d baud, SMCLK=%lu Hz\n", (int)BAUD,
          (unsigned long)CLOCK_HZ);
 #endif
+
+  // Reset arithmetic flags (C, Z, N, V) to ensure consistent state.
+  // The interpreter skips initialize() so flags would differ from GDB otherwise.
+  // BIC does not affect flags, so this just clears bits 0,1,2,8 of SR.
+  __asm__ volatile("bic #0x0107, r2");
 }
 
 #ifndef NUM_REPEAT

@@ -5,9 +5,9 @@
   "gdb_result": {
 
   "registers": {
-    "PC": 16972,
+    "PC": 16976,
     "SP": 11262,
-    "SR": 11,
+    "SR": 8,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -23,11 +23,11 @@
     "R15": 0
   },
   "flags": {
-    "C": true,
-    "Z": true,
+    "C": false,
+    "Z": false,
     "N": false,
     "V": false
   },
-  "pc": 16972
+  "pc": 16976
 }
 }

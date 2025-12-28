@@ -9,10 +9,10 @@ Disassembly of section .text:
 
 00004006 <__crt0_call_main>:
     4006:	0c 43       	clr	r12		;
-    4008:	b0 12 2c 42 	call	#16940		;#0x422c
+    4008:	b0 12 30 42 	call	#16944		;#0x4230
 
 0000400c <__crt0_call_exit>:
-    400c:	b0 12 66 42 	call	#16998		;#0x4266
+    400c:	b0 12 6a 42 	call	#17002		;#0x426a
 
 00004010 <clockSetup>:
     4010:	f2 40 a5 ff 	mov.b	#-91,	&0x0161	;#0xffa5
@@ -226,8 +226,8 @@ Disassembly of section .text:
     41c0:	07 2c       	jc	$+16     	;abs 0x41d0
     41c2:	3e 40 04 1c 	mov	#7172,	r14	;#0x1c04
     41c6:	0e 8c       	sub	r12,	r14	;
-    41c8:	3d 40 68 42 	mov	#17000,	r13	;#0x4268
-    41cc:	b0 12 54 42 	call	#16980		;#0x4254
+    41c8:	3d 40 6c 42 	mov	#17004,	r13	;#0x426c
+    41cc:	b0 12 58 42 	call	#16984		;#0x4258
     41d0:	f2 40 a5 ff 	mov.b	#-91,	&0x0161	;#0xffa5
     41d4:	61 01 
     41d6:	82 43 62 01 	mov	#0,	&0x0162	;r3 As==00
@@ -259,32 +259,33 @@ Disassembly of section .text:
     4224:	0d 93       	cmp	#0,	r13	;r3 As==00
     4226:	fb 23       	jnz	$-8      	;abs 0x421e
     4228:	1d 16       	popm.a	#2,	r14	;20-bit words
-    422a:	30 41       	ret			
+    422a:	32 c0 07 01 	bic	#263,	r2	;#0x0107
+    422e:	30 41       	ret			
 
-0000422c <main>:
-    422c:	0a 15       	pushm	#1,	r10	;16-bit words
-    422e:	b0 12 ae 41 	call	#16814		;#0x41ae
-    4232:	b0 12 86 40 	call	#16518		;#0x4086
-    4236:	7a 40 0a 00 	mov.b	#10,	r10	;#0x000a
-    423a:	b0 12 4e 40 	call	#16462		;#0x404e
-    423e:	b0 12 6a 40 	call	#16490		;#0x406a
-    4242:	3a 53       	add	#-1,	r10	;r3 As==11
-    4244:	0a 93       	cmp	#0,	r10	;r3 As==00
-    4246:	f9 23       	jnz	$-12     	;abs 0x423a
-    4248:	b0 12 a2 40 	call	#16546		;#0x40a2
-    424c:	3c 40 55 10 	mov	#4181,	r12	;#0x1055
-    4250:	0a 17       	popm	#1,	r10	;16-bit words
-    4252:	30 41       	ret			
+00004230 <main>:
+    4230:	0a 15       	pushm	#1,	r10	;16-bit words
+    4232:	b0 12 ae 41 	call	#16814		;#0x41ae
+    4236:	b0 12 86 40 	call	#16518		;#0x4086
+    423a:	7a 40 0a 00 	mov.b	#10,	r10	;#0x000a
+    423e:	b0 12 4e 40 	call	#16462		;#0x404e
+    4242:	b0 12 6a 40 	call	#16490		;#0x406a
+    4246:	3a 53       	add	#-1,	r10	;r3 As==11
+    4248:	0a 93       	cmp	#0,	r10	;r3 As==00
+    424a:	f9 23       	jnz	$-12     	;abs 0x423e
+    424c:	b0 12 a2 40 	call	#16546		;#0x40a2
+    4250:	3c 40 55 10 	mov	#4181,	r12	;#0x1055
+    4254:	0a 17       	popm	#1,	r10	;16-bit words
+    4256:	30 41       	ret			
 
-00004254 <memcpy>:
-    4254:	0f 4c       	mov	r12,	r15	;
-    4256:	0e 5d       	add	r13,	r14	;
-    4258:	0d 9e       	cmp	r14,	r13	;
-    425a:	01 20       	jnz	$+4      	;abs 0x425e
-    425c:	30 41       	ret			
-    425e:	ff 4d 00 00 	mov.b	@r13+,	0(r15)	;
-    4262:	1f 53       	inc	r15		;
-    4264:	f9 3f       	jmp	$-12     	;abs 0x4258
+00004258 <memcpy>:
+    4258:	0f 4c       	mov	r12,	r15	;
+    425a:	0e 5d       	add	r13,	r14	;
+    425c:	0d 9e       	cmp	r14,	r13	;
+    425e:	01 20       	jnz	$+4      	;abs 0x4262
+    4260:	30 41       	ret			
+    4262:	ff 4d 00 00 	mov.b	@r13+,	0(r15)	;
+    4266:	1f 53       	inc	r15		;
+    4268:	f9 3f       	jmp	$-12     	;abs 0x425c
 
-00004266 <_exit>:
-    4266:	ff 3f       	jmp	$+0      	;abs 0x4266
+0000426a <_exit>:
+    426a:	ff 3f       	jmp	$+0      	;abs 0x426a

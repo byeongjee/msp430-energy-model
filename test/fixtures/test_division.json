@@ -2,11 +2,8 @@
   "test_name": "test_division",
   "asm_file": "test/fixtures/test_division.asm",
   "data_file": "test/fixtures/test_division.data",
-  "memory": {
-    "0x1c00": 7,
-    "0x1c02": 14
-  },
   "gdb_result": {
+  "memory": { "0x1c00": 7, "0x1c02": 14 },
   "registers": {
     "PC": 16520,
     "SP": 11262,
