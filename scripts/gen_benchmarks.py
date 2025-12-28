@@ -39,6 +39,7 @@ from benchmark.common import (
     COMPOSITE_CALL_AND_RET,
     COMPOSITE_PUSHM_AND_POPM,
     COMPOSITE_PUSH_AND_RETI,
+    COMPOSITE_PUSH_AND_POP,
 )
 
 
@@ -154,8 +155,36 @@ INLINE void bench_push_and_reti(void) {
       ".rept " STR(TEXTUAL_REPT) "\\n"
       "  call #bench_empty_interrupt\\n"
       ".endr\\n"
-      : 
-      : 
+      :
+      :
+      : "cc", "memory"));
+}
+"""
+    return {
+        "name": name,
+        "code": code,
+        "key": (name,),
+        "source_keys": sorted(source_keys) if source_keys else None,
+    }
+
+
+def generate_push_and_pop_benchmark(source_keys=None) -> Dict[str, Any]:
+    """Generate a composite benchmark that measures push+pop together.
+
+    This ensures the stack is balanced - each push is followed by a pop.
+    """
+    name = COMPOSITE_PUSH_AND_POP
+    code = """
+INLINE void bench_push_and_pop(void) {
+  uint16_t val = 0x1234;
+  uint16_t result;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\\n"
+      "  push.w %[val]\\n"
+      "  pop.w %[result]\\n"
+      ".endr\\n"
+      : [result] "=r"(result)
+      : [val] "r"(val)
       : "cc", "memory"));
 }
 """
@@ -241,6 +270,8 @@ def generate_instruction_benchmarks(
                 benchmarks.append(generate_pushm_and_popm_benchmark(source_keys, count))
         elif group == COMPOSITE_PUSH_AND_RETI:
             benchmarks.append(generate_push_and_reti_benchmark(source_keys))
+        elif group == COMPOSITE_PUSH_AND_POP:
+            benchmarks.append(generate_push_and_pop_benchmark(source_keys))
         else:
             print(
                 f"Warning: Unknown composite group '{group}', skipping", file=sys.stderr
