@@ -546,10 +546,11 @@ function _execute_multiply_16!(m::MultiplierState)
         m.sumext = UInt16(0)
     elseif m.op1_mode == :mpys
         # Signed multiply: 16x16 -> 32 (signed)
-        s1 = op1 > 0x7FFF ? Int32(op1) - 0x10000 : Int32(op1)
-        s2 = op2 > 0x7FFF ? Int32(op2) - 0x10000 : Int32(op2)
-        result32 = s1 * s2
-        m.result = UInt64(reinterpret(UInt32, Int32(result32)))
+        # Sign-extend 16-bit to Int32 using reinterpret for correctness
+        s1 = Int32(reinterpret(Int16, UInt16(op1)))
+        s2 = Int32(reinterpret(Int16, UInt16(op2)))
+        result32 = s1 * s2  # Result fits in Int32 (max: 32768^2 < 2^31)
+        m.result = UInt64(reinterpret(UInt32, result32))
         # SUMEXT: 0x0000 if result >= 0, 0xFFFF if result < 0
         m.sumext = result32 < 0 ? UInt16(0xFFFF) : UInt16(0)
     elseif m.op1_mode == :mac
@@ -558,8 +559,9 @@ function _execute_multiply_16!(m::MultiplierState)
         m.sumext = UInt16(0)
     elseif m.op1_mode == :macs
         # Signed multiply-accumulate
-        s1 = op1 > 0x7FFF ? Int32(op1) - 0x10000 : Int32(op1)
-        s2 = op2 > 0x7FFF ? Int32(op2) - 0x10000 : Int32(op2)
+        # Sign-extend 16-bit to Int32 using reinterpret for correctness
+        s1 = Int32(reinterpret(Int16, UInt16(op1)))
+        s2 = Int32(reinterpret(Int16, UInt16(op2)))
         # Add to current result (interpret as signed)
         current = reinterpret(Int64, m.result)
         new_result = current + Int64(s1 * s2)
