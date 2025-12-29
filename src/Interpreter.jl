@@ -117,11 +117,24 @@ function load_memory_dump!(state::MachineState, data_file::String)::Bool
         isempty(hex_tokens) && continue
 
         hex_str = join(hex_tokens, "")
-        for i in 1:2:length(hex_str)
-            byte_val = parse(UInt8, hex_str[i:(i + 1)]; base=16)
-            # Direct memory write for initialization (no event tracking needed)
-            state.memory[lma_addr + UInt32(div(i - 1, 2))] = UInt16(byte_val)
-            bytes_written += 1
+        # Process bytes in pairs to form 16-bit words (little-endian)
+        # Memory model uses Dict{UInt32, UInt16} with word-aligned addresses
+        byte_offset = UInt32(0)
+        for i in 1:4:length(hex_str)
+            low_byte = parse(UInt8, hex_str[i:(i + 1)]; base=16)
+            if i + 3 <= length(hex_str)
+                # Full word: combine low and high bytes (little-endian)
+                high_byte = parse(UInt8, hex_str[(i + 2):(i + 3)]; base=16)
+                word_val = UInt16(low_byte) | (UInt16(high_byte) << 8)
+                state.memory[lma_addr + byte_offset] = word_val
+                bytes_written += 2
+                byte_offset += 2
+            else
+                # Odd byte at end: store just the low byte
+                state.memory[lma_addr + byte_offset] = UInt16(low_byte)
+                bytes_written += 1
+                byte_offset += 1
+            end
         end
     end
 
