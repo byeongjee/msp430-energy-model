@@ -7,6 +7,30 @@ const CACHE_WAYS = 2
 const CACHE_SETS = CACHE_NUM_LINES ÷ CACHE_WAYS
 const CACHE_SET_STRIDE = CACHE_LINE_SIZE_BYTES * UInt32(CACHE_SETS)
 
+# Hardware multiplier register addresses (MSP430FR5994 datasheet Table 9-65)
+const MPY_ADDR = UInt32(0x04C0)       # 16-bit unsigned multiply operand 1
+const MPYS_ADDR = UInt32(0x04C2)      # 16-bit signed multiply operand 1
+const MAC_ADDR = UInt32(0x04C4)       # 16-bit unsigned MAC operand 1
+const MACS_ADDR = UInt32(0x04C6)      # 16-bit signed MAC operand 1
+const OP2_ADDR = UInt32(0x04C8)       # 16-bit operand 2 (triggers 16-bit op)
+const RESLO_ADDR = UInt32(0x04CA)     # 16-bit result low word
+const RESHI_ADDR = UInt32(0x04CC)     # 16-bit result high word
+const SUMEXT_ADDR = UInt32(0x04CE)    # Sum extension register
+const MPY32L_ADDR = UInt32(0x04D0)    # 32-bit unsigned multiply op1 low
+const MPY32H_ADDR = UInt32(0x04D2)    # 32-bit unsigned multiply op1 high
+const MPYS32L_ADDR = UInt32(0x04D4)   # 32-bit signed multiply op1 low
+const MPYS32H_ADDR = UInt32(0x04D6)   # 32-bit signed multiply op1 high
+const MAC32L_ADDR = UInt32(0x04D8)    # 32-bit unsigned MAC op1 low
+const MAC32H_ADDR = UInt32(0x04DA)    # 32-bit unsigned MAC op1 high
+const MACS32L_ADDR = UInt32(0x04DC)   # 32-bit signed MAC op1 low
+const MACS32H_ADDR = UInt32(0x04DE)   # 32-bit signed MAC op1 high
+const OP2L_ADDR = UInt32(0x04E0)      # 32-bit operand 2 low
+const OP2H_ADDR = UInt32(0x04E2)      # 32-bit operand 2 high (triggers 32-bit op)
+const RES0_ADDR = UInt32(0x04E4)      # 32-bit result word 0 (lowest)
+const RES1_ADDR = UInt32(0x04E6)      # 32-bit result word 1
+const RES2_ADDR = UInt32(0x04E8)      # 32-bit result word 2
+const RES3_ADDR = UInt32(0x04EA)      # 32-bit result word 3 (highest)
+
 """
 Create an empty cache with all lines invalidated.
 """
@@ -49,8 +73,14 @@ function MachineState()::MachineState
         0,                      # cache_tick for LRU
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
         0,  # repeat_counter initialized to 0
+        MultiplierState(),  # Hardware multiplier peripheral
     )
 end
+
+"""
+Check if address is in the hardware multiplier register range.
+"""
+_is_multiplier_address(addr::UInt32)::Bool = addr >= 0x04C0 && addr <= 0x04EA
 
 _cache_set_index(addr::UInt32)::Int =
     Int((addr ÷ CACHE_LINE_SIZE_BYTES) % UInt32(CACHE_SETS)) + 1
@@ -381,6 +411,13 @@ function read_memory(
 
     # MSP430 automatically aligns word accesses to even addresses
     aligned_addr = addr & ~UInt32(1)
+
+    # Handle hardware multiplier reads
+    if _is_multiplier_address(aligned_addr)
+        result_val = _handle_multiplier_read(state, aligned_addr)
+        return (UInt32(result_val), events)
+    end
+
     use_cache = _is_fram_address(aligned_addr)
 
     # Helper to read a word from aligned address
@@ -491,6 +528,165 @@ function handle_debug_function_call!(
     return nothing
 end
 
+# ============================================================================
+# Hardware Multiplier Emulation
+# ============================================================================
+
+"""
+Execute 16-bit multiply operation based on op1_mode.
+Called when OP2 register is written.
+"""
+function _execute_multiply_16!(m::MultiplierState)
+    op1 = m.op1_value & 0xFFFF
+    op2 = m.op2_value & 0xFFFF
+
+    if m.op1_mode == :mpy
+        # Unsigned multiply: 16x16 -> 32
+        m.result = UInt64(op1) * UInt64(op2)
+        m.sumext = UInt16(0)
+    elseif m.op1_mode == :mpys
+        # Signed multiply: 16x16 -> 32 (signed)
+        s1 = op1 > 0x7FFF ? Int32(op1) - 0x10000 : Int32(op1)
+        s2 = op2 > 0x7FFF ? Int32(op2) - 0x10000 : Int32(op2)
+        result32 = s1 * s2
+        m.result = UInt64(reinterpret(UInt32, Int32(result32)))
+        # SUMEXT: 0x0000 if result >= 0, 0xFFFF if result < 0
+        m.sumext = result32 < 0 ? UInt16(0xFFFF) : UInt16(0)
+    elseif m.op1_mode == :mac
+        # Unsigned multiply-accumulate: result += op1 * op2
+        m.result += UInt64(op1) * UInt64(op2)
+        m.sumext = UInt16(0)
+    elseif m.op1_mode == :macs
+        # Signed multiply-accumulate
+        s1 = op1 > 0x7FFF ? Int32(op1) - 0x10000 : Int32(op1)
+        s2 = op2 > 0x7FFF ? Int32(op2) - 0x10000 : Int32(op2)
+        # Add to current result (interpret as signed)
+        current = reinterpret(Int64, m.result)
+        new_result = current + Int64(s1 * s2)
+        m.result = reinterpret(UInt64, new_result)
+        m.sumext = new_result < 0 ? UInt16(0xFFFF) : UInt16(0)
+    end
+end
+
+"""
+Execute 32-bit multiply operation based on op1_mode.
+Called when OP2H register is written.
+"""
+function _execute_multiply_32!(m::MultiplierState)
+    op1 = m.op1_value
+    op2 = m.op2_value
+
+    if m.op1_mode in (:mpy32, :mpy)
+        # Unsigned 32x32 -> 64
+        m.result = UInt64(op1) * UInt64(op2)
+        m.sumext = UInt16(0)
+    elseif m.op1_mode in (:mpys32, :mpys)
+        # Signed 32x32 -> 64
+        s1 = reinterpret(Int32, op1)
+        s2 = reinterpret(Int32, op2)
+        result64 = Int64(s1) * Int64(s2)
+        m.result = reinterpret(UInt64, result64)
+        m.sumext = result64 < 0 ? UInt16(0xFFFF) : UInt16(0)
+    elseif m.op1_mode in (:mac32, :mac)
+        # Unsigned 32x32 multiply-accumulate
+        m.result += UInt64(op1) * UInt64(op2)
+        m.sumext = UInt16(0)
+    elseif m.op1_mode in (:macs32, :macs)
+        # Signed 32x32 multiply-accumulate
+        s1 = reinterpret(Int32, op1)
+        s2 = reinterpret(Int32, op2)
+        current = reinterpret(Int64, m.result)
+        new_result = current + Int64(s1) * Int64(s2)
+        m.result = reinterpret(UInt64, new_result)
+        m.sumext = new_result < 0 ? UInt16(0xFFFF) : UInt16(0)
+    end
+end
+
+"""
+Handle writes to hardware multiplier registers.
+"""
+function _handle_multiplier_write!(state::MachineState, addr::UInt32, value::UInt16)
+    m = state.multiplier
+
+    if addr == MPY_ADDR
+        m.op1_mode = :mpy
+        m.op1_value = UInt32(value)
+    elseif addr == MPYS_ADDR
+        m.op1_mode = :mpys
+        m.op1_value = UInt32(value)
+    elseif addr == MAC_ADDR
+        m.op1_mode = :mac
+        m.op1_value = UInt32(value)
+    elseif addr == MACS_ADDR
+        m.op1_mode = :macs
+        m.op1_value = UInt32(value)
+    elseif addr == OP2_ADDR
+        # Writing OP2 triggers 16-bit operation
+        m.op2_value = UInt32(value)
+        _execute_multiply_16!(m)
+    elseif addr == MPY32L_ADDR
+        m.op1_mode = :mpy32
+        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
+    elseif addr == MPY32H_ADDR
+        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
+    elseif addr == MPYS32L_ADDR
+        m.op1_mode = :mpys32
+        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
+    elseif addr == MPYS32H_ADDR
+        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
+    elseif addr == MAC32L_ADDR
+        m.op1_mode = :mac32
+        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
+    elseif addr == MAC32H_ADDR
+        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
+    elseif addr == MACS32L_ADDR
+        m.op1_mode = :macs32
+        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
+    elseif addr == MACS32H_ADDR
+        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
+    elseif addr == OP2L_ADDR
+        m.op2_value = (m.op2_value & 0xFFFF0000) | UInt32(value)
+    elseif addr == OP2H_ADDR
+        # Writing OP2H triggers 32-bit operation
+        m.op2_value = (m.op2_value & 0x0000FFFF) | (UInt32(value) << 16)
+        _execute_multiply_32!(m)
+    end
+    # Result registers (RES0-RES3, RESLO, RESHI) are read-only in hardware
+    # but we don't error on write attempts - they're just ignored
+end
+
+"""
+Handle reads from hardware multiplier registers.
+Returns the value that should be read.
+"""
+function _handle_multiplier_read(state::MachineState, addr::UInt32)::UInt16
+    m = state.multiplier
+
+    if addr == RESLO_ADDR || addr == RES0_ADDR
+        return UInt16(m.result & 0xFFFF)
+    elseif addr == RESHI_ADDR || addr == RES1_ADDR
+        return UInt16((m.result >> 16) & 0xFFFF)
+    elseif addr == RES2_ADDR
+        return UInt16((m.result >> 32) & 0xFFFF)
+    elseif addr == RES3_ADDR
+        return UInt16((m.result >> 48) & 0xFFFF)
+    elseif addr == SUMEXT_ADDR
+        return m.sumext
+    elseif addr == MPY_ADDR || addr == MPYS_ADDR || addr == MAC_ADDR || addr == MACS_ADDR
+        return UInt16(m.op1_value & 0xFFFF)
+    elseif addr == MPY32L_ADDR || addr == MPYS32L_ADDR || addr == MAC32L_ADDR || addr == MACS32L_ADDR
+        return UInt16(m.op1_value & 0xFFFF)
+    elseif addr == MPY32H_ADDR || addr == MPYS32H_ADDR || addr == MAC32H_ADDR || addr == MACS32H_ADDR
+        return UInt16((m.op1_value >> 16) & 0xFFFF)
+    elseif addr == OP2_ADDR || addr == OP2L_ADDR
+        return UInt16(m.op2_value & 0xFFFF)
+    elseif addr == OP2H_ADDR
+        return UInt16((m.op2_value >> 16) & 0xFFFF)
+    else
+        return UInt16(0)
+    end
+end
+
 function write_memory!(
     state::MachineState,
     addr::UInt32,
@@ -507,6 +703,12 @@ function write_memory!(
 
     # MSP430 automatically aligns word accesses to even addresses
     aligned_addr = addr & ~UInt32(1)
+
+    # Handle hardware multiplier writes
+    if _is_multiplier_address(aligned_addr)
+        _handle_multiplier_write!(state, aligned_addr, UInt16(value & 0xFFFF))
+        return events  # Multiplier registers don't use regular memory
+    end
 
     # Determine byte length for cache invalidation
     byte_len = data_size == :byte ? 1 : data_size == :word ? 2 : data_size == :address ? 4 : 0

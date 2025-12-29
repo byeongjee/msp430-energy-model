@@ -9,6 +9,7 @@ export Operand,
     ExecutionTrace,
     WithEvent,
     CacheLine,
+    MultiplierState,
     MachineState,
     EnergyStats,
     TrainingData,
@@ -255,6 +256,22 @@ Extract the underlying instruction from a trace entry.
 get_inst(event::ExecutionEvent)::Instruction = event.inst
 
 """
+Hardware multiplier state for MSP430FR5994.
+
+The MSP430FR5994 has a hardware multiplier peripheral at addresses 0x04C0-0x04EA.
+Writing to operand registers and then to the OP2 register triggers multiplication.
+"""
+mutable struct MultiplierState
+    op1_mode::Symbol      # Operation type: :mpy, :mpys, :mac, :macs, :mpy32, :mpys32, :mac32, :macs32
+    op1_value::UInt32     # Operand 1 value (16 or 32-bit depending on mode)
+    op2_value::UInt32     # Operand 2 value (16 or 32-bit)
+    result::UInt64        # Full 64-bit result (for 32x32 multiply)
+    sumext::UInt16        # Sum extension register
+end
+
+MultiplierState() = MultiplierState(:mpy, UInt32(0), UInt32(0), UInt64(0), UInt16(0))
+
+"""
 Cache line used by the MSP430FR5994-style cache simulation.
 """
 mutable struct CacheLine
@@ -280,6 +297,7 @@ mutable struct MachineState
     cache_tick::UInt64               # Monotonic counter for LRU
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
     repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
+    multiplier::MultiplierState     # Hardware multiplier peripheral state
 end
 
 """

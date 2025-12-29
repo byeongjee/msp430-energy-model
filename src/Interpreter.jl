@@ -9,6 +9,7 @@ using ..Types:
     Instruction,
     Operand,
     MachineState,
+    MultiplierState,
     ExecutionEvent,
     ExecutionTrace,
     CacheLine,
