@@ -283,8 +283,8 @@ function test_fixture(fixture_path::String)
         end
 
         # Test memory values if memory field exists
-        if haskey(fixture, "memory")
-            expected_memory = fixture["memory"]
+        if haskey(gdb_result, "memory")
+            expected_memory = gdb_result["memory"]
             memory_diffs = compare_memory(final_state, expected_memory)
 
             if !isempty(memory_diffs)
