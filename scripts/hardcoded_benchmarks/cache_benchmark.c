@@ -33,11 +33,12 @@
 // The data array is aligned and sized to provide addresses in both sets.
 
 // Single location for cache hit testing
-static const volatile uint16_t fram_hit_target __attribute__((section(".rodata"))) = 0xCAFE;
+// Note: const data goes to .rodata (FRAM) by default; no explicit section needed
+static const volatile uint16_t fram_hit_target = 0xCAFE;
 
 // Array for cache miss testing - need addresses that map to same cache set
 // Addresses spaced 16 bytes apart (CACHE_SET_STRIDE) to hit same set
-static const volatile uint16_t fram_miss_data[48] __attribute__((section(".rodata"), aligned(16))) = {
+static const volatile uint16_t fram_miss_data[48] __attribute__((aligned(16))) = {
     0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888,  // Set 0: offset 0
     0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888,  // Set 1: offset 16
     0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888,  // Set 0: offset 32

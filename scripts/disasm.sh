@@ -28,6 +28,13 @@ disasm() {
     # - .Loc.* (DWARF source location labels)
     # - .L* (GCC internal labels like .L1, .L2)
     # - .LCFI* (CFI labels)
+    #
+    # Note: objcopy may warn "section `.data' can't be allocated in segment"
+    # for sections with VMA≠LMA (e.g., .data has VMA in RAM, LMA in FRAM).
+    # This corrupts the .data LMA in the cleaned ELF, but is safe because:
+    # - The cleaned ELF is only used for disassembly (objdump -d)
+    # - Disassembly only covers code sections (.text, .text_sram) which are unaffected
+    # - The data dump (with correct LMA→VMA mapping) uses the original ELF below
     "$objcopy_cmd" \
         --wildcard \
         --strip-symbol='L0*' \
