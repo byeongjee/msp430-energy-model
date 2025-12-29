@@ -253,7 +253,11 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	fi; \
 	echo ""; \
 	echo "Running Python test suite..."; \
-	uv run python -m unittest discover -s scripts -p 'test_*.py' -v && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
+	if [ -n "$(PATTERN)" ]; then \
+		uv run python -m unittest discover -s scripts -p 'test_*.py' -v -k "$(PATTERN)" && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
+	else \
+		uv run python -m unittest discover -s scripts -p 'test_*.py' -v && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
+	fi; \
 	echo ""; \
 	echo "========================================"; \
 	echo "Test Summary"; \
