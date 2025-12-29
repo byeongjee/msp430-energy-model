@@ -235,11 +235,15 @@ function test_fixture(fixture_path::String)
         # Convert to comparable format
         interpreter_result = state_to_dict(final_state)
 
+        # Track all failures
+        all_passed = true
+
         # Compare results
         differences = compare_states(interpreter_result, gdb_result)
 
         # Single test: states must match exactly
         if !isempty(differences)
+            all_passed = false
             println("\n⚠️  Test FAILED: $test_name")
             println("Differences:")
             for (key, diff) in differences
@@ -250,14 +254,13 @@ function test_fixture(fixture_path::String)
             println()
         end
 
-        @test isempty(differences)
-
         # Test cache accesses if cache field exists
         if has_cache_test
             expected_cache = fixture["cache"]
             cache_diffs = compare_cache_accesses(event_accesses, expected_cache)
 
             if !isempty(cache_diffs)
+                all_passed = false
                 println("\n⚠️  Cache test FAILED: $test_name")
                 println("Cache access differences:")
                 for (event_key, diffs) in cache_diffs
@@ -270,8 +273,6 @@ function test_fixture(fixture_path::String)
                 end
                 println()
             end
-
-            @test isempty(cache_diffs)
         end
 
         # Test memory values if memory field exists
@@ -280,6 +281,7 @@ function test_fixture(fixture_path::String)
             memory_diffs = compare_memory(final_state, expected_memory)
 
             if !isempty(memory_diffs)
+                all_passed = false
                 println("\n⚠️  Memory test FAILED: $test_name")
                 println("Memory differences:")
                 for (addr, diff) in memory_diffs
@@ -287,9 +289,10 @@ function test_fixture(fixture_path::String)
                 end
                 println()
             end
-
-            @test isempty(memory_diffs)
         end
+
+        # Single test assertion for the entire fixture
+        @test all_passed
     end
 end
 
