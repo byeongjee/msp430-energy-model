@@ -402,20 +402,20 @@ function read_memory(
     inst::Union{Nothing,Instruction},
     should_track_memory_access::Bool,
 )::WithEvent{UInt32}
+    # MSP430 automatically aligns word accesses to even addresses
+    aligned_addr = addr & ~UInt32(1)
+
+    # Handle hardware multiplier reads (no cache events for peripheral registers)
+    if _is_multiplier_address(aligned_addr)
+        result_val = _handle_multiplier_read(state, aligned_addr)
+        return (UInt32(result_val), ExecutionEvent[])
+    end
+
     # Record the memory access as an event (only if inst is provided)
     if should_track_memory_access
         events = record_memory_access(state, addr, :read, data_size, inst)
     else
         events = ExecutionEvent[]
-    end
-
-    # MSP430 automatically aligns word accesses to even addresses
-    aligned_addr = addr & ~UInt32(1)
-
-    # Handle hardware multiplier reads
-    if _is_multiplier_address(aligned_addr)
-        result_val = _handle_multiplier_read(state, aligned_addr)
-        return (UInt32(result_val), events)
     end
 
     use_cache = _is_fram_address(aligned_addr)
@@ -697,19 +697,20 @@ function write_memory!(
     inst::Instruction,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
+    # MSP430 automatically aligns word accesses to even addresses
+    aligned_addr = addr & ~UInt32(1)
+
+    # Handle hardware multiplier writes (no cache events for peripheral registers)
+    if _is_multiplier_address(aligned_addr)
+        _handle_multiplier_write!(state, aligned_addr, UInt16(value & 0xFFFF))
+        return ExecutionEvent[]
+    end
+
+    # Record memory access event for non-peripheral memory
     if should_track_memory_access
         events = record_memory_access(state, addr, :write, data_size, inst)
     else
         events = ExecutionEvent[]
-    end
-
-    # MSP430 automatically aligns word accesses to even addresses
-    aligned_addr = addr & ~UInt32(1)
-
-    # Handle hardware multiplier writes
-    if _is_multiplier_address(aligned_addr)
-        _handle_multiplier_write!(state, aligned_addr, UInt16(value & 0xFFFF))
-        return events  # Multiplier registers don't use regular memory
     end
 
     # Determine byte length for cache invalidation
