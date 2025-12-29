@@ -521,6 +521,7 @@ function execute!(
 end
 
 # BIT - Test bits (AND without storing)
+# Flag behavior for BIT: N=MSB of result, Z=1 if zero, C=NOT Z, V=0
 function execute!(
     state::MachineState,
     ::BitHandler,
@@ -544,7 +545,17 @@ function execute!(
     )
     append!(events, dst_events)
     result = UInt32(dst_val & src_val)
-    update_flags!(state, result, dst_val, src_val, false, data_size)
+
+    # BIT has special flag behavior (different from SUB/CMP)
+    msb_bit = data_size == :byte ? UInt32(0x80) :
+              data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+    masked_result = apply_data_size_mask(result, data_size)
+
+    state.flags[:N] = (masked_result & msb_bit) != 0
+    state.flags[:Z] = masked_result == 0
+    state.flags[:C] = masked_result != 0  # C = NOT Z for BIT
+    state.flags[:V] = false  # V is always reset for BIT
+
     return events  # Don't store result for bit test
 end
 
