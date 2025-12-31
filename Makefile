@@ -255,6 +255,10 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	echo "Running Python test suite..."; \
 	if [ -n "$(PATTERN)" ]; then \
 		uv run python -m unittest discover -s scripts -p 'test_*.py' -v -k "$(PATTERN)" && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
+		if [ $$PYTHON_EXIT -eq 5 ]; then \
+			echo "(No Python tests matched pattern '$(PATTERN)')"; \
+			PYTHON_EXIT=0; \
+		fi; \
 	else \
 		uv run python -m unittest discover -s scripts -p 'test_*.py' -v && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
 	fi; \
