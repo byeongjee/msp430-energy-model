@@ -31,11 +31,11 @@ extern char __text_sram_load[];
 
 // Copy .text_sram section from FRAM (load address) to RAM (execution address)
 static inline void copy_text_sram(void) {
-    char* src = __text_sram_load;
-    char* dst = __text_sram_start;
-    while (dst < __text_sram_end) {
-        *dst++ = *src++;
-    }
+  char *src = __text_sram_load;
+  char *dst = __text_sram_start;
+  while (dst < __text_sram_end) {
+    *dst++ = *src++;
+  }
 }
 
 // ============================================================================
@@ -164,12 +164,13 @@ NOINLINE void delay(uint32_t cycles) {
 // FRAM cache, forcing cache misses when returning to caller.
 NOINLINE __attribute__((used)) void bench_empty_function(void) {
   __asm__ volatile(
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 10
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 20
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 30
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 40
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 50
-      ::: "memory");
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 10
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 20
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 30
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 40
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 50
+      ::
+          : "memory");
 }
 
 // Interrupt-style stub for push/reti composite benchmark.
@@ -179,11 +180,11 @@ NOINLINE __attribute__((used, naked)) void bench_empty_interrupt(void) {
   __asm__ volatile(
       "push r2\n"
       "dint\n"
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 10
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 20
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 30
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 40
-      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n"  // 50
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 10
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 20
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 30
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 40
+      "nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n nop\n" // 50
       "reti\n");
 }
 
@@ -288,8 +289,9 @@ NOINLINE void initialize(void) {
 #endif
 
   // Reset arithmetic flags (C, Z, N, V) to ensure consistent state.
-  // The interpreter skips initialize() so flags would differ from GDB otherwise.
-  // BIC does not affect flags, so this just clears bits 0,1,2,8 of SR.
+  // The interpreter skips initialize() so flags would differ from GDB
+  // otherwise. BIC does not affect flags, so this just clears bits 0,1,2,8 of
+  // SR.
   __asm__ volatile("bic #0x0107, r2");
 }
 
