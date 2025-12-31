@@ -233,46 +233,6 @@ bench_empty_function:
  nop
  nop
  nop
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
 
  ; 0 "" 2
 	; start of epilogue
@@ -291,49 +251,9 @@ bench_empty_interrupt:
 ; elim ap -> fp       2
 ; elim fp -> sp       0
 ; saved regs:(none)
- ; 179 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 176 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	push r2
 dint
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
-nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
- nop
 nop
  nop
  nop
@@ -402,7 +322,7 @@ initialize:
 	JNE	1b
 	POPM.A	#2,r14
 	; End 80000000 cycle delay
- ; 293 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 287 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	bic #0x0107, r2
  ; 0 "" 2
 	; start of epilogue
@@ -429,12 +349,12 @@ main:
 .L21:
  ; 17 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
 	loop_header:
-.set br_addr, 0x4240
+.set br_addr, 0x41a0
 .rept 100 - 1
   br #br_addr + 4
   .set br_addr, br_addr + 4
 .endr
-  br #0x43d0
+  br #0x4330
 
  ; 0 "" 2
 	ADD.W	#-1, R12
