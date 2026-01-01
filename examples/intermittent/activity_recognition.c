@@ -88,11 +88,11 @@ INLINE unsigned sqrt16(unsigned long n) {
 volatile static int mock_scenario
     __attribute__((section(".noinit"))); // 0=Stationary, 1=Moving
 
-INLINE void ACCEL_init() {
+void ACCEL_init() {
   // Real sensor init would go here
 }
 
-INLINE void accel_sample(accelReading *sample) {
+void accel_sample(accelReading *sample) {
   // Generate synthetic data based on current scenario
   if (mock_scenario == 0) {
     // Stationary: Small noise near 0
@@ -109,7 +109,7 @@ INLINE void accel_sample(accelReading *sample) {
 
 // --- Core Algorithm Logic ---
 
-INLINE void acquire_window(accelWindow window) {
+void acquire_window(accelWindow window) {
   accelReading sample;
   unsigned samplesInWindow = 0;
 
@@ -119,7 +119,7 @@ INLINE void acquire_window(accelWindow window) {
   }
 }
 
-INLINE void transform(accelWindow window) {
+void transform(accelWindow window) {
   unsigned i = 0;
   for (i = 0; i < ACCEL_WINDOW_SIZE; i++) {
     accelReading *sample = &window[i];
@@ -134,7 +134,7 @@ INLINE void transform(accelWindow window) {
   }
 }
 
-INLINE void featurize(volatile features_t *features, accelWindow aWin) {
+void featurize(volatile features_t *features, accelWindow aWin) {
   long mean_x = 0, mean_y = 0, mean_z = 0;
   long std_x = 0, std_y = 0, std_z = 0;
   int i;
@@ -166,7 +166,7 @@ INLINE void featurize(volatile features_t *features, accelWindow aWin) {
   features->stddevmag = sqrt16(stddevmag);
 }
 
-INLINE class_t classify(features_t *features, volatile model_t *model) {
+class_t classify(features_t *features, volatile model_t *model) {
   int move_less_error = 0;
   int stat_less_error = 0;
   volatile features_t *model_features;
@@ -200,7 +200,7 @@ INLINE class_t classify(features_t *features, volatile model_t *model) {
   return (move_less_error > stat_less_error) ? CLASS_MOVING : CLASS_STATIONARY;
 }
 
-INLINE void warmup_sensor() {
+void warmup_sensor() {
   unsigned discarded = 0;
   accelReading sample;
   DEBUG_OUT_STR("Warmup...\n");
@@ -209,7 +209,7 @@ INLINE void warmup_sensor() {
   }
 }
 
-INLINE void train(volatile features_t *classModel) {
+void train(volatile features_t *classModel) {
   accelWindow sampleWindow;
   features_t features;
   unsigned i;
@@ -236,7 +236,7 @@ INLINE void train(volatile features_t *classModel) {
   DEBUG_OUT_CHAR('\n');
 }
 
-INLINE void recognize_loop(volatile model_t *model) {
+void recognize_loop(volatile model_t *model) {
   volatile stats_t stats = {0};
   accelWindow sampleWindow;
   features_t features;
