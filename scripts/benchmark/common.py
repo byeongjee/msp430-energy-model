@@ -70,6 +70,7 @@ SINGLE_OPERAND_OPCODES = [
     "clr",
     "inv",
     "rla",
+    "rlax",
     "rlc",
     "rrc",
     "rrax",
@@ -771,11 +772,21 @@ def create_rpt_specs(
 
 
 def create_constant_imm_to_reg_specs(
-    opcode: str, include_constant: bool = True, composite_group: str = None
+    opcode: str,
+    include_constant: bool,
+    composite_group: Optional[str],
+    max_constant: int,
 ) -> List[InstructionSpec]:
-    """Create constant-aware instruction specs of the form: opcode #const, reg"""
+    """Create constant-aware instruction specs of the form: opcode #const, reg
+
+    Args:
+        opcode: The instruction opcode
+        include_constant: Whether to include constant values in keys
+        composite_group: Optional composite benchmark group
+        max_constant: Maximum constant value to generate (e.g., 4 for rlam/rrum, 16 for pushm/popm)
+    """
     specs = []
-    constants = [1, 2, 3, 4, 5] if include_constant else [1]
+    constants = list(range(1, max_constant + 1)) if include_constant else [1]
     for constant in constants:
         specs.append(
             InstructionSpec(
@@ -1049,23 +1060,19 @@ def create_addressing_mode_specs(
     specs.extend(create_multiplier_mov_specs(include_constant=include_constant))
 
     specs.extend(
-        create_constant_imm_to_reg_specs("rlam", include_constant=include_constant)
+        create_constant_imm_to_reg_specs("rlam", include_constant, None, 4)
     )
     specs.extend(
-        create_constant_imm_to_reg_specs("rrum", include_constant=include_constant)
+        create_constant_imm_to_reg_specs("rrum", include_constant, None, 4)
     )
     specs.extend(
         create_constant_imm_to_reg_specs(
-            "pushm",
-            include_constant=include_constant,
-            composite_group=COMPOSITE_PUSHM_AND_POPM,
+            "pushm", include_constant, COMPOSITE_PUSHM_AND_POPM, 16
         )
     )
     specs.extend(
         create_constant_imm_to_reg_specs(
-            "popm",
-            include_constant=include_constant,
-            composite_group=COMPOSITE_PUSHM_AND_POPM,
+            "popm", include_constant, COMPOSITE_PUSHM_AND_POPM, 16
         )
     )
 
