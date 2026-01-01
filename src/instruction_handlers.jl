@@ -85,6 +85,7 @@ struct PopmHandler <: SingleOperandHandler end
 struct PopHandler <: SingleOperandHandler end
 struct RlaHandler <: SingleOperandHandler end
 struct RlamHandler <: SingleOperandHandler end
+struct RlaxHandler <: SingleOperandHandler end
 struct SbcHandler <: SingleOperandHandler end
 struct AdcHandler <: SingleOperandHandler end
 struct DecdHandler <: SingleOperandHandler end
@@ -154,6 +155,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :pop => PopHandler(),
     :rla => RlaHandler(),
     :rlam => RlamHandler(),
+    :rlax => RlaxHandler(),
     :sbc => SbcHandler(),
     :adc => AdcHandler(),
     :decd => DecdHandler(),
@@ -1636,6 +1638,39 @@ function execute!(
     update_flags_simple!(state, result, data_size)
     write_events = set_operand_value!(
         state, ops[2], result, data_size, inst, should_track_memory_access
+    )
+    append!(events, write_events)
+    return events
+end
+
+# RLAX - Rotate left arithmetic extended (single-bit shift)
+function execute!(
+    state::MachineState,
+    ::RlaxHandler,
+    inst::Instruction,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{Tuple{UInt32,UInt32}},
+    ::Int,
+    should_track_memory_access::Bool,
+)::Vector{ExecutionEvent}
+    if length(ops) < 1
+        return ExecutionEvent[]
+    end
+    events = ExecutionEvent[]
+    dst_val, dst_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
+    append!(events, dst_events)
+
+    # Single bit arithmetic left shift
+    new_carry = (dst_val & 0x8000) != 0
+    result = dst_val << 1
+    state.flags[:C] = new_carry
+
+    update_flags_simple!(state, result, data_size)
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
     )
     append!(events, write_events)
     return events
