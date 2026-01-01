@@ -8,42 +8,13 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
-INLINE void bench_jc_symbolic(void) {
+INLINE void bench_rpt_8_rlax_register(void) {
+  uint16_t dst = 0x2222;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jc 1f\n1:\n"
+      "  rpt #8 { rlax.w %[dst] }\n"
       ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_dint(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  dint\n  nop\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_nop(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  nop\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_clrc(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  clrc\n"
-      ".endr\n"
-      : 
+      : [dst] "+r"(dst)
       : 
       : "cc"));
 }
@@ -105,6 +76,18 @@ INLINE void bench_pushm_and_popm_5(void) {
 }
 
 
+INLINE void bench_pushm_and_popm_7(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  pushm #7, r10\n"
+      "  popm #7, r10\n"
+      ".endr\n"
+      : 
+      : 
+      : "r10", "r11", "cc", "memory"));
+}
+
+
 INLINE void bench_call_and_ret(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -132,15 +115,13 @@ int main(void) {
   begin_measurement_window();
 
 
-  BENCH(bench_jc_symbolic());
-  BENCH(bench_dint());
-  BENCH(bench_nop());
-  BENCH(bench_clrc());
+  BENCH(bench_rpt_8_rlax_register());
   BENCH(bench_rpt_7_rrax_register());
   BENCH(bench_rpt_15_rrax_register());
   BENCH(bench_rpt_15_rrux_register());
   BENCH(bench_pushm_and_popm_3());
   BENCH(bench_pushm_and_popm_5());
+  BENCH(bench_pushm_and_popm_7());
   BENCH(bench_call_and_ret());
   BENCH(bench_push_and_reti());
 
