@@ -8,50 +8,6 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
-INLINE void bench_rrc_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  rrc.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
-INLINE void bench_sxt_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  sxt.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
-INLINE void bench_mov_register_MPY(void) {
-  uint16_t src = 0x5678;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w %[src], &0x04C0\n"
-      ".endr\n"
-      : 
-      : [src] "r"(src)
-      : "cc", "memory"));
-}
-
-INLINE void bench_mov_register_OP2(void) {
-  uint16_t src = 0x5678;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w %[src], &0x04C8\n"
-      ".endr\n"
-      : 
-      : [src] "r"(src)
-      : "cc", "memory"));
-}
-
 INLINE void bench_mov_RESLO_register(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -222,15 +178,51 @@ INLINE void bench_jnc_symbolic(void) {
       : "cc"));
 }
 
+INLINE void bench_jc_symbolic(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  jc 1f\n1:\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
+INLINE void bench_dint(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  dint\n  nop\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
+INLINE void bench_nop(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  nop\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
+INLINE void bench_clrc(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  clrc\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
-  BENCH(bench_rrc_register());
-  BENCH(bench_sxt_register());
-  BENCH(bench_mov_register_MPY());
-  BENCH(bench_mov_register_OP2());
   BENCH(bench_mov_RESLO_register());
   BENCH(bench_mov_register_MPY32L());
   BENCH(bench_mov_register_MPY32H());
@@ -247,6 +239,10 @@ int main(void) {
   BENCH(bench_jnz_symbolic());
   BENCH(bench_jz_symbolic());
   BENCH(bench_jnc_symbolic());
+  BENCH(bench_jc_symbolic());
+  BENCH(bench_dint());
+  BENCH(bench_nop());
+  BENCH(bench_clrc());
 
   end_measurement_window();
 
