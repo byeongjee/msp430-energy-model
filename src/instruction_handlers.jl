@@ -815,7 +815,15 @@ function execute!(
         state, ops[1], data_size, inst, should_track_memory_access
     )
     append!(events, read_events)
-    result = UInt32(Int32(operand_val) >> 1)
+    mask, msb = if data_size == :byte
+        (UInt32(0xFF), UInt32(0x80))
+    elseif data_size == :word
+        (UInt32(0xFFFF), UInt32(0x8000))
+    else
+        (UInt32(0xFFFFF), UInt32(0x80000))
+    end
+    sign_bit = operand_val & msb
+    result = ((operand_val >> 1) | sign_bit) & mask
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
     write_events = set_operand_value!(
