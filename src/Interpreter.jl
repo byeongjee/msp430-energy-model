@@ -374,24 +374,6 @@ function interpret_program(
         end
     end
 
-    debug_func_names = [
-        :debug_out_u16,
-        :debug_out_i16,
-        :debug_out_hex,
-        :debug_out_char,
-        :debug_out_u32,
-        :debug_out_str,
-    ]
-    debug_call_targets = Dict{UInt32,Symbol}()
-    for func_name in debug_func_names
-        func_addr = get(func_addrs, String(func_name), nothing)
-        if !isnothing(func_addr)
-            debug_call_targets[func_addr] = func_name
-            @debug "Debug function stub detected" func = func_name address =
-                "0x" * string(func_addr; base=16, pad=4)
-        end
-    end
-
     state = MachineState()
     state.registers[:PC] = address_info[1][1]  # Start at the first instruction address
 
@@ -462,16 +444,6 @@ function interpret_program(
                 call_target, _ = get_operand_value(
                     state, inst.operands[1], inst.data_size, inst, false
                 )
-
-                # Check for debug_out_* stubs; handle in interpreter and skip call
-                if haskey(debug_call_targets, call_target)
-                    func_sym = debug_call_targets[call_target]
-                    handle_debug_function_call!(state, func_sym, old_pc)
-                    if current_addr_idx < length(address_info)
-                        state.registers[:PC] = address_info[current_addr_idx + 1][1]
-                    end
-                    continue
-                end
 
                 # Check for begin_event
                 if get(func_addrs, "begin_event", nothing) == call_target

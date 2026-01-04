@@ -57,35 +57,63 @@ static inline void copy_text_sram(void) {
 // ============================================================================
 
 #if defined(DEBUG) && (DEBUG == 2)
-// Interpreter mode: emit calls that the interpreter can intercept.
-// Functions are defined as noinline with a dummy asm to keep them from being
-// optimized away, but they have no effect on-device.
-NOINLINE __attribute__((used)) void debug_out_u16(uint16_t val) {
-  __asm__ volatile("" ::"r"(val) : "memory");
-}
-NOINLINE __attribute__((used)) void debug_out_i16(int16_t val) {
-  __asm__ volatile("" ::"r"(val) : "memory");
-}
-NOINLINE __attribute__((used)) void debug_out_hex(uint16_t val) {
-  __asm__ volatile("" ::"r"(val) : "memory");
-}
-NOINLINE __attribute__((used)) void debug_out_char(uint16_t c) {
-  __asm__ volatile("" ::"r"(c) : "memory");
-}
-NOINLINE __attribute__((used)) void debug_out_u32(uint32_t val) {
-  __asm__ volatile("" ::"r"(val) : "memory");
-}
-NOINLINE __attribute__((used)) void debug_out_str(const char *str) {
-  __asm__ volatile("" ::"r"(str) : "memory");
-}
+// Interpreter mode: writes to magic addresses 0x0010-0x001C trigger debug output.
 
-// Macros map directly to the debug_out_* function calls.
-#define DEBUG_OUT_U16(val) debug_out_u16((uint16_t)(val))
-#define DEBUG_OUT_I16(val) debug_out_i16((int16_t)(val))
-#define DEBUG_OUT_HEX(val) debug_out_hex((uint16_t)(val))
-#define DEBUG_OUT_CHAR(c) debug_out_char((uint16_t)(c))
-#define DEBUG_OUT_U32(val) debug_out_u32((uint32_t)(val))
-#define DEBUG_OUT_STR(str) debug_out_str((const char *)(str))
+#define DEBUG_OUT_U16(val) do { \
+    uint16_t _dbg_v = (uint16_t)(val); \
+    __asm__ volatile( \
+        "mov %0, r12\n\t" \
+        "mov r12, &0x0010\n\t" \
+        : : "m"(_dbg_v) : "r12", "memory" \
+    ); \
+} while(0)
+
+#define DEBUG_OUT_I16(val) do { \
+    int16_t _dbg_v = (int16_t)(val); \
+    __asm__ volatile( \
+        "mov %0, r12\n\t" \
+        "mov r12, &0x0012\n\t" \
+        : : "m"(_dbg_v) : "r12", "memory" \
+    ); \
+} while(0)
+
+#define DEBUG_OUT_HEX(val) do { \
+    uint16_t _dbg_v = (uint16_t)(val); \
+    __asm__ volatile( \
+        "mov %0, r12\n\t" \
+        "mov r12, &0x0014\n\t" \
+        : : "m"(_dbg_v) : "r12", "memory" \
+    ); \
+} while(0)
+
+#define DEBUG_OUT_CHAR(c) do { \
+    uint16_t _dbg_v = (uint16_t)(c); \
+    __asm__ volatile( \
+        "mov %0, r12\n\t" \
+        "mov r12, &0x0016\n\t" \
+        : : "m"(_dbg_v) : "r12", "memory" \
+    ); \
+} while(0)
+
+#define DEBUG_OUT_U32(val) do { \
+    uint32_t _dbg_v = (uint32_t)(val); \
+    __asm__ volatile( \
+        "mov %0, r12\n\t" \
+        "mov %1, r13\n\t" \
+        "mov r12, &0x0018\n\t" \
+        "mov r13, &0x001A\n\t" \
+        : : "m"(((uint16_t*)&_dbg_v)[0]), "m"(((uint16_t*)&_dbg_v)[1]) : "r12", "r13", "memory" \
+    ); \
+} while(0)
+
+#define DEBUG_OUT_STR(str) do { \
+    const char* _dbg_v = (const char*)(str); \
+    __asm__ volatile( \
+        "mov %0, r12\n\t" \
+        "mov r12, &0x001C\n\t" \
+        : : "m"(_dbg_v) : "r12", "memory" \
+    ); \
+} while(0)
 
 #elif defined(DEBUG) && (DEBUG == 1)
 // Board mode: use printf (requires UART initialization)

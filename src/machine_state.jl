@@ -31,6 +31,18 @@ const RES1_ADDR = UInt32(0x04E6)      # 32-bit result word 1
 const RES2_ADDR = UInt32(0x04E8)      # 32-bit result word 2
 const RES3_ADDR = UInt32(0x04EA)      # 32-bit result word 3 (highest)
 
+const DEBUG_MAGIC_U16 = UInt32(0x0010)
+const DEBUG_MAGIC_I16 = UInt32(0x0012)
+const DEBUG_MAGIC_HEX = UInt32(0x0014)
+const DEBUG_MAGIC_CHR = UInt32(0x0016)
+const DEBUG_MAGIC_U32_LO = UInt32(0x0018)
+const DEBUG_MAGIC_U32_HI = UInt32(0x001A)
+const DEBUG_MAGIC_STR = UInt32(0x001C)
+
+const DEBUG_U32_BUFFER = Ref{UInt16}(0x0000)
+
+_is_debug_magic_addr(addr::UInt32)::Bool = addr >= 0x0010 && addr <= 0x001C
+
 """
 Create an empty cache with all lines invalidated.
 """
@@ -463,66 +475,40 @@ function read_c_string(state::MachineState, addr::UInt32)::WithEvent{String}
     return (String(take!(io)), events)
 end
 
-"""
-Handle interpreter-visible debug function calls (DEBUG=2).
-These functions are no-ops on-device; the interpreter reads arguments from
-calling-convention registers and emits debug output when enabled.
-"""
-function handle_debug_function_call!(
-    state::MachineState, func_name::Symbol, pc::UInt32
-)::Nothing
+function _handle_debug_magic_write!(state::MachineState, addr::UInt32, value::UInt16)::Nothing
+    pc = state.registers[:PC]
     sp = state.registers[:SP]
-    if func_name == :debug_out_u16
-        val = get_register_value(state, :R12) & 0xFFFF
-        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(
-            stderr,
-            "u16 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $val",
-        )
-    elseif func_name == :debug_out_i16
-        unsigned_val = UInt16(get_register_value(state, :R12) & 0xFFFF)
-        signed_val = reinterpret(Int16, unsigned_val)
-        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(
-            stderr,
-            "i16 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $signed_val",
-        )
-    elseif func_name == :debug_out_hex
-        val = get_register_value(state, :R12) & 0xFFFF
-        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(
-            stderr,
-            "hex call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): 0x$(string(val, base=16, pad=4))",
-        )
-    elseif func_name == :debug_out_char
-        char_val = Char(get_register_value(state, :R12) & 0xFF)
+
+    if addr == DEBUG_MAGIC_U16
+        printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
+        println(stderr, "u16 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $value")
+    elseif addr == DEBUG_MAGIC_I16
+        signed_val = reinterpret(Int16, value)
+        printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
+        println(stderr, "i16 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $signed_val")
+    elseif addr == DEBUG_MAGIC_HEX
+        printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
+        println(stderr, "hex pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): 0x$(string(value, base=16, pad=4))")
+    elseif addr == DEBUG_MAGIC_CHR
+        char_val = Char(value & 0xFF)
         if char_val == '\n'
             buffered = String(take!(DEBUG_CHAR_BUFFER))
-            printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-            println(
-                stderr,
-                "char call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $buffered",
-            )
+            printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
+            println(stderr, "char pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $buffered")
         else
             print(DEBUG_CHAR_BUFFER, char_val)
         end
-    elseif func_name == :debug_out_u32
-        lsw = get_register_value(state, :R12) & 0xFFFF
-        msw = get_register_value(state, :R13) & 0xFFFF
-        full_value = UInt32(lsw) | (UInt32(msw) << 16)
-        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(
-            stderr,
-            "u32 call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $full_value",
-        )
-    elseif func_name == :debug_out_str
-        ptr = get_register_value(state, :R12) & 0xFFFFF
+    elseif addr == DEBUG_MAGIC_U32_LO
+        DEBUG_U32_BUFFER[] = value
+    elseif addr == DEBUG_MAGIC_U32_HI
+        full_value = UInt32(DEBUG_U32_BUFFER[]) | (UInt32(value) << 16)
+        printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
+        println(stderr, "u32 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $full_value")
+    elseif addr == DEBUG_MAGIC_STR
+        ptr = UInt32(value)
         text, _ = read_c_string(state, ptr)
-        printstyled(stderr, "[DEBUG] "; color=:green, bold=true)
-        println(
-            stderr,
-            "str call pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $text",
-        )
+        printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
+        println(stderr, "str pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $text")
     end
 
     return nothing
@@ -703,6 +689,11 @@ function write_memory!(
     # Handle hardware multiplier writes (no cache events for peripheral registers)
     if _is_multiplier_address(aligned_addr)
         _handle_multiplier_write!(state, aligned_addr, UInt16(value & 0xFFFF))
+        return ExecutionEvent[]
+    end
+
+    if _is_debug_magic_addr(aligned_addr)
+        _handle_debug_magic_write!(state, aligned_addr, UInt16(value & 0xFFFF))
         return ExecutionEvent[]
     end
 
