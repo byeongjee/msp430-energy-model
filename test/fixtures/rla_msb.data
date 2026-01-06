@@ -1,0 +1,42 @@
+# Section headers: Name Size VMA LMA
+# __reset_vector 00000002 0000fffe 0000fffe
+# .lower.rodata 00000000 00004000 00004000
+# .rodata 00000000 00004000 00004000
+# .rodata2 00000000 00004000 00004000
+# .persistent 00000000 00004000 00004000
+# .lower.data 00000000 00001c00 00001c00
+# .data 00000000 00001c00 00001c00
+# .upper.data 00000002 00010000 00004000
+# .lower.bss 00000000 00001c00 00001c00
+# .bss 0000000a 00001c00 00001c00
+# .upper.bss 00000000 00010002 00010002
+# .noinit 00000000 00001c0a 00001c0a
+# .heap 00000004 00001c0a 00001c0a
+# .lower.text 00000000 00004002 00004002
+# .text 0000007c 00004002 00004002
+# .text_sram 00000000 00001c0e 00001c0e
+# .upper.text 00000000 00010002 00010002
+# .MSP430.attributes 00000017 00000000 00000000
+# .comment 00000039 00000000 00000000
+# .debug_aranges 00000020 00000000 00000000
+# .debug_info 0000004f 00000000 00000000
+# .debug_abbrev 0000004f 00000000 00000000
+# .debug_line 0000007e 00000000 00000000
+# .debug_frame 00000024 00000000 00000000
+# .debug_str 00000089 00000000 00000000
+# .debug_ranges 00000010 00000000 00000000
+
+
+/Users/byeongjee/migration/probabilistic-energy-modeling/build/rla_msb.elf:     file format elf32-msp430
+
+Contents of section .upper.data:
+ 10000 0100                                 ..              
+Contents of section .text:
+ 4002 3140002c 3c40001c 0d433e40 0a00b012  1@.,<@...C>@....
+ 4012 6c400c43 b0121e40 b0126a40 7c4080ff  l@.C...@..j@|@..
+ 4022 4c5cc24c 091c4c42 5cf3c24c 071c7c40  L\.L..LB\..L..|@
+ 4032 40004c5c c24c081c 4c425cf3 c24c061c  @.L\.L..LB\..L..
+ 4042 3c400080 0c5c824c 041c4c42 5cf3c24c  <@...\.L..LB\..L
+ 4052 011c3c40 00400c5c 824c021c 4c425cf3  ..<@.@.\.L..LB\.
+ 4062 c24c001c 4c433041 ff3f0e5c 0f4c0f9e  .L..LC0A.?.\.L..
+ 4072 01203041 1f53cf4d fffff93f           . 0A.S.M...?    

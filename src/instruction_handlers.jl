@@ -1640,7 +1640,9 @@ function execute!(
         state, ops[1], data_size, inst, should_track_memory_access
     )
     append!(events, read_events)
-    new_carry = (operand_val & 0x8000) != 0
+    # MSB depends on data size: bit 7 for byte, bit 15 for word, bit 19 for address
+    msb_mask = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+    new_carry = (operand_val & msb_mask) != 0
     result = UInt32(operand_val << 1)
     state.flags[:C] = new_carry
     update_flags_simple!(state, result, data_size)
@@ -1675,9 +1677,11 @@ function execute!(
     )
     append!(events, dst_events)
 
+    # MSB depends on data size: bit 7 for byte, bit 15 for word, bit 19 for address
+    msb_mask = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
     result = dst_val
     for i in 1:shift_count
-        new_carry = (result & 0x8000) != 0
+        new_carry = (result & msb_mask) != 0
         result = result << 1
         state.flags[:C] = new_carry
     end
@@ -1711,7 +1715,9 @@ function execute!(
     append!(events, dst_events)
 
     # Single bit arithmetic left shift
-    new_carry = (dst_val & 0x8000) != 0
+    # MSB depends on data size: bit 7 for byte, bit 15 for word, bit 19 for address
+    msb_mask = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+    new_carry = (dst_val & msb_mask) != 0
     result = dst_val << 1
     state.flags[:C] = new_carry
 
