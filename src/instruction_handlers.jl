@@ -121,6 +121,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :subc => SubcHandler(),
     :cmp => CmpHandler(),
     :dadd => DaddHandler(),
+    :daddx => DaddHandler(),  # Extended DADD for 20-bit address operations
     :bit => BitHandler(),
     :bic => BicHandler(),
     :bis => BisHandler(),
@@ -491,6 +492,7 @@ function execute!(
 end
 
 # DADD - Decimal add (BCD addition)
+# Performs: src + dst + C -> dst (decimal), where each nibble is a BCD digit (0-9)
 function execute!(
     state::MachineState,
     ::DaddHandler,
@@ -513,10 +515,47 @@ function execute!(
         state, ops[2], data_size, inst, should_track_memory_access
     )
     append!(events, dst_events)
-    result = UInt32(dst_val + src_val)
-    update_flags!(state, result, dst_val, src_val, true, data_size)
+
+    # BCD addition: add nibble by nibble with carry correction
+    carry = state.flags[:C] ? UInt32(1) : UInt32(0)
+    result = UInt32(0)
+
+    # Number of nibbles depends on data size: byte=2, word=4, address=5
+    num_nibbles = data_size == :byte ? 2 : data_size == :word ? 4 : 5
+
+    for i in 0:(num_nibbles - 1)
+        shift = i * 4
+        src_nibble = (src_val >> shift) & 0xF
+        dst_nibble = (dst_val >> shift) & 0xF
+        nibble_sum = src_nibble + dst_nibble + carry
+
+        # BCD correction: if sum > 9, add 6 to correct
+        if nibble_sum > 9
+            nibble_sum += 6
+        end
+
+        # Extract the corrected nibble and carry for next iteration
+        carry = nibble_sum > 0xF ? UInt32(1) : UInt32(0)
+        result |= (nibble_sum & 0xF) << shift
+    end
+
+    # Update flags for DADD:
+    # C = set if result > 99999 (address) or > 9999 (word) or > 99 (byte), i.e., carry out of highest nibble
+    # Z = set if result is zero
+    # N = set if MSB is set
+    # V = undefined (we leave it unchanged)
+    state.flags[:C] = carry != 0
+
+    # Apply data size mask for Z and N flag calculation
+    mask = data_size == :byte ? UInt32(0xFF) : data_size == :word ? UInt32(0xFFFF) : UInt32(0xFFFFF)
+    msb_bit = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+
+    masked_result = result & mask
+    state.flags[:Z] = masked_result == 0
+    state.flags[:N] = (masked_result & msb_bit) != 0
+
     result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
+        state, ops[2], UInt32(result), data_size, inst, should_track_memory_access
     )
     append!(events, result_events)
     return events
