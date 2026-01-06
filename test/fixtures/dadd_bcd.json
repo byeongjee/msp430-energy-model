@@ -1,0 +1,33 @@
+{
+  "test_name": "dadd_bcd",
+  "asm_file": "test/fixtures/dadd_bcd.asm",
+  "data_file": "test/fixtures/dadd_bcd.data",
+  "gdb_result": {
+  "memory": { "0x1c00": 9030, "0x1c02": 1, "0x1c06": 9, "0x1c0a": 1, "0x1c0c": 29185, "0x1c0e": 24, "0x1c10": 32, "0x1c14": 4096, "0x1c16": 33, "0x1c18": 256, "0x1c1a": 32 },
+  "registers": {
+    "PC": 16604,
+    "SP": 11262,
+    "SR": 0,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 0,
+    "R13": 1,
+    "R14": 7196,
+    "R15": 7196
+  },
+  "flags": {
+    "C": false,
+    "Z": false,
+    "N": false,
+    "V": false
+  },
+  "pc": 16604
+}
+}
