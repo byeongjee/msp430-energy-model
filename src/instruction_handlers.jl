@@ -1120,18 +1120,11 @@ function execute!(
     state.registers[:SP] = UInt32(
         (state.registers[:SP] - bytes_per_val) & get_register_mask(:SP)
     )
-    if data_size == :address
-        # Direct write for stack push (event tracking handled elsewhere if needed)
-        if operand_val <= 0xFFFF
-            state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
-        else
-            state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
-            state.memory[state.registers[:SP] + 2] = UInt16((operand_val >> 16) & 0xFFFF)
-        end
-    else
-        state.memory[state.registers[:SP]] = UInt16(operand_val & 0xFFFF)
-    end
-    # TODO: Track stack writes as events when needed
+    # Use write_memory! to track stack writes as events
+    write_events = write_memory!(
+        state, state.registers[:SP], operand_val, data_size, inst, should_track_memory_access
+    )
+    append!(events, write_events)
     return events
 end
 
@@ -1169,9 +1162,12 @@ function execute!(
     state.registers[:SP] = UInt32(
         (state.registers[:SP] - UInt32(2)) & get_register_mask(:SP)
     )
-    state.memory[state.registers[:SP]] = UInt16(return_addr)
+    # Use write_memory! to track stack writes as events
+    write_events = write_memory!(
+        state, state.registers[:SP], UInt32(return_addr), :word, inst, should_track_memory_access
+    )
+    append!(events, write_events)
     state.registers[:PC] = operand_val
-    # TODO: Track stack write as event when needed
     return events
 end
 
@@ -1186,13 +1182,15 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    return_addr = get(state.memory, state.registers[:SP], UInt16(0))
+    # Use read_memory to track stack reads as events
+    return_addr, read_events = read_memory(
+        state, state.registers[:SP], :word, inst, should_track_memory_access
+    )
     state.registers[:PC] = return_addr
     state.registers[:SP] = UInt32(
         (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
     )
-    # TODO: Track stack read as event when needed
-    return ExecutionEvent[]
+    return read_events
 end
 
 # RETI - Return from interrupt
@@ -1206,16 +1204,26 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    state.registers[:SR] = state.memory[state.registers[:SP]]
+    events = ExecutionEvent[]
+    # Pop SR from stack using read_memory to track events
+    sr_val, sr_events = read_memory(
+        state, state.registers[:SP], :word, inst, should_track_memory_access
+    )
+    append!(events, sr_events)
+    state.registers[:SR] = sr_val
     state.registers[:SP] = UInt32(
         (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
     )
-    state.registers[:PC] = state.memory[state.registers[:SP]]
+    # Pop PC from stack using read_memory to track events
+    pc_val, pc_events = read_memory(
+        state, state.registers[:SP], :word, inst, should_track_memory_access
+    )
+    append!(events, pc_events)
+    state.registers[:PC] = pc_val
     state.registers[:SP] = UInt32(
         (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
     )
-    # TODO: Track stack reads as events when needed
-    return ExecutionEvent[]
+    return events
 end
 
 # CLR - Clear (set to zero)
@@ -1767,22 +1775,13 @@ function execute!(
                 (state.registers[:SP] - bytes_per_reg) & get_register_mask(:SP)
             )
 
-            if data_size == :address
-                # Direct write for stack push (event tracking handled elsewhere if needed)
-                if reg_val <= 0xFFFF
-                    state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
-                else
-                    state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
-                    state.memory[state.registers[:SP] + 2] = UInt16(
-                        (reg_val >> 16) & 0xFFFF
-                    )
-                end
-            else
-                state.memory[state.registers[:SP]] = UInt16(reg_val & 0xFFFF)
-            end
+            # Use write_memory! to track stack writes as events
+            write_events = write_memory!(
+                state, state.registers[:SP], UInt32(reg_val), data_size, inst, should_track_memory_access
+            )
+            append!(events, write_events)
         end
     end
-    # TODO: Track stack writes as events when needed
     return events
 end
 
@@ -1819,15 +1818,11 @@ function execute!(
         if i >= 0 && i <= 15
             reg_sym = Parser.reg_num_to_symbol(i)
 
-            reg_val = if data_size == :address
-                val, read_events = read_memory(
-                    state, state.registers[:SP], :address, inst, should_track_memory_access
-                )
-                append!(events, read_events)
-                val
-            else
-                UInt32(get(state.memory, state.registers[:SP], UInt16(0)))
-            end
+            # Use read_memory to track stack reads as events
+            reg_val, read_events = read_memory(
+                state, state.registers[:SP], data_size, inst, should_track_memory_access
+            )
+            append!(events, read_events)
 
             set_register_value!(state, reg_sym, reg_val)
             state.registers[:SP] = UInt32(
@@ -1861,16 +1856,11 @@ function execute!(
         UInt32(2)  # 16-bit = 1 word = 2 bytes
     end
 
-    # Read value from stack
-    reg_val = if data_size == :address
-        val, read_events = read_memory(
-            state, state.registers[:SP], :address, inst, should_track_memory_access
-        )
-        append!(events, read_events)
-        val
-    else
-        UInt32(get(state.memory, state.registers[:SP], UInt16(0)))
-    end
+    # Read value from stack using read_memory to track events
+    reg_val, read_events = read_memory(
+        state, state.registers[:SP], data_size, inst, should_track_memory_access
+    )
+    append!(events, read_events)
 
     # Store to destination register
     dst_reg = ops[1].value

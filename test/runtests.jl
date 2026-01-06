@@ -34,6 +34,7 @@ include("test_train.jl")
 include("test_estimate.jl")
 include("test_br_immediate.jl")
 include("test_sram_code.jl")
+include("test_stack_events.jl")
 
 # Define test suites with their names and runner functions
 const TEST_SUITES = Dict(
@@ -60,6 +61,11 @@ const TEST_SUITES = Dict(
     "sram" => (
         description = "SRAM code execution tests",
         runner = _ -> run_sram_code_tests(),
+        has_subfilter = false,
+    ),
+    "stack_events" => (
+        description = "Stack event tracking tests",
+        runner = _ -> run_stack_events_tests(),
         has_subfilter = false,
     ),
 )
