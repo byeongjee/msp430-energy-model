@@ -1,0 +1,33 @@
+{
+  "test_name": "rla_msb",
+  "asm_file": "test/fixtures/rla_msb.asm",
+  "data_file": "test/fixtures/rla_msb.data",
+  "gdb_result": {
+  "memory": { "0x1c00": 256, "0x1c02": 32768, "0x1c06": 256, "0x1c08": 128 },
+  "registers": {
+    "PC": 16490,
+    "SP": 11262,
+    "SR": 2,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 0,
+    "R13": 0,
+    "R14": 7178,
+    "R15": 7178
+  },
+  "flags": {
+    "C": false,
+    "Z": true,
+    "N": false,
+    "V": false
+  },
+  "pc": 16490
+}
+}
