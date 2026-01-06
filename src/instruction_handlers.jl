@@ -71,6 +71,8 @@ struct CallHandler <: SingleOperandHandler end
 struct RetiHandler <: SingleOperandHandler end
 struct ClrHandler <: SingleOperandHandler end
 struct RetHandler <: SingleOperandHandler end
+struct CallaHandler <: SingleOperandHandler end
+struct RetaHandler <: SingleOperandHandler end
 struct IncHandler <: SingleOperandHandler end
 struct DecHandler <: SingleOperandHandler end
 struct DintHandler <: SingleOperandHandler end
@@ -142,6 +144,8 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :reti => RetiHandler(),
     :clr => ClrHandler(),
     :ret => RetHandler(),
+    :calla => CallaHandler(),
+    :reta => RetaHandler(),
     :inc => IncHandler(),
     :dec => DecHandler(),
     :dint => DintHandler(),
@@ -200,6 +204,8 @@ should_advance_pc(
 # Instructions that manage their own PC: never advance
 should_advance_pc(::CallHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 should_advance_pc(::RetHandler, state::MachineState, ops::Vector{Operand})::Bool = false
+should_advance_pc(::CallaHandler, state::MachineState, ops::Vector{Operand})::Bool = false
+should_advance_pc(::RetaHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 should_advance_pc(::RetiHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 should_advance_pc(::BrHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 should_advance_pc(::JumpHandler, state::MachineState, ops::Vector{Operand})::Bool = false
@@ -1191,6 +1197,97 @@ function execute!(
         (state.registers[:SP] + UInt32(2)) & get_register_mask(:SP)
     )
     return read_events
+end
+
+# CALLA - Call subroutine with 20-bit address
+# Similar to CALL but pushes 4-byte (20-bit) return address and supports 20-bit target
+function execute!(
+    state::MachineState,
+    ::CallaHandler,
+    inst::Instruction,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    address_info::Vector{Tuple{UInt32,UInt32}},
+    current_idx::Int,
+    should_track_memory_access::Bool,
+)::Vector{ExecutionEvent}
+    if length(ops) < 1
+        return ExecutionEvent[]
+    end
+    if current_idx >= length(address_info)
+        error(
+            "CALLA instruction at index $current_idx has no next instruction for return address",
+        )
+    end
+    events = ExecutionEvent[]
+    # Get target address (20-bit)
+    operand_val, read_events = get_operand_value(
+        state, ops[1], :address, inst, should_track_memory_access
+    )
+    append!(events, read_events)
+    return_addr = address_info[current_idx + 1][1]
+
+    # CALLA pushes 4 bytes: decrement SP by 4, then push 20-bit address
+    # Stack layout (little-endian): low 16 bits at SP, high 4 bits at SP+2
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] - UInt32(4)) & get_register_mask(:SP)
+    )
+
+    # Write low 16 bits to SP
+    low_word = UInt32(return_addr & 0xFFFF)
+    write_events_low = write_memory!(
+        state, state.registers[:SP], low_word, :word, inst, should_track_memory_access
+    )
+    append!(events, write_events_low)
+
+    # Write high 4 bits to SP+2
+    high_word = UInt32((return_addr >> 16) & 0xF)
+    write_events_high = write_memory!(
+        state, state.registers[:SP] + UInt32(2), high_word, :word, inst, should_track_memory_access
+    )
+    append!(events, write_events_high)
+
+    state.registers[:PC] = operand_val
+    return events
+end
+
+# RETA - Return from subroutine with 20-bit address
+# Similar to RET but pops 4-byte (20-bit) return address
+function execute!(
+    state::MachineState,
+    ::RetaHandler,
+    inst::Instruction,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    ::Vector{Tuple{UInt32,UInt32}},
+    ::Int,
+    should_track_memory_access::Bool,
+)::Vector{ExecutionEvent}
+    events = ExecutionEvent[]
+
+    # RETA pops 4 bytes: low 16 bits from SP, high 4 bits from SP+2
+    # Read low 16 bits from SP
+    low_word, read_events_low = read_memory(
+        state, state.registers[:SP], :word, inst, should_track_memory_access
+    )
+    append!(events, read_events_low)
+
+    # Read high 4 bits from SP+2
+    high_word, read_events_high = read_memory(
+        state, state.registers[:SP] + UInt32(2), :word, inst, should_track_memory_access
+    )
+    append!(events, read_events_high)
+
+    # Combine into 20-bit return address
+    return_addr = UInt32(low_word) | (UInt32(high_word & 0xF) << 16)
+    state.registers[:PC] = return_addr
+
+    # Increment SP by 4
+    state.registers[:SP] = UInt32(
+        (state.registers[:SP] + UInt32(4)) & get_register_mask(:SP)
+    )
+
+    return events
 end
 
 # RETI - Return from interrupt

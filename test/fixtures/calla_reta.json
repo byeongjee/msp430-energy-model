@@ -1,0 +1,33 @@
+{
+  "test_name": "calla_reta",
+  "asm_file": "test/fixtures/calla_reta.asm",
+  "data_file": "test/fixtures/calla_reta.data",
+  "gdb_result": {
+  "memory": { "0x1c00": 11260, "0x1c04": 11260, "0x1c06": 210, "0x1c08": 110 },
+  "registers": {
+    "PC": 17070,
+    "SP": 11262,
+    "SR": 0,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 210,
+    "R12": 0,
+    "R13": 0,
+    "R14": 7178,
+    "R15": 7178
+  },
+  "flags": {
+    "C": false,
+    "Z": false,
+    "N": false,
+    "V": false
+  },
+  "pc": 17070
+}
+}
