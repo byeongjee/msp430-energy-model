@@ -678,7 +678,20 @@ function execute!(
     )
     append!(events, dst_events)
     result = UInt32(dst_val ⊻ src_val)
-    update_flags_sub!(state, result, dst_val, src_val, data_size)
+    # XOR flag behavior per MSP430 spec:
+    # N: Set if MSB of result is set
+    # Z: Set if result is zero
+    # C: Set if result is NOT zero (C = NOT Z)
+    # V: Set if both operands are negative (both MSB=1)
+    masked_result = apply_data_size_mask(result, data_size)
+    masked_dst = apply_data_size_mask(dst_val, data_size)
+    masked_src = apply_data_size_mask(src_val, data_size)
+    msb_bit = get_data_size_msb(data_size)
+    state.flags[:N] = (masked_result & msb_bit) != 0
+    state.flags[:Z] = (masked_result == 0)
+    state.flags[:C] = (masked_result != 0)  # C = NOT Z
+    state.flags[:V] = ((masked_dst & msb_bit) != 0) && ((masked_src & msb_bit) != 0)  # Both negative
+    _sync_sr_with_flags!(state)
     result_events = set_operand_value!(
         state, ops[2], result, data_size, inst, should_track_memory_access
     )
