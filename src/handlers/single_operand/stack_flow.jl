@@ -332,8 +332,8 @@ function execute!(
     return events
 end
 
-# pop dst - Pop value from stack to destination register
-# Equivalent to: mov @SP+, dst
+# pop dst - Pop value from stack to destination
+# Equivalent to: mov @SP+, dst (supports all addressing modes)
 function execute!(
     state::MachineState,
     ::PopHandler,
@@ -354,14 +354,17 @@ function execute!(
     end
 
     # Read value from stack using read_memory to track events
-    reg_val, read_events = read_memory(
+    value, read_events = read_memory(
         state, state.registers[:SP], data_size, inst, should_track_memory_access
     )
     append!(events, read_events)
 
-    # Store to destination register
-    dst_reg = ops[1].value
-    set_register_value!(state, dst_reg, reg_val)
+    # Store to destination (supports all addressing modes like MOV)
+    dst = ops[1]
+    write_events = set_operand_value!(
+        state, dst, value, data_size, inst, should_track_memory_access
+    )
+    append!(events, write_events)
 
     # Increment stack pointer
     state.registers[:SP] = UInt32(
