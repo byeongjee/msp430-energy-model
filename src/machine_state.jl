@@ -39,8 +39,6 @@ const DEBUG_MAGIC_U32_LO = UInt32(0x0018)
 const DEBUG_MAGIC_U32_HI = UInt32(0x001A)
 const DEBUG_MAGIC_STR = UInt32(0x001C)
 
-const DEBUG_U32_BUFFER = Ref{UInt16}(0x0000)
-
 _is_debug_magic_addr(addr::UInt32)::Bool = addr >= 0x0010 && addr <= 0x001C
 
 # ============================================================================
@@ -155,6 +153,8 @@ function MachineState()::MachineState
         Dict(:V => false, :N => false, :Z => false, :C => false),  # Status flags
         0,  # repeat_counter initialized to 0
         MultiplierState(),  # Hardware multiplier peripheral
+        UInt16(0),  # debug_u32_buffer
+        IOBuffer(),  # debug_char_buffer
     )
 end
 
@@ -514,8 +514,6 @@ function read_memory(
     end
 end
 
-const DEBUG_CHAR_BUFFER = IOBuffer()
-
 """
 Read a null-terminated C string from memory starting at `addr`.
 """
@@ -553,16 +551,16 @@ function _handle_debug_magic_write!(state::MachineState, addr::UInt32, value::UI
     elseif addr == DEBUG_MAGIC_CHR
         char_val = Char(value & 0xFF)
         if char_val == '\n'
-            buffered = String(take!(DEBUG_CHAR_BUFFER))
+            buffered = String(take!(state.debug_char_buffer))
             printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
             println(stderr, "char pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $buffered")
         else
-            print(DEBUG_CHAR_BUFFER, char_val)
+            print(state.debug_char_buffer, char_val)
         end
     elseif addr == DEBUG_MAGIC_U32_LO
-        DEBUG_U32_BUFFER[] = value
+        state.debug_u32_buffer = value
     elseif addr == DEBUG_MAGIC_U32_HI
-        full_value = UInt32(DEBUG_U32_BUFFER[]) | (UInt32(value) << 16)
+        full_value = UInt32(state.debug_u32_buffer) | (UInt32(value) << 16)
         printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
         println(stderr, "u32 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $full_value")
     elseif addr == DEBUG_MAGIC_STR
