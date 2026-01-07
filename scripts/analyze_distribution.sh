@@ -183,15 +183,13 @@ fi
 # Create temp file paths for files without matched CSVs
 for i in "${!FILE_ARRAY[@]}"; do
     file="${FILE_ARRAY[$i]}"
-    basename=$(basename "$file")
-    basename="${basename%.c}"
-    basename="${basename%.S}"
+    base=$(get_basename "$file")
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
-        SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/segments_${basename}_${TIMESTAMP}.csv"
+        SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/segments_${base}_${TIMESTAMP}.csv"
     else
-        log_info "  Matched segments CSV for $basename: ${SEGMENTS_CSV_ARRAY[$i]}"
+        log_info "  Matched segments CSV for $base: ${SEGMENTS_CSV_ARRAY[$i]}"
     fi
 done
 
@@ -213,17 +211,11 @@ log_step "Extracting event labels from C source files"
 EVENT_LABELS_ARRAY=()
 for i in "${!FILE_ARRAY[@]}"; do
     FILE="${FILE_ARRAY[$i]}"
-    BASENAME="$(basename "$FILE")"
-    BASENAME="${BASENAME%.c}"
-    BASENAME="${BASENAME%.S}"
-
-    EVENT_LABELS_JSON="$TEMP_DIR/labels_${BASENAME}_${TIMESTAMP}.json"
+    base=$(get_basename "$FILE")
+    EVENT_LABELS_JSON="$TEMP_DIR/labels_${base}_${TIMESTAMP}.json"
 
     log_info "Extracting labels from $FILE..."
-    python3 "$EXTRACT_BENCH_LABELS_PY" \
-        --input "$FILE" \
-        --output "$EVENT_LABELS_JSON" \
-        --format json
+    extract_event_labels "$FILE" "$EVENT_LABELS_JSON"
 
     EVENT_LABELS_ARRAY+=("$EVENT_LABELS_JSON")
 done
@@ -257,17 +249,12 @@ log_success "Event labels combined: $COMBINED_LABELS_JSON"
 # Process each file
 for i in "${!FILE_ARRAY[@]}"; do
     FILE="${FILE_ARRAY[$i]}"
-    BASENAME="$(basename "$FILE")"
-    BASENAME="${BASENAME%.c}"
-    BASENAME="${BASENAME%.S}"
+    base=$(get_basename "$FILE")
+    SEGMENTS_CSV_FILE="${SEGMENTS_CSV_ARRAY[$i]}"
+    EVENT_LABELS_JSON="${EVENT_LABELS_ARRAY[$i]}"
 
     log_info ""
     log_info "Processing file $((i+1))/${#FILE_ARRAY[@]}: $FILE"
-
-    # Setup file paths for this file
-    RAW_CSV="$TEMP_DIR/raw_${BASENAME}_${TIMESTAMP}.csv"
-    SEGMENTS_CSV_FILE="${SEGMENTS_CSV_ARRAY[$i]}"
-    EVENT_LABELS_JSON="${EVENT_LABELS_ARRAY[$i]}"
 
     # Check if segments CSV already exists for this file
     if [[ -f "$SEGMENTS_CSV_FILE" ]]; then
@@ -275,38 +262,8 @@ for i in "${!FILE_ARRAY[@]}"; do
         continue
     fi
 
-    # Compile
-    log_step "Compiling $FILE"
-    $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${BASENAME}.elf" "$FILE"
-    log_success "Compiled: $BUILD_DIR/${BASENAME}.elf"
-
-    # Flash
-    log_step "Flashing binary to device"
-    log_info "Flashing $BUILD_DIR/${BASENAME}.elf..."
-    mspdebug tilib "prog $BUILD_DIR/${BASENAME}.elf" "exit"
-    log_success "Flashed to device"
-
-    # Measure
-    log_step "Measuring energy consumption"
-    log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-    python3 "$MEASURE_PY" \
-        --voltage "$VOLTAGE" \
-        --max_current "$MAX_CURRENT" \
-        --outfile "$RAW_CSV" \
-        $SKIP_RESET
-    log_success "Raw measurement saved: $RAW_CSV"
-
-    # Preprocess
-    log_step "Preprocessing measurements"
-    python3 "$PREPROCESS_PY" \
-        --input "$RAW_CSV" \
-        --output "$SEGMENTS_CSV_FILE" \
-        --event-labels "$EVENT_LABELS_JSON"
-    log_success "Segments saved: $SEGMENTS_CSV_FILE"
-
-    # Cleanup temporary raw CSV
-    rm -f "$RAW_CSV"
-    log_info "Cleaned up temporary file: $RAW_CSV"
+    # Run measurement pipeline: compile → flash → measure → preprocess → cleanup raw
+    measure_and_preprocess "$FILE" "$SEGMENTS_CSV_FILE" "$EVENT_LABELS_JSON" "$DEFINE_FLAGS"
 done
 
 # Combine all segments into single CSV
