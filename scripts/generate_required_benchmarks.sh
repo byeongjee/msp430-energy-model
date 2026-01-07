@@ -72,19 +72,8 @@ fi
 
 mkdir -p "$TEMP_DIR"
 
-# Map granularity -> model understood by interpret
-case "$GRANULARITY" in
-    opcode) MODEL="mean_per_instruction" ;;
-    addressing_mode) MODEL="mean_per_addressing_mode" ;;
-    addressing_mode_constant) MODEL="mean_per_addressing_mode_constant" ;;
-    addressing_mode_with_mem_access) MODEL="mean_per_addressing_mode_with_mem_access" ;;
-    addressing_mode_constant_with_mem_access) MODEL="mean_per_addressing_mode_constant_with_mem_access" ;;
-    opcode_pair|addressing_mode_pair|addressing_mode_constant_pair) MODEL="mean_per_pair_addressing_mode_constant" ;;
-    *)
-        echo "Unknown granularity: $GRANULARITY" >&2
-        echo "Expected one of: opcode, addressing_mode, addressing_mode_constant, addressing_mode_with_mem_access, addressing_mode_constant_with_mem_access, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair" >&2
-        exit 1 ;;
-esac
+# Map granularity -> model understood by interpret (using shared function)
+MODEL=$(granularity_to_model "$GRANULARITY") || exit 1
 
 TIMESTAMP="$(create_timestamp)"
 LOG_FILE="$TEMP_DIR/interpret_keys_${TIMESTAMP}.log"
