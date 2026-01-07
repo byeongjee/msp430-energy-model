@@ -1,0 +1,33 @@
+{
+  "test_name": "test_rra_vflag",
+  "asm_file": "test/fixtures/test_rra_vflag.asm",
+  "data_file": "test/fixtures/test_rra_vflag.data",
+  "gdb_result": {
+  "memory": { "0x1c00": 51966 },
+  "registers": {
+    "PC": 16450,
+    "SP": 11262,
+    "SR": 4,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 0,
+    "R13": 0,
+    "R14": 7170,
+    "R15": 7170
+  },
+  "flags": {
+    "C": false,
+    "Z": false,
+    "N": true,
+    "V": false
+  },
+  "pc": 16450
+}
+}
