@@ -388,6 +388,12 @@ function execute!(
     carry = state.flags[:C] ? UInt32(1) : UInt32(0)
     result = UInt32(dst_val + src_val + carry)
     update_flags_add!(state, result, dst_val, src_val, data_size)
+    # Fix C flag to include carry-in (update_flags_add! only considers dst + src)
+    max_val = get_data_size_mask(data_size)
+    masked_dst = apply_data_size_mask(dst_val, data_size)
+    masked_src = apply_data_size_mask(src_val, data_size)
+    state.flags[:C] = (UInt64(masked_dst) + UInt64(masked_src) + UInt64(carry)) > UInt64(max_val)
+    _sync_sr_with_flags!(state)
     result_events = set_operand_value!(
         state, ops[2], result, data_size, inst, should_track_memory_access
     )
@@ -446,9 +452,15 @@ function execute!(
         state, ops[2], data_size, inst, should_track_memory_access
     )
     append!(events, dst_events)
-    carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
-    result = UInt32(dst_val - src_val - carry)
+    borrow = state.flags[:C] ? UInt32(0) : UInt32(1)  # Borrow = NOT C for subtraction
+    result = UInt32(dst_val - src_val - borrow)
     update_flags_sub!(state, result, dst_val, src_val, data_size)
+    # Fix C flag to include borrow-in (update_flags_sub! only considers dst >= src)
+    # C = 1 if no borrow needed: dst >= (src + borrow_in)
+    masked_dst = apply_data_size_mask(dst_val, data_size)
+    masked_src = apply_data_size_mask(src_val, data_size)
+    state.flags[:C] = UInt64(masked_dst) >= (UInt64(masked_src) + UInt64(borrow))
+    _sync_sr_with_flags!(state)
     result_events = set_operand_value!(
         state, ops[2], result, data_size, inst, should_track_memory_access
     )
