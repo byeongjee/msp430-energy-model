@@ -1,7 +1,7 @@
 {
-  "test_name": "test_pop_simple",
-  "asm_file": "test/fixtures/test_pop_simple.asm",
-  "data_file": "test/fixtures/test_pop_simple.data",
+  "test_name": "pop_simple",
+  "asm_file": "test/fixtures/pop_simple.asm",
+  "data_file": "test/fixtures/pop_simple.data",
   "gdb_result": {
   "memory": { "0x1c00": 4660 },
   "registers": {

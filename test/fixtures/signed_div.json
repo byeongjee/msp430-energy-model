@@ -1,11 +1,11 @@
 {
-  "test_name": "test_division",
-  "asm_file": "test/fixtures/test_division.asm",
-  "data_file": "test/fixtures/test_division.data",
+  "test_name": "signed_div",
+  "asm_file": "test/fixtures/signed_div.asm",
+  "data_file": "test/fixtures/signed_div.data",
   "gdb_result": {
-  "memory": { "0x1c00": 7, "0x1c02": 14 },
+  "memory": { "0x1c00": 65490, "0x1c02": 65521 },
   "registers": {
-    "PC": 16520,
+    "PC": 17066,
     "SP": 11262,
     "SR": 3,
     "R3": 0,
@@ -18,9 +18,9 @@
     "R10": 0,
     "R11": 0,
     "R12": 0,
-    "R13": 3,
-    "R14": 0,
-    "R15": 2
+    "R13": 65521,
+    "R14": 43660,
+    "R15": 65520
   },
   "flags": {
     "C": true,
@@ -28,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 16520
+  "pc": 17066
 }
 }

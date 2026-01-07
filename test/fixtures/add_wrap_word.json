@@ -1,13 +1,13 @@
 {
-  "test_name": "test_rpt",
-  "asm_file": "test/fixtures/test_rpt.asm",
-  "data_file": "test/fixtures/test_rpt.data",
+  "test_name": "add_wrap_word",
+  "asm_file": "test/fixtures/add_wrap_word.asm",
+  "data_file": "test/fixtures/add_wrap_word.data",
   "gdb_result": {
 
   "registers": {
-    "PC": 16990,
+    "PC": 16408,
     "SP": 11262,
-    "SR": 0,
+    "SR": 3,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -17,17 +17,17 @@
     "R9": 0,
     "R10": 0,
     "R11": 0,
-    "R12": 65024,
+    "R12": 0,
     "R13": 0,
     "R14": 0,
     "R15": 0
   },
   "flags": {
-    "C": false,
-    "Z": false,
+    "C": true,
+    "Z": true,
     "N": false,
     "V": false
   },
-  "pc": 16990
+  "pc": 16408
 }
 }

@@ -1,13 +1,13 @@
 {
-  "test_name": "test_eint",
-  "asm_file": "test/fixtures/test_eint.asm",
-  "data_file": "test/fixtures/test_eint.data",
+  "test_name": "rpt",
+  "asm_file": "test/fixtures/rpt.asm",
+  "data_file": "test/fixtures/rpt.data",
   "gdb_result": {
 
   "registers": {
-    "PC": 16976,
+    "PC": 16990,
     "SP": 11262,
-    "SR": 8,
+    "SR": 0,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -17,7 +17,7 @@
     "R9": 0,
     "R10": 0,
     "R11": 0,
-    "R12": 0,
+    "R12": 65024,
     "R13": 0,
     "R14": 0,
     "R15": 0
@@ -28,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 16976
+  "pc": 16990
 }
 }
