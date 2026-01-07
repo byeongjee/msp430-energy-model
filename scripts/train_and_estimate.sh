@@ -248,16 +248,14 @@ fi
 # Create temp file paths for training files without matched CSVs
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file")
-    basename="${basename%.c}"
-    basename="${basename%.S}"
+    base=$(get_basename "$train_file")
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
-        TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_segments_${TIMESTAMP}.csv"
+        TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${base}_segments_${TIMESTAMP}.csv"
         USE_TEMP_TRAINING_SEGMENTS=1
     else
-        log_info "  Matched segments CSV for $basename: ${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
+        log_info "  Matched segments CSV for $base: ${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
     fi
 done
 
@@ -301,64 +299,24 @@ fi
 
 log_info "Report will be saved to: $REPORT_DIR_FULL"
 
-# Extract basenames
-ESTIMATE_BASENAME="$(basename "$ESTIMATE_FILE")"
-ESTIMATE_BASENAME="${ESTIMATE_BASENAME%.c}"
-ESTIMATE_BASENAME="${ESTIMATE_BASENAME%.S}"
+# Extract basename for estimation file
+ESTIMATE_BASENAME=$(get_basename "$ESTIMATE_FILE")
 
 # ============================================================
-# EXTRACT EVENT LABELS
+# EXTRACT EVENT LABELS (for estimation file only - train.sh handles training files)
 # ============================================================
 
-# Extract event labels for all training files
-TRAINING_EVENT_LABELS_ARRAY=()
-for i in "${!TRAIN_FILE_ARRAY[@]}"; do
-    train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file")
-    basename="${basename%.c}"
-    basename="${basename%.S}"
-    event_labels_json="$TEMP_DIR/labels_${basename}_${TIMESTAMP}.json"
-
-    log_info "Extracting event labels from $train_file..."
-    python3 "$EXTRACT_BENCH_LABELS_PY" \
-        --input "$train_file" \
-        --output "$event_labels_json" \
-        --format json
-
-    TRAINING_EVENT_LABELS_ARRAY+=("$event_labels_json")
-done
-
-# Extract event labels for estimation file
 ESTIMATE_EVENT_LABELS_JSON="$TEMP_DIR/labels_${ESTIMATE_BASENAME}_${TIMESTAMP}.json"
 log_info "Extracting event labels from $ESTIMATE_FILE..."
-python3 "$EXTRACT_BENCH_LABELS_PY" \
-    --input "$ESTIMATE_FILE" \
-    --output "$ESTIMATE_EVENT_LABELS_JSON" \
-    --format json
+extract_event_labels "$ESTIMATE_FILE" "$ESTIMATE_EVENT_LABELS_JSON"
 
-# Build MAX_STEPS_FLAG
+# Build MAX_STEPS_FLAG (used in estimation Julia call)
 MAX_STEPS_FLAG=""
 if [[ -n "$MAX_STEPS" ]]; then
     MAX_STEPS_FLAG="--max-steps $MAX_STEPS"
 fi
 
-# Build N_SAMPLES_FLAG
-N_SAMPLES_FLAG=""
-if [[ -n "$N_SAMPLES" ]]; then
-    N_SAMPLES_FLAG="--n-samples $N_SAMPLES"
-fi
-
-# Build MODEL_FLAG
-MODEL_FLAG="--model $MODEL"
-
-# Build INFERENCE_FLAG
-INFERENCE_FLAG="--inference $INFERENCE"
-
-# Process TRAIN_DEFINES and ESTIMATE_DEFINES separately
-TRAIN_DEFINE_FLAGS=$(process_defines "$TRAIN_DEFINES")
-if [[ -n "$TRAIN_DEFINES" ]]; then
-    log_info "Using training compiler defines: $TRAIN_DEFINES"
-fi
+# Process estimation defines
 
 ESTIMATE_DEFINE_FLAGS=$(process_defines "$ESTIMATE_DEFINES")
 if [[ -n "$ESTIMATE_DEFINES" ]]; then
@@ -454,41 +412,8 @@ fi
 
 # Estimation measurement and preprocessing (measure → preprocess → remove raw data)
 if [[ $SKIP_ESTIMATION_MEASUREMENT -eq 0 ]]; then
-    TEST_RAW_CSV="$TEMP_DIR/measured_${FILE_SUFFIX}.csv"
-
-    # Compile estimation file for measurement
-    log_step "Compiling estimation file for measurement"
-    log_info "Compiling for measurement"
-    $CC $CFLAGS $ESTIMATE_DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
-    log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
-
-    # Flash estimation file to device
-    log_step "Flashing estimation file to device"
-    log_info "Flashing $BUILD_DIR/${ESTIMATE_BASENAME}.elf..."
-    mspdebug tilib "prog $BUILD_DIR/${ESTIMATE_BASENAME}.elf" "exit"
-    log_success "Flashed to device"
-
-    # Measure estimation file energy
-    log_step "Measuring estimation file energy consumption"
-    log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-    python3 "$MEASURE_PY" \
-        --voltage "$VOLTAGE" \
-        --max_current "$MAX_CURRENT" \
-        --outfile "$TEST_RAW_CSV" \
-        $SKIP_RESET
-    log_success "Estimation raw measurement saved: $TEST_RAW_CSV"
-
-    # Preprocess immediately after measurement
-    log_step "Preprocessing measured estimation data"
-    python3 "$PREPROCESS_PY" \
-        --input "$TEST_RAW_CSV" \
-        --output "$TEST_SEGMENTS_CSV" \
-        --event-labels "$ESTIMATE_EVENT_LABELS_JSON"
-    log_success "Measured estimation segments saved: $TEST_SEGMENTS_CSV"
-
-    # Remove raw data immediately after preprocessing
-    rm -f "$TEST_RAW_CSV"
-    log_info "Removed raw data: $TEST_RAW_CSV"
+    # Run measurement pipeline: compile → flash → measure → preprocess → cleanup raw
+    measure_and_preprocess "$ESTIMATE_FILE" "$TEST_SEGMENTS_CSV" "$ESTIMATE_EVENT_LABELS_JSON" "$ESTIMATE_DEFINE_FLAGS"
 else
     log_step "Estimation measurement and preprocessing SKIPPED (using existing test segments CSV: $TEST_SEGMENTS_CSV)"
 fi
@@ -497,7 +422,7 @@ echo ""
 log_info "==> Hardware no longer required - remaining steps can run offline"
 echo ""
 
-# Compile estimation file for estimation
+# Compile estimation file for estimation (with NUM_REPEAT=1)
 log_step "Compiling estimation file for estimation"
 log_info "Compiling for estimation (with NUM_REPEAT=1)"
 
@@ -505,11 +430,7 @@ log_info "Compiling for estimation (with NUM_REPEAT=1)"
 ESTIMATE_DEFINES_FOR_ESTIMATION=$(override_define "$ESTIMATE_DEFINES" "NUM_REPEAT" "1")
 ESTIMATE_DEFINE_FLAGS_FOR_ESTIMATION=$(process_defines "$ESTIMATE_DEFINES_FOR_ESTIMATION")
 
-$CC $CFLAGS $ESTIMATE_DEFINE_FLAGS_FOR_ESTIMATION $INCLUDES $LDFLAGS -o "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ESTIMATE_FILE"
-log_success "Compiled: $BUILD_DIR/${ESTIMATE_BASENAME}.elf"
-disasm "$BUILD_DIR/${ESTIMATE_BASENAME}.elf" "$ASM_DIR/${ESTIMATE_BASENAME}.asm" "$ASM_DIR/${ESTIMATE_BASENAME}.data"
-log_success "Disassembled: $ASM_DIR/${ESTIMATE_BASENAME}.asm"
-log_success "Data dump: $ASM_DIR/${ESTIMATE_BASENAME}.data"
+compile_and_disasm "$ESTIMATE_FILE" "$ESTIMATE_DEFINE_FLAGS_FOR_ESTIMATION"
 
 # Estimate energy consumption
 log_step "Estimating energy consumption"
@@ -541,13 +462,8 @@ python3 "$PROJECT_ROOT/scripts/generate_comparison_report.py" \
     --num-repeat "$NUM_REPEAT"
 log_success "Comparison report generated: $REPORT_DIR_FULL"
 
-# Cleanup estimated stats temp file
+# Cleanup temp files
 rm -f "$ESTIMATED_STATS_JSON"
-
-# Cleanup event label files
-for label_file in "${TRAINING_EVENT_LABELS_ARRAY[@]}"; do
-    rm -f "$label_file"
-done
 rm -f "$ESTIMATE_EVENT_LABELS_JSON"
 
 # Done
