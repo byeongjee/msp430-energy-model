@@ -33,7 +33,6 @@ ESTIMATED_STATS_JSON=""
 TEST_SEGMENTS_CSV=""
 
 # Optional intermediate files
-USE_TEMP_TRAINING_SEGMENTS=0
 USE_TEMP_PARAMS=0
 USE_TEMP_TEST_SEGMENTS=0
 
@@ -231,33 +230,8 @@ else
     REPORT_DIR_FULL="${REPORT_DIR}/${TIMESTAMP}"
 fi
 
-# Setup training file array for segment CSVs
-TRAINING_SEGMENTS_CSV_ARRAY=()
-
-# Match training files to segment CSVs by basename (supports glob patterns)
-if [[ -n "$TRAINING_SEGMENTS_CSV" ]]; then
-    log_info "Matching training segments CSVs by basename..."
-    csv_matches=$(match_files_by_basename "TRAIN_FILE_ARRAY" "$TRAINING_SEGMENTS_CSV" "training segments CSV")
-    match_exit_code=$?
-    if [[ $match_exit_code -ne 0 ]]; then
-        exit 1
-    fi
-    mapfile -t TRAINING_SEGMENTS_CSV_ARRAY <<< "$csv_matches"
-fi
-
-# Create temp file paths for training files without matched CSVs
-for i in "${!TRAIN_FILE_ARRAY[@]}"; do
-    train_file="${TRAIN_FILE_ARRAY[$i]}"
-    base=$(get_basename "$train_file")
-
-    # Segments CSV - use temp file if no match found
-    if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
-        TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${base}_segments_${TIMESTAMP}.csv"
-        USE_TEMP_TRAINING_SEGMENTS=1
-    else
-        log_info "  Matched segments CSV for $base: ${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
-    fi
-done
+# Note: Training segments CSV matching is handled by train.sh
+# We only need to validate training files here for early error detection
 
 log_info "Training files: ${#TRAIN_FILE_ARRAY[@]}"
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
@@ -340,18 +314,10 @@ if [[ -n "$TEST_SEGMENTS_CSV" ]] && [[ -f "$TEST_SEGMENTS_CSV" ]] && [[ $USE_TEM
 fi
 
 # Cleanup function
+# Note: Training cleanup (segments CSV, event labels) is handled by train.sh
 cleanup() {
     if [[ $KEEP_INTERMEDIATES -eq 1 ]]; then
         return
-    fi
-
-    if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 1 ]]; then
-        for csv in "${TRAINING_SEGMENTS_CSV_ARRAY[@]}"; do
-            if [[ -f "$csv" ]]; then
-                log_info "Cleaning up temporary training segments CSV: $csv"
-                rm -f "$csv"
-            fi
-        done
     fi
 
     if [[ $USE_TEMP_PARAMS -eq 1 ]] && [[ -f "$PARAMS_FILE" ]]; then
@@ -476,12 +442,7 @@ echo "    - comparison.md (detailed markdown report with all events)"
 echo "    - event_N_estimated.png (per-event estimated distributions)"
 echo "    - event_N_measured.png (per-event measured distributions)"
 echo "    - event_N_comparison.png (per-event comparisons)"
-if [[ $USE_TEMP_TRAINING_SEGMENTS -eq 0 ]]; then
-    echo "  - Training Segments CSVs (${#TRAINING_SEGMENTS_CSV_ARRAY[@]} files):"
-    for csv in "${TRAINING_SEGMENTS_CSV_ARRAY[@]}"; do
-        echo "      $csv"
-    done
-fi
+# Note: Training outputs (segments CSVs, params) are reported by train.sh
 if [[ $USE_TEMP_TEST_SEGMENTS -eq 0 ]]; then
     echo "  - Test Segments CSV: $TEST_SEGMENTS_CSV"
 fi
