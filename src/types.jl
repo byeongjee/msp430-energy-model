@@ -298,6 +298,9 @@ mutable struct MachineState
     flags::Dict{Symbol,Bool}        # V, N, Z, C flags
     repeat_counter::Int             # For RPT instruction: number of times to repeat next instruction
     multiplier::MultiplierState     # Hardware multiplier peripheral state
+    # Debug state (moved from global to avoid test pollution)
+    debug_u32_buffer::UInt16        # For DEBUG_MAGIC_U32_LO/HI
+    debug_char_buffer::IOBuffer     # For DEBUG_MAGIC_CHR
 end
 
 """
