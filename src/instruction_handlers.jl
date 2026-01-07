@@ -235,6 +235,156 @@ function require_operand_count(ops::Vector{Operand}, required::Int, opcode::Symb
 end
 
 # ============================================================================
+# Dual-Operand Common Pattern
+# ============================================================================
+
+"""
+Configuration for dual-operand instruction execution.
+Captures the variations between different dual-operand instructions.
+"""
+struct DualOperandConfig
+    opcode::Symbol           # For error messages
+    needs_dst_read::Bool     # Whether to read dst value before computing result
+    compute_result::Function # (state, src, dst) -> result::UInt32
+    flag_behavior::Symbol    # :none, :add, :sub, :bit (for BIT instruction)
+    store_result::Bool       # Whether to store result to dst
+end
+
+"""
+    execute_dual_operand!(state, config, inst, ops, data_size, should_track_memory_access)
+
+Execute a dual-operand instruction using the common pattern.
+This reduces code duplication across 14 dual-operand handlers.
+"""
+function execute_dual_operand!(
+    state::MachineState,
+    config::DualOperandConfig,
+    inst::Instruction,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    should_track_memory_access::Bool,
+)::Vector{ExecutionEvent}
+    require_operand_count(ops, 2, config.opcode)
+    events = ExecutionEvent[]
+
+    # Read source value
+    src_val, src_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
+    append!(events, src_events)
+
+    # Read destination value (if needed)
+    dst_val = UInt32(0)
+    if config.needs_dst_read
+        dst_val, dst_events = get_operand_value(
+            state, ops[2], data_size, inst, should_track_memory_access
+        )
+        append!(events, dst_events)
+    end
+
+    # Compute result
+    result = config.compute_result(state, src_val, dst_val)
+
+    # Update flags based on behavior
+    if config.flag_behavior == :add
+        update_flags!(state, result, dst_val, src_val, true, data_size)
+    elseif config.flag_behavior == :sub
+        update_flags!(state, result, dst_val, src_val, false, data_size)
+    elseif config.flag_behavior == :bit
+        # BIT has special flag behavior: V=0, C=NOT Z
+        msb_bit = get_data_size_msb(data_size)
+        masked_result = apply_data_size_mask(result, data_size)
+        state.flags[:N] = (masked_result & msb_bit) != 0
+        state.flags[:Z] = masked_result == 0
+        state.flags[:C] = masked_result != 0  # C = NOT Z for BIT
+        state.flags[:V] = false
+    end
+    # :none - no flag updates
+
+    # Store result (if needed)
+    if config.store_result
+        result_events = set_operand_value!(
+            state, ops[2], result, data_size, inst, should_track_memory_access
+        )
+        append!(events, result_events)
+    end
+
+    return events
+end
+
+# Pre-defined configurations for each dual-operand instruction
+const MOV_CONFIG = DualOperandConfig(
+    :mov, false,
+    (state, src, dst) -> src,
+    :none, true
+)
+const MOVA_CONFIG = DualOperandConfig(
+    :mova, false,
+    (state, src, dst) -> src,
+    :none, true
+)
+const ADD_CONFIG = DualOperandConfig(
+    :add, true,
+    (state, src, dst) -> UInt32(dst + src),
+    :add, true
+)
+const ADDA_CONFIG = DualOperandConfig(
+    :adda, true,
+    (state, src, dst) -> UInt32(dst + src),
+    :add, true
+)
+const ADDC_CONFIG = DualOperandConfig(
+    :addc, true,
+    (state, src, dst) -> UInt32(dst + src + (state.flags[:C] ? UInt32(1) : UInt32(0))),
+    :add, true
+)
+const SUB_CONFIG = DualOperandConfig(
+    :sub, true,
+    (state, src, dst) -> UInt32(dst - src),
+    :sub, true
+)
+const SUBC_CONFIG = DualOperandConfig(
+    :subc, true,
+    (state, src, dst) -> UInt32(dst - src - (state.flags[:C] ? UInt32(0) : UInt32(1))),
+    :sub, true
+)
+const CMP_CONFIG = DualOperandConfig(
+    :cmp, true,
+    (state, src, dst) -> UInt32(dst - src),
+    :sub, false  # Don't store result
+)
+const DADD_CONFIG = DualOperandConfig(
+    :dadd, true,
+    (state, src, dst) -> UInt32(dst + src),  # BCD not fully implemented
+    :add, true
+)
+const BIT_CONFIG = DualOperandConfig(
+    :bit, true,
+    (state, src, dst) -> UInt32(dst & src),
+    :bit, false  # Don't store result
+)
+const BIC_CONFIG = DualOperandConfig(
+    :bic, true,
+    (state, src, dst) -> UInt32(dst & (~src)),
+    :none, true
+)
+const BIS_CONFIG = DualOperandConfig(
+    :bis, true,
+    (state, src, dst) -> UInt32(dst | src),
+    :none, true
+)
+const XOR_CONFIG = DualOperandConfig(
+    :xor, true,
+    (state, src, dst) -> UInt32(dst ⊻ src),
+    :sub, true
+)
+const AND_CONFIG = DualOperandConfig(
+    :and, true,
+    (state, src, dst) -> UInt32(dst & src),
+    :sub, true
+)
+
+# ============================================================================
 # Instruction Execution Methods (using multiple dispatch)
 # ============================================================================
 # Generic shim: allow execute! to accept the full Instruction for flexibility
@@ -278,17 +428,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :mov)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_events = set_operand_value!(
-        state, ops[2], src_val, data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    return events
+    return execute_dual_operand!(state, MOV_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # ADD/ADDA - Add source to destination (ADDA is 20-bit variant, data_size set by parser)
@@ -302,23 +442,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :add)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val + src_val)
-    update_flags!(state, result, dst_val, src_val, true, data_size)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, ADD_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # ADDC - Add with carry
@@ -332,24 +456,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :addc)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    carry = state.flags[:C] ? UInt32(1) : UInt32(0)
-    result = UInt32(dst_val + src_val + carry)
-    update_flags!(state, result, dst_val, src_val, true, data_size)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, ADDC_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # SUB - Subtract source from destination
@@ -363,23 +470,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :sub)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val - src_val)
-    update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, SUB_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # SUBC - Subtract with carry
@@ -393,24 +484,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :subc)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
-    result = UInt32(dst_val - src_val - carry)
-    update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, SUBC_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # CMP - Compare (subtract without storing)
@@ -424,19 +498,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :cmp)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val - src_val)
-    update_flags!(state, result, dst_val, src_val, false, data_size)
-    return events  # Don't store result for compare
+    return execute_dual_operand!(state, CMP_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # DADD - Decimal add (BCD addition)
@@ -519,28 +581,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :bit)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val & src_val)
-
-    # BIT has special flag behavior (different from SUB/CMP)
-    msb_bit = get_data_size_msb(data_size)
-    masked_result = apply_data_size_mask(result, data_size)
-
-    state.flags[:N] = (masked_result & msb_bit) != 0
-    state.flags[:Z] = masked_result == 0
-    state.flags[:C] = masked_result != 0  # C = NOT Z for BIT
-    state.flags[:V] = false  # V is always reset for BIT
-
-    return events  # Don't store result for bit test
+    return execute_dual_operand!(state, BIT_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # BIC - Bit clear
@@ -554,22 +595,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :bic)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val & (~src_val))
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, BIC_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # BIS - Bit set
@@ -583,22 +609,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :bis)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val | src_val)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, BIS_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # XOR - Exclusive OR
@@ -612,23 +623,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :xor)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val ⊻ src_val)
-    update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, XOR_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # AND - Logical AND
@@ -642,23 +637,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 2, :and)
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val & src_val)
-    update_flags!(state, result, dst_val, src_val, false, data_size)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
+    return execute_dual_operand!(state, AND_CONFIG, inst, ops, data_size, should_track_memory_access)
 end
 
 # ----------------------------------------------------------------------------
