@@ -184,6 +184,32 @@ TEMP_DIR_DEFAULT="./tmp"
 REPORT_DIR_DEFAULT="./report"
 
 # ============================================================
+# MODEL AND INFERENCE CONSTANTS
+# ============================================================
+
+# Model name constants (use these instead of string literals)
+MODEL_GAMMA_PER_INSTRUCTION="gamma_per_instruction"
+MODEL_GAMMA_PER_ADDRESSING_MODE="gamma_per_addressing_mode"
+MODEL_MEAN_PER_INSTRUCTION="mean_per_instruction"
+MODEL_MEAN_PER_ADDRESSING_MODE="mean_per_addressing_mode"
+MODEL_MEAN_PER_ADDRESSING_MODE_CONSTANT="mean_per_addressing_mode_constant"
+MODEL_MEAN_PER_ADDRESSING_MODE_WITH_MEM_ACCESS="mean_per_addressing_mode_with_mem_access"
+MODEL_MEAN_PER_ADDRESSING_MODE_CONSTANT_WITH_MEM_ACCESS="mean_per_addressing_mode_constant_with_mem_access"
+MODEL_MEAN_PER_PAIR_ADDRESSING_MODE_CONSTANT="mean_per_pair_addressing_mode_constant"
+
+# Inference algorithm constants
+INFERENCE_IMPORTANCE_SAMPLING="importance-sampling"
+INFERENCE_MCMC_BLOCKED="mcmc-blocked"
+INFERENCE_DOMINANT_KEY="dominant-key"
+INFERENCE_LEAST_SQUARES="least-squares"
+INFERENCE_LEAST_SQUARES_NNPIVOT="least-squares-nnpivot"
+INFERENCE_LEAST_SQUARES_NNLS="least-squares-nnls"
+INFERENCE_LEAST_SQUARES_FNNLS="least-squares-fnnls"
+
+# Valid granularities (for reference in error messages)
+VALID_GRANULARITIES="opcode, addressing_mode, addressing_mode_constant, addressing_mode_with_mem_access, addressing_mode_constant_with_mem_access, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair"
+
+# ============================================================
 # DISASSEMBLY
 # ============================================================
 
@@ -203,6 +229,11 @@ source_file_expansion() {
     source "$SCRIPT_DIR/file_expansion_utils.sh"
 }
 
+# Source pipeline utilities
+source_pipeline_utils() {
+    source "$SCRIPT_DIR/pipeline_utils.sh"
+}
+
 # ============================================================
 # INITIALIZATION
 # ============================================================
@@ -212,4 +243,5 @@ if [[ -z "${SKIP_AUTO_INIT:-}" ]]; then
     check_environment
     setup_toolchain
     source_file_expansion
+    source_pipeline_utils
 fi
