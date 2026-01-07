@@ -202,16 +202,14 @@ fi
 # Create temp file paths for training files without matched CSVs
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file")
-    basename="${basename%.c}"
-    basename="${basename%.S}"
+    base=$(get_basename "$train_file")
 
     # Segments CSV - use temp file if no match found
     if [[ -z "${TRAINING_SEGMENTS_CSV_ARRAY[$i]:-}" ]]; then
-        TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${basename}_segments_${TIMESTAMP}.csv"
+        TRAINING_SEGMENTS_CSV_ARRAY[$i]="$TEMP_DIR/${base}_segments_${TIMESTAMP}.csv"
         USE_TEMP_TRAINING_SEGMENTS=1
     else
-        log_info "  Matched segments CSV for $basename: ${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
+        log_info "  Matched segments CSV for $base: ${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
     fi
 done
 
@@ -234,37 +232,17 @@ fi
 TRAINING_EVENT_LABELS_ARRAY=()
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    basename=$(basename "$train_file")
-    basename="${basename%.c}"
-    basename="${basename%.S}"
-    event_labels_json="$TEMP_DIR/labels_${basename}_${TIMESTAMP}.json"
+    base=$(get_basename "$train_file")
+    event_labels_json="$TEMP_DIR/labels_${base}_${TIMESTAMP}.json"
 
     log_info "Extracting event labels from $train_file..."
-    python3 "$EXTRACT_BENCH_LABELS_PY" \
-        --input "$train_file" \
-        --output "$event_labels_json" \
-        --format json
+    extract_event_labels "$train_file" "$event_labels_json"
 
     TRAINING_EVENT_LABELS_ARRAY+=("$event_labels_json")
 done
 
-# Build MAX_STEPS_FLAG
-MAX_STEPS_FLAG=""
-if [[ -n "$MAX_STEPS" ]]; then
-    MAX_STEPS_FLAG="--max-steps $MAX_STEPS"
-fi
-
-# Build N_SAMPLES_FLAG
-N_SAMPLES_FLAG=""
-if [[ -n "$N_SAMPLES" ]]; then
-    N_SAMPLES_FLAG="--n-samples $N_SAMPLES"
-fi
-
-# Build MODEL_FLAG
-MODEL_FLAG="--model $MODEL"
-
-# Build INFERENCE_FLAG
-INFERENCE_FLAG="--inference $INFERENCE"
+# Build Julia command line flags
+JULIA_FLAGS=$(build_julia_flags "$MAX_STEPS" "$N_SAMPLES" "$MODEL" "$INFERENCE")
 
 # Process DEFINES variable
 DEFINE_FLAGS=$(process_defines "$DEFINES")
@@ -330,12 +308,9 @@ SKIPPED_COUNT=0
 
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    train_basename=$(basename "$train_file")
-    train_basename="${train_basename%.c}"
-    train_basename="${train_basename%.S}"
+    base=$(get_basename "$train_file")
     training_segments_csv="${TRAINING_SEGMENTS_CSV_ARRAY[$i]}"
     event_labels_json="${TRAINING_EVENT_LABELS_ARRAY[$i]}"
-    training_raw_csv="$TEMP_DIR/${train_basename}_${TIMESTAMP}.csv"
 
     log_info ""
     log_info "Processing training file $((i+1))/${#TRAIN_FILE_ARRAY[@]}: $train_file"
@@ -347,38 +322,8 @@ for i in "${!TRAIN_FILE_ARRAY[@]}"; do
         continue
     fi
 
-    # Compile training file
-    log_step "Compiling training file ($train_basename)"
-    $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
-    log_success "Compiled: $BUILD_DIR/${train_basename}.elf"
-
-    # Flash training file to device
-    log_step "Flashing training file to device ($train_basename)"
-    log_info "Flashing $BUILD_DIR/${train_basename}.elf..."
-    mspdebug tilib "prog $BUILD_DIR/${train_basename}.elf" "exit"
-    log_success "Flashed to device"
-
-    # Measure training file energy
-    log_step "Measuring training file energy consumption ($train_basename)"
-    log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-    python3 "$MEASURE_PY" \
-        --voltage "$VOLTAGE" \
-        --max_current "$MAX_CURRENT" \
-        --outfile "$training_raw_csv" \
-        $SKIP_RESET
-    log_success "Training raw measurement saved: $training_raw_csv"
-
-    # Preprocess immediately after measurement
-    log_step "Preprocessing training measurements ($train_basename)"
-    python3 "$PREPROCESS_PY" \
-        --input "$training_raw_csv" \
-        --output "$training_segments_csv" \
-        --event-labels "$event_labels_json"
-    log_success "Training segments saved: $training_segments_csv"
-
-    # Remove raw data immediately after preprocessing
-    rm -f "$training_raw_csv"
-    log_info "Removed raw data: $training_raw_csv"
+    # Run measurement pipeline: compile → flash → measure → preprocess → cleanup raw
+    measure_and_preprocess "$train_file" "$training_segments_csv" "$event_labels_json" "$DEFINE_FLAGS"
 
     PROCESSED_COUNT=$((PROCESSED_COUNT + 1))
 done
@@ -390,24 +335,16 @@ echo ""
 log_info "==> Hardware no longer required - remaining steps can run offline"
 echo ""
 
-# Compile and disassemble all training files 
+# Compile and disassemble all training files
 log_step "Compiling and disassembling training files"
 ASM_FILES=()
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
-    train_basename=$(basename "$train_file")
-    train_basename="${train_basename%.c}"
-    train_basename="${train_basename%.S}"
+    base=$(get_basename "$train_file")
 
     # Always recompile (measurement may have been skipped if segments already existed)
-    log_info "Compiling $train_basename"
-    $CC $CFLAGS $DEFINE_FLAGS $INCLUDES $LDFLAGS -o "$BUILD_DIR/${train_basename}.elf" "$train_file"
-
-    # Always disassemble
-    disasm "$BUILD_DIR/${train_basename}.elf" "$ASM_DIR/${train_basename}.asm" "$ASM_DIR/${train_basename}.data"
-    log_info "Disassembled: $ASM_DIR/${train_basename}.asm"
-    log_info "Data dump: $ASM_DIR/${train_basename}.data"
-    ASM_FILES+=("$ASM_DIR/${train_basename}.asm")
+    compile_and_disasm "$train_file" "$DEFINE_FLAGS"
+    ASM_FILES+=("$ASM_DIR/${base}.asm")
 done
 
 # Train energy model
@@ -419,10 +356,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
         --asm "${ASM_FILES[@]}" \
         --data "${TRAINING_SEGMENTS_CSV_ARRAY[@]}" \
         --output "$PARAMS_FILE" \
-        $MAX_STEPS_FLAG \
-        $N_SAMPLES_FLAG \
-        $MODEL_FLAG \
-        $INFERENCE_FLAG
+        $JULIA_FLAGS
     log_success "Model trained: $PARAMS_FILE"
 else
     log_step "Training SKIPPED (using existing params: $PARAMS_FILE)"
