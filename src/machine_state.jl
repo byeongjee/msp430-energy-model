@@ -31,6 +31,46 @@ const RES1_ADDR = UInt32(0x04E6)      # 32-bit result word 1
 const RES2_ADDR = UInt32(0x04E8)      # 32-bit result word 2
 const RES3_ADDR = UInt32(0x04EA)      # 32-bit result word 3 (highest)
 
+# Dispatch tables for multiplier write operations
+# 16-bit mode: writing sets mode and captures operand 1
+const MULTIPLIER_16BIT_MODE = Dict{UInt32,Symbol}(
+    MPY_ADDR  => :mpy,
+    MPYS_ADDR => :mpys,
+    MAC_ADDR  => :mac,
+    MACS_ADDR => :macs,
+)
+
+# 32-bit mode (low word): writing sets mode and captures low 16 bits of operand 1
+const MULTIPLIER_32BIT_LOW_MODE = Dict{UInt32,Symbol}(
+    MPY32L_ADDR  => :mpy32,
+    MPYS32L_ADDR => :mpys32,
+    MAC32L_ADDR  => :mac32,
+    MACS32L_ADDR => :macs32,
+)
+
+# 32-bit high word addresses: writing only updates high 16 bits (mode already set by low write)
+const MULTIPLIER_32BIT_HIGH_ADDRS = Set([MPY32H_ADDR, MPYS32H_ADDR, MAC32H_ADDR, MACS32H_ADDR])
+
+# Dispatch tables for multiplier read operations
+# Result registers: map address to bit shift for extracting from 64-bit result
+const MULTIPLIER_RESULT_SHIFT = Dict{UInt32,Int}(
+    RESLO_ADDR => 0,
+    RES0_ADDR  => 0,
+    RESHI_ADDR => 16,
+    RES1_ADDR  => 16,
+    RES2_ADDR  => 32,
+    RES3_ADDR  => 48,
+)
+
+# All operand 1 low addresses (for reading low 16 bits of op1_value)
+const MULTIPLIER_OP1_LOW_ADDRS = Set([
+    MPY_ADDR, MPYS_ADDR, MAC_ADDR, MACS_ADDR,
+    MPY32L_ADDR, MPYS32L_ADDR, MAC32L_ADDR, MACS32L_ADDR,
+])
+
+# All operand 1 high addresses (for reading high 16 bits of op1_value)
+const MULTIPLIER_OP1_HIGH_ADDRS = Set([MPY32H_ADDR, MPYS32H_ADDR, MAC32H_ADDR, MACS32H_ADDR])
+
 const DEBUG_MAGIC_U16 = UInt32(0x0010)
 const DEBUG_MAGIC_I16 = UInt32(0x0012)
 const DEBUG_MAGIC_HEX = UInt32(0x0014)
@@ -651,50 +691,40 @@ end
 
 """
 Handle writes to hardware multiplier registers.
+Uses dispatch tables to reduce repetition and make patterns explicit.
 """
 function _handle_multiplier_write!(state::MachineState, addr::UInt32, value::UInt16)
     m = state.multiplier
 
-    if addr == MPY_ADDR
-        m.op1_mode = :mpy
+    # 16-bit mode registers: set mode and store full operand 1
+    mode_16 = get(MULTIPLIER_16BIT_MODE, addr, nothing)
+    if mode_16 !== nothing
+        m.op1_mode = mode_16
         m.op1_value = UInt32(value)
-    elseif addr == MPYS_ADDR
-        m.op1_mode = :mpys
-        m.op1_value = UInt32(value)
-    elseif addr == MAC_ADDR
-        m.op1_mode = :mac
-        m.op1_value = UInt32(value)
-    elseif addr == MACS_ADDR
-        m.op1_mode = :macs
-        m.op1_value = UInt32(value)
-    elseif addr == OP2_ADDR
-        # Writing OP2 triggers 16-bit operation
+        return
+    end
+
+    # 32-bit mode low registers: set mode and store low 16 bits of operand 1
+    mode_32 = get(MULTIPLIER_32BIT_LOW_MODE, addr, nothing)
+    if mode_32 !== nothing
+        m.op1_mode = mode_32
+        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
+        return
+    end
+
+    # 32-bit mode high registers: store high 16 bits of operand 1 (mode already set)
+    if addr in MULTIPLIER_32BIT_HIGH_ADDRS
+        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
+        return
+    end
+
+    # Operand 2 registers
+    if addr == OP2_ADDR
         m.op2_value = UInt32(value)
         _execute_multiply_16!(m)
-    elseif addr == MPY32L_ADDR
-        m.op1_mode = :mpy32
-        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
-    elseif addr == MPY32H_ADDR
-        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
-    elseif addr == MPYS32L_ADDR
-        m.op1_mode = :mpys32
-        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
-    elseif addr == MPYS32H_ADDR
-        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
-    elseif addr == MAC32L_ADDR
-        m.op1_mode = :mac32
-        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
-    elseif addr == MAC32H_ADDR
-        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
-    elseif addr == MACS32L_ADDR
-        m.op1_mode = :macs32
-        m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
-    elseif addr == MACS32H_ADDR
-        m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
     elseif addr == OP2L_ADDR
         m.op2_value = (m.op2_value & 0xFFFF0000) | UInt32(value)
     elseif addr == OP2H_ADDR
-        # Writing OP2H triggers 32-bit operation
         m.op2_value = (m.op2_value & 0x0000FFFF) | (UInt32(value) << 16)
         _execute_multiply_32!(m)
     end
@@ -705,33 +735,37 @@ end
 """
 Handle reads from hardware multiplier registers.
 Returns the value that should be read.
+Uses dispatch tables to reduce repetition and make patterns explicit.
 """
 function _handle_multiplier_read(state::MachineState, addr::UInt32)::UInt16
     m = state.multiplier
 
-    if addr == RESLO_ADDR || addr == RES0_ADDR
-        return UInt16(m.result & 0xFFFF)
-    elseif addr == RESHI_ADDR || addr == RES1_ADDR
-        return UInt16((m.result >> 16) & 0xFFFF)
-    elseif addr == RES2_ADDR
-        return UInt16((m.result >> 32) & 0xFFFF)
-    elseif addr == RES3_ADDR
-        return UInt16((m.result >> 48) & 0xFFFF)
-    elseif addr == SUMEXT_ADDR
+    # Result registers: return the appropriate 16-bit word from 64-bit result
+    shift = get(MULTIPLIER_RESULT_SHIFT, addr, nothing)
+    if shift !== nothing
+        return UInt16((m.result >> shift) & 0xFFFF)
+    end
+
+    # Sum extension register
+    if addr == SUMEXT_ADDR
         return m.sumext
-    elseif addr == MPY_ADDR || addr == MPYS_ADDR || addr == MAC_ADDR || addr == MACS_ADDR
+    end
+
+    # Operand 1 registers
+    if addr in MULTIPLIER_OP1_LOW_ADDRS
         return UInt16(m.op1_value & 0xFFFF)
-    elseif addr == MPY32L_ADDR || addr == MPYS32L_ADDR || addr == MAC32L_ADDR || addr == MACS32L_ADDR
-        return UInt16(m.op1_value & 0xFFFF)
-    elseif addr == MPY32H_ADDR || addr == MPYS32H_ADDR || addr == MAC32H_ADDR || addr == MACS32H_ADDR
+    elseif addr in MULTIPLIER_OP1_HIGH_ADDRS
         return UInt16((m.op1_value >> 16) & 0xFFFF)
-    elseif addr == OP2_ADDR || addr == OP2L_ADDR
+    end
+
+    # Operand 2 registers
+    if addr == OP2_ADDR || addr == OP2L_ADDR
         return UInt16(m.op2_value & 0xFFFF)
     elseif addr == OP2H_ADDR
         return UInt16((m.op2_value >> 16) & 0xFFFF)
-    else
-        return UInt16(0)
     end
+
+    return UInt16(0)
 end
 
 function write_memory!(
