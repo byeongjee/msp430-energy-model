@@ -3,36 +3,98 @@
 # Supports: *.c, **/*.c, {a,b,c}.c, path/{dir1,dir2}/*.c
 # Requires: bash 4.0+ (for mapfile)
 
-# Helper function to expand file patterns (glob + brace expansion)
+# ============================================================
+# INTERNAL HELPER FUNCTIONS
+# ============================================================
+
+# _expand_braces PATTERN
+#
+# Internal helper to recursively expand brace patterns like {a,b,c}.
+# Handles nested braces by processing one level at a time.
+#
+# Arguments:
+#   PATTERN - Pattern containing {a,b,c} brace expansion
+#
+# Outputs:
+#   One line per expanded pattern to stdout
+#
+# Example:
+#   _expand_braces "test/{a,b}.c"
+#   # Outputs:
+#   # test/a.c
+#   # test/b.c
+_expand_braces() {
+    local pattern="$1"
+
+    # Check if pattern contains braces
+    if [[ "$pattern" =~ \{[^}]+\} ]]; then
+        # Extract the brace content
+        local before="${pattern%%\{*}"
+        local brace_content="${pattern#*\{}"
+        brace_content="${brace_content%%\}*}"
+        local after="${pattern#*\}}"
+
+        # Split by comma and expand each
+        IFS=',' read -ra items <<< "$brace_content"
+        for item in "${items[@]}"; do
+            _expand_braces "${before}${item}${after}"
+        done
+    else
+        echo "$pattern"
+    fi
+}
+
+# _get_file_basename FILE
+#
+# Internal helper to extract basename without .c or .S extension.
+# Used by match_files_by_basename.
+#
+# Arguments:
+#   FILE - Path to file
+#
+# Outputs:
+#   Basename without extension to stdout
+_get_file_basename() {
+    local file="$1"
+    local base
+    base=$(basename "$file")
+    base="${base%.c}"
+    base="${base%.S}"
+    echo "$base"
+}
+
+# ============================================================
+# PUBLIC FUNCTIONS
+# ============================================================
+
+# expand_file_input INPUT
+#
+# Expand file patterns supporting glob, recursive glob, and brace expansion.
+#
+# Supported patterns:
+#   - Literal file path: "examples/simple.c"
+#   - Glob patterns: "examples/*.c", "examples/test?.c"
+#   - Recursive glob: "examples/**/*.c"
+#   - Brace expansion: "examples/{a,b,c}.c"
+#   - Combined: "examples/{foo,bar}/**/*.c"
+#
+# Arguments:
+#   INPUT - File pattern to expand
+#
+# Outputs:
+#   One file path per line to stdout, sorted and deduplicated
+#
+# Returns:
+#   0 on success (even if no files match)
+#
+# Example:
+#   mapfile -t files < <(expand_file_input "examples/**/*.c")
 expand_file_input() {
     local input="$1"
     local files=()
 
-    # Handle brace expansion manually
-    # This function expands {a,b,c} patterns
-    expand_braces() {
-        local pattern="$1"
-
-        # Check if pattern contains braces
-        if [[ "$pattern" =~ \{[^}]+\} ]]; then
-            # Extract the brace content
-            local before="${pattern%%\{*}"
-            local brace_content="${pattern#*\{}"
-            brace_content="${brace_content%%\}*}"
-            local after="${pattern#*\}}"
-
-            # Split by comma and expand each
-            IFS=',' read -ra items <<< "$brace_content"
-            for item in "${items[@]}"; do
-                expand_braces "${before}${item}${after}"
-            done
-        else
-            echo "$pattern"
-        fi
-    }
-
     # First expand braces to get multiple patterns
-    mapfile -t patterns < <(expand_braces "$input")
+    mapfile -t patterns < <(_expand_braces "$input")
 
     # Now expand each pattern with glob/find
     for pattern in "${patterns[@]}"; do
@@ -75,16 +137,36 @@ expand_file_input() {
     fi
 }
 
-# Helper function to match files to CSVs by basename
-# Usage: match_files_by_basename source_files_array csv_pattern_or_list [csv_type_description]
-# Returns: matched CSV for each source file
-# Exits with error if any match fails
+# match_files_by_basename SOURCE_ARRAY CSV_PATTERN [CSV_TYPE]
+#
+# Match source files to CSV files by basename.
+#
+# Supports two matching modes:
+#   1. {filename} placeholder: Pattern like "tmp/{filename}_segments.csv"
+#      substitutes {filename} with each source basename
+#   2. Pool matching: Glob pattern or semicolon-separated list, matches
+#      CSV files containing the source basename as a substring
+#
+# Arguments:
+#   SOURCE_ARRAY - Name of array variable containing source file paths
+#   CSV_PATTERN  - Pattern or list of CSV files to match against
+#   CSV_TYPE     - (Optional) Description for error messages (default: "CSV")
+#
+# Outputs:
+#   One matched CSV path per source file (empty string if no match)
+#   Warnings to stderr for unmatched files
+#
+# Returns:
+#   0 on success (unmatched files produce warnings, not errors)
+#
+# Example:
+#   source_files=("a.c" "b.c")
+#   mapfile -t csvs < <(match_files_by_basename source_files "tmp/*_segments.csv")
 match_files_by_basename() {
     local -n source_files_ref=$1
     local csv_input="$2"
-    local csv_type="${3:-CSV}"  # Optional: description for error messages (e.g., "training raw CSV")
+    local csv_type="${3:-CSV}"
 
-    # Match each source file to a CSV by basename
     local matched_csvs=()
     local failed_matches=()
 
@@ -92,11 +174,11 @@ match_files_by_basename() {
     if [[ "$csv_input" == *"{filename}"* ]]; then
         # Pattern-based matching: substitute {filename} with each source basename
         for source_file in "${source_files_ref[@]}"; do
-            local basename=$(basename "$source_file")
-            basename="${basename%.c}"
-            basename="${basename%.S}"
+            local base
+            base=$(_get_file_basename "$source_file")
+
             # Substitute {filename} with the actual basename
-            local csv_pattern="${csv_input//\{filename\}/$basename}"
+            local csv_pattern="${csv_input//\{filename\}/$base}"
 
             # Expand the pattern (may contain wildcards)
             local expanded_files=()
@@ -109,7 +191,7 @@ match_files_by_basename() {
                 # Use the first match if multiple files found
                 matched_csvs+=("${expanded_files[0]}")
                 if [[ ${#expanded_files[@]} -gt 1 ]]; then
-                    echo "[WARNING] Multiple matches for $basename, using: ${expanded_files[0]}" >&2
+                    echo "[WARNING] Multiple matches for $base, using: ${expanded_files[0]}" >&2
                 fi
             else
                 matched_csvs+=("")
@@ -131,16 +213,16 @@ match_files_by_basename() {
         fi
 
         for source_file in "${source_files_ref[@]}"; do
-            local basename=$(basename "$source_file")
-            basename="${basename%.c}"
-            basename="${basename%.S}"
+            local base
+            base=$(_get_file_basename "$source_file")
             local matched_csv=""
 
             # Search for matching CSV
             if [[ ${#csv_pool[@]} -gt 0 ]]; then
                 for csv in "${csv_pool[@]}"; do
-                    local csv_basename=$(basename "$csv")
-                    if [[ "$csv_basename" == *"$basename"* ]]; then
+                    local csv_basename
+                    csv_basename=$(basename "$csv")
+                    if [[ "$csv_basename" == *"$base"* ]]; then
                         matched_csv="$csv"
                         break
                     fi
@@ -159,10 +241,9 @@ match_files_by_basename() {
     if [[ ${#failed_matches[@]} -gt 0 ]]; then
         echo "[WARNING] No matching $csv_type files found for ${#failed_matches[@]} source file(s) (will be measured):" >&2
         for file in "${failed_matches[@]}"; do
-            local basename=$(basename "$file")
-            basename="${basename%.c}"
-            basename="${basename%.S}"
-            echo "[WARNING]   - $basename" >&2
+            local base
+            base=$(_get_file_basename "$file")
+            echo "[WARNING]   - $base" >&2
         done
     fi
 
@@ -170,13 +251,26 @@ match_files_by_basename() {
     printf '%s\n' "${matched_csvs[@]}"
 }
 
-# Helper function to match a single file from a pattern
-# Usage: match_single_file csv_pattern [csv_type_description]
-# Returns: the single matched file path
-# Exits with error if 0 or more than 1 file is matched
+# match_single_file CSV_PATTERN [CSV_TYPE]
+#
+# Match exactly one file from a pattern.
+#
+# Arguments:
+#   CSV_PATTERN - Pattern that should match exactly one file
+#   CSV_TYPE    - (Optional) Description for error messages (default: "CSV")
+#
+# Outputs:
+#   The single matched file path to stdout
+#
+# Returns:
+#   0 on success
+#   1 on error (0 or >1 matches), exits with error
+#
+# Example:
+#   csv_file=$(match_single_file "tmp/test_segments.csv" "test segments CSV")
 match_single_file() {
     local csv_input="$1"
-    local csv_type="${2:-CSV}"  # Optional: description for error messages (e.g., "test segments CSV")
+    local csv_type="${2:-CSV}"
 
     # Expand the pattern
     local csv_pool=()
