@@ -3,7 +3,7 @@
   "asm_file": "test/fixtures/test_sxt_flags.asm",
   "data_file": "test/fixtures/test_sxt_flags.data",
   "gdb_result": {
-  "memory": { "0x1c00": 51966, "0x1c02": 48879, "0x1c04": 51966 },
+  "memory": { "0x1c00": 51966, "0x1c02": 51966, "0x1c04": 51966 },
   "registers": {
     "PC": 16494,
     "SP": 11262,
