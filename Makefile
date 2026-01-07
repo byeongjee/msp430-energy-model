@@ -150,12 +150,17 @@ endif
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	./scripts/train.sh "$${ARGS[@]}"
 
-estimate: disasm ## Estimate energy consumption (FILE=<file.c> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] [DEFINES="..."])
+estimate: disasm ## Estimate energy consumption (FILE=<file.c|file.S> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] [DEFINES="..."])
 ifndef PARAMS
 	$(error Please specify PARAMS=<parameter_file>)
 endif
 	@echo "Estimating energy consumption..."
-	@BASENAME=$$(basename $(FILE) .c); \
+	@# Handle both .c and .S files
+	@if echo "$(FILE)" | grep -q '\.S$$'; then \
+		BASENAME=$$(basename $(FILE) .S); \
+	else \
+		BASENAME=$$(basename $(FILE) .c); \
+	fi; \
 	PLOT_FLAG=""; \
 	if [ -n "$(PLOT)" ]; then PLOT_FLAG="--plot $(PLOT)"; fi; \
 	MAX_STEPS_FLAG=""; \
@@ -261,12 +266,17 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 		exit 1; \
 	fi
 
-flash: compile ## Flash binary to microcontroller (FILE=<file.c> [DEFINES="..."])
+flash: compile ## Flash binary to microcontroller (FILE=<file.c|file.S> [DEFINES="..."])
 ifndef FILE
-	$(error Please specify FILE=<filename.c>)
+	$(error Please specify FILE=<filename.c|filename.S>)
 endif
 	@echo "Flashing binary to microcontroller..."
-	@BASENAME=$$(basename $(FILE) .c); \
+	@# Handle both .c and .S files
+	@if echo "$(FILE)" | grep -q '\.S$$'; then \
+		BASENAME=$$(basename $(FILE) .S); \
+	else \
+		BASENAME=$$(basename $(FILE) .c); \
+	fi; \
 	mspdebug tilib "prog $(BUILD_DIR)/$$BASENAME.elf"
 	@echo "✓ Flash completed!"
 
