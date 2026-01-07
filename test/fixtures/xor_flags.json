@@ -1,0 +1,33 @@
+{
+  "test_name": "xor_flags",
+  "asm_file": "test/fixtures/xor_flags.asm",
+  "data_file": "test/fixtures/xor_flags.data",
+  "gdb_result": {
+  "memory": { "0x1c00": 51966, "0x1c02": 51966 },
+  "registers": {
+    "PC": 16466,
+    "SP": 11262,
+    "SR": 129,
+    "R3": 0,
+    "R4": 0,
+    "R5": 0,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 0,
+    "R13": 0,
+    "R14": 7172,
+    "R15": 7172
+  },
+  "flags": {
+    "C": true,
+    "Z": false,
+    "N": false,
+    "V": false
+  },
+  "pc": 16466
+}
+}
