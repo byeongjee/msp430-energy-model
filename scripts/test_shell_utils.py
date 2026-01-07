@@ -459,5 +459,173 @@ class TestLoggingFunctions(unittest.TestCase):
         self.assertIn("warning message", result.stderr)
 
 
+class TestPipelineUtils(unittest.TestCase):
+    """Test utility functions in pipeline_utils.sh"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.project_root = Path(__file__).parent.parent
+        os.chdir(cls.project_root)
+        cls.base_env = {**os.environ, "SKIP_AUTO_INIT": "1"}
+
+    def run_bash(self, script: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True,
+            text=True,
+            env=self.base_env,
+            cwd=self.project_root,
+        )
+
+    # =========================================================================
+    # Test: get_basename
+    # =========================================================================
+
+    def test_get_basename_c_file(self):
+        """get_basename 'path/to/file.c' returns 'file'"""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            get_basename "path/to/file.c"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "file")
+
+    def test_get_basename_s_file(self):
+        """get_basename 'path/to/file.S' returns 'file'"""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            get_basename "path/to/file.S"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "file")
+
+    def test_get_basename_nested_path(self):
+        """get_basename handles deeply nested paths"""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            get_basename "a/b/c/d/test_program.c"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "test_program")
+
+    # =========================================================================
+    # Test: granularity_to_model
+    # =========================================================================
+
+    def test_granularity_to_model_opcode(self):
+        """granularity_to_model 'opcode' returns 'mean_per_instruction'"""
+        result = self.run_bash(
+            """
+            source scripts/common.sh
+            source scripts/pipeline_utils.sh
+            granularity_to_model "opcode"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "mean_per_instruction")
+
+    def test_granularity_to_model_addressing_mode(self):
+        """granularity_to_model 'addressing_mode' returns correct model"""
+        result = self.run_bash(
+            """
+            source scripts/common.sh
+            source scripts/pipeline_utils.sh
+            granularity_to_model "addressing_mode"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "mean_per_addressing_mode")
+
+    def test_granularity_to_model_addressing_mode_constant(self):
+        """granularity_to_model 'addressing_mode_constant' returns correct model"""
+        result = self.run_bash(
+            """
+            source scripts/common.sh
+            source scripts/pipeline_utils.sh
+            granularity_to_model "addressing_mode_constant"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "mean_per_addressing_mode_constant")
+
+    def test_granularity_to_model_pair(self):
+        """granularity_to_model for pair types returns pair model"""
+        for granularity in ["opcode_pair", "addressing_mode_pair", "addressing_mode_constant_pair"]:
+            with self.subTest(granularity=granularity):
+                result = self.run_bash(
+                    f"""
+                    source scripts/common.sh
+                    source scripts/pipeline_utils.sh
+                    granularity_to_model "{granularity}"
+                    """
+                )
+                self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+                self.assertEqual(result.stdout.strip(), "mean_per_pair_addressing_mode_constant")
+
+    def test_granularity_to_model_invalid(self):
+        """granularity_to_model with invalid input returns error"""
+        result = self.run_bash(
+            """
+            source scripts/common.sh
+            source scripts/pipeline_utils.sh
+            granularity_to_model "invalid_granularity"
+            """
+        )
+        self.assertNotEqual(result.returncode, 0, "Expected failure for invalid granularity")
+        self.assertIn("Unknown granularity", result.stderr)
+
+    # =========================================================================
+    # Test: build_julia_flags
+    # =========================================================================
+
+    def test_build_julia_flags_all(self):
+        """build_julia_flags with all parameters"""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            build_julia_flags "1000" "100" "mean_per_addressing_mode" "importance-sampling"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        output = result.stdout.strip()
+        self.assertIn("--max-steps 1000", output)
+        self.assertIn("--n-samples 100", output)
+        self.assertIn("--model mean_per_addressing_mode", output)
+        self.assertIn("--inference importance-sampling", output)
+
+    def test_build_julia_flags_partial(self):
+        """build_julia_flags with some empty parameters"""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            build_julia_flags "500" "" "mean_per_instruction" ""
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        output = result.stdout.strip()
+        self.assertIn("--max-steps 500", output)
+        self.assertIn("--model mean_per_instruction", output)
+        self.assertNotIn("--n-samples", output)
+        self.assertNotIn("--inference", output)
+
+    def test_build_julia_flags_empty(self):
+        """build_julia_flags with all empty parameters returns empty"""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            result=$(build_julia_flags "" "" "" "")
+            echo "result='$result'"
+            """
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertIn("result=''", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
