@@ -274,7 +274,7 @@ class TestMakefileTargets(unittest.TestCase):
         )
         combined_output = result.stdout + result.stderr
         self.assertIn(
-            "Unknown GRANULARITY",
+            "Unknown granularity",
             combined_output,
             f"Expected error message about unknown granularity. Output: {combined_output}",
         )
