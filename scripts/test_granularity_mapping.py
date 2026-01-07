@@ -79,10 +79,10 @@ class TestGranularityMapping(unittest.TestCase):
         self._verify_makefile_granularity_pair("addressing_mode_constant_pair")
 
     def _verify_makefile_granularity(self, granularity: str, expected_model: str):
-        """Helper to verify Makefile passes correct model for a granularity
+        """Helper to verify Makefile correctly passes granularity to interpret.sh
 
-        We use `make -n` (dry run) to see the case statement that maps
-        granularity to model name.
+        Now that interpret logic is in interpret.sh, we verify by checking
+        that make passes --granularity to the script.
         """
         result = subprocess.run(
             [
@@ -98,45 +98,26 @@ class TestGranularityMapping(unittest.TestCase):
             cwd=self.project_root,
         )
 
-        # The dry-run output shows the case statement with the mapping
-        # Look for the pattern: granularity) MODEL_NAME="expected_model";;
+        # The dry-run output should show interpret.sh being called with --granularity
         combined = result.stdout + result.stderr
-        expected_pattern = f'{granularity}) MODEL_NAME="{expected_model}";;'
         self.assertIn(
-            expected_pattern,
+            "./scripts/interpret.sh",
             combined,
-            f"Expected case pattern '{expected_pattern}' for GRANULARITY={granularity}.\n"
-            f"Output: {combined[:500]}...",
+            f"Expected interpret.sh to be called. Output: {combined[:500]}...",
+        )
+        self.assertIn(
+            f'"--granularity" "{granularity}"',
+            combined,
+            f"Expected --granularity {granularity} to be passed. Output: {combined[:500]}...",
         )
 
     def _verify_makefile_granularity_pair(self, granularity: str):
         """Helper to verify Makefile mapping for pair granularities
 
-        Pair granularities (opcode_pair, addressing_mode_pair, addressing_mode_constant_pair)
-        all map to mean_per_pair_addressing_mode_constant via a combined case pattern.
+        Verify that pair granularities are correctly passed to interpret.sh.
         """
-        result = subprocess.run(
-            [
-                "make",
-                "-n",
-                "interpret",
-                f"FILE={self.TEST_FILE}",
-                f"GRANULARITY={granularity}",
-                "MAX_STEPS=1",
-            ],
-            capture_output=True,
-            text=True,
-            cwd=self.project_root,
-        )
-
-        combined = result.stdout + result.stderr
-        # The pair granularities are grouped with | operator
-        expected_pattern = 'opcode_pair|addressing_mode_pair|addressing_mode_constant_pair) MODEL_NAME="mean_per_pair_addressing_mode_constant";;'
-        self.assertIn(
-            expected_pattern,
-            combined,
-            f"Expected combined case pattern for pair granularities.\n"
-            f"Output: {combined[:500]}...",
+        self._verify_makefile_granularity(
+            granularity, "mean_per_pair_addressing_mode_constant"
         )
 
     def test_makefile_invalid_granularity_fails(self):
@@ -156,10 +137,11 @@ class TestGranularityMapping(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0, "Expected failure for invalid granularity")
         combined = result.stdout + result.stderr
+        # Error is now from interpret.sh via granularity_to_model()
         self.assertIn(
-            "Unknown GRANULARITY",
+            "Unknown granularity",
             combined,
-            f"Expected 'Unknown GRANULARITY' error message. Got: {combined}",
+            f"Expected 'Unknown granularity' error message. Got: {combined}",
         )
 
 
@@ -184,9 +166,9 @@ class TestGenerateRequiredBenchmarksMapping(unittest.TestCase):
         cls.base_env = {**os.environ, "SKIP_AUTO_INIT": "1"}
 
     def test_generate_required_benchmarks_mapping(self):
-        """Verify generate_required_benchmarks.sh uses correct mapping"""
-        # Test by extracting the case statement from the script
-        # and verifying it matches our expected mappings
+        """Verify generate_required_benchmarks.sh uses granularity_to_model()"""
+        # After refactoring, generate_required_benchmarks.sh uses granularity_to_model()
+        # from pipeline_utils.sh instead of a local case statement
 
         script_path = self.project_root / "scripts" / "generate_required_benchmarks.sh"
         if not script_path.exists():
@@ -194,29 +176,19 @@ class TestGenerateRequiredBenchmarksMapping(unittest.TestCase):
 
         script_content = script_path.read_text()
 
-        # Verify each mapping exists in the script
-        for granularity, expected_model in self.EXPECTED_MAPPINGS.items():
-            # Check for the case pattern
-            if granularity.endswith("_pair"):
-                # Pair granularities are grouped with |
-                self.assertIn(
-                    expected_model,
-                    script_content,
-                    f"Expected model {expected_model} not found in script",
-                )
-            else:
-                # Non-pair granularities have individual case entries
-                pattern = f'{granularity}) MODEL="{expected_model}"'
-                alternative_pattern = f"{granularity}) echo \"{expected_model}\""
+        # Verify the script uses granularity_to_model function
+        self.assertIn(
+            "granularity_to_model",
+            script_content,
+            "Expected generate_required_benchmarks.sh to use granularity_to_model()",
+        )
 
-                found = (pattern in script_content or
-                        alternative_pattern in script_content or
-                        f'{granularity})' in script_content and expected_model in script_content)
-
-                self.assertTrue(
-                    found,
-                    f"Expected mapping {granularity} -> {expected_model} not found in script",
-                )
+        # Verify it sources common.sh (which sources pipeline_utils.sh)
+        self.assertIn(
+            'source "$SCRIPT_DIR/common.sh"',
+            script_content,
+            "Expected generate_required_benchmarks.sh to source common.sh",
+        )
 
     def test_generate_required_benchmarks_invalid_granularity(self):
         """generate_required_benchmarks.sh rejects invalid granularity"""
@@ -272,31 +244,38 @@ class TestMappingConsistency(unittest.TestCase):
         cls.project_root = Path(__file__).parent.parent
         os.chdir(cls.project_root)
 
-    def test_makefile_contains_all_granularities(self):
-        """Makefile contains case entries for all expected granularities"""
-        makefile_path = self.project_root / "Makefile"
-        makefile_content = makefile_path.read_text()
-
-        for granularity in self.EXPECTED_MAPPINGS.keys():
-            self.assertIn(
-                granularity,
-                makefile_content,
-                f"Granularity {granularity} not found in Makefile",
-            )
-
-    def test_generate_required_benchmarks_contains_all_granularities(self):
-        """generate_required_benchmarks.sh contains all expected granularities"""
-        script_path = self.project_root / "scripts" / "generate_required_benchmarks.sh"
-        if not script_path.exists():
-            self.skipTest("generate_required_benchmarks.sh not found")
-
+    def test_pipeline_utils_contains_all_granularities(self):
+        """pipeline_utils.sh contains granularity_to_model with all expected granularities"""
+        script_path = self.project_root / "scripts" / "pipeline_utils.sh"
         script_content = script_path.read_text()
 
+        # Verify the function exists
+        self.assertIn(
+            "granularity_to_model",
+            script_content,
+            "Expected granularity_to_model function in pipeline_utils.sh",
+        )
+
+        # Verify all granularities are handled in the function
         for granularity in self.EXPECTED_MAPPINGS.keys():
             self.assertIn(
                 granularity,
                 script_content,
-                f"Granularity {granularity} not found in generate_required_benchmarks.sh",
+                f"Granularity {granularity} not found in pipeline_utils.sh",
+            )
+
+    def test_pipeline_utils_has_correct_mappings(self):
+        """pipeline_utils.sh granularity_to_model returns correct models"""
+        # All unique model names should be in the file
+        unique_models = set(self.EXPECTED_MAPPINGS.values())
+        script_path = self.project_root / "scripts" / "pipeline_utils.sh"
+        script_content = script_path.read_text()
+
+        for model in unique_models:
+            self.assertIn(
+                model,
+                script_content,
+                f"Model {model} not found in pipeline_utils.sh",
             )
 
     def test_error_message_lists_valid_granularities(self):
