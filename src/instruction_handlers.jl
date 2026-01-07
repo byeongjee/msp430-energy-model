@@ -287,9 +287,9 @@ function execute_dual_operand!(
 
     # Update flags based on behavior
     if config.flag_behavior == :add
-        update_flags!(state, result, dst_val, src_val, true, data_size)
+        update_flags_add!(state, result, dst_val, src_val, data_size)
     elseif config.flag_behavior == :sub
-        update_flags!(state, result, dst_val, src_val, false, data_size)
+        update_flags_sub!(state, result, dst_val, src_val, data_size)
     elseif config.flag_behavior == :bit
         # BIT has special flag behavior: V=0, C=NOT Z
         msb_bit = get_data_size_msb(data_size)
@@ -1174,7 +1174,7 @@ function execute!(
         state, :inc, inst, ops, data_size, should_track_memory_access
     ) do state, operand_val, data_size
         result = operand_val + UInt32(1)
-        update_flags!(state, result, operand_val, UInt32(1), true, data_size)
+        update_flags_add!(state, result, operand_val, UInt32(1), data_size)
         result
     end
 end
@@ -1194,7 +1194,7 @@ function execute!(
         state, :dec, inst, ops, data_size, should_track_memory_access
     ) do state, operand_val, data_size
         result = operand_val - UInt32(1)
-        update_flags!(state, result, operand_val, UInt32(1), false, data_size)
+        update_flags_sub!(state, result, operand_val, UInt32(1), data_size)
         result
     end
 end
@@ -1355,7 +1355,7 @@ function execute!(
         state, :decd, inst, ops, data_size, should_track_memory_access
     ) do state, operand_val, data_size
         result = operand_val - UInt32(2)
-        update_flags!(state, result, operand_val, UInt32(2), false, data_size)
+        update_flags_sub!(state, result, operand_val, UInt32(2), data_size)
         result
     end
 end
@@ -1375,7 +1375,7 @@ function execute!(
         state, :incd, inst, ops, data_size, should_track_memory_access
     ) do state, operand_val, data_size
         result = operand_val + UInt32(2)
-        update_flags!(state, result, operand_val, UInt32(2), true, data_size)
+        update_flags_add!(state, result, operand_val, UInt32(2), data_size)
         result
     end
 end
@@ -1441,7 +1441,7 @@ function execute!(
     ) do state, operand_val, data_size
         carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
         result = UInt32(operand_val - carry)
-        update_flags!(state, result, operand_val, carry, false, data_size)
+        update_flags_sub!(state, result, operand_val, carry, data_size)
         result
     end
 end
@@ -1462,7 +1462,7 @@ function execute!(
     ) do state, operand_val, data_size
         carry = state.flags[:C] ? UInt32(1) : UInt32(0)
         result = UInt32(operand_val + carry)
-        update_flags!(state, result, operand_val, carry, true, data_size)
+        update_flags_add!(state, result, operand_val, carry, data_size)
         result
     end
 end
