@@ -1,7 +1,7 @@
 {
-  "test_name": "test_lfsr_mod60",
-  "asm_file": "test/fixtures/test_lfsr_mod60.asm",
-  "data_file": "test/fixtures/test_lfsr_mod60.data",
+  "test_name": "lfsr_mod60",
+  "asm_file": "test/fixtures/lfsr_mod60.asm",
+  "data_file": "test/fixtures/lfsr_mod60.data",
   "gdb_result": {
   "memory": { "0x1c00": 49860, "0x1c02": 65514, "0x1c04": 65510, "0x1c06": 2, "0x1c08": 16, "0x1c0a": 65529, "0x1c0c": 65509, "0x1c0e": 65535, "0x1c10": 65506 },
   "registers": {

@@ -1,6 +1,6 @@
 {
-  "test_name": "test_rrc_rrax",
-  "asm_file": "test/fixtures/test_rrc_rrax.asm",
+  "test_name": "rrc_rrax",
+  "asm_file": "test/fixtures/rrc_rrax.asm",
   "gdb_result": {
   "registers": {
     "PC": 16456,

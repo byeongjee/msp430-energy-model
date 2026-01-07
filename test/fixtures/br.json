@@ -1,7 +1,7 @@
 {
-  "test_name": "test_br",
-  "asm_file": "test/fixtures/test_br.asm",
-  "data_file": "test/fixtures/test_br.data",
+  "test_name": "br",
+  "asm_file": "test/fixtures/br.asm",
+  "data_file": "test/fixtures/br.data",
   "gdb_result": {
   "memory": { "0x1c00": 84, "0x1c02": 42 },
   "registers": {

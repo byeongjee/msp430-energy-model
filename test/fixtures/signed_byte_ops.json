@@ -1,7 +1,7 @@
 {
-  "test_name": "test_signed_byte_ops",
-  "asm_file": "test/fixtures/test_signed_byte_ops.asm",
-  "data_file": "test/fixtures/test_signed_byte_ops.data",
+  "test_name": "signed_byte_ops",
+  "asm_file": "test/fixtures/signed_byte_ops.asm",
+  "data_file": "test/fixtures/signed_byte_ops.data",
   "gdb_result": {
   "memory": { "0x1c00": 14492, "0x1c02": 65490, "0x1c04": 65521, "0x1c06": 59114, "0x1c08": 2 },
   "registers": {

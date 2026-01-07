@@ -1,13 +1,13 @@
 {
-  "test_name": "test_dint_eint",
-  "asm_file": "test/fixtures/test_dint_eint.asm",
-  "data_file": "test/fixtures/test_dint_eint.data",
+  "test_name": "eint",
+  "asm_file": "test/fixtures/eint.asm",
+  "data_file": "test/fixtures/eint.data",
   "gdb_result": {
 
   "registers": {
-    "PC": 16980,
+    "PC": 16976,
     "SP": 11262,
-    "SR": 0,
+    "SR": 8,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -28,6 +28,6 @@
     "N": false,
     "V": false
   },
-  "pc": 16980
+  "pc": 16976
 }
 }

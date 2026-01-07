@@ -1,13 +1,13 @@
 {
-  "test_name": "test_add_wrap_word",
-  "asm_file": "test/fixtures/test_add_wrap_word.asm",
-  "data_file": "test/fixtures/test_add_wrap_word.data",
+  "test_name": "dint_eint",
+  "asm_file": "test/fixtures/dint_eint.asm",
+  "data_file": "test/fixtures/dint_eint.data",
   "gdb_result": {
 
   "registers": {
-    "PC": 16408,
+    "PC": 16980,
     "SP": 11262,
-    "SR": 3,
+    "SR": 0,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -23,11 +23,11 @@
     "R15": 0
   },
   "flags": {
-    "C": true,
-    "Z": true,
+    "C": false,
+    "Z": false,
     "N": false,
     "V": false
   },
-  "pc": 16408
+  "pc": 16980
 }
 }

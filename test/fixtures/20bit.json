@@ -1,13 +1,13 @@
 {
-  "test_name": "test_add_wrap_address",
-  "asm_file": "test/fixtures/test_add_wrap_address.asm",
-  "data_file": "test/fixtures/test_add_wrap_address.data",
+  "test_name": "20bit",
+  "asm_file": "test/fixtures/20bit.asm",
+  "data_file": "test/fixtures/20bit.data",
   "gdb_result": {
 
   "registers": {
-    "PC": 16412,
+    "PC": 16446,
     "SP": 11262,
-    "SR": 3,
+    "SR": 0,
     "R3": 0,
     "R4": 0,
     "R5": 0,
@@ -18,16 +18,16 @@
     "R10": 0,
     "R11": 0,
     "R12": 0,
-    "R13": 0,
+    "R13": 703710,
     "R14": 0,
     "R15": 0
   },
   "flags": {
-    "C": true,
-    "Z": true,
+    "C": false,
+    "Z": false,
     "N": false,
     "V": false
   },
-  "pc": 16412
+  "pc": 16446
 }
 }

@@ -1,7 +1,7 @@
 {
-  "test_name": "test_rlc",
-  "asm_file": "test/fixtures/test_rlc.asm",
-  "data_file": "test/fixtures/test_rlc.data",
+  "test_name": "rlc",
+  "asm_file": "test/fixtures/rlc.asm",
+  "data_file": "test/fixtures/rlc.data",
   "gdb_result": {
 
   "registers": {
