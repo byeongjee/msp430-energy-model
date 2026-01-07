@@ -219,6 +219,22 @@ function should_advance_pc(
 end
 
 # ============================================================================
+# Operand Validation
+# ============================================================================
+
+"""
+    require_operand_count(ops::Vector{Operand}, required::Int, opcode::Symbol)
+
+Validate that instruction has the required number of operands.
+Throws ArgumentError if validation fails (instead of silently returning).
+"""
+function require_operand_count(ops::Vector{Operand}, required::Int, opcode::Symbol)
+    if length(ops) < required
+        throw(ArgumentError("$opcode requires at least $required operand(s), got $(length(ops))"))
+    end
+end
+
+# ============================================================================
 # Instruction Execution Methods (using multiple dispatch)
 # ============================================================================
 # Generic shim: allow execute! to accept the full Instruction for flexibility
@@ -262,9 +278,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :mov)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -288,9 +302,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :add)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -320,9 +332,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :addc)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -353,9 +363,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :sub)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -385,9 +393,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :subc)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -418,9 +424,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :cmp)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -447,9 +451,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :dadd)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -517,9 +519,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :bit)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -555,9 +555,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :bic)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -586,9 +584,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :bis)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -617,9 +613,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :xor)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -649,9 +643,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :and)
     events = ExecutionEvent[]
     src_val, src_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -685,9 +677,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :rrc)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -717,9 +707,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :rrcm)
     events = ExecutionEvent[]
     shift_count, shift_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -763,9 +751,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :swpb)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -790,9 +776,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :rra)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -827,9 +811,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :rrux)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -862,9 +844,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :rrum)
     events = ExecutionEvent[]
     shift_count, shift_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -913,9 +893,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :sxt)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -945,9 +923,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :inv)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -995,9 +971,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :push)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1026,9 +1000,7 @@ function execute!(
     current_idx::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :call)
     if current_idx >= length(address_info)
         error(
             "Call instruction at index $current_idx has no next instruction for return address",
@@ -1215,9 +1187,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :clr)
     events = set_operand_value!(
         state, ops[1], UInt32(0), data_size, inst, should_track_memory_access
     )
@@ -1235,9 +1205,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :inc)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1263,9 +1231,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :dec)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1436,9 +1402,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :br)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1459,9 +1423,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :decd)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1487,9 +1449,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :incd)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1560,9 +1520,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :sbc)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1589,9 +1547,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :adc)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1618,9 +1574,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :rla)
     events = ExecutionEvent[]
     operand_val, read_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1650,9 +1604,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :rlam)
     events = ExecutionEvent[]
     shift_count, shift_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1691,9 +1643,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :pushm)
     events = ExecutionEvent[]
     n_val, n_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1739,9 +1689,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 2, :popm)
     events = ExecutionEvent[]
     n_val, n_events = get_operand_value(
         state, ops[1], data_size, inst, should_track_memory_access
@@ -1788,9 +1736,7 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :pop)
     events = ExecutionEvent[]
 
     bytes_per_val = if data_size == :address
@@ -1830,9 +1776,7 @@ function execute_jump_helper!(
     current_idx::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
+    require_operand_count(ops, 1, :jmp)
 
     # Extract jump offset from symbolic addressing
     @assert ops[1].mode == :symbolic "Jump instructions must use symbolic addressing mode"
