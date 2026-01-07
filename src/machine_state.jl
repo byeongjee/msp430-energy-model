@@ -998,23 +998,36 @@ function set_operand_value!(
 end
 
 """
-Update status flags after arithmetic operations
+Helper to synchronize SR register with flag dictionary.
+Call after modifying flags to keep SR in sync.
 """
-function update_flags!(
+function _sync_sr_with_flags!(state::MachineState)::Nothing
+    state.registers[:SR] =
+        (state.registers[:SR] & ~UInt32(0x0107)) |  # Preserve GIE/CPU mode bits
+        (state.flags[:V] ? 0x0100 : 0x0000) |
+        (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:C] ? 0x0001 : 0x0000)
+    return nothing
+end
+
+"""
+Update status flags after addition operations (ADD, ADDC, INC, INCD, ADC, DADD).
+
+Carry: Set if result exceeds data size max value.
+Overflow: Set if both operands have same sign but result has different sign.
+"""
+function update_flags_add!(
     state::MachineState,
     result::UInt32,
     dst::UInt32,
     src::UInt32,
-    is_add::Bool,
     data_size::Symbol=:word,
 )::Nothing
-    # Mask operands/results to the active data size so flag math matches
-    # architectural overflow/underflow (e.g., 16-bit and 20-bit wraparound).
     masked_result = apply_data_size_mask(result, data_size)
     masked_dst = apply_data_size_mask(dst, data_size)
     masked_src = apply_data_size_mask(src, data_size)
 
-    # Get the appropriate mask and MSB bit for the data size
     max_val = get_data_size_mask(data_size)
     msb_bit = get_data_size_msb(data_size)
 
@@ -1024,34 +1037,54 @@ function update_flags!(
     # Negative flag (MSB set)
     state.flags[:N] = (masked_result & msb_bit) != 0
 
-    if is_add
-        # Carry flag for addition
-        state.flags[:C] = (masked_dst + masked_src) > max_val
+    # Carry flag for addition: set if result exceeds max value
+    state.flags[:C] = (masked_dst + masked_src) > max_val
 
-        # Overflow flag for addition (both operands same sign, result different sign)
-        dst_sign = (masked_dst & msb_bit) != 0
-        src_sign = (masked_src & msb_bit) != 0
-        result_sign = (masked_result & msb_bit) != 0
-        state.flags[:V] = (dst_sign == src_sign) && (dst_sign != result_sign)
-    else
-        # Carry flag for subtraction (borrow)
-        state.flags[:C] = masked_dst >= masked_src
+    # Overflow flag for addition: both operands same sign, result different sign
+    dst_sign = (masked_dst & msb_bit) != 0
+    src_sign = (masked_src & msb_bit) != 0
+    result_sign = (masked_result & msb_bit) != 0
+    state.flags[:V] = (dst_sign == src_sign) && (dst_sign != result_sign)
 
-        # Overflow flag for subtraction
-        dst_sign = (masked_dst & msb_bit) != 0
-        src_sign = (masked_src & msb_bit) != 0
-        result_sign = (masked_result & msb_bit) != 0
-        state.flags[:V] = (dst_sign != src_sign) && (dst_sign != result_sign)
-    end
+    _sync_sr_with_flags!(state)
+    return nothing
+end
 
-    # Update status register
-    state.registers[:SR] =
-        (state.registers[:SR] & ~UInt32(0x0107)) |  # Preserve GIE/CPU mode bits
-        (state.flags[:V] ? 0x0100 : 0x0000) |
-        (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000) |
-        (state.flags[:C] ? 0x0001 : 0x0000)
+"""
+Update status flags after subtraction operations (SUB, SUBC, CMP, DEC, DECD, SBC, XOR, AND).
 
+Carry: Set if dst >= src (no borrow needed).
+Overflow: Set if operands have different signs and result sign differs from dst.
+"""
+function update_flags_sub!(
+    state::MachineState,
+    result::UInt32,
+    dst::UInt32,
+    src::UInt32,
+    data_size::Symbol=:word,
+)::Nothing
+    masked_result = apply_data_size_mask(result, data_size)
+    masked_dst = apply_data_size_mask(dst, data_size)
+    masked_src = apply_data_size_mask(src, data_size)
+
+    msb_bit = get_data_size_msb(data_size)
+
+    # Zero flag
+    state.flags[:Z] = (masked_result == 0)
+
+    # Negative flag (MSB set)
+    state.flags[:N] = (masked_result & msb_bit) != 0
+
+    # Carry flag for subtraction: set if no borrow needed
+    state.flags[:C] = masked_dst >= masked_src
+
+    # Overflow flag for subtraction: operands different signs, result sign differs from dst
+    dst_sign = (masked_dst & msb_bit) != 0
+    src_sign = (masked_src & msb_bit) != 0
+    result_sign = (masked_result & msb_bit) != 0
+    state.flags[:V] = (dst_sign != src_sign) && (dst_sign != result_sign)
+
+    _sync_sr_with_flags!(state)
     return nothing
 end
 
