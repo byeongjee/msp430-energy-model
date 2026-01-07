@@ -43,6 +43,75 @@ const DEBUG_U32_BUFFER = Ref{UInt16}(0x0000)
 
 _is_debug_magic_addr(addr::UInt32)::Bool = addr >= 0x0010 && addr <= 0x001C
 
+# ============================================================================
+# Data Size Constants
+# ============================================================================
+# Centralized constants for data size properties to avoid duplication and
+# ensure consistency across the codebase.
+
+"""
+Data size information for MSP430 operations.
+- mask: Value mask for the data size
+- msb: Most significant bit position
+- bytes: Number of bytes for the data size
+"""
+const DATA_SIZE_INFO = (
+    byte    = (mask = UInt32(0xFF),    msb = UInt32(0x80),    bytes = 1),
+    word    = (mask = UInt32(0xFFFF),  msb = UInt32(0x8000),  bytes = 2),
+    address = (mask = UInt32(0xFFFFF), msb = UInt32(0x80000), bytes = 4),
+)
+
+"""
+    get_data_size_mask(data_size::Symbol) -> UInt32
+
+Returns the value mask for the given data size.
+"""
+function get_data_size_mask(data_size::Symbol)::UInt32
+    if data_size == :byte
+        return DATA_SIZE_INFO.byte.mask
+    elseif data_size == :word
+        return DATA_SIZE_INFO.word.mask
+    elseif data_size == :address
+        return DATA_SIZE_INFO.address.mask
+    else
+        throw(ArgumentError("Unknown data size: $data_size"))
+    end
+end
+
+"""
+    get_data_size_msb(data_size::Symbol) -> UInt32
+
+Returns the MSB bit position for the given data size.
+"""
+function get_data_size_msb(data_size::Symbol)::UInt32
+    if data_size == :byte
+        return DATA_SIZE_INFO.byte.msb
+    elseif data_size == :word
+        return DATA_SIZE_INFO.word.msb
+    elseif data_size == :address
+        return DATA_SIZE_INFO.address.msb
+    else
+        throw(ArgumentError("Unknown data size: $data_size"))
+    end
+end
+
+"""
+    get_data_size_bytes(data_size::Symbol) -> Int
+
+Returns the number of bytes for the given data size.
+"""
+function get_data_size_bytes(data_size::Symbol)::Int
+    if data_size == :byte
+        return DATA_SIZE_INFO.byte.bytes
+    elseif data_size == :word
+        return DATA_SIZE_INFO.word.bytes
+    elseif data_size == :address
+        return DATA_SIZE_INFO.address.bytes
+    else
+        throw(ArgumentError("Unknown data size: $data_size"))
+    end
+end
+
 """
 Create an empty cache with all lines invalidated.
 """
@@ -396,15 +465,7 @@ function set_register_value!(state::MachineState, register::Symbol, value::UInt3
 end
 
 function apply_data_size_mask(value::UInt32, data_size::Symbol)::UInt32
-    if data_size == :word
-        return value & 0xFFFF
-    elseif data_size == :byte
-        return value & 0xFF
-    elseif data_size == :address
-        return value & 0xFFFFF
-    else
-        error("Unknown data size: $data_size")
-    end
+    return value & get_data_size_mask(data_size)
 end
 
 function read_memory(
@@ -956,15 +1017,8 @@ function update_flags!(
     masked_src = apply_data_size_mask(src, data_size)
 
     # Get the appropriate mask and MSB bit for the data size
-    max_val, msb_bit = if data_size == :byte
-        (UInt32(0xFF), UInt32(0x80))
-    elseif data_size == :word
-        (UInt32(0xFFFF), UInt32(0x8000))
-    elseif data_size == :address
-        (UInt32(0xFFFFF), UInt32(0x80000))
-    else
-        error("Unknown data size: $data_size")
-    end
+    max_val = get_data_size_mask(data_size)
+    msb_bit = get_data_size_msb(data_size)
 
     # Zero flag
     state.flags[:Z] = (masked_result == 0)
@@ -1010,15 +1064,7 @@ function update_flags_simple!(
     state::MachineState, result::UInt32, data_size::Symbol=:word
 )::Nothing
     # Get the appropriate MSB bit for the data size
-    msb_bit = if data_size == :byte
-        UInt32(0x80)
-    elseif data_size == :word
-        UInt32(0x8000)
-    elseif data_size == :address
-        UInt32(0x80000)
-    else
-        error("Unknown data size: $data_size")
-    end
+    msb_bit = get_data_size_msb(data_size)
 
     state.flags[:Z] = (result == 0)
     state.flags[:N] = (result & msb_bit) != 0

@@ -532,8 +532,7 @@ function execute!(
     result = UInt32(dst_val & src_val)
 
     # BIT has special flag behavior (different from SUB/CMP)
-    msb_bit = data_size == :byte ? UInt32(0x80) :
-              data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+    msb_bit = get_data_size_msb(data_size)
     masked_result = apply_data_size_mask(result, data_size)
 
     state.flags[:N] = (masked_result & msb_bit) != 0
@@ -782,13 +781,8 @@ function execute!(
         state, ops[1], data_size, inst, should_track_memory_access
     )
     append!(events, read_events)
-    mask, msb = if data_size == :byte
-        (UInt32(0xFF), UInt32(0x80))
-    elseif data_size == :word
-        (UInt32(0xFFFF), UInt32(0x8000))
-    else
-        (UInt32(0xFFFFF), UInt32(0x80000))
-    end
+    mask = get_data_size_mask(data_size)
+    msb = get_data_size_msb(data_size)
     sign_bit = operand_val & msb
     result = ((operand_val >> 1) | sign_bit) & mask
     state.flags[:C] = (operand_val & 0x0001) != 0
@@ -866,13 +860,7 @@ function execute!(
     result = dst_val >> shift_count
 
     # Mask to data size (clears bits 19:16 for .w operations)
-    if data_size == :byte
-        result = result & 0xFF
-    elseif data_size == :word
-        result = result & 0xFFFF  # Clears bits 19:16
-    else  # :address
-        result = result & 0xFFFFF
-    end
+    result = result & get_data_size_mask(data_size)
 
     update_flags_simple!(state, result, data_size)
     write_events = set_operand_value!(
@@ -935,13 +923,7 @@ function execute!(
     state.flags[:C] = true
     state.flags[:V] = false
 
-    msb_bit = if data_size == :byte
-        UInt32(0x80)
-    elseif data_size == :word
-        UInt32(0x8000)
-    else
-        UInt32(0x80000)
-    end
+    msb_bit = get_data_size_msb(data_size)
 
     state.flags[:Z] = (result == 0)
     state.flags[:N] = (result & msb_bit) != 0
@@ -1331,35 +1313,15 @@ function execute!(
     result = (dst_val << 1) | carry
 
     # Mask to data size
-    if data_size == :byte
-        result = result & 0xFF
-    elseif data_size == :word
-        result = result & 0xFFFF
-    else  # :address
-        result = result & 0xFFFFF
-    end
+    msb_bit = get_data_size_msb(data_size)
+    result = result & get_data_size_mask(data_size)
 
     # Update C flag with the bit that was shifted out
-    old_msb = if data_size == :byte
-        (dst_val & 0x80) != 0
-    elseif data_size == :word
-        (dst_val & 0x8000) != 0
-    else  # :address
-        (dst_val & 0x80000) != 0
-    end
-
+    old_msb = (dst_val & msb_bit) != 0
     state.flags[:C] = old_msb
 
     # Update Z and N flags based on result
     # V flag is NOT affected by RLC per MSP430 spec
-    msb_bit = if data_size == :byte
-        UInt32(0x80)
-    elseif data_size == :word
-        UInt32(0x8000)
-    else  # :address
-        UInt32(0x80000)
-    end
-
     state.flags[:Z] = (result == 0)
     state.flags[:N] = (result & msb_bit) != 0
 
