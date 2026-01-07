@@ -385,6 +385,48 @@ const AND_CONFIG = DualOperandConfig(
 )
 
 # ============================================================================
+# Single-Operand Common Pattern
+# ============================================================================
+
+"""
+    execute_single_operand_rmw!(transform, state, opcode, inst, ops, data_size, should_track)
+
+Execute a single-operand read-modify-write instruction.
+The transform function receives (state, operand_val, data_size) and should:
+1. Compute and return the result
+2. Update flags as appropriate for the instruction (inside the function)
+
+Note: transform is the first argument to support Julia's `do` block syntax.
+
+This pattern applies to: RRC, SWPB, RRA, RRAX, RRUX, SXT, INV, INC, DEC, RLC,
+RLA, RLAX, ADC, SBC, DECD, INCD
+"""
+function execute_single_operand_rmw!(
+    transform::Function,  # (state, operand_val, data_size) -> result::UInt32 (first for do syntax)
+    state::MachineState,
+    opcode::Symbol,
+    inst::Instruction,
+    ops::Vector{Operand},
+    data_size::Symbol,
+    should_track_memory_access::Bool,
+)::Vector{ExecutionEvent}
+    require_operand_count(ops, 1, opcode)
+    events = ExecutionEvent[]
+    operand_val, read_events = get_operand_value(
+        state, ops[1], data_size, inst, should_track_memory_access
+    )
+    append!(events, read_events)
+
+    result = transform(state, operand_val, data_size)
+
+    write_events = set_operand_value!(
+        state, ops[1], result, data_size, inst, should_track_memory_access
+    )
+    append!(events, write_events)
+    return events
+end
+
+# ============================================================================
 # Instruction Execution Methods (using multiple dispatch)
 # ============================================================================
 # Generic shim: allow execute! to accept the full Instruction for flexibility
@@ -655,21 +697,15 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :rrc)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    new_carry = (operand_val & 0x0001) != 0
-    result = UInt32((operand_val >> 1) | (state.flags[:C] ? 0x8000 : 0x0000))
-    state.flags[:C] = new_carry
-    update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :rrc, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        new_carry = (operand_val & 0x0001) != 0
+        result = UInt32((operand_val >> 1) | (state.flags[:C] ? 0x8000 : 0x0000))
+        state.flags[:C] = new_carry
+        update_flags_simple!(state, result, data_size)
+        result
+    end
 end
 
 # RRCM - Rotate right through carry multiple times
@@ -729,18 +765,12 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :swpb)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    result = UInt32(((operand_val & 0x00FF) << 8) | ((operand_val & 0xFF00) >> 8))
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :swpb, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        # No flag updates for SWPB
+        UInt32(((operand_val & 0x00FF) << 8) | ((operand_val & 0xFF00) >> 8))
+    end
 end
 
 # RRA/RRAX - Arithmetic right shift (RRAX is 20-bit variant, data_size set by parser)
@@ -754,23 +784,17 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :rra)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    mask = get_data_size_mask(data_size)
-    msb = get_data_size_msb(data_size)
-    sign_bit = operand_val & msb
-    result = ((operand_val >> 1) | sign_bit) & mask
-    state.flags[:C] = (operand_val & 0x0001) != 0
-    update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :rra, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        mask = get_data_size_mask(data_size)
+        msb = get_data_size_msb(data_size)
+        sign_bit = operand_val & msb
+        result = ((operand_val >> 1) | sign_bit) & mask
+        state.flags[:C] = (operand_val & 0x0001) != 0
+        update_flags_simple!(state, result, data_size)
+        result
+    end
 end
 
 # RRUX - Logical right shift extended (MSP430X, no sign extension)
@@ -784,23 +808,15 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :rrux)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-
-    # Logical right shift (zero fill)
-    result = operand_val >> 1
-
-    state.flags[:C] = (operand_val & 0x0001) != 0
-    update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :rrux, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        # Logical right shift (zero fill)
+        result = operand_val >> 1
+        state.flags[:C] = (operand_val & 0x0001) != 0
+        update_flags_simple!(state, result, data_size)
+        result
+    end
 end
 
 # RRUM - Rotate right unsigned multiple times
@@ -860,23 +876,17 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :sxt)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    result = if (operand_val & 0x0080) != 0
-        UInt32(operand_val | 0xFF00)
-    else
-        UInt32(operand_val & 0x00FF)
+    return execute_single_operand_rmw!(
+        state, :sxt, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        result = if (operand_val & 0x0080) != 0
+            UInt32(operand_val | 0xFF00)
+        else
+            UInt32(operand_val & 0x00FF)
+        end
+        update_flags_simple!(state, result, data_size)
+        result
     end
-    update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
 end
 
 # INV - Bitwise invert
@@ -890,35 +900,29 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :inv)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    result = apply_data_size_mask(~operand_val, data_size)
+    return execute_single_operand_rmw!(
+        state, :inv, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        result = apply_data_size_mask(~operand_val, data_size)
 
-    # INV sets C=1, clears V, and updates N/Z based on the masked result.
-    state.flags[:C] = true
-    state.flags[:V] = false
+        # INV sets C=1, clears V, and updates N/Z based on the masked result.
+        state.flags[:C] = true
+        state.flags[:V] = false
 
-    msb_bit = get_data_size_msb(data_size)
+        msb_bit = get_data_size_msb(data_size)
 
-    state.flags[:Z] = (result == 0)
-    state.flags[:N] = (result & msb_bit) != 0
+        state.flags[:Z] = (result == 0)
+        state.flags[:N] = (result & msb_bit) != 0
 
-    state.registers[:SR] =
-        (state.registers[:SR] & ~UInt32(0x0107)) |
-        (state.flags[:V] ? 0x0100 : 0x0000) |
-        (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000) |
-        (state.flags[:C] ? 0x0001 : 0x0000)
+        state.registers[:SR] =
+            (state.registers[:SR] & ~UInt32(0x0107)) |
+            (state.flags[:V] ? 0x0100 : 0x0000) |
+            (state.flags[:N] ? 0x0004 : 0x0000) |
+            (state.flags[:Z] ? 0x0002 : 0x0000) |
+            (state.flags[:C] ? 0x0001 : 0x0000)
 
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+        result
+    end
 end
 
 # PUSH - Push to stack
@@ -1166,19 +1170,13 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :inc)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    result = operand_val + UInt32(1)
-    update_flags!(state, result, operand_val, UInt32(1), true, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :inc, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        result = operand_val + UInt32(1)
+        update_flags!(state, result, operand_val, UInt32(1), true, data_size)
+        result
+    end
 end
 
 # DEC - Decrement by 1
@@ -1192,19 +1190,13 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :dec)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    result = operand_val - UInt32(1)
-    update_flags!(state, result, operand_val, UInt32(1), false, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :dec, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        result = operand_val - UInt32(1)
+        update_flags!(state, result, operand_val, UInt32(1), false, data_size)
+        result
+    end
 end
 
 # DINT - Disable interrupt
@@ -1281,41 +1273,36 @@ function execute!(
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
     # RLC rotates left through carry: shifts left and inserts carry into LSB
-    events = ExecutionEvent[]
-    dst_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    carry = (state.registers[:SR] & 0x0001) != 0 ? UInt32(1) : UInt32(0)
+    return execute_single_operand_rmw!(
+        state, :rlc, inst, ops, data_size, should_track_memory_access
+    ) do state, dst_val, data_size
+        carry = (state.registers[:SR] & 0x0001) != 0 ? UInt32(1) : UInt32(0)
 
-    # Shift left and add carry
-    result = (dst_val << 1) | carry
+        # Shift left and add carry
+        result = (dst_val << 1) | carry
 
-    # Mask to data size
-    msb_bit = get_data_size_msb(data_size)
-    result = result & get_data_size_mask(data_size)
+        # Mask to data size
+        msb_bit = get_data_size_msb(data_size)
+        result = result & get_data_size_mask(data_size)
 
-    # Update C flag with the bit that was shifted out
-    old_msb = (dst_val & msb_bit) != 0
-    state.flags[:C] = old_msb
+        # Update C flag with the bit that was shifted out
+        old_msb = (dst_val & msb_bit) != 0
+        state.flags[:C] = old_msb
 
-    # Update Z and N flags based on result
-    # V flag is NOT affected by RLC per MSP430 spec
-    state.flags[:Z] = (result == 0)
-    state.flags[:N] = (result & msb_bit) != 0
+        # Update Z and N flags based on result
+        # V flag is NOT affected by RLC per MSP430 spec
+        state.flags[:Z] = (result == 0)
+        state.flags[:N] = (result & msb_bit) != 0
 
-    # Update SR with flags (preserve V flag, update C/Z/N)
-    state.registers[:SR] =
-        (state.registers[:SR] & 0x0108) |  # Preserve V (bit 8) and GIE (bit 3)
-        (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000) |
-        (state.flags[:C] ? 0x0001 : 0x0000)
+        # Update SR with flags (preserve V flag, update C/Z/N)
+        state.registers[:SR] =
+            (state.registers[:SR] & 0x0108) |  # Preserve V (bit 8) and GIE (bit 3)
+            (state.flags[:N] ? 0x0004 : 0x0000) |
+            (state.flags[:Z] ? 0x0002 : 0x0000) |
+            (state.flags[:C] ? 0x0001 : 0x0000)
 
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+        result
+    end
 end
 
 # NOP - No operation
@@ -1364,19 +1351,13 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :decd)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    result = operand_val - UInt32(2)
-    update_flags!(state, result, operand_val, UInt32(2), false, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :decd, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        result = operand_val - UInt32(2)
+        update_flags!(state, result, operand_val, UInt32(2), false, data_size)
+        result
+    end
 end
 
 # INCD - Double increment
@@ -1390,19 +1371,13 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :incd)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    result = operand_val + UInt32(2)
-    update_flags!(state, result, operand_val, UInt32(2), true, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :incd, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        result = operand_val + UInt32(2)
+        update_flags!(state, result, operand_val, UInt32(2), true, data_size)
+        result
+    end
 end
 
 # RPT - Repeat next instruction N times (execute nested instruction directly)
@@ -1461,20 +1436,14 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :sbc)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
-    result = UInt32(operand_val - carry)
-    update_flags!(state, result, operand_val, carry, false, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :sbc, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        carry = state.flags[:C] ? UInt32(0) : UInt32(1)  # Inverted for subtraction
+        result = UInt32(operand_val - carry)
+        update_flags!(state, result, operand_val, carry, false, data_size)
+        result
+    end
 end
 
 # ADC - Add carry
@@ -1488,20 +1457,14 @@ function execute!(
     ::Int,
     should_track_memory_access::Bool,
 )::Vector{ExecutionEvent}
-    require_operand_count(ops, 1, :adc)
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-    carry = state.flags[:C] ? UInt32(1) : UInt32(0)
-    result = UInt32(operand_val + carry)
-    update_flags!(state, result, operand_val, carry, true, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
+    return execute_single_operand_rmw!(
+        state, :adc, inst, ops, data_size, should_track_memory_access
+    ) do state, operand_val, data_size
+        carry = state.flags[:C] ? UInt32(1) : UInt32(0)
+        result = UInt32(operand_val + carry)
+        update_flags!(state, result, operand_val, carry, true, data_size)
+        result
+    end
 end
 
 # RLA/RLAX - Rotate left arithmetic (RLAX is 20-bit variant, data_size set by parser)
