@@ -42,9 +42,7 @@ abstract type JumpHandler <: AbstractInstructionHandler end
 
 # Dual operand handlers
 struct MovHandler <: DualOperandHandler end
-struct MovaHandler <: DualOperandHandler end
 struct AddHandler <: DualOperandHandler end
-struct AddaHandler <: DualOperandHandler end
 struct AddcHandler <: DualOperandHandler end
 struct SubHandler <: DualOperandHandler end
 struct SubcHandler <: DualOperandHandler end
@@ -61,7 +59,6 @@ struct RrcHandler <: SingleOperandHandler end
 struct RrcmHandler <: SingleOperandHandler end
 struct SwpbHandler <: SingleOperandHandler end
 struct RraHandler <: SingleOperandHandler end
-struct RraxHandler <: SingleOperandHandler end
 struct RruxHandler <: SingleOperandHandler end
 struct RrumHandler <: SingleOperandHandler end
 struct SxtHandler <: SingleOperandHandler end
@@ -87,7 +84,6 @@ struct PopmHandler <: SingleOperandHandler end
 struct PopHandler <: SingleOperandHandler end
 struct RlaHandler <: SingleOperandHandler end
 struct RlamHandler <: SingleOperandHandler end
-struct RlaxHandler <: SingleOperandHandler end
 struct SbcHandler <: SingleOperandHandler end
 struct AdcHandler <: SingleOperandHandler end
 struct DecdHandler <: SingleOperandHandler end
@@ -115,9 +111,9 @@ To add a new instruction, simply add an entry here after defining the handler ty
 const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     # Dual operand instructions
     :mov => MovHandler(),
-    :mova => MovaHandler(),
+    :mova => MovHandler(),  # Extended MOV for 20-bit address operations
     :add => AddHandler(),
-    :adda => AddaHandler(),
+    :adda => AddHandler(),  # Extended ADD for 20-bit address operations
     :addc => AddcHandler(),
     :sub => SubHandler(),
     :subc => SubcHandler(),
@@ -134,7 +130,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :rrcm => RrcmHandler(),
     :swpb => SwpbHandler(),
     :rra => RraHandler(),
-    :rrax => RraxHandler(),
+    :rrax => RraHandler(),  # Extended RRA for 20-bit address operations
     :rrux => RruxHandler(),
     :rrum => RrumHandler(),
     :sxt => SxtHandler(),
@@ -160,7 +156,7 @@ const INSTRUCTION_HANDLERS = Dict{Symbol,AbstractInstructionHandler}(
     :pop => PopHandler(),
     :rla => RlaHandler(),
     :rlam => RlamHandler(),
-    :rlax => RlaxHandler(),
+    :rlax => RlaHandler(),  # Extended RLA for 20-bit address operations
     :sbc => SbcHandler(),
     :adc => AdcHandler(),
     :decd => DecdHandler(),
@@ -213,7 +209,7 @@ should_advance_pc(::RptHandler, state::MachineState, ops::Vector{Operand})::Bool
 
 # MOV/MOVA to PC acts as a branch: don't advance if destination is PC
 function should_advance_pc(
-    ::Union{MovHandler,MovaHandler}, state::MachineState, ops::Vector{Operand}
+    ::MovHandler, state::MachineState, ops::Vector{Operand}
 )::Bool
     # Don't advance if destination operand is PC (R0)
     if length(ops) >= 2 && ops[2].mode == :register && ops[2].value == :PC
@@ -255,7 +251,7 @@ end
 # Dual Operand Instructions
 # ----------------------------------------------------------------------------
 
-# MOV - Move source to destination
+# MOV/MOVA - Move source to destination (MOVA is 20-bit variant, data_size set by parser)
 function execute!(
     state::MachineState,
     ::MovHandler,
@@ -281,68 +277,10 @@ function execute!(
     return events
 end
 
-# MOVA - Move address (20-bit) - same as MOV, data_size set by parser
-function execute!(
-    state::MachineState,
-    ::MovaHandler,
-    inst::Instruction,
-    ops::Vector{Operand},
-    data_size::Symbol,
-    ::Vector{Tuple{UInt32,UInt32}},
-    ::Int,
-    should_track_memory_access::Bool,
-)::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_events = set_operand_value!(
-        state, ops[2], src_val, data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    return events
-end
-
-# ADD - Add source to destination
+# ADD/ADDA - Add source to destination (ADDA is 20-bit variant, data_size set by parser)
 function execute!(
     state::MachineState,
     ::AddHandler,
-    inst::Instruction,
-    ops::Vector{Operand},
-    data_size::Symbol,
-    ::Vector{Tuple{UInt32,UInt32}},
-    ::Int,
-    should_track_memory_access::Bool,
-)::Vector{ExecutionEvent}
-    if length(ops) < 2
-        return ExecutionEvent[]
-    end
-    events = ExecutionEvent[]
-    src_val, src_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, src_events)
-    dst_val, dst_events = get_operand_value(
-        state, ops[2], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-    result = UInt32(dst_val + src_val)
-    update_flags!(state, result, dst_val, src_val, true, data_size)
-    result_events = set_operand_value!(
-        state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, result_events)
-    return events
-end
-
-# ADDA - Add address-sized source to destination
-function execute!(
-    state::MachineState,
-    ::AddaHandler,
     inst::Instruction,
     ops::Vector{Operand},
     data_size::Symbol,
@@ -841,7 +779,7 @@ function execute!(
     return events
 end
 
-# RRA - Arithmetic right shift
+# RRA/RRAX - Arithmetic right shift (RRAX is 20-bit variant, data_size set by parser)
 function execute!(
     state::MachineState,
     ::RraHandler,
@@ -869,63 +807,6 @@ function execute!(
     end
     sign_bit = operand_val & msb
     result = ((operand_val >> 1) | sign_bit) & mask
-    state.flags[:C] = (operand_val & 0x0001) != 0
-    update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
-end
-
-# RRAX - Arithmetic right shift extended (MSP430X, supports 20-bit addressing)
-function execute!(
-    state::MachineState,
-    ::RraxHandler,
-    inst::Instruction,
-    ops::Vector{Operand},
-    data_size::Symbol,
-    ::Vector{Tuple{UInt32,UInt32}},
-    ::Int,
-    should_track_memory_access::Bool,
-)::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
-    events = ExecutionEvent[]
-    operand_val, read_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, read_events)
-
-    # Arithmetic right shift (sign-extended)
-    # We need to handle sign extension carefully to avoid overflow
-    if data_size == :byte
-        # Sign extend from bit 7
-        is_negative = (operand_val & 0x80) != 0
-        result = operand_val >> 1
-        if is_negative
-            result = result | 0x80  # Set MSB (bit 7)
-        end
-        result = result & 0xFF
-    elseif data_size == :address
-        # 20-bit: sign extend from bit 19
-        is_negative = (operand_val & 0x80000) != 0
-        result = operand_val >> 1
-        if is_negative
-            result = result | 0x80000  # Set MSB (bit 19)
-        end
-        result = result & 0xFFFFF
-    else  # :word
-        # Sign extend from bit 15
-        is_negative = (operand_val & 0x8000) != 0
-        result = operand_val >> 1
-        if is_negative
-            result = result | 0x8000  # Set MSB (bit 15)
-        end
-        result = result & 0xFFFF
-    end
-
     state.flags[:C] = (operand_val & 0x0001) != 0
     update_flags_simple!(state, result, data_size)
     write_events = set_operand_value!(
@@ -1726,7 +1607,7 @@ function execute!(
     return events
 end
 
-# RLA - Rotate left arithmetic
+# RLA/RLAX - Rotate left arithmetic (RLAX is 20-bit variant, data_size set by parser)
 function execute!(
     state::MachineState,
     ::RlaHandler,
@@ -1794,41 +1675,6 @@ function execute!(
     update_flags_simple!(state, result, data_size)
     write_events = set_operand_value!(
         state, ops[2], result, data_size, inst, should_track_memory_access
-    )
-    append!(events, write_events)
-    return events
-end
-
-# RLAX - Rotate left arithmetic extended (single-bit shift)
-function execute!(
-    state::MachineState,
-    ::RlaxHandler,
-    inst::Instruction,
-    ops::Vector{Operand},
-    data_size::Symbol,
-    ::Vector{Tuple{UInt32,UInt32}},
-    ::Int,
-    should_track_memory_access::Bool,
-)::Vector{ExecutionEvent}
-    if length(ops) < 1
-        return ExecutionEvent[]
-    end
-    events = ExecutionEvent[]
-    dst_val, dst_events = get_operand_value(
-        state, ops[1], data_size, inst, should_track_memory_access
-    )
-    append!(events, dst_events)
-
-    # Single bit arithmetic left shift
-    # MSB depends on data size: bit 7 for byte, bit 15 for word, bit 19 for address
-    msb_mask = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
-    new_carry = (dst_val & msb_mask) != 0
-    result = dst_val << 1
-    state.flags[:C] = new_carry
-
-    update_flags_simple!(state, result, data_size)
-    write_events = set_operand_value!(
-        state, ops[1], result, data_size, inst, should_track_memory_access
     )
     append!(events, write_events)
     return events
