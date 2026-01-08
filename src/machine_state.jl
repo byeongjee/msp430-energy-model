@@ -1046,10 +1046,12 @@ function _sync_sr_with_flags!(state::MachineState)::Nothing
 end
 
 """
-Update status flags after addition operations (ADD, ADDC, INC, INCD, ADC, DADD).
+Update status flags after addition operations (ADD, ADDC, INC, INCD, ADC).
 
 Carry: Set if result exceeds data size max value.
 Overflow: Set if both operands have same sign but result has different sign.
+
+Note: DADD has custom BCD flag handling and does not use this function.
 """
 function update_flags_add!(
     state::MachineState,
@@ -1085,10 +1087,12 @@ function update_flags_add!(
 end
 
 """
-Update status flags after subtraction operations (SUB, SUBC, CMP, DEC, DECD, SBC, XOR, AND).
+Update status flags after subtraction operations (SUB, SUBC, CMP, DEC, DECD, SBC).
 
 Carry: Set if dst >= src (no borrow needed).
 Overflow: Set if operands have different signs and result sign differs from dst.
+
+Note: XOR and AND have custom flag handling (V, C differ from SUB) and do not use this function.
 """
 function update_flags_sub!(
     state::MachineState,
