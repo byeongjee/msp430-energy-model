@@ -1,5 +1,8 @@
 # Makefile for C to MSP430 compilation and analysis pipeline
 
+# Use bash for recipes (required for 'source' command)
+SHELL := /bin/bash
+
 # MSP430 toolchain configuration
 # Require environment variables to be set
 ifndef MSP430GCC_TOOLCHAIN_PATH
