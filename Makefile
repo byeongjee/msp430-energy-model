@@ -280,7 +280,7 @@ endif
 	else \
 		BASENAME=$$(basename $(FILE) .c); \
 	fi; \
-	mspdebug tilib "prog $(BUILD_DIR)/$$BASENAME.elf"
+	python3 scripts/flash.py "$(BUILD_DIR)/$$BASENAME.elf"
 	@echo "✓ Flash completed!"
 
 clean: ## Clean build artifacts

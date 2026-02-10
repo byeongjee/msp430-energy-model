@@ -213,21 +213,40 @@ def main():
 
         # Configure channels (keep power off until recording starts)
         arc.add_to_project()
+
+        # [NEW] POWER THE SWITCHBOARD
+        # The switchboard relays need 5V from the expansion port (Pin 1)
+        arc.set_exp_voltage(5.0)
+
         arc.enable_exp_port(True)  # enable GPI pins
         for ch in ("mc", "mp", "i1", "i2"):  # current, power, GPI1, GPI2
             arc.enable_channel(ch, True)
+
         arc.set_main_voltage(args.voltage)
         arc.set_max_current(args.max_current)
 
-        # Power on and reset
+        # Power on
         arc.set_main(True)
         logger.info("MAIN enabled; voltage set")
 
+        # [NEW] CONNECT DEBUGGER (GPO2 HIGH)
+        # Close relays to connect USB and Data lines for flashing
+        logger.info("Closing Switchboard (GPO2=True) to connect debugger...")
+        arc.set_gpo(2, True)
+        time.sleep(2.0)  # Wait for USB to enumerate on Windows/Linux
+
         if not args.skip_reset:
+            # Flashing/Reset happens here while relays are closed
             sh(["/bin/sh", "-lc", args.reset_cmd], logger)
             logger.info("Target reset issued")
         else:
             logger.info("Target reset skipped")
+
+        # [NEW] ISOLATE TARGET (GPO2 LOW)
+        # Open relays to disconnect USB (Ground Loop) and Data (Leakage)
+        logger.info("Opening Switchboard (GPO2=False) to isolate target...")
+        arc.set_gpo(2, False)
+        time.sleep(0.5)  # Wait for relays to settle and electrical isolation
 
         # We assume that the program has enough delay at the beginning
         # so that we don't miss the first GPI1 edge

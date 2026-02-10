@@ -207,18 +207,14 @@ measure_and_preprocess() {
     $CC $CFLAGS $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
     log_success "Compiled: $BUILD_DIR/${base}.elf"
 
-    # Flash
-    log_step "Flashing $base to device"
-    mspdebug tilib "prog $BUILD_DIR/${base}.elf" "exit"
-    log_success "Flashed to device"
-
-    # Measure
-    log_step "Measuring energy consumption for $base"
+    # Measure (flash is done inside measure.py via --reset_cmd with GPO2 control)
+    log_step "Flashing and measuring energy consumption for $base"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
     python3 "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
         --max_current "$MAX_CURRENT" \
         --outfile "$raw_csv" \
+        --reset_cmd "mspdebug tilib 'prog $BUILD_DIR/${base}.elf' 'exit'" \
         ${SKIP_RESET:-}
     log_success "Raw measurement saved: $raw_csv"
 
