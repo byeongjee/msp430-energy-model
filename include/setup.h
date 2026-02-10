@@ -313,7 +313,7 @@ NOINLINE void initialize(void) {
   P1OUT &= ~BIT3;
   P1OUT &= ~BIT2;
 
-  __delay_cycles(CLOCK_HZ * 5);
+  __delay_cycles(CLOCK_HZ * 10);
 
 #ifdef DEBUG
   uart_init_uca0_16mhz();
