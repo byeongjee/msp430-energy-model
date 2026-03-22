@@ -20,6 +20,7 @@ USAGE:
 
 import argparse
 import json
+import os
 import sys
 import shutil
 import subprocess
@@ -552,6 +553,7 @@ def main():
     if requested_hardcoded:
         script_dir = Path(__file__).parent.parent  # Go up to repo root
 
+        compiled_special_function = False
         for entry in requested_hardcoded:
             name = entry["name"]
             hardcoded_path = entry["path"]
@@ -601,6 +603,67 @@ def main():
                     f"✓ Generated and copied hardcoded benchmark: {dst_s_file}",
                     file=sys.stderr,
                 )
+            elif name.startswith("call___mspabi_"):
+                # Special function call benchmarks need -mhwmult=none.
+                # All three keys share one source file; compile to .S once.
+                if not compiled_special_function:
+                    basename = src_c_file.stem  # "special_function_call_benchmark"
+                    asm_dir = script_dir / "build" / "asm"
+                    asm_dir.mkdir(parents=True, exist_ok=True)
+                    asm_path = asm_dir / f"{basename}.S"
+
+                    # Get compiler settings from environment
+                    cc = os.environ.get("CC", "msp430-elf-gcc")
+                    cflags = os.environ.get("CFLAGS", "-mmcu=MSP430FR5994 -O3")
+                    includes = os.environ.get("INCLUDES", "-I include")
+
+                    # Use gcc -S to produce reassemblable assembly with -mhwmult=none
+                    compile_cmd = (
+                        f"{cc} -S {cflags} -mhwmult=none {includes}"
+                        f" -o {asm_path} {src_c_file}"
+                    )
+                    print(
+                        f"Compiling {basename} to assembly with -mhwmult=none...",
+                        file=sys.stderr,
+                    )
+                    try:
+                        subprocess.run(
+                            compile_cmd,
+                            shell=True,
+                            check=True,
+                            cwd=str(script_dir),
+                            capture_output=True,
+                            text=True,
+                        )
+                    except subprocess.CalledProcessError as e:
+                        print(
+                            f"ERROR: Failed to compile special function call benchmark",
+                            file=sys.stderr,
+                        )
+                        print(f"Command: {compile_cmd}", file=sys.stderr)
+                        print(f"STDOUT: {e.stdout}", file=sys.stderr)
+                        print(f"STDERR: {e.stderr}", file=sys.stderr)
+                        raise
+
+                    compiled_special_function = True
+
+                # Copy .S to output directory (same file for all three keys)
+                basename = src_c_file.stem
+                src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
+                dst_s_file = args.output_dir / f"special_function_call_benchmark.S"
+
+                if not src_s_file.exists():
+                    raise FileNotFoundError(
+                        f"Generated .S file not found: {src_s_file}"
+                    )
+
+                # Only copy once (all three keys share the same file)
+                if not dst_s_file.exists():
+                    shutil.copy(src_s_file, dst_s_file)
+                    print(
+                        f"✓ Generated and copied special function call benchmark: {dst_s_file}",
+                        file=sys.stderr,
+                    )
             else:
                 raise ValueError(f"Unknown hardcoded benchmark: {name}")
 

@@ -169,6 +169,36 @@ HARDCODED_BENCHMARKS = {
         ],
         "description": "Branch with immediate addressing (requires two-pass compilation)",
     },
+    "call___mspabi_divu": {
+        "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "Unsigned 16-bit division via __mspabi_divu (requires -mhwmult=none)",
+    },
+    "call___mspabi_mpyi": {
+        "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "Signed 16-bit multiplication via __mspabi_mpyi (requires -mhwmult=none)",
+    },
+    "call___mspabi_mpyl": {
+        "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "Signed 32-bit multiplication via __mspabi_mpyl (requires -mhwmult=none)",
+    },
 }
 
 
