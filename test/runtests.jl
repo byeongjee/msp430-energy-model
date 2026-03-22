@@ -35,6 +35,7 @@ include("test_estimate.jl")
 include("test_br_immediate.jl")
 include("test_sram_code.jl")
 include("test_stack_events.jl")
+include("test_special_function_calls.jl")
 
 # Define test suites with their names and runner functions
 const TEST_SUITES = Dict(
@@ -66,6 +67,11 @@ const TEST_SUITES = Dict(
     "stack_events" => (
         description = "Stack event tracking tests",
         runner = _ -> run_stack_events_tests(),
+        has_subfilter = false,
+    ),
+    "special_function_calls" => (
+        description = "Special function call key tests",
+        runner = _ -> run_special_function_call_tests(),
         has_subfilter = false,
     ),
 )
