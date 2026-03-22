@@ -159,6 +159,7 @@ struct ExecutionEvent
     inst::Union{Nothing,Instruction}
     memory_access_info::Vector{Any}  # For memory access events: [addr, data_size]; empty for Inst events
     key::Key
+    feature_value::Float64
 end
 
 """
@@ -245,7 +246,7 @@ function ExecutionEvent(
     ::Type{Val{Inst}}, inst::Instruction, model_granularity::ModelGranularity
 )::ExecutionEvent
     key = get_instruction_key(inst, model_granularity)
-    return ExecutionEvent(Inst, inst, Any[], key)
+    return ExecutionEvent(Inst, inst, Any[], key, 1.0)
 end
 
 """
@@ -256,7 +257,15 @@ function ExecutionEvent(
     event_type::EventType, inst::Union{Nothing,Instruction}, memory_access_info::Vector{Any}
 )::ExecutionEvent
     key = (Symbol(event_type),)
-    return ExecutionEvent(event_type, inst, memory_access_info, key)
+    return ExecutionEvent(event_type, inst, memory_access_info, key, 1.0)
+end
+
+"""
+Constructor for feature-valued ExecutionEvent.
+Used for special function features (e.g., bytes copied by memcpy).
+"""
+function ExecutionEvent(key::Key, feature_value::Float64)::ExecutionEvent
+    return ExecutionEvent(Inst, nothing, Any[], key, feature_value)
 end
 
 """

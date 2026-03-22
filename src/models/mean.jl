@@ -138,7 +138,7 @@ function build_training_matrix(training_data::TrainingData)
     for (i, execution_trace) in enumerate(training_data.execution_traces)
         for execution_event in execution_trace
             j = key_to_idx[execution_event.key]
-            A[i, j] += 1.0
+            A[i, j] += execution_event.feature_value
         end
     end
     B = Vector{Float64}(training_data.energies)
