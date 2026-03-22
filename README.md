@@ -17,7 +17,7 @@ that fits your platform.
   - Download "Header and Support Files" from
   [here](https://www.ti.com/tool/download/MSP430-GCC-OPENSOURCE/9.3.1.2). This is platform independent.
 
-You can refer to `.env.sh.example` to set up your environment variables.
+Set these environment variables before running any commands.
 
 ### 2. Install Julia Dependencies
 
