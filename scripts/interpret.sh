@@ -36,6 +36,7 @@ Optional arguments:
                                   opcode_pair, addressing_mode_pair,
                                   addressing_mode_constant_pair
   --model MODEL           Model name (overrides granularity if both specified)
+  --intercept-special-calls  Intercept special ABI function calls as single instructions
   --help                  Show this help message
 
 Examples:
@@ -67,6 +68,10 @@ while [[ $# -gt 0 ]]; do
         --model)
             MODEL="$2"
             shift 2
+            ;;
+        --intercept-special-calls)
+            INTERCEPT_SPECIAL_CALLS=1
+            shift
             ;;
         --help)
             usage
@@ -120,12 +125,18 @@ elif [[ -n "$MODEL" ]]; then
     MODEL_FLAG="--model $MODEL"
 fi
 
+INTERCEPT_FLAG=""
+if [[ -n "${INTERCEPT_SPECIAL_CALLS:-}" ]]; then
+    INTERCEPT_FLAG="--intercept-special-calls"
+fi
+
 # Run interpreter
 log_info "Running MSP430 interpreter..."
 julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" interpret \
     --asm "$ASM_FILE" \
     $MAX_STEPS_FLAG \
     $DATA_DUMP_FLAG \
-    $MODEL_FLAG
+    $MODEL_FLAG \
+    $INTERCEPT_FLAG
 
 log_success "Interpret completed!"

@@ -119,7 +119,7 @@ disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)
 	echo "✓ Data dump saved to: $(ASM_DIR)/$$BASENAME.data"
 
 
-interpret: disasm ## Interpret assembly program (FILE=<file.c|file.S> [MAX_STEPS=<n>] [GRANULARITY=<g>|MODEL=<model>])
+interpret: disasm ## Interpret assembly program (FILE=<file.c|file.S> [MAX_STEPS=<n>] [GRANULARITY=<g>|MODEL=<model>] [INTERCEPT_SPECIAL_CALLS=1])
 	@# Handle both .c and .S files to get basename
 	@if echo "$(FILE)" | grep -q '\.S$$'; then \
 		BASENAME=$$(basename $(FILE) .S); \
@@ -130,6 +130,7 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c|file.S> [MAX_STEPS
 	[ -n "$(MAX_STEPS)" ] && ARGS+=("--max-steps" "$(MAX_STEPS)"); \
 	[ -n "$(GRANULARITY)" ] && ARGS+=("--granularity" "$(GRANULARITY)"); \
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
+	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
 	./scripts/interpret.sh "$${ARGS[@]}"
 
 train: MODEL?=mean_per_addressing_mode

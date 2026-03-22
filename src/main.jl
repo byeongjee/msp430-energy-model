@@ -64,6 +64,9 @@ function parse_commandline()
         help = "Inference algorithm: importance-sampling, mcmc-blocked (for Gamma models), dominant-key (for Mean models), least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls (for Mean/MeanPair models)"
         arg_type = String
         default = "importance-sampling"
+        "--intercept-special-calls"
+        help = "Intercept special ABI function calls (__mspabi_divu, __mspabi_mpyi, __mspabi_mpyl) as single composite instructions inside event blocks"
+        action = :store_true
     end
 
     return parse_args(s)
@@ -77,6 +80,7 @@ function run_interpret(
     max_steps::Int;
     data_dump::Union{String,Nothing}=nothing,
     model_str::Union{String,Nothing}="mean_per_addressing_mode_constant",
+    intercept_special_calls::Bool=false,
 )
     @info "Running in INTERPRET mode"
     @info "Assembly file" path = asm_file
@@ -104,6 +108,7 @@ function run_interpret(
         max_steps,
         model.granularity;
         data_file=data_dump,
+        intercept_special_calls=intercept_special_calls,
     )
 
     # Compute event accesses from traces if model granularity requires it
@@ -212,7 +217,10 @@ function main()
                 error("interpret mode only supports a single assembly file")
             end
             run_interpret(
-                asm_files[1], max_steps; data_dump=data_dump, model_str=args["model"]
+                asm_files[1], max_steps;
+                data_dump=data_dump,
+                model_str=args["model"],
+                intercept_special_calls=args["intercept-special-calls"],
             )
 
         elseif mode == "train"

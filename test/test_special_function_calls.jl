@@ -60,6 +60,7 @@ function run_special_function_call_tests()
                 final_state, event_traces = Interpreter.interpret_program(
                     instructions, address_info, func_addrs, 100000,
                     PerAddressingMode; data_file=data_file,
+                    intercept_special_calls=true,
                 )
 
                 @test length(event_traces) >= 1
@@ -87,6 +88,7 @@ function run_special_function_call_tests()
                 final_state, event_traces = Interpreter.interpret_program(
                     instructions, address_info, func_addrs, 100000,
                     PerAddressingModeConstant; data_file=data_file,
+                    intercept_special_calls=true,
                 )
 
                 @test length(event_traces) >= 1
@@ -105,6 +107,7 @@ function run_special_function_call_tests()
                 final_state, event_traces = Interpreter.interpret_program(
                     instructions, address_info, func_addrs, 100000,
                     PerOpcode; data_file=data_file,
+                    intercept_special_calls=true,
                 )
 
                 @test length(event_traces) >= 1

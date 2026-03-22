@@ -81,12 +81,19 @@ MSP430 ABI runtime library functions that should be treated as single composite
 instructions for energy modeling. When a CALL/CALLA targets one of these functions,
 the entire call (CALL + body + RET) is modeled as a single event with key
 (:call, :__funcname) instead of the generic (:call, :immediate).
+
+Maps all known symbol names (including GCC internal aliases) to their canonical
+key symbol. For example, __mulhi2 and __mspabi_mpyi_f5hw both map to :__mspabi_mpyi.
 """
-const SPECIAL_CALL_FUNCTIONS = Set{String}([
-    "__mspabi_divu",
-    "__mspabi_mpyi",
-    "__mspabi_mpyl",
-])
+const SPECIAL_CALL_FUNCTIONS = Dict{String, Symbol}(
+    "__mspabi_divu" => :__mspabi_divu,
+    "__mspabi_mpyi" => :__mspabi_mpyi,
+    "__mspabi_mpyi_f5hw" => :__mspabi_mpyi,
+    "__mulhi2" => :__mspabi_mpyi,
+    "__mspabi_mpyl" => :__mspabi_mpyl,
+    "__mspabi_mpyl_f5hw" => :__mspabi_mpyl,
+    "__mulsi2" => :__mspabi_mpyl,
+)
 
 # MSP430 multiplier-mapped memory addresses (Table 9-65 of MSP430FR5994 datasheet)
 const multiplier_address_modes = Dict(

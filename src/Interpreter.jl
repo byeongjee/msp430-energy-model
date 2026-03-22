@@ -361,6 +361,7 @@ function interpret_program(
     max_steps::Int,
     model_granularity::ModelGranularity;
     data_file::Union{String,Nothing}=nothing,
+    intercept_special_calls::Bool=false,
 )::Tuple{MachineState,Vector{ExecutionTrace}}
     @info "="^60
     @info "Interpret Program"
@@ -387,6 +388,7 @@ function interpret_program(
     # Track execution traces between begin_event and end_event
     execution_traces = Vector{ExecutionTrace}()
     current_execution_trace = ExecutionTrace()
+    in_event = false  # true when between begin_event and end_event calls
     exit_addr = get(func_addrs, "_exit", nothing)
 
     # Show the program
@@ -452,6 +454,7 @@ function interpret_program(
                 if get(func_addrs, "begin_event", nothing) == call_target
                     @debug "Skipping begin_event call at 0x$(string(old_pc, base=16, pad=4))"
                     current_execution_trace = ExecutionTrace()
+                    in_event = true
                     state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
                 end
@@ -460,6 +463,7 @@ function interpret_program(
                 if get(func_addrs, "end_event", nothing) == call_target
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
                     push!(execution_traces, copy(current_execution_trace))
+                    in_event = false
                     state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
                 end
@@ -480,19 +484,17 @@ function interpret_program(
                 end
 
                 # Check for special functions that should be treated as single instructions
-                # Only applies when begin_event/end_event markers are present (energy measurement mode)
+                # Only applies when intercept_special_calls is enabled AND inside an event block
                 special_function = false
-                has_event_markers = haskey(func_addrs, "begin_event") && haskey(func_addrs, "end_event")
-                for func_name in (has_event_markers ? SPECIAL_CALL_FUNCTIONS : String[])
+                for (func_name, canonical_sym) in (intercept_special_calls && in_event ? SPECIAL_CALL_FUNCTIONS : Dict{String,Symbol}())
                     func_addr = get(func_addrs, func_name, nothing)
                     if func_addr !== nothing && func_addr == call_target
-                        @debug "Special function call to $func_name at 0x$(string(old_pc, base=16, pad=4))"
-                        func_sym = Symbol(func_name)
+                        @debug "Special function call to $func_name (canonical: $canonical_sym) at 0x$(string(old_pc, base=16, pad=4))"
                         key = if model_granularity == PerOpcode ||
                                  model_granularity == PerOpcodeWithMemAccess
                             (inst.opcode,)
                         else
-                            (inst.opcode, func_sym)
+                            (inst.opcode, canonical_sym)
                         end
                         event = ExecutionEvent(Inst, inst, Any[], key)
                         push!(current_execution_trace, event)

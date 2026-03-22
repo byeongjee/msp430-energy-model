@@ -88,16 +88,17 @@ Handles special function call keys like "call___mspabi_divu" which contain
 underscores in the function name, making naive split("_") incorrect.
 """
 function parse_key_string(key_str::String)::Key
-    # Check for special function call keys first
-    for func_name in SPECIAL_CALL_FUNCTIONS
+    # Check for special function call keys first (use canonical names only)
+    for canonical_sym in unique(values(SPECIAL_CALL_FUNCTIONS))
+        func_name = string(canonical_sym)
         prefix = "call_" * func_name  # e.g., "call___mspabi_divu"
         if key_str == prefix
-            return (:call, Symbol(func_name))
+            return (:call, canonical_sym)
         end
         # Also handle calla variant
         calla_prefix = "calla_" * func_name
         if key_str == calla_prefix
-            return (:calla, Symbol(func_name))
+            return (:calla, canonical_sym)
         end
     end
 
