@@ -554,6 +554,9 @@ def main():
         script_dir = Path(__file__).parent.parent  # Go up to repo root
 
         compiled_special_function = False
+        # Deduplicate by path (multiple keys may map to the same benchmark file)
+        copied_paths: set = set()
+
         for entry in requested_hardcoded:
             name = entry["name"]
             hardcoded_path = entry["path"]
@@ -665,7 +668,22 @@ def main():
                         file=sys.stderr,
                     )
             else:
-                raise ValueError(f"Unknown hardcoded benchmark: {name}")
+                # Generic hardcoded benchmark: copy C file to output directory
+                if hardcoded_path in copied_paths:
+                    continue
+                copied_paths.add(hardcoded_path)
+
+                if not src_c_file.exists():
+                    raise FileNotFoundError(
+                        f"Hardcoded benchmark not found: {src_c_file}"
+                    )
+
+                dst_file = args.output_dir / src_c_file.name
+                shutil.copy(src_c_file, dst_file)
+                print(
+                    f"✓ Copied hardcoded benchmark: {dst_file}",
+                    file=sys.stderr,
+                )
 
     # Copy model benchmarks (always included for certain granularities)
     if model_benchmarks:

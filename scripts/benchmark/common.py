@@ -199,6 +199,46 @@ HARDCODED_BENCHMARKS = {
         ],
         "description": "Signed 32-bit multiplication via __mspabi_mpyl (requires -mhwmult=none)",
     },
+    "memcpy": {
+        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "memcpy/memset benchmark with varying byte sizes for linear cost model",
+    },
+    "memcpy_bytes": {
+        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "memcpy slope parameter (same benchmark file as memcpy)",
+    },
+    "memset": {
+        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "memset benchmark with varying byte sizes for linear cost model",
+    },
+    "memset_bytes": {
+        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "memset slope parameter (same benchmark file as memset)",
+    },
 }
 
 
