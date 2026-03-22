@@ -349,6 +349,23 @@ function run_train_tests()
             rm(output_file; force=true)
         end
 
+        @testset "Feature-valued events in training matrix" begin
+            # Create execution events with custom feature_value
+            event1 = ExecutionEvent((:mov, :register, :register), 1.0)
+            event2 = ExecutionEvent((:call_memcpy,), 1.0)  # intercept
+            event3 = ExecutionEvent((:call_memcpy, :bytes), 256.0)  # slope feature
+
+            @test event1.feature_value == 1.0
+            @test event2.feature_value == 1.0
+            @test event3.feature_value == 256.0
+            @test event3.key == (:call_memcpy, :bytes)
+
+            # Verify default feature_value is 1.0 for regular events
+            inst = Instruction(:mov, [Operand(:R5, :register), Operand(:R6, :register)], :word)
+            regular_event = ExecutionEvent(Val{Inst}, inst, PerAddressingMode)
+            @test regular_event.feature_value == 1.0
+        end
+
         @testset "process_training_data function" begin
             asm_content = load_test_asm_content()
             energy_df = DataFrame(; energy_nJ=[100.0])
