@@ -23,7 +23,8 @@ export Operand,
     PerAddressingModeWithMemAccess,
     PerAddressingModeConstantWithMemAccess,
     get_base_granularity,
-    get_should_track_memory_access
+    get_should_track_memory_access,
+    SPECIAL_CALL_FUNCTIONS
 
 """
 Type alias for parameter keys.
@@ -74,6 +75,18 @@ end
 
 # Instructions where immediate constants significantly affect energy
 const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm, :rpt]
+
+"""
+MSP430 ABI runtime library functions that should be treated as single composite
+instructions for energy modeling. When a CALL/CALLA targets one of these functions,
+the entire call (CALL + body + RET) is modeled as a single event with key
+(:call, :__funcname) instead of the generic (:call, :immediate).
+"""
+const SPECIAL_CALL_FUNCTIONS = Set{String}([
+    "__mspabi_divu",
+    "__mspabi_mpyi",
+    "__mspabi_mpyl",
+])
 
 # MSP430 multiplier-mapped memory addresses (Table 9-65 of MSP430FR5994 datasheet)
 const multiplier_address_modes = Dict(
