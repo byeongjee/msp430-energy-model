@@ -16,7 +16,8 @@ using ..Types:
     PerOpcodeWithMemAccess,
     PerAddressingModeWithMemAccess,
     PerAddressingModeConstantWithMemAccess,
-    get_instruction_key
+    get_instruction_key,
+    SPECIAL_CALL_FUNCTIONS
 
 """
 Check if an (opcode, addressing_mode) combination is meaningful for energy modeling.
@@ -79,4 +80,34 @@ function get_valid_param_keys(
     end
 
     return valid_keys
+end
+
+"""
+Parse a key string (e.g., "mov_immediate_register") back to a tuple key.
+Handles special function call keys like "call___mspabi_divu" which contain
+underscores in the function name, making naive split("_") incorrect.
+"""
+function parse_key_string(key_str::String)::Key
+    # Check for special function call keys first
+    for func_name in SPECIAL_CALL_FUNCTIONS
+        prefix = "call_" * func_name  # e.g., "call___mspabi_divu"
+        if key_str == prefix
+            return (:call, Symbol(func_name))
+        end
+        # Also handle calla variant
+        calla_prefix = "calla_" * func_name
+        if key_str == calla_prefix
+            return (:calla, Symbol(func_name))
+        end
+    end
+
+    # Normal parsing: split by underscore, convert integers
+    key_parts = split(key_str, "_")
+    return tuple(
+        [
+            let parsed = tryparse(Int, string(p))
+                parsed !== nothing ? parsed : Symbol(p)
+            end for p in key_parts
+        ]...,
+    )
 end
