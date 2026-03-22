@@ -61,9 +61,9 @@ function parse_commandline()
         arg_type = String
         default = "gamma_per_instruction"
         "--inference"
-        help = "Inference algorithm: importance-sampling, mcmc-blocked (for Gamma models), dominant-key (for Mean models), least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls (for Mean/MeanPair models)"
+        help = "Inference algorithm: importance-sampling, mcmc-blocked (for Gamma models), dominant-key, map (for Mean models), least-squares, least-squares-nnpivot, least-squares-nnls, least-squares-fnnls (for Mean/MeanPair models)"
         arg_type = String
-        default = "importance-sampling"
+        default = "map"
         "--intercept-special-calls"
         help = "Intercept special ABI function calls (__mspabi_divu, __mspabi_mpyi, __mspabi_mpyl) as single composite instructions inside event blocks"
         action = :store_true

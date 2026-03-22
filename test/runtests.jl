@@ -291,6 +291,64 @@ function run_train_tests()
             end
         end
 
+        @testset "MAP inference algorithm" begin
+            asm_content = load_test_asm_content()
+            energy_df = DataFrame(; energy_nJ=[100.0])
+            output_file = joinpath(tempdir(), "test_params_map.json")
+
+            Train.run_train(
+                [asm_content],
+                [energy_df],
+                output_file,
+                1000,
+                10,
+                "mean_per_addressing_mode",
+                "map",
+            )
+
+            @test isfile(output_file)
+
+            # Verify output format is valid
+            params = JSON.parsefile(output_file)
+            @test params["model"] == "mean_per_addressing_mode"
+            @test haskey(params, "parameters")
+            @test !isempty(params["parameters"])
+
+            # All parameters must be positive (the whole point of MAP)
+            for (key, value) in params["parameters"]
+                @test value > 0
+            end
+
+            rm(output_file; force=true)
+        end
+
+        @testset "MAP with multiple training samples" begin
+            asm_content1 = load_test_asm_content()
+            asm_content2 = load_test_asm_content()
+            energy_df1 = DataFrame(; energy_nJ=[100.0])
+            energy_df2 = DataFrame(; energy_nJ=[150.0])
+            output_file = joinpath(tempdir(), "test_params_map_multi.json")
+
+            Train.run_train(
+                [asm_content1, asm_content2],
+                [energy_df1, energy_df2],
+                output_file,
+                1000,
+                10,
+                "mean_per_addressing_mode",
+                "map",
+            )
+
+            @test isfile(output_file)
+
+            params = JSON.parsefile(output_file)
+            for (key, value) in params["parameters"]
+                @test value > 0
+            end
+
+            rm(output_file; force=true)
+        end
+
         @testset "process_training_data function" begin
             asm_content = load_test_asm_content()
             energy_df = DataFrame(; energy_nJ=[100.0])
