@@ -68,6 +68,33 @@ python scripts/list_benchmarks.py --granularity addressing_mode_constant \
 
 This generates `/path/to/output/br_immediate.S` automatically.
 
+## special_function_call
+
+Benchmarks for MSP430 ABI software function calls (`__mspabi_divu`, `__mspabi_mpyi`, `__mspabi_mpyl`). These functions are normally inlined by GCC when targeting MSP430FR5994 (which has a hardware multiplier), so the benchmark must be compiled with `-mhwmult=none` to force software calls.
+
+### Keys
+
+- `call___mspabi_divu` — unsigned 16-bit division
+- `call___mspabi_mpyi` — signed 16-bit multiplication
+- `call___mspabi_mpyl` — signed 32-bit multiplication
+
+### Compilation
+
+The `gen_benchmarks.py` script handles compilation automatically with `-mhwmult=none`. To compile manually:
+
+```bash
+make disasm FILE=scripts/hardcoded_benchmarks/special_function_call_benchmark.c MSP430_CFLAGS="-mmcu=MSP430FR5994 -O3 -mhwmult=none"
+```
+
+### Integration with gen_benchmarks.py
+
+When any of the three keys (`call___mspabi_divu`, `call___mspabi_mpyi`, `call___mspabi_mpyl`) is requested, `gen_benchmarks.py`:
+
+1. Compiles `special_function_call_benchmark.c` to assembly source using `gcc -S` with `-mhwmult=none` appended to `$CFLAGS`
+2. Copies the resulting `.S` file to the output directory
+
+All three keys share one source file, so it is compiled only once even if multiple keys are requested.
+
 ## Adding New Hardcoded Benchmarks
 
 1. Create the benchmark C file in this directory
