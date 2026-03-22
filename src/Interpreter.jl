@@ -22,7 +22,10 @@ using ..Types:
     WithEvent,
     ModelGranularity,
     Key,
-    get_should_track_memory_access
+    get_should_track_memory_access,
+    SPECIAL_CALL_FUNCTIONS,
+    PerOpcode,
+    PerOpcodeWithMemAccess
 using ..Parser
 
 include("machine_state.jl")
@@ -438,7 +441,7 @@ function interpret_program(
             old_regs = debug_enabled ? copy(state.registers) : nothing
 
             # Pre-check if this is a call instruction to avoid multiple function checks
-            is_call = inst.opcode == :call
+            is_call = inst.opcode in (:call, :calla)
 
             if is_call
                 call_target, _ = get_operand_value(
@@ -473,6 +476,33 @@ function interpret_program(
                 end
 
                 if skip_function
+                    continue
+                end
+
+                # Check for special functions that should be treated as single instructions
+                # Only applies when begin_event/end_event markers are present (energy measurement mode)
+                special_function = false
+                has_event_markers = haskey(func_addrs, "begin_event") && haskey(func_addrs, "end_event")
+                for func_name in (has_event_markers ? SPECIAL_CALL_FUNCTIONS : String[])
+                    func_addr = get(func_addrs, func_name, nothing)
+                    if func_addr !== nothing && func_addr == call_target
+                        @debug "Special function call to $func_name at 0x$(string(old_pc, base=16, pad=4))"
+                        func_sym = Symbol(func_name)
+                        key = if model_granularity == PerOpcode ||
+                                 model_granularity == PerOpcodeWithMemAccess
+                            (inst.opcode,)
+                        else
+                            (inst.opcode, func_sym)
+                        end
+                        event = ExecutionEvent(Inst, inst, Any[], key)
+                        push!(current_execution_trace, event)
+                        state.registers[:PC] = address_info[current_addr_idx + 1][1]
+                        special_function = true
+                        break
+                    end
+                end
+
+                if special_function
                     continue
                 end
             end
