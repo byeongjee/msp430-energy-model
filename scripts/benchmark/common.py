@@ -76,6 +76,8 @@ SINGLE_OPERAND_OPCODES = [
     "rrax",
     "rrux",
     "sxt",
+    "rra",
+    "swpb",
 ]
 
 # Instructions with immediate constant operand: opcode #const, reg
