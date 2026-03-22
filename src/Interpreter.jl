@@ -352,6 +352,17 @@ FUNCTIONS_TO_SKIP = [
 ]
 
 """
+Functions that emit feature events instead of being fully simulated.
+Maps function name to (key_symbol, size_register_or_nothing).
+Each call emits an intercept event (key_symbol,) with feature_value=1.0,
+and if size_register is not nothing, a slope event (key_symbol, :bytes) with feature_value=register_value.
+"""
+const FEATURE_FUNCTIONS = Dict{String,Tuple{Symbol,Union{Symbol,Nothing}}}(
+    "memcpy"  => (:memcpy, :R14),
+    "memset"  => (:memset, :R14),
+)
+
+"""
 Interpret MSP430 program
 """
 function interpret_program(
@@ -375,6 +386,16 @@ function interpret_program(
             skip_func_addrs[func_name] = func_addr
             @debug "$func_name found in assembly file" address =
                 "0x" * string(func_addr; base=16, pad=4)
+        end
+    end
+
+    # Extract feature function addresses
+    feature_func_addrs = Dict{UInt32,Tuple{String,Symbol,Union{Symbol,Nothing}}}()
+    for (func_name, (key_sym, size_reg)) in FEATURE_FUNCTIONS
+        func_addr = get(func_addrs, func_name, nothing)
+        if !isnothing(func_addr)
+            feature_func_addrs[func_addr] = (func_name, key_sym, size_reg)
+            @debug "Feature function found" name=func_name address="0x" * string(func_addr; base=16, pad=4)
         end
     end
 
@@ -464,6 +485,21 @@ function interpret_program(
                     @debug "Skipping end_event call at 0x$(string(old_pc, base=16, pad=4))"
                     push!(execution_traces, copy(current_execution_trace))
                     in_event = false
+                    state.registers[:PC] = address_info[current_addr_idx + 1][1]
+                    continue
+                end
+
+                # Check for feature functions
+                if haskey(feature_func_addrs, call_target)
+                    func_name, key_sym, size_reg = feature_func_addrs[call_target]
+                    @debug "Emitting feature events for $func_name at 0x$(string(old_pc, base=16, pad=4))"
+                    # Intercept event (fixed cost per call)
+                    push!(current_execution_trace, ExecutionEvent((key_sym,), 1.0))
+                    # Slope event (variable cost proportional to size)
+                    if !isnothing(size_reg)
+                        byte_count = Float64(state.registers[size_reg])
+                        push!(current_execution_trace, ExecutionEvent((key_sym, :bytes), byte_count))
+                    end
                     state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
                 end
