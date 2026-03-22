@@ -71,15 +71,7 @@ function load_params!(model::MeanModel, params_dict::Dict)
     # Convert string keys to tuple keys
     model.params = Dict{Key,Float64}()
     for (key_str, mean_energy) in parameters
-        # Split by underscore and convert to appropriate types
-        key_parts = split(key_str, "_")
-        param_key = tuple(
-            [
-                let parsed = tryparse(Int, p)
-                    parsed !== nothing ? parsed : Symbol(p)
-                end for p in key_parts
-            ]...
-        )
+        param_key = parse_key_string(key_str)
 
         model.params[param_key] = Float64(mean_energy)
     end

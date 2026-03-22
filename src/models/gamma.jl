@@ -378,15 +378,7 @@ function load_params!(model::GammaModel, params_dict::Dict)
     # Convert string keys to tuple keys
     model.params = Dict{Key,Tuple{Float64,Float64}}()
     for (key_str, param_dict) in parameters
-        # Split by underscore and convert to appropriate types
-        key_parts = split(key_str, "_")
-        param_key = tuple(
-            [
-                let parsed = tryparse(Int, p)
-                    parsed !== nothing ? parsed : Symbol(p)
-                end for p in key_parts
-            ]...
-        )
+        param_key = parse_key_string(key_str)
         alpha = param_dict["alpha"]
         beta = param_dict["beta"]
         model.params[param_key] = (alpha, beta)

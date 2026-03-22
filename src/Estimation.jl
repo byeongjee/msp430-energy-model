@@ -21,17 +21,10 @@ function detect_model_type(params_dict::Dict)::String
 end
 
 """
-Parse a key string (e.g., "mov_immediate_register") back to a tuple key.
+Parse a key string back to a tuple key. Delegates to Model.parse_key_string.
 """
 function parse_key_string(key_str::String)::Key
-    key_parts = split(key_str, "_")
-    return tuple(
-        [
-            let parsed = tryparse(Int, string(p))
-                parsed !== nothing ? parsed : Symbol(p)
-            end for p in key_parts
-        ]...
-    )
+    return Model.parse_key_string(key_str)
 end
 
 """
