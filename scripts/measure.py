@@ -211,8 +211,7 @@ def main():
         # Configure channels (keep power off until recording starts)
         arc.add_to_project()
 
-        # POWER THE SWITCHBOARD
-        # The switchboard relays need 5V from the expansion port 5V/0-15V pin
+        # Enable switchboard power and expansion port
         arc.enable_5v(True)
         arc.enable_exp_port(True)  # enable expansion port (GPI + GPO)
         arc.set_exp_voltage(5.0)
@@ -222,28 +221,38 @@ def main():
         arc.set_main_voltage(args.voltage)
         arc.set_max_current(args.max_current)
 
-        # Power on
-        arc.set_main(True)
-        logger.info("MAIN enabled; voltage set")
+        # Ensure main power is off before connecting debugger
+        arc.set_main(False)
+        time.sleep(0.5)
 
-        # [NEW] CONNECT DEBUGGER (GPO2 HIGH)
-        # Close relays to connect USB and Data lines for flashing
+        # Close switchboard to connect USB for flashing
+        # Power-cycle the USB via 5V pin to force macOS re-enumeration
+        logger.info("Power-cycling switchboard for USB re-enumeration...")
+        arc.set_gpo(2, False)
+        arc.enable_5v(False)
+        time.sleep(1.0)
+        arc.enable_5v(True)
+        time.sleep(1.0)
         logger.info("Closing Switchboard (GPO2=True) to connect debugger...")
         arc.set_gpo(2, True)
-        time.sleep(5.0)  # Wait for USB to enumerate
+        time.sleep(10.0)  # Wait for USB to enumerate on macOS
 
         if not args.skip_reset:
             # Flashing/Reset happens here while relays are closed
+            # MSP430 is powered via USB debug — Otii main power is OFF
             sh(["/bin/sh", "-lc", args.reset_cmd], logger)
             logger.info("Target reset issued")
         else:
             logger.info("Target reset skipped")
 
-        # [NEW] ISOLATE TARGET (GPO2 LOW)
-        # Open relays to disconnect USB (Ground Loop) and Data (Leakage)
+        # Isolate target: open switchboard, then power on via Otii
         logger.info("Opening Switchboard (GPO2=False) to isolate target...")
         arc.set_gpo(2, False)
-        time.sleep(0.5)  # Wait for relays to settle and electrical isolation
+        time.sleep(0.5)  # Wait for relays to settle
+
+        # Now power on via Otii for measurement
+        arc.set_main(True)
+        logger.info("MAIN enabled; voltage set")
 
         # We assume that the program has enough delay at the beginning
         # so that we don't miss the first GPI1 edge
