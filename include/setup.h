@@ -148,6 +148,11 @@ static inline void copy_text_sram(void) {
 // or 115200
 
 void clockSetup(void) {
+  // Set FRAM wait states BEFORE increasing clock speed.
+  // At >8MHz, FRAM needs at least 1 wait state for reliable reads.
+  // Without this, cache misses (e.g. BR #immediate chains) read corrupted data.
+  FRCTL0 = FRCTLPW | NWAITS_1;
+
   CSCTL0_H = CSKEY_H; // Unlock CS registers
   CSCTL1 = DCOFSEL_0; // Initial Clock Frequency Reset
 

@@ -14,6 +14,7 @@ clockSetup:
 ; saved regs:(none)
 	; start of prologue
 	; end of prologue
+	MOV.W	#-23280, &FRCTL0
 	MOV.B	#-91, &CSCTL0_H
 	MOV.W	#0, &CSCTL1
 	MOV.W	#307, &CSCTL2
@@ -222,7 +223,7 @@ bench_empty_function:
 ; saved regs:(none)
 	; start of prologue
 	; end of prologue
- ; 202 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 207 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	nop
  nop
  nop
@@ -291,7 +292,7 @@ bench_empty_interrupt:
 ; elim ap -> fp       2
 ; elim fp -> sp       0
 ; saved regs:(none)
- ; 216 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 221 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	push r2
 dint
 nop
@@ -372,6 +373,7 @@ initialize:
 	MOV.W	#__text_sram_load, R13
 	CALL	#memcpy
 .L19:
+	MOV.W	#-23280, &FRCTL0
 	MOV.B	#-91, &CSCTL0_H
 	MOV.W	#0, &CSCTL1
 	MOV.W	#307, &CSCTL2
@@ -402,7 +404,7 @@ initialize:
 	JNE	1b
 	POPM.A	#2,r14
 	; End 160000000 cycle delay
- ; 331 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 336 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	bic #0x0107, r2
  ; 0 "" 2
 	; start of epilogue
@@ -427,14 +429,14 @@ main:
 	CALL	#begin_event
 	MOV.B	#100, R12
 .L21:
- ; 17 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
+ ; 17 "scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
 	loop_header:
-.set br_addr, 0x4240
+.set br_addr, 0x424c
 .rept 100 - 1
   br #br_addr + 4
   .set br_addr, br_addr + 4
 .endr
-  br #0x43d0
+  br #0x43dc
 
  ; 0 "" 2
 	ADD.W	#-1, R12
