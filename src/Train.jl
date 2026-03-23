@@ -20,7 +20,8 @@ function process_training_data(
     asm_content::String,
     energy_df::DataFrame,
     max_steps::Int,
-    model_granularity::ModelGranularity,
+    model_granularity::ModelGranularity;
+    intercept_special_calls::Bool=false,
 )::Tuple{Vector{ExecutionTrace},Vector{Float64}}
     @info "Processing training data"
 
@@ -40,7 +41,8 @@ function process_training_data(
     end
 
     _, event_traces = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps, model_granularity; data_file=nothing
+        instructions, address_info, func_addrs, max_steps, model_granularity;
+        data_file=nothing, intercept_special_calls=intercept_special_calls,
     )
 
     energies = energy_df.energy_nJ
@@ -67,7 +69,8 @@ function run_train(
     max_steps::Int,
     n_samples::Int,
     model_str::String,
-    inference_str::String,
+    inference_str::String;
+    intercept_special_calls::Bool=false,
 )::Nothing
     @info "Running in TRAIN mode"
     @info "Number of training samples" n_samples = length(asm_contents)
@@ -92,7 +95,8 @@ function run_train(
 
     for (asm_content, energy_df) in zip(asm_contents, energy_dfs)
         event_traces, energies =
-            process_training_data(asm_content, energy_df, max_steps, granularity)
+            process_training_data(asm_content, energy_df, max_steps, granularity;
+                intercept_special_calls=intercept_special_calls)
         append!(all_event_traces, event_traces)
         append!(all_energies, energies)
     end

@@ -152,6 +152,7 @@ endif
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
+	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
 	./scripts/train.sh "$${ARGS[@]}"
 
 estimate: disasm ## Estimate energy consumption (FILE=<file.c|file.S> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] [DEFINES="..."])

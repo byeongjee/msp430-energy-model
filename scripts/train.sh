@@ -19,6 +19,7 @@ N_SAMPLES=""
 MODEL="gamma_per_instruction"
 INFERENCE="importance-sampling"
 KEEP_INTERMEDIATES=0
+INTERCEPT_SPECIAL_CALLS=0
 TAG=""
 TIMESTAMP=""  # Optional timestamp (if not provided, will be auto-generated)
 DEFINES=""  # Space-separated list of compiler macros
@@ -134,6 +135,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --keep-intermediates)
             KEEP_INTERMEDIATES=1
+            shift
+            ;;
+        --intercept-special-calls)
+            INTERCEPT_SPECIAL_CALLS=1
             shift
             ;;
         --help)
@@ -352,11 +357,15 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
     log_step "Training energy model from ${#TRAIN_FILE_ARRAY[@]} file(s)"
 
     # Train with all ASM files and segment CSVs
+    INTERCEPT_FLAG=""
+    if [[ $INTERCEPT_SPECIAL_CALLS -eq 1 ]]; then
+        INTERCEPT_FLAG="--intercept-special-calls"
+    fi
     julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" train \
         --asm "${ASM_FILES[@]}" \
         --data "${TRAINING_SEGMENTS_CSV_ARRAY[@]}" \
         --output "$PARAMS_FILE" \
-        $JULIA_FLAGS
+        $JULIA_FLAGS $INTERCEPT_FLAG
     log_success "Model trained: $PARAMS_FILE"
 else
     log_step "Training SKIPPED (using existing params: $PARAMS_FILE)"

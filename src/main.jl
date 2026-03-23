@@ -253,7 +253,8 @@ function main()
                 max_steps,
                 n_samples,
                 model_str,
-                inference,
+                inference;
+                intercept_special_calls=args["intercept-special-calls"],
             )
 
         elseif mode == "estimate"

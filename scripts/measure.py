@@ -248,7 +248,7 @@ def main():
         # Isolate target: open switchboard, then power on via Otii
         logger.info("Opening Switchboard (GPO2=False) to isolate target...")
         arc.set_gpo(2, False)
-        time.sleep(0.5)  # Wait for relays to settle
+        time.sleep(3.0)  # Wait for relays to settle and VCC to decay below POR threshold
 
         # Now power on via Otii for measurement
         arc.set_main(True)
