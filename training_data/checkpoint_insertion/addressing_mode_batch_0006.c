@@ -8,6 +8,27 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_rrc_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rrc.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
+INLINE void bench_rrc_symbolic(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rrc.w sym_data\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc", "memory"));
+}
+
 INLINE void bench_sxt_register(void) {
   uint16_t dst = 0x2222;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -91,31 +112,13 @@ INLINE void bench_jnz_symbolic(void) {
       : "cc"));
 }
 
-INLINE void bench_jz_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jz 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_jnc_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jnc 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_rrc_register());
+  BENCH(bench_rrc_symbolic());
   BENCH(bench_sxt_register());
   BENCH(bench_rra_register());
   BENCH(bench_rra_symbolic());
@@ -124,8 +127,6 @@ int main(void) {
   BENCH(bench_jge_symbolic());
   BENCH(bench_jl_symbolic());
   BENCH(bench_jnz_symbolic());
-  BENCH(bench_jz_symbolic());
-  BENCH(bench_jnc_symbolic());
 
   end_measurement_window();
 
