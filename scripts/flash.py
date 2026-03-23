@@ -146,14 +146,22 @@ def main():
         arc.set_main_voltage(args.voltage)
         arc.set_max_current(args.max_current)
 
-        # Power on
-        arc.set_main(True)
-        logger.info("MAIN enabled; voltage=%.3f V", args.voltage)
+        # Ensure main power is off before connecting debugger
+        arc.set_main(False)
+        time.sleep(0.5)
+
+        # Power-cycle USB via 5V pin to force macOS re-enumeration
+        logger.info("Power-cycling switchboard for USB re-enumeration...")
+        arc.set_gpo(2, False)
+        arc.enable_5v(False)
+        time.sleep(1.0)
+        arc.enable_5v(True)
+        time.sleep(1.0)
 
         # Connect debugger (GPO2 HIGH)
         logger.info("Closing Switchboard (GPO2=True) to connect debugger...")
         arc.set_gpo(2, True)
-        time.sleep(2.0)  # Wait for USB enumeration
+        time.sleep(10.0)  # Wait for USB enumeration on macOS
 
         # Flash
         logger.info("Flash command: %s", flash_cmd)
