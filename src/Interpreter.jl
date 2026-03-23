@@ -359,8 +359,8 @@ Each call emits an intercept event (key_symbol,) with feature_value=DEFAULT_FEAT
 and if size_register is not nothing, a slope event (key_symbol, :bytes) with feature_value=register_value.
 """
 const FEATURE_FUNCTIONS = Dict{String,Tuple{Symbol,Union{Symbol,Nothing}}}(
-    "memcpy"  => (:memcpy, :R14),
-    "memset"  => (:memset, :R14),
+    "memcpy"  => (:call_memcpy, :R14),
+    "memset"  => (:call_memset, :R14),
 )
 
 """
