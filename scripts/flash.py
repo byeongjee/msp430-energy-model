@@ -139,6 +139,7 @@ def main():
         arc.add_to_project()
 
         # Power the switchboard (5V on expansion port)
+        arc.enable_5v(True)
         arc.set_exp_voltage(5.0)
         arc.enable_exp_port(True)
 

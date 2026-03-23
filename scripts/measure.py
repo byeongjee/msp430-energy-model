@@ -211,11 +211,11 @@ def main():
         # Configure channels (keep power off until recording starts)
         arc.add_to_project()
 
-        # [NEW] POWER THE SWITCHBOARD
-        # The switchboard relays need 5V from the expansion port (Pin 1)
+        # POWER THE SWITCHBOARD
+        # The switchboard relays need 5V from the expansion port 5V/0-15V pin
+        arc.enable_5v(True)
+        arc.enable_exp_port(True)  # enable expansion port (GPI + GPO)
         arc.set_exp_voltage(5.0)
-
-        arc.enable_exp_port(True)  # enable GPI pins
         for ch in ("mc", "mp", "i1", "i2"):  # current, power, GPI1, GPI2
             arc.enable_channel(ch, True)
 
@@ -230,7 +230,7 @@ def main():
         # Close relays to connect USB and Data lines for flashing
         logger.info("Closing Switchboard (GPO2=True) to connect debugger...")
         arc.set_gpo(2, True)
-        time.sleep(2.0)  # Wait for USB to enumerate on Windows/Linux
+        time.sleep(5.0)  # Wait for USB to enumerate
 
         if not args.skip_reset:
             # Flashing/Reset happens here while relays are closed
