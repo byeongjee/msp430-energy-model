@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import argparse, csv, os, subprocess, sys, time, logging, socket
 from typing import List, Tuple, Dict
-from dotenv import load_dotenv
-
 from otii_tcp_client import otii_client
 from otii_tcp_client.arc import Arc
 
@@ -186,7 +184,6 @@ def main():
     ap.add_argument("--log-file", default=None, help="Optional log file path")
     args = ap.parse_args()
 
-    load_dotenv()
     logger = setup_logger(args.log_level, args.log_file)
     logger.info("Starting measurement")
     logger.info(

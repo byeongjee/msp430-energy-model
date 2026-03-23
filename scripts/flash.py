@@ -2,7 +2,6 @@
 """Flash an ELF binary to MSP430 via mspdebug, with Otii Switchboard GPO2 control."""
 import argparse, os, subprocess, sys, time, logging, socket
 
-from dotenv import load_dotenv
 from otii_tcp_client import otii_client
 from otii_tcp_client.arc import Arc
 
@@ -123,7 +122,6 @@ def main():
 
     flash_cmd = args.flash_cmd or f"mspdebug tilib 'prog {args.elf}' 'exit'"
 
-    load_dotenv()
     logger = setup_logger(args.log_level)
     logger.info("Flashing %s", args.elf)
 

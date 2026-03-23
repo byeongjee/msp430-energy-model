@@ -421,7 +421,7 @@ fi
 
 log_info "Using NUM_REPEAT=$NUM_REPEAT from estimation defines"
 
-python3 "$PROJECT_ROOT/scripts/generate_comparison_report.py" \
+uv run python "$PROJECT_ROOT/scripts/generate_comparison_report.py" \
     --estimated-stats "$ESTIMATED_STATS_JSON" \
     --measured-data "$TEST_SEGMENTS_CSV" \
     --report-dir "$REPORT_DIR_FULL" \

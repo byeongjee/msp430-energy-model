@@ -225,7 +225,7 @@ COMBINED_LABELS_JSON="$TEMP_DIR/combined_labels_${TIMESTAMP}.json"
 log_info "Combining event labels from ${#EVENT_LABELS_ARRAY[@]} file(s)..."
 
 # Use Python to combine JSON arrays
-python3 -c "
+uv run python -c "
 import json
 import sys
 
@@ -318,7 +318,7 @@ done
 FILE_LIST="${FILE_LIST%, }"  # Remove trailing comma and space
 
 
-python3 "$GENERATE_REPORT_PY" \
+uv run python "$GENERATE_REPORT_PY" \
     --segments-csv "$COMBINED_SEGMENTS_CSV" \
     --num-repeat "$NUM_REPEAT" \
     --report-dir "$REPORT_DIR_FULL" \

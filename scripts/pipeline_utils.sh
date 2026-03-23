@@ -105,7 +105,7 @@ extract_event_labels() {
     local file="$1"
     local output_json="$2"
 
-    python3 "$EXTRACT_BENCH_LABELS_PY" \
+    uv run python "$EXTRACT_BENCH_LABELS_PY" \
         --input "$file" \
         --output "$output_json" \
         --format json
@@ -210,7 +210,7 @@ measure_and_preprocess() {
     # Measure (flash is done inside measure.py via --reset_cmd with GPO2 control)
     log_step "Flashing and measuring energy consumption for $base"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-    python3 "$MEASURE_PY" \
+    uv run python "$MEASURE_PY" \
         --voltage "$VOLTAGE" \
         --max_current "$MAX_CURRENT" \
         --outfile "$raw_csv" \
@@ -220,7 +220,7 @@ measure_and_preprocess() {
 
     # Preprocess
     log_step "Preprocessing measurements for $base"
-    python3 "$PREPROCESS_PY" \
+    uv run python "$PREPROCESS_PY" \
         --input "$raw_csv" \
         --output "$segments_csv" \
         --event-labels "$event_labels_json"

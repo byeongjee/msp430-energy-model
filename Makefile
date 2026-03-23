@@ -281,7 +281,7 @@ endif
 	else \
 		BASENAME=$$(basename $(FILE) .c); \
 	fi; \
-	python3 scripts/flash.py "$(BUILD_DIR)/$$BASENAME.elf"
+	uv run python scripts/flash.py "$(BUILD_DIR)/$$BASENAME.elf"
 	@echo "✓ Flash completed!"
 
 clean: ## Clean build artifacts
