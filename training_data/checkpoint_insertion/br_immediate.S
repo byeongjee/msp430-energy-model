@@ -429,7 +429,7 @@ main:
 	CALL	#begin_event
 	MOV.B	#100, R12
 .L21:
- ; 17 "scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
+ ; 17 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
 	loop_header:
 .set br_addr, 0x424c
 .rept 100 - 1

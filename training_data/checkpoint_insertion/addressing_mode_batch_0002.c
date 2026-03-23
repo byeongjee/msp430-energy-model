@@ -8,6 +8,29 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_cmp_indexed_indexed(void) {
+  uint16_t* base_src = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  cmp.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
+      ".endr\n"
+      : 
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : "cc", "memory"));
+}
+
+INLINE void bench_cmp_indexed_absolute(void) {
+  uint16_t* base_src = BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  cmp.w %c[offs_src](%[base_src]), &sym_data\n"
+      ".endr\n"
+      : 
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
+      : "cc", "memory"));
+}
+
 INLINE void bench_cmp_symbolic_register(void) {
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -99,33 +122,13 @@ INLINE void bench_and_immediate_register(void) {
       : "cc"));
 }
 
-INLINE void bench_and_immediate_absolute(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  and.w #0x1357, &sym_data\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc", "memory"));
-}
-
-INLINE void bench_and_indexed_register(void) {
-  uint16_t* base_src = BASE_PTR;
-  uint16_t dst = 0x1234;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  and.w %c[offs_src](%[base_src]), %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
-      : "cc", "memory"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_cmp_indexed_indexed());
+  BENCH(bench_cmp_indexed_absolute());
   BENCH(bench_cmp_symbolic_register());
   BENCH(bench_cmp_symbolic_indexed());
   BENCH(bench_sub_register_register());
@@ -134,8 +137,6 @@ int main(void) {
   BENCH(bench_sub_indexed_indexed());
   BENCH(bench_sub_symbolic_register());
   BENCH(bench_and_immediate_register());
-  BENCH(bench_and_immediate_absolute());
-  BENCH(bench_and_indexed_register());
 
   end_measurement_window();
 

@@ -8,6 +8,17 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_mov_symbolic_register(void) {
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  mov.w sym_data, %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc", "memory"));
+}
+
 INLINE void bench_mov_symbolic_indexed(void) {
   uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -36,6 +47,18 @@ INLINE void bench_mov_absolute_register(void) {
       "  mov.w &sym_data, %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
+      : 
+      : "cc", "memory"));
+}
+
+INLINE void bench_mov_indirect_register(void) {
+  uint16_t* psrc = BASE_PTR;
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  mov.w @%[psrc], %[dst]\n"
+      ".endr\n"
+      : [psrc] "+r"(psrc), [dst] "+r"(dst)
       : 
       : "cc", "memory"));
 }
@@ -98,44 +121,21 @@ INLINE void bench_cmp_indexed_register(void) {
       : "cc", "memory"));
 }
 
-INLINE void bench_cmp_indexed_indexed(void) {
-  uint16_t* base_src = BASE_PTR;
-  uint16_t* base_dst = BASE_PTR + 8;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
-      ".endr\n"
-      : 
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
-      : "cc", "memory"));
-}
-
-INLINE void bench_cmp_indexed_absolute(void) {
-  uint16_t* base_src = BASE_PTR;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %c[offs_src](%[base_src]), &sym_data\n"
-      ".endr\n"
-      : 
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
-      : "cc", "memory"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_mov_symbolic_register());
   BENCH(bench_mov_symbolic_indexed());
   BENCH(bench_mov_symbolic_absolute());
   BENCH(bench_mov_absolute_register());
+  BENCH(bench_mov_indirect_register());
   BENCH(bench_cmp_register_register());
   BENCH(bench_cmp_register_indexed());
   BENCH(bench_cmp_immediate_register());
   BENCH(bench_cmp_immediate_indexed());
   BENCH(bench_cmp_indexed_register());
-  BENCH(bench_cmp_indexed_indexed());
-  BENCH(bench_cmp_indexed_absolute());
 
   end_measurement_window();
 

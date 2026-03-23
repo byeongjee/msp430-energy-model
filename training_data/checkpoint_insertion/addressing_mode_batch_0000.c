@@ -8,6 +8,17 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_add_immediate_register(void) {
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  add.w #0x1357, %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
 INLINE void bench_mov_register_register(void) {
   uint16_t src = 0x5678;
   uint16_t dst = 0x1234;
@@ -110,22 +121,12 @@ INLINE void bench_mov_indexed_absolute(void) {
       : "cc", "memory"));
 }
 
-INLINE void bench_mov_symbolic_register(void) {
-  uint16_t dst = 0x1234;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w sym_data, %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc", "memory"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_add_immediate_register());
   BENCH(bench_mov_register_register());
   BENCH(bench_mov_register_indexed());
   BENCH(bench_mov_register_absolute());
@@ -135,7 +136,6 @@ int main(void) {
   BENCH(bench_mov_indexed_register());
   BENCH(bench_mov_indexed_indexed());
   BENCH(bench_mov_indexed_absolute());
-  BENCH(bench_mov_symbolic_register());
 
   end_measurement_window();
 
