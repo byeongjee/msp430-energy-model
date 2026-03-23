@@ -154,6 +154,13 @@ ExecutionEvent produced by the interpreter.
     SRAMWrite
     Other
 end
+"""
+The feature value is the coefficient for this event's key in the energy model's linear combination:
+E = Σ (feature_value_i × energy_param_i). For regular instructions this is 1.0 (one occurrence).
+For special functions like memcpy, it can represent variable work such as bytes copied.
+"""
+const DEFAULT_FEATURE_VALUE = 1.0
+
 struct ExecutionEvent
     type::EventType
     inst::Union{Nothing,Instruction}
@@ -246,7 +253,7 @@ function ExecutionEvent(
     ::Type{Val{Inst}}, inst::Instruction, model_granularity::ModelGranularity
 )::ExecutionEvent
     key = get_instruction_key(inst, model_granularity)
-    return ExecutionEvent(Inst, inst, Any[], key, 1.0)
+    return ExecutionEvent(Inst, inst, Any[], key, DEFAULT_FEATURE_VALUE)
 end
 
 """
@@ -257,7 +264,7 @@ function ExecutionEvent(
     event_type::EventType, inst::Union{Nothing,Instruction}, memory_access_info::Vector{Any}
 )::ExecutionEvent
     key = (Symbol(event_type),)
-    return ExecutionEvent(event_type, inst, memory_access_info, key, 1.0)
+    return ExecutionEvent(event_type, inst, memory_access_info, key, DEFAULT_FEATURE_VALUE)
 end
 
 """

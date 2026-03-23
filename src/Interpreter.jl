@@ -24,6 +24,7 @@ using ..Types:
     Key,
     get_should_track_memory_access,
     SPECIAL_CALL_FUNCTIONS,
+    DEFAULT_FEATURE_VALUE,
     PerOpcode,
     PerOpcodeWithMemAccess
 using ..Parser
@@ -354,7 +355,7 @@ FUNCTIONS_TO_SKIP = [
 """
 Functions that emit feature events instead of being fully simulated.
 Maps function name to (key_symbol, size_register_or_nothing).
-Each call emits an intercept event (key_symbol,) with feature_value=1.0,
+Each call emits an intercept event (key_symbol,) with feature_value=DEFAULT_FEATURE_VALUE,
 and if size_register is not nothing, a slope event (key_symbol, :bytes) with feature_value=register_value.
 """
 const FEATURE_FUNCTIONS = Dict{String,Tuple{Symbol,Union{Symbol,Nothing}}}(
@@ -494,7 +495,7 @@ function interpret_program(
                     func_name, key_sym, size_reg = feature_func_addrs[call_target]
                     @debug "Emitting feature events for $func_name at 0x$(string(old_pc, base=16, pad=4))"
                     # Intercept event (fixed cost per call)
-                    push!(current_execution_trace, ExecutionEvent((key_sym,), 1.0))
+                    push!(current_execution_trace, ExecutionEvent((key_sym,), DEFAULT_FEATURE_VALUE))
                     # Slope event (variable cost proportional to size)
                     if !isnothing(size_reg)
                         byte_count = Float64(state.registers[size_reg])
@@ -532,7 +533,7 @@ function interpret_program(
                         else
                             (inst.opcode, canonical_sym)
                         end
-                        event = ExecutionEvent(Inst, inst, Any[], key)
+                        event = ExecutionEvent(Inst, inst, Any[], key, DEFAULT_FEATURE_VALUE)
                         push!(current_execution_trace, event)
                         state.registers[:PC] = address_info[current_addr_idx + 1][1]
                         special_function = true
