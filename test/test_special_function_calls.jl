@@ -10,9 +10,12 @@ Test special function call key generation and serialization round-trip.
 function run_special_function_call_tests()
     @testset "Special Function Call Keys" begin
         @testset "parse_key_string round-trips special function keys" begin
+            @test parse_key_string("call___mspabi_divi") == (:call, :__mspabi_divi)
+            @test parse_key_string("call___mspabi_divli") == (:call, :__mspabi_divli)
             @test parse_key_string("call___mspabi_divu") == (:call, :__mspabi_divu)
             @test parse_key_string("call___mspabi_mpyi") == (:call, :__mspabi_mpyi)
             @test parse_key_string("call___mspabi_mpyl") == (:call, :__mspabi_mpyl)
+            @test parse_key_string("call___mspabi_remu") == (:call, :__mspabi_remu)
             @test parse_key_string("calla___mspabi_divu") == (:calla, :__mspabi_divu)
         end
 
@@ -47,13 +50,29 @@ function run_special_function_call_tests()
             func_addrs = Parser.find_functions_from_string(asm_content)
 
             # Verify the special functions exist in the disassembly
+            has_divi = haskey(func_addrs, "__mspabi_divi")
+            has_divli = haskey(func_addrs, "__mspabi_divli")
             has_divu = haskey(func_addrs, "__mspabi_divu")
-            has_mpyi = haskey(func_addrs, "__mspabi_mpyi")
+            has_mpyi = any(name -> haskey(func_addrs, name), [
+                "__mspabi_mpyi",
+                "__mspabi_mpyi_f5hw",
+                "__mulhi2",
+            ])
+            has_remu = haskey(func_addrs, "__mspabi_remu")
+            if !has_divi
+                @warn "No __mspabi_divi in disassembly — compiler may have optimized it away"
+            end
+            if !has_divli
+                @warn "No __mspabi_divli in disassembly — compiler may have optimized it away"
+            end
             if !has_divu
                 @warn "No __mspabi_divu in disassembly — compiler may have optimized it away"
             end
             if !has_mpyi
-                @warn "No __mspabi_mpyi in disassembly — compiler may have optimized it away"
+                @warn "No __mspabi_mpyi alias in disassembly — compiler may have optimized it away"
+            end
+            if !has_remu
+                @warn "No __mspabi_remu in disassembly — compiler may have optimized it away"
             end
 
             @testset "PerAddressingMode granularity" begin
@@ -65,22 +84,23 @@ function run_special_function_call_tests()
 
                 @test length(event_traces) >= 1
 
-                if length(event_traces) >= 1 && has_divu
-                    event1 = event_traces[1]
-                    inst_events = filter(evt -> evt.type == Inst, event1)
-                    inst_keys = [evt.key for evt in inst_events]
+                event_expectations = [
+                    (1, has_divu, (:call, :__mspabi_divu)),
+                    (2, has_mpyi, (:call, :__mspabi_mpyi)),
+                    (3, has_divi, (:call, :__mspabi_divi)),
+                    (4, has_remu, (:call, :__mspabi_remu)),
+                    (5, has_divli, (:call, :__mspabi_divli)),
+                ]
 
-                    @test (:call, :__mspabi_divu) in inst_keys
-                    # Generic call_immediate should NOT appear for this call
-                    @test !any(k -> k == (:call, :immediate), inst_keys)
-                end
+                for (event_idx, has_special_call, expected_key) in event_expectations
+                    if length(event_traces) >= event_idx && has_special_call
+                        event_trace = event_traces[event_idx]
+                        inst_events = filter(evt -> evt.type == Inst, event_trace)
+                        inst_keys = [evt.key for evt in inst_events]
 
-                if length(event_traces) >= 2 && has_mpyi
-                    event2 = event_traces[2]
-                    inst_events = filter(evt -> evt.type == Inst, event2)
-                    inst_keys = [evt.key for evt in inst_events]
-
-                    @test (:call, :__mspabi_mpyi) in inst_keys
+                        @test expected_key in inst_keys
+                        @test !any(k -> k == (:call, :immediate), inst_keys)
+                    end
                 end
             end
 

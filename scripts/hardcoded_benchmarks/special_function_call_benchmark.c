@@ -2,9 +2,12 @@
  * Special Function Call Benchmark
  *
  * Generates benchmarks for MSP430 ABI function calls:
+ * - __mspabi_divi: signed 16-bit division
+ * - __mspabi_divli: signed 32-bit division
  * - __mspabi_divu: unsigned 16-bit division
  * - __mspabi_mpyi: signed 16-bit multiplication
  * - __mspabi_mpyl: signed 32-bit multiplication
+ * - __mspabi_remu: unsigned 16-bit remainder
  *
  * IMPORTANT: This file MUST be compiled with -mhwmult=none to prevent
  * GCC from inlining multiplication to hardware multiplier registers.
@@ -31,6 +34,30 @@ INLINE void bench_call___mspabi_divu(void) {
     volatile uint16_t a = 0xFFFF;
     volatile uint16_t b = 1;
     REPEAT_INNER_ITERS(sink16 = a / b);
+}
+
+/*
+ * __mspabi_divi: signed 16-bit division (a / b)
+ *
+ * Use a large-magnitude dividend while avoiding the INT16_MIN / -1 overflow
+ * edge case. The volatile inputs keep the call visible in the generated code.
+ */
+INLINE void bench_call___mspabi_divi(void) {
+    volatile int16_t a = -32767;
+    volatile int16_t b = 1;
+    REPEAT_INNER_ITERS(sink16 = (uint16_t)(a / b));
+}
+
+/*
+ * __mspabi_divli: signed 32-bit division (a / b)
+ *
+ * This mirrors the signed 16-bit case with 32-bit operands so the compiler
+ * emits the long-division helper instead of inlining arithmetic.
+ */
+INLINE void bench_call___mspabi_divli(void) {
+    volatile int32_t a = 2147483647;
+    volatile int32_t b = 1;
+    REPEAT_INNER_ITERS(sink32 = (uint32_t)(a / b));
 }
 
 /*
@@ -62,13 +89,28 @@ INLINE void bench_call___mspabi_mpyl(void) {
     REPEAT_INNER_ITERS(sink32 = (uint32_t)(a * b));
 }
 
+/*
+ * __mspabi_remu: unsigned 16-bit remainder (a % b)
+ *
+ * Remainder uses the same divider family as unsigned division, so large inputs
+ * and a divisor of 1 keep the benchmark on the slow software path.
+ */
+INLINE void bench_call___mspabi_remu(void) {
+    volatile uint16_t a = 0xFFFF;
+    volatile uint16_t b = 1;
+    REPEAT_INNER_ITERS(sink16 = a % b);
+}
+
 int main(void) {
     initialize();
     begin_measurement_window();
 
     BENCH(bench_call___mspabi_divu());
+    BENCH(bench_call___mspabi_divi());
+    BENCH(bench_call___mspabi_divli());
     BENCH(bench_call___mspabi_mpyi());
     BENCH(bench_call___mspabi_mpyl());
+    BENCH(bench_call___mspabi_remu());
 
     end_measurement_window();
     return 0;

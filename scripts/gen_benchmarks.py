@@ -554,6 +554,7 @@ def main():
         script_dir = Path(__file__).parent.parent  # Go up to repo root
 
         compiled_special_function = False
+        copied_special_function = False
         # Deduplicate by path (multiple keys may map to the same benchmark file)
         copied_paths: set = set()
 
@@ -608,7 +609,7 @@ def main():
                 )
             elif name.startswith("call___mspabi_"):
                 # Special function call benchmarks need -mhwmult=none.
-                # All three keys share one source file; compile to .S once.
+                # All special-call keys share one source file; compile to .S once.
                 if not compiled_special_function:
                     basename = src_c_file.stem  # "special_function_call_benchmark"
                     asm_dir = script_dir / "build" / "asm"
@@ -650,7 +651,7 @@ def main():
 
                     compiled_special_function = True
 
-                # Copy .S to output directory (same file for all three keys)
+                # Copy .S to output directory (same file for all special-call keys)
                 basename = src_c_file.stem
                 src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
                 dst_s_file = args.output_dir / f"special_function_call_benchmark.S"
@@ -660,13 +661,15 @@ def main():
                         f"Generated .S file not found: {src_s_file}"
                     )
 
-                # Only copy once (all three keys share the same file)
-                if not dst_s_file.exists():
+                # Only copy once per run (all special-call keys share the same file).
+                # Overwrite stale output from previous runs.
+                if not copied_special_function:
                     shutil.copy(src_s_file, dst_s_file)
                     print(
                         f"✓ Generated and copied special function call benchmark: {dst_s_file}",
                         file=sys.stderr,
                     )
+                    copied_special_function = True
             else:
                 # Generic hardcoded benchmark: copy C file to output directory
                 if hardcoded_path in copied_paths:

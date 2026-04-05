@@ -86,6 +86,8 @@ Maps all known symbol names (including GCC internal aliases) to their canonical
 key symbol. For example, __mulhi2 and __mspabi_mpyi_f5hw both map to :__mspabi_mpyi.
 """
 const SPECIAL_CALL_FUNCTIONS = Dict{String, Symbol}(
+    "__mspabi_divi" => :__mspabi_divi,
+    "__mspabi_divli" => :__mspabi_divli,
     "__mspabi_divu" => :__mspabi_divu,
     "__mspabi_mpyi" => :__mspabi_mpyi,
     "__mspabi_mpyi_f5hw" => :__mspabi_mpyi,
@@ -93,6 +95,7 @@ const SPECIAL_CALL_FUNCTIONS = Dict{String, Symbol}(
     "__mspabi_mpyl" => :__mspabi_mpyl,
     "__mspabi_mpyl_f5hw" => :__mspabi_mpyl,
     "__mulsi2" => :__mspabi_mpyl,
+    "__mspabi_remu" => :__mspabi_remu,
 )
 
 # MSP430 multiplier-mapped memory addresses (Table 9-65 of MSP430FR5994 datasheet)

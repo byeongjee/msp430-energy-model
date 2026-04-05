@@ -17,11 +17,16 @@ from benchmark.common import (
     get_hardcoded_benchmarks,
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ALL_KEYS_FILE = PROJECT_ROOT / "all_keys.txt"
+SPECIAL_BENCHMARK_SOURCE = (
+    PROJECT_ROOT / "scripts" / "hardcoded_benchmarks" / "special_function_call_benchmark.c"
+)
 
 SPECIAL_KEYS = [
-    "call___mspabi_divu",
-    "call___mspabi_mpyi",
-    "call___mspabi_mpyl",
+    key
+    for key in ALL_KEYS_FILE.read_text().strip().split(",")
+    if key.startswith("call___mspabi_")
 ]
 
 
@@ -29,12 +34,12 @@ class TestHardcodedBenchmarksRegistry(unittest.TestCase):
     """Test that special function call benchmarks are registered correctly."""
 
     def test_special_function_keys_in_registry(self):
-        """All three special function call keys exist in HARDCODED_BENCHMARKS."""
+        """All special function call keys from all_keys.txt exist in the registry."""
         for key in SPECIAL_KEYS:
             self.assertIn(key, HARDCODED_BENCHMARKS, f"{key} not in HARDCODED_BENCHMARKS")
 
     def test_special_function_keys_share_same_source(self):
-        """All three keys point to the same benchmark C file."""
+        """All special function call keys point to the same benchmark C file."""
         paths = {HARDCODED_BENCHMARKS[k]["path"] for k in SPECIAL_KEYS}
         self.assertEqual(len(paths), 1, f"Expected 1 unique path, got {paths}")
         self.assertIn("special_function_call_benchmark.c", paths.pop())
@@ -56,8 +61,20 @@ class TestHardcodedBenchmarksRegistry(unittest.TestCase):
     def test_source_file_exists(self):
         """The benchmark C source file exists."""
         for key in SPECIAL_KEYS:
-            path = Path(HARDCODED_BENCHMARKS[key]["path"])
+            path = PROJECT_ROOT / HARDCODED_BENCHMARKS[key]["path"]
             self.assertTrue(path.exists(), f"Source file not found: {path}")
+
+    def test_source_file_contains_each_special_function_benchmark(self):
+        """The shared benchmark source defines and runs every special function benchmark."""
+        source_text = SPECIAL_BENCHMARK_SOURCE.read_text()
+
+        for key in SPECIAL_KEYS:
+            self.assertIn(f"bench_{key}", source_text, f"Missing benchmark function for {key}")
+            self.assertIn(
+                f"BENCH(bench_{key}());",
+                source_text,
+                f"Missing BENCH invocation for {key}",
+            )
 
 
 class TestListBenchmarks(unittest.TestCase):

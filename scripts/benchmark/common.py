@@ -158,6 +158,22 @@ class Granularity(Enum):
 # The generation pipeline will copy these files to the output directory
 # when the instruction key is required.
 
+SPECIAL_FUNCTION_CALL_GRANULARITIES = [
+    "addressing_mode",
+    "addressing_mode_constant",
+    "addressing_mode_with_mem_access",
+    "addressing_mode_constant_with_mem_access",
+]
+
+SPECIAL_FUNCTION_CALL_BENCHMARKS = {
+    "call___mspabi_divi": "Signed 16-bit division via __mspabi_divi",
+    "call___mspabi_divli": "Signed 32-bit division via __mspabi_divli",
+    "call___mspabi_divu": "Unsigned 16-bit division via __mspabi_divu",
+    "call___mspabi_mpyi": "Signed 16-bit multiplication via __mspabi_mpyi",
+    "call___mspabi_mpyl": "Signed 32-bit multiplication via __mspabi_mpyl",
+    "call___mspabi_remu": "Unsigned 16-bit remainder via __mspabi_remu",
+}
+
 HARDCODED_BENCHMARKS = {
     "br_immediate": {
         "path": "scripts/hardcoded_benchmarks/br_immediate_benchmark.c",
@@ -169,35 +185,13 @@ HARDCODED_BENCHMARKS = {
         ],
         "description": "Branch with immediate addressing (requires two-pass compilation)",
     },
-    "call___mspabi_divu": {
-        "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
-        "granularities": [
-            "addressing_mode",
-            "addressing_mode_constant",
-            "addressing_mode_with_mem_access",
-            "addressing_mode_constant_with_mem_access",
-        ],
-        "description": "Unsigned 16-bit division via __mspabi_divu (requires -mhwmult=none)",
-    },
-    "call___mspabi_mpyi": {
-        "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
-        "granularities": [
-            "addressing_mode",
-            "addressing_mode_constant",
-            "addressing_mode_with_mem_access",
-            "addressing_mode_constant_with_mem_access",
-        ],
-        "description": "Signed 16-bit multiplication via __mspabi_mpyi (requires -mhwmult=none)",
-    },
-    "call___mspabi_mpyl": {
-        "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
-        "granularities": [
-            "addressing_mode",
-            "addressing_mode_constant",
-            "addressing_mode_with_mem_access",
-            "addressing_mode_constant_with_mem_access",
-        ],
-        "description": "Signed 32-bit multiplication via __mspabi_mpyl (requires -mhwmult=none)",
+    **{
+        key: {
+            "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
+            "granularities": list(SPECIAL_FUNCTION_CALL_GRANULARITIES),
+            "description": f"{description} (requires -mhwmult=none)",
+        }
+        for key, description in SPECIAL_FUNCTION_CALL_BENCHMARKS.items()
     },
     "call_memcpy": {
         "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",

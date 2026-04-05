@@ -70,13 +70,16 @@ This generates `/path/to/output/br_immediate.S` automatically.
 
 ## special_function_call
 
-Benchmarks for MSP430 ABI software function calls (`__mspabi_divu`, `__mspabi_mpyi`, `__mspabi_mpyl`). These functions are normally inlined by GCC when targeting MSP430FR5994 (which has a hardware multiplier), so the benchmark must be compiled with `-mhwmult=none` to force software calls.
+Benchmarks for MSP430 ABI software function calls (`__mspabi_divi`, `__mspabi_divli`, `__mspabi_divu`, `__mspabi_mpyi`, `__mspabi_mpyl`, `__mspabi_remu`). The multiply helpers are normally inlined by GCC when targeting MSP430FR5994 (which has a hardware multiplier), so the shared benchmark must be compiled with `-mhwmult=none` to force software calls consistently.
 
 ### Keys
 
+- `call___mspabi_divi` — signed 16-bit division
+- `call___mspabi_divli` — signed 32-bit division
 - `call___mspabi_divu` — unsigned 16-bit division
 - `call___mspabi_mpyi` — signed 16-bit multiplication
 - `call___mspabi_mpyl` — signed 32-bit multiplication
+- `call___mspabi_remu` — unsigned 16-bit remainder
 
 ### Compilation
 
@@ -88,12 +91,12 @@ make disasm FILE=scripts/hardcoded_benchmarks/special_function_call_benchmark.c 
 
 ### Integration with gen_benchmarks.py
 
-When any of the three keys (`call___mspabi_divu`, `call___mspabi_mpyi`, `call___mspabi_mpyl`) is requested, `gen_benchmarks.py`:
+When any of the special-call keys above is requested, `gen_benchmarks.py`:
 
 1. Compiles `special_function_call_benchmark.c` to assembly source using `gcc -S` with `-mhwmult=none` appended to `$CFLAGS`
 2. Copies the resulting `.S` file to the output directory
 
-All three keys share one source file, so it is compiled only once even if multiple keys are requested.
+All of the special-call keys share one source file, so it is compiled only once even if multiple keys are requested.
 
 ## Adding New Hardcoded Benchmarks
 

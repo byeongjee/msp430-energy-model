@@ -65,7 +65,7 @@ function parse_commandline()
         arg_type = String
         default = "map"
         "--intercept-special-calls"
-        help = "Intercept special ABI function calls (__mspabi_divu, __mspabi_mpyi, __mspabi_mpyl) as single composite instructions inside event blocks"
+        help = "Intercept special ABI function calls (__mspabi_divi, __mspabi_divli, __mspabi_divu, __mspabi_mpyi, __mspabi_mpyl, __mspabi_remu) as single composite instructions inside event blocks"
         action = :store_true
     end
 
