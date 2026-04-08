@@ -13,6 +13,36 @@ include("model_common.jl")
 export run_train
 
 """
+Drop degenerate measurement rows that cannot correspond to real benchmark events.
+
+These occasionally appear as zero-duration, zero-energy segments at the start of
+preprocessed CSVs due to GPIO boundary artifacts during measurement.
+"""
+function drop_degenerate_measurements(
+    energy_df::DataFrame
+)::Tuple{DataFrame,Int}
+    if !("duration_s" in names(energy_df) && "energy_nJ" in names(energy_df))
+        return energy_df, 0
+    end
+
+    degenerate_mask =
+        map(eachrow(energy_df)) do row
+            !ismissing(row.duration_s) &&
+                !ismissing(row.energy_nJ) &&
+                iszero(row.duration_s) &&
+                iszero(row.energy_nJ)
+        end
+
+    dropped_count = count(degenerate_mask)
+    if dropped_count == 0
+        return energy_df, 0
+    end
+
+    filtered_df = energy_df[.!degenerate_mask, :]
+    return filtered_df, dropped_count
+end
+
+"""
 Process training data from assembly content and energy measurements.
 Returns event traces and energy measurements.
 """
@@ -45,11 +75,18 @@ function process_training_data(
         data_file=nothing, intercept_special_calls=intercept_special_calls,
     )
 
-    energies = energy_df.energy_nJ
+    filtered_energy_df, dropped_count = drop_degenerate_measurements(energy_df)
+    if dropped_count > 0
+        @warn "Dropped degenerate zero-length zero-energy measurements before training" dropped_count =
+            dropped_count original_rows = nrow(energy_df) filtered_rows =
+            nrow(filtered_energy_df)
+    end
+
+    energies = filtered_energy_df.energy_nJ
 
     if length(event_traces) != length(energies)
         error(
-            "Mismatch between event traces ($(length(event_traces))) and energy measurements ($(length(energies)))",
+            "Mismatch between event traces ($(length(event_traces))) and energy measurements ($(length(energies))). Dropped $dropped_count degenerate zero-length zero-energy rows from the CSV before matching.",
         )
     end
 

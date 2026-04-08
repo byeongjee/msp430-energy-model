@@ -201,6 +201,7 @@ MODEL_MEAN_PER_PAIR_ADDRESSING_MODE_CONSTANT="mean_per_pair_addressing_mode_cons
 INFERENCE_IMPORTANCE_SAMPLING="importance-sampling"
 INFERENCE_MCMC_BLOCKED="mcmc-blocked"
 INFERENCE_DOMINANT_KEY="dominant-key"
+INFERENCE_UPPER_BOUND_LP="upper-bound-lp"
 INFERENCE_LEAST_SQUARES="least-squares"
 INFERENCE_LEAST_SQUARES_NNPIVOT="least-squares-nnpivot"
 INFERENCE_LEAST_SQUARES_NNLS="least-squares-nnls"

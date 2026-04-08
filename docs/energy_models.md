@@ -65,6 +65,7 @@ Mean models assign a fixed mean energy value to each event type. They are determ
 | Algorithm | Description |
 |-----------|-------------|
 | `dominant-key` | For microbenchmarks: assigns total energy / event count to the dominant event type |
+| `upper-bound-lp` | Solves a conservative upper-bound LP that keeps all training predictions above measured energy while minimizing total slack |
 | `least-squares` | Solves `Ax = B` via standard least squares |
 | `least-squares-nnpivot` | Non-negative least squares using pivot method |
 | `least-squares-nnls` | Non-negative least squares using NNLS algorithm |
@@ -200,6 +201,9 @@ make train FILES="benchmarks/*.c" MODEL=mean_per_addressing_mode INFERENCE=domin
 # Mean model with least-squares inference
 make train FILES="programs/*.c" MODEL=mean_per_addressing_mode_constant INFERENCE=least-squares-fnnls
 
+# Mean model with conservative upper-bound inference
+make train FILES="programs/*.c" MODEL=mean_per_addressing_mode INFERENCE=upper-bound-lp
+
 # Gamma model with MCMC inference
 make train FILES="benchmarks/*.c" MODEL=gamma_per_addressing_mode INFERENCE=mcmc-blocked
 ```
@@ -223,6 +227,7 @@ make estimate FILE=program.c PARAMS=trained_params.json
 | Pipeline/cache effects | `mean_per_pair_addressing_mode_constant` |
 | Uncertainty quantification | `gamma_per_addressing_mode_constant` |
 | Microbenchmark training | Use `dominant-key` inference |
+| Conservative training-time upper bounds | Use `upper-bound-lp` inference |
 | Mixed program training | Use `least-squares-fnnls` inference |
 
 ---

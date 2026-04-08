@@ -16,7 +16,7 @@ def preprocess_csv(input, output, event_labels=None):
     # Read the CSV file
     df = pd.read_csv(input)
     # Forward fill the GPI2 column to handle empty values
-    df["gpi2"] = df["gpi2"].fillna(method="ffill")
+    df["gpi2"] = df["gpi2"].ffill()
     # Fill any remaining NaN values at the start with 0
     df["gpi2"] = df["gpi2"].fillna(0)
     # convert gpi2 to int
@@ -52,6 +52,18 @@ def preprocess_csv(input, output, event_labels=None):
         )
     # Create output DataFrame
     output_df = pd.DataFrame(results)
+
+    # Drop spurious zero-length zero-energy segments caused by GPIO boundary artifacts.
+    if not output_df.empty:
+        degenerate_mask = (
+            output_df["duration_s"].abs().eq(0) & output_df["energy_nJ"].abs().eq(0)
+        )
+        dropped_count = int(degenerate_mask.sum())
+        if dropped_count:
+            output_df = output_df.loc[~degenerate_mask].reset_index(drop=True)
+            print(
+                f"Dropped {dropped_count} degenerate zero-length zero-energy segment(s)"
+            )
 
     # Add event labels if provided
     if event_labels is not None and len(event_labels) > 0:

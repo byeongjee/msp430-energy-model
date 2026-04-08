@@ -52,7 +52,7 @@ Optional arguments:
   --max-steps N             Maximum execution steps for training
   --n-samples N             Number of samples for inference (default: 100)
   --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
-  --inference ALG           Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)
+  --inference ALG           Inference algorithm: importance-sampling, mcmc-blocked, dominant-key, map, upper-bound-lp, or least-squares variants (default: importance-sampling)
   --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
   --skip-reset              Skip device reset during measurement
   --keep-intermediates      Keep intermediate files and suggest resume commands

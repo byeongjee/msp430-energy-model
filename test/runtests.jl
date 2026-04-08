@@ -349,6 +349,111 @@ function run_train_tests()
             rm(output_file; force=true)
         end
 
+        @testset "Upper-bound LP inference algorithm" begin
+            asm_content1 = load_test_asm_content()
+            asm_content2 = load_test_asm_content()
+            energy_df1 = DataFrame(; energy_nJ=[100.0])
+            energy_df2 = DataFrame(; energy_nJ=[150.0])
+            output_file = joinpath(tempdir(), "test_params_upper_bound_lp.json")
+
+            Train.run_train(
+                [asm_content1],
+                [energy_df1],
+                output_file,
+                1000,
+                10,
+                "mean_per_addressing_mode",
+                "upper-bound-lp",
+            )
+
+            @test isfile(output_file)
+
+            params = JSON.parsefile(output_file)
+            @test params["model"] == "mean_per_addressing_mode"
+            @test haskey(params, "parameters")
+            @test !isempty(params["parameters"])
+            for value in values(params["parameters"])
+                @test value >= -1e-8
+            end
+
+            rm(output_file; force=true)
+
+            Train.run_train(
+                [asm_content1, asm_content2],
+                [energy_df1, energy_df2],
+                output_file,
+                1000,
+                10,
+                "mean_per_addressing_mode",
+                "upper-bound-lp",
+            )
+
+            model = Model.create_model("mean_per_addressing_mode")
+            Model.load_params!(model, JSON.parsefile(output_file))
+
+            event_traces1, energies1 = Train.process_training_data(
+                asm_content1, energy_df1, 1000, model.granularity
+            )
+            event_traces2, energies2 = Train.process_training_data(
+                asm_content2, energy_df2, 1000, model.granularity
+            )
+            training_data = TrainingData(
+                vcat(event_traces1, event_traces2), vcat(energies1, energies2)
+            )
+            A, B, sorted_keys = Model.build_training_matrix(training_data)
+            x = [model.params[key] for key in sorted_keys]
+            B_pred = A * x
+
+            @test all(B_pred .>= B .- 1e-8)
+
+            rm(output_file; force=true)
+        end
+
+        @testset "Upper-bound LP exact-fit toy system" begin
+            key_a = (:mov, :register, :register)
+            key_b = (:add, :register, :register)
+            traces = ExecutionTrace[
+                [ExecutionEvent(key_a, 1.0)],
+                [ExecutionEvent(key_b, 1.0)],
+                [ExecutionEvent(key_a, 1.0), ExecutionEvent(key_b, 1.0)],
+            ]
+            training_data = TrainingData(traces, [2.0, 3.0, 5.0])
+            model = Model.create_model("mean_per_addressing_mode")
+            config = Model.create_training_config(model, 10, "upper-bound-lp")
+
+            Model.learn_params!(model, training_data, config)
+
+            @test model.params[key_a] ≈ 2.0 atol=1e-7
+            @test model.params[key_b] ≈ 3.0 atol=1e-7
+
+            A, B, sorted_keys = Model.build_training_matrix(training_data)
+            x = [model.params[key] for key in sorted_keys]
+            B_pred = A * x
+
+            @test all(B_pred .>= B .- 1e-8)
+            @test maximum(B_pred .- B) ≤ 1e-7
+        end
+
+        @testset "Upper-bound LP tie-break minimizes parameter sum" begin
+            key_a = (:mov, :register, :register)
+            key_b = (:add, :register, :register)
+            traces = ExecutionTrace[
+                [
+                    ExecutionEvent(key_a, 1.0),
+                    ExecutionEvent(key_a, 1.0),
+                    ExecutionEvent(key_b, 1.0),
+                ],
+            ]
+            training_data = TrainingData(traces, [5.0])
+            model = Model.create_model("mean_per_addressing_mode")
+            config = Model.create_training_config(model, 10, "upper-bound-lp")
+
+            Model.learn_params!(model, training_data, config)
+
+            @test model.params[key_a] ≈ 2.5 atol=1e-7
+            @test model.params[key_b] ≈ 0.0 atol=1e-7
+        end
+
         @testset "Feature-valued events in training matrix" begin
             # Create execution events with custom feature_value
             event1 = ExecutionEvent((:mov, :register, :register), 1.0)

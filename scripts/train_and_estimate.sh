@@ -56,7 +56,7 @@ Optional arguments:
   --max-steps N             Maximum execution steps for train/estimate
   --n-samples N             Number of samples for inference (default: 100)
   --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
-  --inference ALG           Inference algorithm: importance-sampling, or mcmc-blocked (default: importance-sampling)
+  --inference ALG           Inference algorithm: importance-sampling, mcmc-blocked, dominant-key, map, upper-bound-lp, or least-squares variants (default: importance-sampling)
   --train-defines "MACROS"  Space-separated compiler macros for training files (e.g., "FOO=1 BAR")
   --estimate-defines "MACROS"  Space-separated compiler macros for estimation file (e.g., "FOO=1 BAR")
   --report-dir DIR          Directory for comparison report (default: ./report)
@@ -449,4 +449,3 @@ fi
 if [[ $USE_TEMP_PARAMS -eq 0 ]]; then
     echo "  - Parameters: $PARAMS_FILE"
 fi
-

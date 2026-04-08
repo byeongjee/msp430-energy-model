@@ -106,7 +106,7 @@ Energy model implementations:
 - **Mean models** (deterministic): Use mean energy values
   - Granularities: per-instruction, per-addressing-mode, per-addressing-mode-constant
   - Also supports instruction pair models (`mean_per_pair_addressing_mode_constant`)
-  - Inference: `dominant-key`, `least-squares`, `least-squares-nnpivot`, `least-squares-nnls`, `least-squares-fnnls`
+  - Inference: `dominant-key`, `map`, `upper-bound-lp`, `least-squares`, `least-squares-nnpivot`, `least-squares-nnls`, `least-squares-fnnls`
 
 #### `src/types.jl`
 Core type definitions:

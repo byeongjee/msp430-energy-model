@@ -5,6 +5,10 @@ using Statistics
 using LinearAlgebra
 using NonNegLeastSquares
 using Optim
+import JuMP
+import HiGHS
+
+const MOI = JuMP.MOI
 
 """
 Training configuration for Mean-based models
@@ -147,6 +151,203 @@ function build_training_matrix(training_data::TrainingData)
 end
 
 """
+Compute standard regression metrics for a predicted training response vector.
+"""
+function compute_fit_metrics(B::Vector{Float64}, B_pred::Vector{Float64})
+    residuals = B .- B_pred
+    ss_tot = sum((B .- mean(B)) .^ 2)
+    ss_res = sum(residuals .^ 2)
+    r_squared = iszero(ss_tot) ? (iszero(ss_res) ? 1.0 : 0.0) : 1 - (ss_res / ss_tot)
+    rmse = sqrt(mean(residuals .^ 2))
+    mae = mean(abs.(residuals))
+    max_error = maximum(abs.(residuals))
+    return residuals, r_squared, rmse, mae, max_error
+end
+
+"""
+Learn parameters from training data using a conservative upper-bound LP.
+
+The optimization problem is:
+- minimize Σᵢ sᵢ
+- subject to A * x = B + s
+- x ≥ 0, s ≥ 0
+
+This finds non-negative parameters that upper-bound every training sample while
+minimizing the total overestimation slack.
+"""
+function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingData)
+    @info "Building upper-bound LP system" num_execution_traces = length(
+        training_data.execution_traces
+    ) algorithm = "upper-bound-lp"
+
+    A, B, sorted_keys = build_training_matrix(training_data)
+    num_execution_traces, num_keys = size(A)
+    @info "Upper-bound LP system built" num_keys = num_keys
+
+    row_feature_mass = vec(sum(A; dims=2))
+    infeasible_rows =
+        findall(i -> iszero(row_feature_mass[i]) && B[i] > 0, eachindex(B))
+    if !isempty(infeasible_rows)
+        error(
+            "Upper-bound LP is infeasible: $(length(infeasible_rows)) training samples have positive measured energy but no active features",
+        )
+    end
+
+    lp = JuMP.Model(HiGHS.Optimizer)
+    JuMP.set_silent(lp)
+
+    JuMP.@variable(lp, x[1:num_keys] >= 0)
+    JuMP.@variable(lp, slack[1:num_execution_traces] >= 0)
+
+    JuMP.@constraint(
+        lp,
+        upper_bound_constraints[i in 1:num_execution_traces],
+        sum(A[i, j] * x[j] for j in 1:num_keys) == B[i] + slack[i],
+    )
+
+    JuMP.@objective(lp, Min, sum(slack[i] for i in 1:num_execution_traces))
+    JuMP.optimize!(lp)
+
+    stage1_status = JuMP.termination_status(lp)
+    stage1_primal_status = JuMP.primal_status(lp)
+    if stage1_status != MOI.OPTIMAL
+        error(
+            "Upper-bound LP stage 1 failed: termination_status=$(stage1_status), primal_status=$(stage1_primal_status)",
+        )
+    end
+
+    optimal_total_slack = JuMP.objective_value(lp)
+    slack_tolerance = max(1e-9, 1e-8 * max(1.0, optimal_total_slack))
+
+    JuMP.@constraint(
+        lp,
+        total_slack_constraint,
+        sum(slack[i] for i in 1:num_execution_traces) <= optimal_total_slack + slack_tolerance,
+    )
+    JuMP.@objective(lp, Min, sum(x[j] for j in 1:num_keys))
+    JuMP.optimize!(lp)
+
+    stage2_status = JuMP.termination_status(lp)
+    stage2_primal_status = JuMP.primal_status(lp)
+    if stage2_status != MOI.OPTIMAL
+        error(
+            "Upper-bound LP stage 2 failed: termination_status=$(stage2_status), primal_status=$(stage2_primal_status)",
+        )
+    end
+
+    x_values = JuMP.value.(x)
+    B_pred = A * x_values
+    slack_values = B_pred .- B
+
+    min_slack_before_correction = minimum(slack_values)
+    if min_slack_before_correction < -1e-8
+        correction_factor =
+            max(1.0, maximum(B ./ max.(B_pred, 1e-12))) * (1 + 1e-9)
+        x_values .*= correction_factor
+        B_pred = A * x_values
+        slack_values = B_pred .- B
+        @warn "Applied feasibility correction to upper-bound LP solution" correction_factor =
+            correction_factor min_slack_before_correction = min_slack_before_correction
+    end
+
+    model.params = Dict{Key,Float64}()
+    for (i, key) in enumerate(sorted_keys)
+        model.params[key] = x_values[i]
+        @debug "Learned mean energy per instruction (upper-bound-lp)" param_key = key mean_energy = round(
+            x_values[i]; digits=6
+        )
+    end
+
+    residuals, r_squared, rmse, mae, max_error = compute_fit_metrics(B, B_pred)
+    total_slack = sum(slack_values)
+    min_slack = minimum(slack_values)
+    max_slack = maximum(slack_values)
+    binding_constraints_count = count(slack_values .<= 1e-7)
+    underestimation_violations = count(slack_values .< -1e-8)
+
+    @info "Upper-bound LP metrics" total_slack = round(total_slack; digits=6) min_slack =
+        round(min_slack; digits=6) max_slack = round(max_slack; digits=6) binding_constraints =
+        binding_constraints_count underestimation_violations = underestimation_violations
+    @info "Goodness of fit metrics" R² = round(r_squared; digits=6) RMSE = round(
+        rmse; digits=3
+    ) MAE = round(mae; digits=3) Max_Error = round(max_error; digits=3)
+
+    debug_dump_path = get(ENV, "JULIA_LS_DEBUG_DUMP_PATH", nothing)
+    if !isnothing(debug_dump_path)
+        @info "Dumping upper-bound LP debug data" path = debug_dump_path
+
+        key_labels = [join(string.(k), "_") for k in sorted_keys]
+
+        sample_key_counts = Vector{Dict{String,Int}}()
+        for execution_trace in training_data.execution_traces
+            counts = Dict{String,Int}()
+            for execution_event in execution_trace
+                key_str = join(string.(execution_event.key), "_")
+                counts[key_str] = get(counts, key_str, 0) + 1
+            end
+            push!(sample_key_counts, counts)
+        end
+
+        relative_errors = [
+            iszero(B[i]) ? (iszero(B_pred[i]) ? 0.0 : -Inf) : (B[i] - B_pred[i]) / B[i] * 100 for
+            i in eachindex(B)
+        ]
+        column_coverage = [count(A[:, j] .> 0) for j in 1:num_keys]
+
+        matrix_rank = rank(A)
+        svd_result = svd(A)
+        singular_values = svd_result.S
+        nonzero_sv = filter(s -> s > 1e-10, singular_values)
+        condition_number = length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
+
+        debug_data = Dict{String,Any}(
+            "metadata" => Dict(
+                "num_samples" => num_execution_traces,
+                "num_keys" => num_keys,
+                "algorithm" => "upper-bound-lp",
+                "solver" => "HiGHS",
+                "r_squared" => r_squared,
+                "rmse" => rmse,
+                "mae" => mae,
+                "max_error" => max_error,
+                "matrix_rank" => matrix_rank,
+                "condition_number" => condition_number,
+                "stage1_termination_status" => string(stage1_status),
+                "stage2_termination_status" => string(stage2_status),
+                "optimal_total_slack" => optimal_total_slack,
+                "total_slack" => total_slack,
+                "min_slack" => min_slack,
+                "max_slack" => max_slack,
+                "binding_constraints_count" => binding_constraints_count,
+                "underestimation_violations" => underestimation_violations,
+            ),
+            "key_labels" => key_labels,
+            "solution_x" => x_values,
+            "measured_B" => B,
+            "predicted_B" => B_pred,
+            "residuals" => residuals,
+            "relative_errors_percent" => relative_errors,
+            "slack" => slack_values,
+            "column_coverage" => column_coverage,
+            "sample_key_counts" => sample_key_counts,
+            "singular_values" => singular_values,
+            "matrix_A_sparse" => [
+                [i, j, A[i, j]] for i in 1:num_execution_traces for
+                j in 1:num_keys if A[i, j] > 0
+            ],
+            "matrix_A_shape" => [num_execution_traces, num_keys],
+        )
+
+        open(debug_dump_path, "w") do f
+            JSON.print(f, debug_data, 2)
+        end
+        @info "Debug data saved successfully" path = debug_dump_path
+    end
+
+    return nothing
+end
+
+"""
 Learn parameters from training data using least-squares inference algorithm.
 Formulates the problem as finding x that minimizes ||Ax - B||^2 where:
 - A[i,j] = count of key j in execution trace i
@@ -196,23 +397,8 @@ function learn_params_least_squares!(
         )
     end
 
-    # Calculate goodness-of-fit metrics
     B_pred = A * x  # Predicted energies
-    residuals = B .- B_pred
-
-    # R² (coefficient of determination)
-    ss_tot = sum((B .- mean(B)) .^ 2)
-    ss_res = sum(residuals .^ 2)
-    r_squared = 1 - (ss_res / ss_tot)
-
-    # RMSE (Root Mean Squared Error)
-    rmse = sqrt(mean(residuals .^ 2))
-
-    # MAE (Mean Absolute Error)
-    mae = mean(abs.(residuals))
-
-    # Max absolute error
-    max_error = maximum(abs.(residuals))
+    residuals, r_squared, rmse, mae, max_error = compute_fit_metrics(B, B_pred)
 
     @info "Goodness of fit metrics" R² = round(r_squared; digits=6) RMSE = round(
         rmse; digits=3
@@ -361,15 +547,8 @@ function learn_params_map!(model::MeanModel, training_data::TrainingData)
         @debug "Learned energy (MAP)" param_key=key energy=round(x[i]; digits=6)
     end
 
-    # Goodness-of-fit metrics (same as least-squares)
     B_pred = A * x
-    residuals = B .- B_pred
-    ss_tot = sum((B .- mean(B)).^2)
-    ss_res = sum(residuals.^2)
-    r_squared = 1 - (ss_res / ss_tot)
-    rmse = sqrt(mean(residuals.^2))
-    mae = mean(abs.(residuals))
-    max_error = maximum(abs.(residuals))
+    residuals, r_squared, rmse, mae, max_error = compute_fit_metrics(B, B_pred)
 
     @info "Goodness of fit metrics" R²=round(r_squared; digits=6) RMSE=round(rmse; digits=3) MAE=round(mae; digits=3) Max_Error=round(max_error; digits=3)
 
@@ -462,6 +641,8 @@ function learn_params!(
         learn_params_dominant_key!(model, training_data)
     elseif config.inference_algorithm == "map"
         learn_params_map!(model, training_data)
+    elseif config.inference_algorithm == "upper-bound-lp"
+        learn_params_upper_bound_lp!(model, training_data)
     elseif startswith(config.inference_algorithm, "least-squares")
         learn_params_least_squares!(model, training_data, config.inference_algorithm)
     else
