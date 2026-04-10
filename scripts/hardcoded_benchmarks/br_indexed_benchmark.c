@@ -17,9 +17,9 @@ INLINE void bench_br_indexed(void) {
   uint16_t *base;
   REPEAT_INNER_ITERS(
     __asm__ volatile(
-      "mov #jump_table, %[base]\n"
+      "mov #jump_table-2, %[base]\n"
       "loop_header:\n"
-      ".set br_off, 0\n"
+      ".set br_off, 2\n"
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  br br_off(%[base])\n"
       "  .set br_off, br_off + 2\n"

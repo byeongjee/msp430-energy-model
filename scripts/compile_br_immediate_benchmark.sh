@@ -108,6 +108,11 @@ if [[ "$BASENAME" == "br_immediate_benchmark" || "$BASENAME" == "br_indexed_benc
         exit 1
     fi
 
+    # The generated .S contains only base-ISA instructions, but we want it to
+    # be reassemblable via the default .S path, which targets the MCU's native
+    # ISA. Normalize the emitted ISA attribute so the assembler accepts it.
+    perl -0pi -e 's/\.mspabi_attribute 4, 1/.mspabi_attribute 4, 2/' "$OUTPUT_S"
+
     echo ""
     echo "✓ Two-pass compilation completed!"
     echo "  Assembly source: $OUTPUT_S"

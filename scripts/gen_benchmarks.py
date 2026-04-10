@@ -91,6 +91,19 @@ INLINE void bench_{{ name }}(void) {
 )
 
 
+def normalize_generated_asm_isa(asm_path: Path) -> None:
+    """Rewrite base-ISA attributes so generated .S files reassemble by default.
+
+    The compiler emits `.mspabi_attribute 4, 1` for base MSP430 code. Our
+    default `.S` build path targets the selected MCU ISA, so normalize that
+    attribute to the MCU-compatible value before copying generated assembly out.
+    """
+    text = asm_path.read_text()
+    updated = text.replace(".mspabi_attribute 4, 1", ".mspabi_attribute 4, 2")
+    if updated != text:
+        asm_path.write_text(updated)
+
+
 # ============================================================================
 # Composite benchmarks
 # ============================================================================
@@ -653,6 +666,7 @@ def main():
                         print(f"STDERR: {e.stderr}", file=sys.stderr)
                         raise
 
+                    normalize_generated_asm_isa(asm_path)
                     compiled_special_function = True
 
                 # Copy .S to output directory (same file for all special-call keys)

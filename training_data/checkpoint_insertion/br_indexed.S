@@ -444,10 +444,10 @@ main:
 	CALL	#begin_event
 	MOV.B	#100, R12
 .L21:
- ; 18 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_indexed_benchmark.c" 1
-	mov #jump_table, R13
+ ; 18 "scripts/hardcoded_benchmarks/br_indexed_benchmark.c" 1
+	mov #jump_table-2, R13
 loop_header:
-.set br_off, 0
+.set br_off, 2
 .rept 100
   br br_off(R13)
   .set br_off, br_off + 2
@@ -458,7 +458,7 @@ jump_table:
   .word br_addr + 4
   .set br_addr, br_addr + 4
 .endr
-  .word 0x44c4
+  .word 0x44c6
 
  ; 0 "" 2
 	ADD.W	#-1, R12
@@ -471,7 +471,7 @@ jump_table:
 	RET
 	.size	main, .-main
 	.ident	"GCC: (Mitto Systems Limited - msp430-gcc 9.3.1.11) 9.3.1"
-	.mspabi_attribute 4, 1
+	.mspabi_attribute 4, 2
 	.mspabi_attribute 6, 1
 	.mspabi_attribute 8, 1
 	.gnu_attribute 4, 1

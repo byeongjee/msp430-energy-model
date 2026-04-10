@@ -444,7 +444,7 @@ main:
 	CALL	#begin_event
 	MOV.B	#100, R12
 .L21:
- ; 17 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
+ ; 17 "scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
 	loop_header:
 .set br_addr, 0x426a
 .rept 100 - 1
@@ -464,7 +464,7 @@ main:
 	RET
 	.size	main, .-main
 	.ident	"GCC: (Mitto Systems Limited - msp430-gcc 9.3.1.11) 9.3.1"
-	.mspabi_attribute 4, 1
+	.mspabi_attribute 4, 2
 	.mspabi_attribute 6, 1
 	.mspabi_attribute 8, 1
 	.gnu_attribute 4, 1

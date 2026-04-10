@@ -80,6 +80,53 @@ function run_br_immediate_tests()
 
             @info "BR immediate benchmark test passed"
         end
+
+        @testset "br_indexed instruction count" begin
+            @info "Generating br_indexed_benchmark.S (two-pass compilation)..."
+            run(
+                `bash -c "./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_indexed_benchmark.c"`,
+            )
+
+            @info "Compiling and disassembling .S file..."
+            run(`bash -c "make disasm FILE=build/asm/br_indexed_benchmark.S"`)
+
+            asm_file = "build/asm/br_indexed_benchmark.asm"
+            data_file = "build/asm/br_indexed_benchmark.data"
+
+            @test isfile(asm_file)
+            @test isfile(data_file)
+
+            asm_content = read(asm_file, String)
+            instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
+            func_addrs = Parser.find_functions_from_string(asm_content)
+
+            br_count = count(inst -> inst.opcode == :br, instructions)
+            @info "Total br instructions in assembly" br_count
+
+            final_state, event_traces = Interpreter.interpret_program(
+                instructions,
+                address_info,
+                func_addrs,
+                100000000,
+                Types.PerAddressingModeConstant;
+                data_file=data_file,
+            )
+
+            TEXTUAL_REPT = 100
+            INNER_ITERS = 100
+            expected_br_executions = TEXTUAL_REPT * INNER_ITERS
+
+            @test br_count == TEXTUAL_REPT
+
+            total_br_executions = 0
+            for trace in event_traces
+                br_in_trace = count(event -> get_inst(event).opcode == :br, trace)
+                total_br_executions += br_in_trace
+            end
+
+            @test total_br_executions == expected_br_executions
+            @info "BR indexed benchmark test passed"
+        end
     end
 end
 

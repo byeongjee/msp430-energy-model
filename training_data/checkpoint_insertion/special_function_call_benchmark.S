@@ -544,7 +544,7 @@ main:
 	.local	sink16
 	.comm	sink16,2,2
 	.ident	"GCC: (Mitto Systems Limited - msp430-gcc 9.3.1.11) 9.3.1"
-	.mspabi_attribute 4, 1
+	.mspabi_attribute 4, 2
 	.mspabi_attribute 6, 1
 	.mspabi_attribute 8, 1
 	.gnu_attribute 4, 1
