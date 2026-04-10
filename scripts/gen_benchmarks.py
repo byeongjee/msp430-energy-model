@@ -563,8 +563,9 @@ def main():
             hardcoded_path = entry["path"]
             src_c_file = script_dir / hardcoded_path
 
-            if name == "br_immediate":
-                # br_immediate requires two-pass compilation to resolve addresses
+            if name in {"br_immediate", "br_indexed"}:
+                # Branch benchmarks require two-pass compilation to resolve the
+                # control-flow targets used in the hand-written assembly.
                 compile_script = (
                     script_dir / "scripts" / "compile_br_immediate_benchmark.sh"
                 )
@@ -589,7 +590,7 @@ def main():
                     raise
 
                 # Copy the generated .S file from build/asm/ to output directory
-                basename = src_c_file.stem  # e.g., "br_immediate_benchmark"
+                basename = src_c_file.stem
                 src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
                 dst_s_file = args.output_dir / f"{name}.S"
 

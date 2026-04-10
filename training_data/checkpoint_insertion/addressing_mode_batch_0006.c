@@ -8,6 +8,73 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_bis_indexed_register(void) {
+  uint16_t* base_src = BASE_PTR;
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  bis.w %c[offs_src](%[base_src]), %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
+      : "cc", "memory"));
+}
+
+INLINE void bench_bis_indexed_indexed(void) {
+  uint16_t* base_src = BASE_PTR;
+  uint16_t* base_dst = BASE_PTR + 8;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  bis.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
+      ".endr\n"
+      : 
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : "cc", "memory"));
+}
+
+INLINE void bench_bis_symbolic_register(void) {
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  bis.w sym_data, %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc", "memory"));
+}
+
+INLINE void bench_bis_symbolic_absolute(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  bis.w sym_data, &sym_data\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc", "memory"));
+}
+
+INLINE void bench_inc_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  inc.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
+INLINE void bench_inc_indexed(void) {
+  uint16_t* base = BASE_PTR;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  inc.w %c[offs](%[base])\n"
+      ".endr\n"
+      : 
+      : [base] "r"(base), [offs] "i"(OFFS)
+      : "cc", "memory"));
+}
+
 INLINE void bench_inc_symbolic(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -50,85 +117,21 @@ INLINE void bench_clr_symbolic(void) {
       : "cc", "memory"));
 }
 
-INLINE void bench_inv_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  inv.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
-INLINE void bench_rla_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  rla.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
-INLINE void bench_rla_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  rla.w sym_data\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc", "memory"));
-}
-
-INLINE void bench_rrc_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  rrc.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
-INLINE void bench_rrc_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  rrc.w sym_data\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc", "memory"));
-}
-
-INLINE void bench_sxt_register(void) {
-  uint16_t dst = 0x2222;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  sxt.w %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_bis_indexed_register());
+  BENCH(bench_bis_indexed_indexed());
+  BENCH(bench_bis_symbolic_register());
+  BENCH(bench_bis_symbolic_absolute());
+  BENCH(bench_inc_register());
+  BENCH(bench_inc_indexed());
   BENCH(bench_inc_symbolic());
   BENCH(bench_incd_register());
   BENCH(bench_clr_register());
   BENCH(bench_clr_symbolic());
-  BENCH(bench_inv_register());
-  BENCH(bench_rla_register());
-  BENCH(bench_rla_symbolic());
-  BENCH(bench_rrc_register());
-  BENCH(bench_rrc_symbolic());
-  BENCH(bench_sxt_register());
 
   end_measurement_window();
 

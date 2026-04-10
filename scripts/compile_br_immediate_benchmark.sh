@@ -63,9 +63,9 @@ make -C "$REPO_ROOT" disasm FILE="$FILE" > /dev/null
 
 ASM_FILE="$ASM_DIR/$BASENAME.asm"
 
-# Extract addresses for br_immediate benchmark
-if [[ "$BASENAME" == "br_immediate_benchmark" ]]; then
-    echo "Extracting addresses for br_immediate benchmark..."
+# Extract addresses for branch benchmarks
+if [[ "$BASENAME" == "br_immediate_benchmark" || "$BASENAME" == "br_indexed_benchmark" ]]; then
+    echo "Extracting addresses for $BASENAME..."
 
     # Find loop_header address (first address in the loop_header section)
     BR_INITIAL_ADDR=$(grep -A 1 "^[0-9a-f]\+ <loop_header>:" "$ASM_FILE" | tail -n 1 | awk '{print "0x" $1}' | sed 's/:$//')
@@ -118,6 +118,6 @@ if [[ "$BASENAME" == "br_immediate_benchmark" ]]; then
     echo "  make interpret FILE=$OUTPUT_S"
 else
     echo "WARNING: Unknown hardcoded benchmark: $BASENAME" >&2
-    echo "Only br_immediate_benchmark is currently supported" >&2
+    echo "Only br_immediate_benchmark and br_indexed_benchmark are currently supported" >&2
     exit 1
 fi

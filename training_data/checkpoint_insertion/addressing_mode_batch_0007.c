@@ -8,6 +8,70 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_inv_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  inv.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
+INLINE void bench_rla_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rla.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
+INLINE void bench_rla_symbolic(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rla.w sym_data\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc", "memory"));
+}
+
+INLINE void bench_rrc_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rrc.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
+INLINE void bench_rrc_symbolic(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  rrc.w sym_data\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc", "memory"));
+}
+
+INLINE void bench_sxt_register(void) {
+  uint16_t dst = 0x2222;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  sxt.w %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc"));
+}
+
 INLINE void bench_rra_register(void) {
   uint16_t dst = 0x2222;
   REPEAT_INNER_ITERS(__asm__ volatile(
@@ -50,81 +114,21 @@ INLINE void bench_jmp_symbolic(void) {
       : "cc"));
 }
 
-INLINE void bench_jge_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jge 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_jl_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jl 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_jnz_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jnz 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_jz_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jz 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_jnc_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jnc 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
-INLINE void bench_jc_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  jc 1f\n1:\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_inv_register());
+  BENCH(bench_rla_register());
+  BENCH(bench_rla_symbolic());
+  BENCH(bench_rrc_register());
+  BENCH(bench_rrc_symbolic());
+  BENCH(bench_sxt_register());
   BENCH(bench_rra_register());
   BENCH(bench_rra_symbolic());
   BENCH(bench_swpb_register());
   BENCH(bench_jmp_symbolic());
-  BENCH(bench_jge_symbolic());
-  BENCH(bench_jl_symbolic());
-  BENCH(bench_jnz_symbolic());
-  BENCH(bench_jz_symbolic());
-  BENCH(bench_jnc_symbolic());
-  BENCH(bench_jc_symbolic());
 
   end_measurement_window();
 

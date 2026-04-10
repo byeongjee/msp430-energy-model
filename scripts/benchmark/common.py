@@ -185,6 +185,16 @@ HARDCODED_BENCHMARKS = {
         ],
         "description": "Branch with immediate addressing (requires two-pass compilation)",
     },
+    "br_indexed": {
+        "path": "scripts/hardcoded_benchmarks/br_indexed_benchmark.c",
+        "granularities": [
+            "addressing_mode",
+            "addressing_mode_constant",
+            "addressing_mode_with_mem_access",
+            "addressing_mode_constant_with_mem_access",
+        ],
+        "description": "Branch with indexed addressing (requires two-pass compilation)",
+    },
     **{
         key: {
             "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",

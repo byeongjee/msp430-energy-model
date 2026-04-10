@@ -1,4 +1,4 @@
-	.file	"special_function_call_benchmark.c"
+	.file	"br_indexed_benchmark.c"
 .text
 	.balign 2
 	.global	clockSetup
@@ -235,7 +235,7 @@ bench_empty_function:
 ; saved regs:(none)
 	; start of prologue
 	; end of prologue
- ; 207 "include/setup.h" 1
+ ; 207 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	nop
  nop
  nop
@@ -304,7 +304,7 @@ bench_empty_interrupt:
 ; elim ap -> fp       2
 ; elim fp -> sp       0
 ; saved regs:(none)
- ; 221 "include/setup.h" 1
+ ; 221 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	push r2
 dint
 nop
@@ -419,130 +419,57 @@ initialize:
 	POP	r13
 	JMP	.+2
 	; End 160000000 cycle delay
- ; 336 "include/setup.h" 1
+ ; 336 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	bic #0x0107, r2
  ; 0 "" 2
 	; start of epilogue
 	RET
 	.size	initialize, .-initialize
-	.global	__mspabi_divu
-	.global	__mspabi_divi
-	.global	__mspabi_divli
-	.global	__mspabi_mpyi
-	.global	__mspabi_mpyl
-	.global	__mspabi_remu
 	.balign 2
 	.global	main
 	.type	main, @function
 main:
 ; start of function
-; framesize_regs:     2
-; framesize_locals:   32
+; framesize_regs:     0
+; framesize_locals:   0
 ; framesize_outgoing: 0
-; framesize:          34
-; elim ap -> fp       4
-; elim fp -> sp       32
-; saved regs: R10
+; framesize:          0
+; elim ap -> fp       2
+; elim fp -> sp       0
+; saved regs:(none)
 	; start of prologue
-	PUSH	R10
-	SUB.W	#32, R1
 	; end of prologue
 	CALL	#initialize
 	CALL	#begin_measurement_window
 	CALL	#begin_event
-	MOV.W	#-1, @R1
-	MOV.W	#1, 2(R1)
-	MOV.B	#100, R10
+	MOV.B	#100, R12
 .L21:
-	MOV.W	@R1, R12
-	MOV.W	2(R1), R13
-	CALL	#__mspabi_divu
-	MOV.W	R12, &sink16
-	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L21
-	CALL	#end_event
-	CALL	#begin_event
-	MOV.W	#-32767, 4(R1)
-	MOV.W	#1, 6(R1)
-	MOV.B	#100, R10
-.L22:
-	MOV.W	4(R1), R12
-	MOV.W	6(R1), R13
-	CALL	#__mspabi_divi
-	MOV.W	R12, &sink16
-	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L22
-	CALL	#end_event
-	CALL	#begin_event
-	MOV.W	#-1, 16(R1)
-	MOV.W	#32767, 18(R1)
-	MOV.W	#1, 20(R1)
-	MOV.W	#0, 22(R1)
-	MOV.B	#100, R10
-.L23:
-	MOV.W	16(R1), R12
-	MOV.W	18(R1), R13
-	MOV.W	20(R1), R14
-	MOV.W	22(R1), R15
-	CALL	#__mspabi_divli
-	MOV.W	R12, &sink32
-	MOV.W	R13, &sink32+2
-	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L23
-	CALL	#end_event
-	CALL	#begin_event
-	MOV.W	#-1, 8(R1)
-	MOV.W	#-1, 10(R1)
-	MOV.B	#100, R10
-.L24:
-	MOV.W	8(R1), R12
-	MOV.W	10(R1), R13
-	CALL	#__mspabi_mpyi
-	MOV.W	R12, &sink16
-	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L24
-	CALL	#end_event
-	CALL	#begin_event
-	MOV.W	#-1, 24(R1)
-	MOV.W	#-1, 26(R1)
-	MOV.W	#-1, 28(R1)
-	MOV.W	#-1, 30(R1)
-	MOV.B	#100, R10
-.L25:
-	MOV.W	24(R1), R12
-	MOV.W	26(R1), R13
-	MOV.W	28(R1), R14
-	MOV.W	30(R1), R15
-	CALL	#__mspabi_mpyl
-	MOV.W	R12, &sink32
-	MOV.W	R13, &sink32+2
-	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L25
-	CALL	#end_event
-	CALL	#begin_event
-	MOV.W	#-1, 12(R1)
-	MOV.W	#1, 14(R1)
-	MOV.B	#100, R10
-.L26:
-	MOV.W	12(R1), R12
-	MOV.W	14(R1), R13
-	CALL	#__mspabi_remu
-	MOV.W	R12, &sink16
-	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L26
+ ; 18 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_indexed_benchmark.c" 1
+	mov #jump_table, R13
+loop_header:
+.set br_off, 0
+.rept 100
+  br br_off(R13)
+  .set br_off, br_off + 2
+.endr
+jump_table:
+.set br_addr, 0x426e
+.rept 100 - 1
+  .word br_addr + 4
+  .set br_addr, br_addr + 4
+.endr
+  .word 0x44c4
+
+ ; 0 "" 2
+	ADD.W	#-1, R12
+	CMP.W	#0, R12 { JNE	.L21
 	CALL	#end_event
 	CALL	#end_measurement_window
 	MOV.B	#0, R12
 	; start of epilogue
 	.refsym	__crt0_call_exit
-	ADD.W	#32, R1
-	POP	R10
 	RET
 	.size	main, .-main
-	.local	sink32
-	.comm	sink32,4,2
-	.local	sink16
-	.comm	sink16,2,2
 	.ident	"GCC: (Mitto Systems Limited - msp430-gcc 9.3.1.11) 9.3.1"
 	.mspabi_attribute 4, 1
 	.mspabi_attribute 6, 1

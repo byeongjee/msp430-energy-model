@@ -20,9 +20,12 @@ from benchmark.common import (
     InstructionSpec,
     FILE_TEMPLATE,
     get_instruction_specs,
+    get_hardcoded_benchmarks,
+    get_model_benchmarks,
     create_dint_specs,
     create_dual_operand_specs,
     create_push_specs,
+    UNSAFE_OPCODES,
 )
 from gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
 
@@ -493,6 +496,42 @@ class TestCompositeGeneration(unittest.TestCase):
         residual_push = [n for n in names if n.startswith("push_") and n != "push_and_reti"]
         self.assertEqual(residual_push, [])
         self.assertNotIn("reti", names)
+
+
+class TestAllKeysCoverage(unittest.TestCase):
+    """Ensure all_keys.txt can be satisfied by the addressing-mode listing."""
+
+    def test_all_keys_covered_by_addressing_mode_listing(self):
+        def is_safe(spec: InstructionSpec) -> bool:
+            outer_ok = spec.opcode not in UNSAFE_OPCODES
+            inner = getattr(spec, "inner_opcode", None)
+            inner_ok = True if inner is None else inner not in UNSAFE_OPCODES
+            return outer_ok and inner_ok
+
+        instruction_names = {
+            spec.get_key_str()
+            for spec in get_instruction_specs("addressing_mode")
+            if is_safe(spec)
+        }
+        hardcoded_names = set(get_hardcoded_benchmarks("addressing_mode").keys())
+        model_names = {
+            entry["name"]
+            for entry in get_model_benchmarks("addressing_mode")
+            if "name" in entry
+        }
+        available_names = instruction_names | hardcoded_names | model_names
+
+        all_keys_path = Path(__file__).resolve().parent.parent / "all_keys.txt"
+        requested_keys = {
+            key for key in all_keys_path.read_text().strip().split(",") if key
+        }
+
+        missing = sorted(requested_keys - available_names)
+        self.assertEqual(
+            missing,
+            [],
+            f"Keys in all_keys.txt missing from addressing_mode listing: {missing}",
+        )
 
 
 if __name__ == "__main__":
