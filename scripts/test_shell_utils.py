@@ -401,12 +401,18 @@ class TestLoggingFunctions(unittest.TestCase):
         cls.project_root = Path(__file__).parent.parent
         cls.base_env = {**os.environ, "SKIP_AUTO_INIT": "1"}
 
-    def run_bash(self, script: str) -> subprocess.CompletedProcess:
+    def run_bash(
+        self, script: str, env: dict | None = None
+    ) -> subprocess.CompletedProcess:
+        run_env = self.base_env.copy()
+        if env:
+            run_env.update(env)
+
         return subprocess.run(
             ["bash", "-c", script],
             capture_output=True,
             text=True,
-            env=self.base_env,
+            env=run_env,
             cwd=self.project_root,
         )
 
@@ -468,12 +474,18 @@ class TestPipelineUtils(unittest.TestCase):
         os.chdir(cls.project_root)
         cls.base_env = {**os.environ, "SKIP_AUTO_INIT": "1"}
 
-    def run_bash(self, script: str) -> subprocess.CompletedProcess:
+    def run_bash(
+        self, script: str, env: dict | None = None
+    ) -> subprocess.CompletedProcess:
+        run_env = self.base_env.copy()
+        if env:
+            run_env.update(env)
+
         return subprocess.run(
             ["bash", "-c", script],
             capture_output=True,
             text=True,
-            env=self.base_env,
+            env=run_env,
             cwd=self.project_root,
         )
 
@@ -513,6 +525,34 @@ class TestPipelineUtils(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
         self.assertEqual(result.stdout.strip(), "test_program")
+
+    # =========================================================================
+    # Test: get_compile_flags
+    # =========================================================================
+
+    def test_get_compile_flags_c_file_uses_cflags(self):
+        """get_compile_flags returns CFLAGS for C sources."""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            get_compile_flags "training_data/checkpoint_insertion/addressing_mode_batch_0000.c"
+            """,
+            env={"CFLAGS": "CFLAGS_SENTINEL", "ASMFLAGS": "ASMFLAGS_SENTINEL"},
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "CFLAGS_SENTINEL")
+
+    def test_get_compile_flags_s_file_uses_asmflags(self):
+        """get_compile_flags returns ASMFLAGS for assembly sources."""
+        result = self.run_bash(
+            """
+            source scripts/pipeline_utils.sh
+            get_compile_flags "training_data/checkpoint_insertion/br_immediate.S"
+            """,
+            env={"CFLAGS": "CFLAGS_SENTINEL", "ASMFLAGS": "ASMFLAGS_SENTINEL"},
+        )
+        self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
+        self.assertEqual(result.stdout.strip(), "ASMFLAGS_SENTINEL")
 
     # =========================================================================
     # Test: granularity_to_model

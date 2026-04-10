@@ -35,9 +35,10 @@ function parse_commandline()
         arg_type = String
         nargs = '+'
         "--data-dump"
-        help = "Path to objdump -s data dump (used for memory preload in interpret/estimate)"
+        help = "Path(s) to objdump -s data dump(s) used for memory preload"
         required = false
         arg_type = String
+        nargs = '+'
         "--data"
         help = "Path(s) to energy measurement data (space-separated, required for train mode)"
         arg_type = String
@@ -209,29 +210,37 @@ function main()
     try
         if mode == "interpret"
             asm_files = args["asm"]
-            data_dump = args["data-dump"]
+            data_dumps = args["data-dump"]
             if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for interpret mode")
             end
             if length(asm_files) > 1
                 error("interpret mode only supports a single assembly file")
             end
+            if !isnothing(data_dumps) && length(data_dumps) > 1
+                error("interpret mode only supports a single --data-dump file")
+            end
             run_interpret(
                 asm_files[1], max_steps;
-                data_dump=data_dump,
+                data_dump=isnothing(data_dumps) ? nothing : data_dumps[1],
                 model_str=args["model"],
                 intercept_special_calls=args["intercept-special-calls"],
             )
 
         elseif mode == "train"
             asm_files = args["asm"]
-            data_dump = args["data-dump"]
+            data_dumps = args["data-dump"]
             if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for train mode")
             end
             data_files = args["data"]
             if isnothing(data_files) || isempty(data_files)
                 error("--data is required for train mode")
+            end
+            if !isnothing(data_dumps) && length(data_dumps) != length(asm_files)
+                error(
+                    "Number of --data-dump files ($(length(data_dumps))) must match number of --asm files ($(length(asm_files))) in train mode",
+                )
             end
 
             # Read assembly files into strings
@@ -254,17 +263,21 @@ function main()
                 n_samples,
                 model_str,
                 inference;
+                data_dumps=isnothing(data_dumps) ? nothing : data_dumps,
                 intercept_special_calls=args["intercept-special-calls"],
             )
 
         elseif mode == "estimate"
             asm_files = args["asm"]
-            data_dump = args["data-dump"]
+            data_dumps = args["data-dump"]
             if isnothing(asm_files) || isempty(asm_files)
                 error("--asm is required for estimate mode")
             end
             if length(asm_files) > 1
                 error("estimate mode only supports a single assembly file")
+            end
+            if !isnothing(data_dumps) && length(data_dumps) > 1
+                error("estimate mode only supports a single --data-dump file")
             end
             params_file = args["params"]
             if isnothing(params_file)
@@ -286,7 +299,7 @@ function main()
                 max_steps,
                 n_samples,
                 output_file,
-                data_dump;
+                isnothing(data_dumps) ? nothing : data_dumps[1];
                 intercept_special_calls=args["intercept-special-calls"],
             )
 

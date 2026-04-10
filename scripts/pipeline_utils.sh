@@ -34,6 +34,20 @@ get_basename() {
     echo "$base"
 }
 
+# get_compile_flags FILE
+#
+# Pick the correct compiler flags for a source file.
+# .S files must use ASMFLAGS so pre-generated assembly benchmarks are assembled
+# with the MCU-native ISA settings instead of the base-ISA CFLAGS.
+get_compile_flags() {
+    local file="$1"
+    if [[ "$file" == *.S ]]; then
+        echo "$ASMFLAGS"
+    else
+        echo "$CFLAGS"
+    fi
+}
+
 # ============================================================
 # GRANULARITY/MODEL MAPPING
 # ============================================================
@@ -174,7 +188,7 @@ build_julia_flags() {
 #                       a temp file is used and deleted after preprocessing.
 #
 # Environment variables used:
-#   CC, CFLAGS, INCLUDES, LDFLAGS - Compiler settings
+#   CC, CFLAGS, ASMFLAGS, INCLUDES, LDFLAGS - Compiler settings
 #   BUILD_DIR - Build output directory
 #   VOLTAGE, MAX_CURRENT - Measurement settings
 #   SKIP_RESET - If set, passed to measure.py
@@ -197,14 +211,16 @@ measure_and_preprocess() {
     base=$(get_basename "$file")
 
     local cleanup_raw=0
+    local compile_flags
     if [[ -z "$raw_csv" ]]; then
         raw_csv="$TEMP_DIR/${base}_raw_$(create_timestamp).csv"
         cleanup_raw=1
     fi
+    compile_flags=$(get_compile_flags "$file")
 
     # Compile
     log_step "Compiling $base"
-    $CC $CFLAGS $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
+    $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
     log_success "Compiled: $BUILD_DIR/${base}.elf"
 
     # Measure (flash is done inside measure.py via --reset_cmd with GPO2 control)
@@ -242,7 +258,7 @@ measure_and_preprocess() {
 #   DEFINE_FLAGS - Compiler define flags (e.g., "-DFOO=1 -DBAR")
 #
 # Environment variables used:
-#   CC, CFLAGS, INCLUDES, LDFLAGS - Compiler settings
+#   CC, CFLAGS, ASMFLAGS, INCLUDES, LDFLAGS - Compiler settings
 #   BUILD_DIR, ASM_DIR - Output directories
 #
 # Returns:
@@ -253,10 +269,12 @@ compile_and_disasm() {
     local define_flags="${2:-}"
 
     local base
+    local compile_flags
     base=$(get_basename "$file")
+    compile_flags=$(get_compile_flags "$file")
 
     # Compile
-    $CC $CFLAGS $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
+    $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
     log_info "Compiled: $BUILD_DIR/${base}.elf"
 
     # Disassemble

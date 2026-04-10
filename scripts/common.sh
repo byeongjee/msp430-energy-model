@@ -84,6 +84,7 @@ setup_toolchain() {
     : "${OBJCOPY:?OBJCOPY not set (export from Makefile)}"
     : "${DEVICE:?DEVICE not set (export from Makefile)}"
     : "${CFLAGS:?CFLAGS not set (export from Makefile)}"
+    : "${ASMFLAGS:?ASMFLAGS not set (export from Makefile)}"
     : "${INCLUDES:?INCLUDES not set (export from Makefile)}"
     : "${LDFLAGS:?LDFLAGS not set (export from Makefile)}"
 

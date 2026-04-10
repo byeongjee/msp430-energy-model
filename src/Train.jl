@@ -51,6 +51,7 @@ function process_training_data(
     energy_df::DataFrame,
     max_steps::Int,
     model_granularity::ModelGranularity;
+    data_dump::Union{String,Nothing}=nothing,
     intercept_special_calls::Bool=false,
 )::Tuple{Vector{ExecutionTrace},Vector{Float64}}
     @info "Processing training data"
@@ -72,7 +73,7 @@ function process_training_data(
 
     _, event_traces = Interpreter.interpret_program(
         instructions, address_info, func_addrs, max_steps, model_granularity;
-        data_file=nothing, intercept_special_calls=intercept_special_calls,
+        data_file=data_dump, intercept_special_calls=intercept_special_calls,
     )
 
     filtered_energy_df, dropped_count = drop_degenerate_measurements(energy_df)
@@ -107,6 +108,7 @@ function run_train(
     n_samples::Int,
     model_str::String,
     inference_str::String;
+    data_dumps::Union{Nothing,Vector{String}}=nothing,
     intercept_special_calls::Bool=false,
 )::Nothing
     @info "Running in TRAIN mode"
@@ -116,6 +118,11 @@ function run_train(
     if length(asm_contents) != length(energy_dfs)
         error(
             "Number of assembly contents ($(length(asm_contents))) must match number of energy dataframes ($(length(energy_dfs)))",
+        )
+    end
+    if !isnothing(data_dumps) && length(data_dumps) != length(asm_contents)
+        error(
+            "Number of data dumps ($(length(data_dumps))) must match number of assembly contents ($(length(asm_contents)))",
         )
     end
 
@@ -130,9 +137,13 @@ function run_train(
     all_event_traces = Vector{ExecutionTrace}()
     all_energies = Vector{Float64}()
 
-    for (asm_content, energy_df) in zip(asm_contents, energy_dfs)
+    effective_data_dumps =
+        isnothing(data_dumps) ? fill(nothing, length(asm_contents)) : data_dumps
+
+    for (asm_content, energy_df, data_dump) in zip(asm_contents, energy_dfs, effective_data_dumps)
         event_traces, energies =
             process_training_data(asm_content, energy_df, max_steps, granularity;
+                data_dump=data_dump,
                 intercept_special_calls=intercept_special_calls)
         append!(all_event_traces, event_traces)
         append!(all_energies, energies)

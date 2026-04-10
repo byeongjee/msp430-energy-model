@@ -484,6 +484,31 @@ function run_train_tests()
             @test length(energies) == 1
             @test energies[1] == 100.0
         end
+
+        @testset "process_training_data uses data dump for br_indexed jump table" begin
+            run(`bash -c "make disasm FILE=training_data/checkpoint_insertion/br_indexed.S"`)
+
+            asm_file = "build/asm/br_indexed.asm"
+            data_file = "build/asm/br_indexed.data"
+            @test isfile(asm_file)
+            @test isfile(data_file)
+
+            asm_content = read(asm_file, String)
+            energy_df = DataFrame(; energy_nJ=[123.0])
+            model = Model.create_model("mean_per_addressing_mode_constant")
+
+            event_traces, energies = Train.process_training_data(
+                asm_content,
+                energy_df,
+                100000,
+                model.granularity;
+                data_dump=data_file,
+            )
+
+            @test length(event_traces) == 1
+            @test length(energies) == 1
+            @test energies[1] == 123.0
+        end
     end
 end
 

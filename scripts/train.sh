@@ -343,6 +343,7 @@ echo ""
 # Compile and disassemble all training files
 log_step "Compiling and disassembling training files"
 ASM_FILES=()
+DATA_DUMP_FILES=()
 for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     train_file="${TRAIN_FILE_ARRAY[$i]}"
     base=$(get_basename "$train_file")
@@ -350,6 +351,7 @@ for i in "${!TRAIN_FILE_ARRAY[@]}"; do
     # Always recompile (measurement may have been skipped if segments already existed)
     compile_and_disasm "$train_file" "$DEFINE_FLAGS"
     ASM_FILES+=("$ASM_DIR/${base}.asm")
+    DATA_DUMP_FILES+=("$ASM_DIR/${base}.data")
 done
 
 # Train energy model
@@ -363,6 +365,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
     fi
     julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" train \
         --asm "${ASM_FILES[@]}" \
+        --data-dump "${DATA_DUMP_FILES[@]}" \
         --data "${TRAINING_SEGMENTS_CSV_ARRAY[@]}" \
         --output "$PARAMS_FILE" \
         $JULIA_FLAGS $INTERCEPT_FLAG
