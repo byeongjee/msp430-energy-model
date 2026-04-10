@@ -618,7 +618,10 @@ def main():
 
                     # Get compiler settings from environment
                     cc = os.environ.get("CC", "msp430-elf-gcc")
-                    cflags = os.environ.get("CFLAGS", "-mmcu=MSP430FR5994 -O3")
+                    cflags = os.environ.get(
+                        "CFLAGS",
+                        "-mmcu=MSP430FR5994 -mcpu=msp430 -msmall -mno-warn-mcu -O3",
+                    )
                     includes = os.environ.get("INCLUDES", "-I include")
 
                     # Use gcc -S to produce reassemblable assembly with -mhwmult=none

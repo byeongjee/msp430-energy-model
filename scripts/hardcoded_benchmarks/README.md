@@ -86,7 +86,7 @@ Benchmarks for MSP430 ABI software function calls (`__mspabi_divi`, `__mspabi_di
 The `gen_benchmarks.py` script handles compilation automatically with `-mhwmult=none`. To compile manually:
 
 ```bash
-make disasm FILE=scripts/hardcoded_benchmarks/special_function_call_benchmark.c MSP430_CFLAGS="-mmcu=MSP430FR5994 -O3 -mhwmult=none"
+make disasm FILE=scripts/hardcoded_benchmarks/special_function_call_benchmark.c MSP430_CFLAGS="-mmcu=MSP430FR5994 -mcpu=msp430 -msmall -mno-warn-mcu -O3 -mhwmult=none"
 ```
 
 ### Integration with gen_benchmarks.py

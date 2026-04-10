@@ -22,6 +22,7 @@ class TestMakefileTargets(unittest.TestCase):
 
     # Use test fixtures directory for test files
     TEST_C_FILE = "test/fixtures/c_programs/simple.c"
+    TEST_NO_MSP430X_FILE = "examples/intermittent/activity_recognition.c"
     # Use rrc_rrax.S which has a main function (test_indexed_simple.S uses _start)
     TEST_S_FILE = "test/fixtures/c_programs/rrc_rrax.S"
 
@@ -194,6 +195,29 @@ class TestMakefileTargets(unittest.TestCase):
         data_file = self.asm_dir / "rrc_rrax.data"
         self.assertTrue(asm_file.exists(), f"Expected {asm_file} not found")
         self.assertTrue(data_file.exists(), f"Expected {data_file} not found")
+
+    def test_disasm_default_flags_do_not_emit_msp430x_instructions(self):
+        """Default make disasm output should avoid MSP430X-only mnemonics."""
+        if not Path(self.TEST_NO_MSP430X_FILE).exists():
+            self.skipTest(f"Test file not found: {self.TEST_NO_MSP430X_FILE}")
+
+        result = self.run_make("disasm", FILE=self.TEST_NO_MSP430X_FILE)
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"make disasm failed:\nstdout: {result.stdout}\nstderr: {result.stderr}",
+        )
+
+        asm_file = self.asm_dir / "activity_recognition.asm"
+        self.assertTrue(asm_file.exists(), f"Expected {asm_file} not found")
+
+        asm_content = asm_file.read_text()
+        self.assertNotRegex(
+            asm_content,
+            r"\b(rpt|rrum|rlam|pushm|popm|mova|calla)\b|\.a\b",
+            "Default disassembly should not contain MSP430X-only instructions",
+        )
 
     # =========================================================================
     # Test: make interpret

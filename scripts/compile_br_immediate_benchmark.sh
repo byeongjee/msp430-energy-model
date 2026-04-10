@@ -97,7 +97,7 @@ if [[ "$BASENAME" == "br_immediate_benchmark" ]]; then
     # Use make to generate assembly file with -S flag
     # Use default CFLAGS from Makefile if not set in environment
     cd "$REPO_ROOT"
-    make compile FILE="$FILE" DEFINES="$PASS2_DEFINES" CFLAGS="${CFLAGS:--mmcu=MSP430FR5994 -O3 -Wall} -S" > /dev/null
+    make compile FILE="$FILE" DEFINES="$PASS2_DEFINES" CFLAGS="${CFLAGS:--mmcu=MSP430FR5994 -mcpu=msp430 -msmall -mno-warn-mcu -O3 -Wall} -S" > /dev/null
 
     # Move the generated file to .S extension
     TEMP_ELF="$BUILD_DIR/$BASENAME.elf"

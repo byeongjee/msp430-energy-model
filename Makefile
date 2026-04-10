@@ -29,11 +29,19 @@ export CC OBJDUMP OBJCOPY
 
 
 # Compiler flags
-CFLAGS ?= -mmcu=$(DEVICE) -O3 -Wall
+# Force the base MSP430 ISA so the default pipeline does not emit MSP430X-only
+# instructions such as rpt/pushm/popm/rrum/rlam in compiled binaries.
+CFLAGS ?= -mmcu=$(DEVICE) -mcpu=msp430 -msmall -mno-warn-mcu -O3 -Wall
 ifeq ($(origin MSP430_CFLAGS), environment)
 CFLAGS := $(MSP430_CFLAGS)
 endif
-export DEVICE CFLAGS
+# Hand-written assembly may intentionally use MSP430X instructions, so keep the
+# assembler default tied to the selected MCU unless explicitly overridden.
+ASMFLAGS ?= -mmcu=$(DEVICE) -O3 -Wall
+ifeq ($(origin MSP430_ASMFLAGS), environment)
+ASMFLAGS := $(MSP430_ASMFLAGS)
+endif
+export DEVICE CFLAGS ASMFLAGS
 
 # Process DEFINES variable: space-separated list of macros (e.g., DEFINES="FOO=1 BAR ENABLE_FEATURE=value")
 # Each macro gets -D prefix automatically
@@ -97,13 +105,15 @@ endif
 	@# Handle both .c and .S files
 	@if echo "$(FILE)" | grep -q '\.S$$'; then \
 		BASENAME=$$(basename $(FILE) .S); \
+		COMPILE_FLAGS='$(ASMFLAGS)'; \
 	else \
 		BASENAME=$$(basename $(FILE) .c); \
+		COMPILE_FLAGS='$(CFLAGS)'; \
 	fi; \
 	if [ -n "$(DEFINES)" ]; then \
 		echo "  DEFINES=$(DEFINES)"; \
 	fi; \
-	$(CC) $(CFLAGS) $(DEFINE_FLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE); \
+	$(CC) $$COMPILE_FLAGS $(DEFINE_FLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE); \
 	echo "✓ Compilation successful: $(BUILD_DIR)/$$BASENAME.elf"
 
 disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)
