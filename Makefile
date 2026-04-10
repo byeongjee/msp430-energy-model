@@ -165,7 +165,7 @@ endif
 	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
 	./scripts/train.sh "$${ARGS[@]}"
 
-estimate: disasm ## Estimate energy consumption (FILE=<file.c|file.S> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] [DEFINES="..."])
+estimate: disasm ## Estimate energy consumption (FILE=<file.c|file.S> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] [DEFINES="..."] [INTERCEPT_SPECIAL_CALLS=1])
 ifndef PARAMS
 	$(error Please specify PARAMS=<parameter_file>)
 endif
@@ -180,8 +180,10 @@ endif
 	if [ -n "$(PLOT)" ]; then PLOT_FLAG="--plot $(PLOT)"; fi; \
 	MAX_STEPS_FLAG=""; \
 	if [ -n "$(MAX_STEPS)" ]; then MAX_STEPS_FLAG="--max-steps $(MAX_STEPS)"; fi; \
+	INTERCEPT_FLAG=""; \
+	if [ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ]; then INTERCEPT_FLAG="--intercept-special-calls"; fi; \
 	DATA_DUMP_FLAG="--data-dump $(ASM_DIR)/$$BASENAME.data"; \
-	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG $$DATA_DUMP_FLAG
+	julia --project=. src/main.jl estimate --asm $(ASM_DIR)/$$BASENAME.asm --params $(PARAMS) $$PLOT_FLAG $$MAX_STEPS_FLAG $$INTERCEPT_FLAG $$DATA_DUMP_FLAG
 	@echo "✓ Estimation completed!"
 
 train_and_estimate: MODEL?=mean_per_addressing_mode
@@ -208,6 +210,7 @@ endif
 	[ -n "$(ESTIMATE_DEFINES)" ] && ARGS+=("--estimate-defines" "$(ESTIMATE_DEFINES)"); \
 	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
+	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
 	./scripts/train_and_estimate.sh "$${ARGS[@]}"
 
 analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [SEGMENTS_CSV=<pattern>] [DEFINES="..."] [options])

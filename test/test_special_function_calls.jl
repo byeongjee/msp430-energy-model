@@ -143,6 +143,66 @@ function run_special_function_call_tests()
                     @test !any(k -> k == (:call, :__mspabi_divu), inst_keys)
                 end
             end
+
+            @testset "Estimate mode interception" begin
+                params_dict = Dict(
+                    "model" => "mean_per_addressing_mode",
+                    "parameters" => Dict(
+                        "call___mspabi_divu" => 1.0,
+                        "call___mspabi_mpyi" => 1.0,
+                        "call___mspabi_divi" => 1.0,
+                        "call___mspabi_remu" => 1.0,
+                        "call___mspabi_divli" => 1.0,
+                    ),
+                )
+                debug_file = joinpath(tempdir(), "test_estimate_special_calls_debug.json")
+                rm(debug_file; force=true)
+
+                withenv("JULIA_ESTIMATE_DEBUG_DUMP_PATH" => debug_file) do
+                    Estimation.run_estimate(
+                        asm_content,
+                        params_dict,
+                        100000,
+                        10,
+                        nothing,
+                        data_file;
+                        intercept_special_calls=true,
+                    )
+                end
+
+                @test isfile(debug_file)
+
+                debug_data = JSON.parsefile(debug_file)
+                event_key_counts = [event["key_counts"] for event in debug_data["events"]]
+
+                find_event_with_key(key) =
+                    findfirst(key_counts -> haskey(key_counts, key), event_key_counts)
+
+                if has_divu
+                    @test find_event_with_key("call___mspabi_divu") !== nothing
+                end
+                if has_mpyi
+                    mpyi_event_idx = find_event_with_key("call___mspabi_mpyi")
+                    @test mpyi_event_idx !== nothing
+                    if mpyi_event_idx !== nothing
+                        @test !any(
+                            key -> occursin("MPY", key) || occursin("OP2", key),
+                            keys(event_key_counts[mpyi_event_idx]),
+                        )
+                    end
+                end
+                if has_divi
+                    @test find_event_with_key("call___mspabi_divi") !== nothing
+                end
+                if has_remu
+                    @test find_event_with_key("call___mspabi_remu") !== nothing
+                end
+                if has_divli
+                    @test find_event_with_key("call___mspabi_divli") !== nothing
+                end
+
+                rm(debug_file; force=true)
+            end
         end
     end
 end

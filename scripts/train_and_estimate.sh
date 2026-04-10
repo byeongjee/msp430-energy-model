@@ -23,6 +23,7 @@ KEEP_INTERMEDIATES=0
 TAG=""
 TRAIN_DEFINES=""  # Space-separated list of compiler macros for training files
 ESTIMATE_DEFINES=""  # Space-separated list of compiler macros for estimation file
+INTERCEPT_SPECIAL_CALLS=0
 
 # Required parameters (to be set via command line)
 TRAIN_FILES=""  # Semicolon-separated list of training files
@@ -59,6 +60,7 @@ Optional arguments:
   --inference ALG           Inference algorithm: importance-sampling, mcmc-blocked, dominant-key, map, upper-bound-lp, or least-squares variants (default: importance-sampling)
   --train-defines "MACROS"  Space-separated compiler macros for training files (e.g., "FOO=1 BAR")
   --estimate-defines "MACROS"  Space-separated compiler macros for estimation file (e.g., "FOO=1 BAR")
+  --intercept-special-calls  Model __mspabi_* helper calls as single composite instructions
   --report-dir DIR          Directory for comparison report (default: ./report)
   --skip-reset              Skip device reset during measurement
   --keep-intermediates      Keep intermediate files and suggest resume commands
@@ -152,6 +154,10 @@ while [[ $# -gt 0 ]]; do
         --estimate-defines)
             ESTIMATE_DEFINES="$2"
             shift 2
+            ;;
+        --intercept-special-calls)
+            INTERCEPT_SPECIAL_CALLS=1
+            shift
             ;;
         --report-dir)
             REPORT_DIR="$2"
@@ -368,6 +374,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
     [[ -n "$TRAIN_DEFINES" ]] && TRAIN_ARGS+=("--defines" "$TRAIN_DEFINES")
     [[ -n "$SKIP_RESET" ]] && TRAIN_ARGS+=("--skip-reset")
     [[ $KEEP_INTERMEDIATES -eq 1 ]] && TRAIN_ARGS+=("--keep-intermediates")
+    [[ $INTERCEPT_SPECIAL_CALLS -eq 1 ]] && TRAIN_ARGS+=("--intercept-special-calls")
 
     # Call train.sh
     "$SCRIPT_DIR/train.sh" "${TRAIN_ARGS[@]}"
@@ -405,6 +412,7 @@ julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/src/main.jl" estimate \
     --params "$PARAMS_FILE" \
     --output "$ESTIMATED_STATS_JSON" \
     --data-dump "$ASM_DIR/${ESTIMATE_BASENAME}.data" \
+    $([[ $INTERCEPT_SPECIAL_CALLS -eq 1 ]] && printf '%s' "--intercept-special-calls") \
     $MAX_STEPS_FLAG
 log_success "Estimation complete: $ESTIMATED_STATS_JSON"
 

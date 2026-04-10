@@ -281,7 +281,13 @@ function main()
             output_file = args["output"]
             n_samples = args["n-samples"]
             Estimation.run_estimate(
-                asm_content, params_dict, max_steps, n_samples, output_file, data_dump
+                asm_content,
+                params_dict,
+                max_steps,
+                n_samples,
+                output_file,
+                data_dump;
+                intercept_special_calls=args["intercept-special-calls"],
             )
 
         else

@@ -104,6 +104,8 @@ function run_estimate(
     n_samples::Int,
     output_file::Union{String,Nothing}=nothing,
     data_dump::Union{String,Nothing}=nothing,
+    ;
+    intercept_special_calls::Bool=false,
 )::Nothing
     @info "Running in ESTIMATE mode"
 
@@ -125,7 +127,13 @@ function run_estimate(
     @info "Executing program to get execution traces"
     start_time = time()
     _, execution_traces = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps, granularity; data_file=data_dump
+        instructions,
+        address_info,
+        func_addrs,
+        max_steps,
+        granularity;
+        data_file=data_dump,
+        intercept_special_calls=intercept_special_calls,
     )
     inference_time = time() - start_time
 
