@@ -248,6 +248,8 @@ INLINE void bench_add_indexed_register__inc_symbolic(void) {
 
         # Check file structure
         self.assertIn('#include "setup.h"', file_content)
+        self.assertIn("#undef REPEAT_INNER_ITERS", file_content)
+        self.assertIn('_Pragma("GCC unroll 0")', file_content)
         self.assertIn("static volatile uint16_t sym_data", file_content)
         self.assertIn("static volatile uint16_t mem_buf[1024]", file_content)
         self.assertIn("#define BASE_PTR", file_content)

@@ -1236,6 +1236,15 @@ def get_instruction_specs(
 FILE_TEMPLATE = Template(
     """#include "setup.h"
 
+#if defined(__GNUC__)
+#undef REPEAT_INNER_ITERS
+#define REPEAT_INNER_ITERS(X)                                                  \\
+  _Pragma("GCC unroll 0")                                                      \\
+  for (int _rep_inner_ = 0; _rep_inner_ < (INNER_ITERS); ++_rep_inner_) {      \\
+    X;                                                                         \\
+  }
+#endif
+
 static volatile uint16_t sym_data = 0x1111;
 static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
