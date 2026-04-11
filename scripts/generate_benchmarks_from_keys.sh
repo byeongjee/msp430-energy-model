@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate benchmarks from a keys file (one comma-separated line of key names).
+# Generate benchmarks from a keys file (newline- or comma-separated key names).
 #
 # Usage:
 #   ./scripts/generate_benchmarks_from_keys.sh \
@@ -19,7 +19,7 @@ Usage: generate_benchmarks_from_keys.sh --keys FILE --granularity GRAN
        [--output-dir DIR] [--batch N]
 
 Arguments:
-  --keys FILE          File containing comma-separated key names (e.g., all_keys.txt)
+  --keys FILE          File containing newline- or comma-separated key names
   --granularity GRAN   Model granularity (e.g., addressing_mode, addressing_mode_constant)
   --output-dir DIR     Output directory for generated benchmarks (default: tmp/)
   --batch N            Number of instructions per batch file
@@ -54,8 +54,8 @@ if [[ ! -f "$KEYS_FILE" ]]; then
     exit 1
 fi
 
-# Read keys and convert commas to spaces
-KEYS=$(tr ',' ' ' < "$KEYS_FILE")
+# Read keys and normalize common separators to spaces
+KEYS=$(tr ',\n\r\t' '    ' < "$KEYS_FILE")
 
 # Build gen_benchmarks args
 GEN_ARGS=(--granularity "$GRANULARITY" --output-dir "$OUTPUT_DIR")

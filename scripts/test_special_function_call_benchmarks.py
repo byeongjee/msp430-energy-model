@@ -5,6 +5,7 @@ Or: uv run python scripts/test_special_function_call_benchmarks.py
 """
 
 import json
+import re
 import subprocess
 import sys
 import unittest
@@ -23,9 +24,18 @@ SPECIAL_BENCHMARK_SOURCE = (
     PROJECT_ROOT / "scripts" / "hardcoded_benchmarks" / "special_function_call_benchmark.c"
 )
 
+
+def read_all_keys() -> list[str]:
+    return [
+        key
+        for key in re.split(r"[\s,]+", ALL_KEYS_FILE.read_text().strip())
+        if key
+    ]
+
+
 SPECIAL_KEYS = [
     key
-    for key in ALL_KEYS_FILE.read_text().strip().split(",")
+    for key in read_all_keys()
     if key.startswith("call___mspabi_")
 ]
 

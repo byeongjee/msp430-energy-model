@@ -63,6 +63,7 @@ DUAL_OPERAND_OPCODES = [
 
 # Single-operand instructions: opcode dst
 SINGLE_OPERAND_OPCODES = [
+    "adc",
     "inc",
     "incd",
     "dec",

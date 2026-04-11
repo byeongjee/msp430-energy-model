@@ -444,7 +444,7 @@ main:
 	CALL	#begin_event
 	MOV.B	#100, R12
 .L21:
- ; 18 "scripts/hardcoded_benchmarks/br_indexed_benchmark.c" 1
+ ; 18 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_indexed_benchmark.c" 1
 	mov #jump_table-2, R13
 loop_header:
 .set br_off, 2

@@ -9,8 +9,9 @@ Run with: make test
 Or: uv run python scripts/test_generate_addressing_mode_benchmarks.py
 """
 
-import unittest
 import sys
+import re
+import unittest
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -523,7 +524,7 @@ class TestAllKeysCoverage(unittest.TestCase):
 
         all_keys_path = Path(__file__).resolve().parent.parent / "all_keys.txt"
         requested_keys = {
-            key for key in all_keys_path.read_text().strip().split(",") if key
+            key for key in re.split(r"[\s,]+", all_keys_path.read_text().strip()) if key
         }
 
         missing = sorted(requested_keys - available_names)
