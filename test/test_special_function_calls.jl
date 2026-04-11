@@ -174,16 +174,19 @@ function run_special_function_call_tests()
 
                 debug_data = JSON.parsefile(debug_file)
                 event_key_counts = [event["key_counts"] for event in debug_data["events"]]
+                aggregate_key_counts = debug_data["aggregate"]["key_counts"]
 
                 find_event_with_key(key) =
                     findfirst(key_counts -> haskey(key_counts, key), event_key_counts)
 
                 if has_divu
                     @test find_event_with_key("call___mspabi_divu") !== nothing
+                    @test haskey(aggregate_key_counts, "call___mspabi_divu")
                 end
                 if has_mpyi
                     mpyi_event_idx = find_event_with_key("call___mspabi_mpyi")
                     @test mpyi_event_idx !== nothing
+                    @test haskey(aggregate_key_counts, "call___mspabi_mpyi")
                     if mpyi_event_idx !== nothing
                         @test !any(
                             key -> occursin("MPY", key) || occursin("OP2", key),
@@ -193,12 +196,15 @@ function run_special_function_call_tests()
                 end
                 if has_divi
                     @test find_event_with_key("call___mspabi_divi") !== nothing
+                    @test haskey(aggregate_key_counts, "call___mspabi_divi")
                 end
                 if has_remu
                     @test find_event_with_key("call___mspabi_remu") !== nothing
+                    @test haskey(aggregate_key_counts, "call___mspabi_remu")
                 end
                 if has_divli
                     @test find_event_with_key("call___mspabi_divli") !== nothing
+                    @test haskey(aggregate_key_counts, "call___mspabi_divli")
                 end
 
                 rm(debug_file; force=true)
