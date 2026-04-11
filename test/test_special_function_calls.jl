@@ -1,8 +1,19 @@
 # Test that special function calls (e.g., __mspabi_divu) are treated as
 # single composite instructions with function-specific keys.
 
-using .Types: ExecutionEvent, Inst, PerAddressingMode, PerAddressingModeConstant, PerOpcode
-using .Model: parse_key_string
+using .Types:
+    ExecutionEvent,
+    ExecutionTrace,
+    Inst,
+    PerAddressingMode,
+    PerAddressingModeConstant,
+    PerOpcode
+using .Model:
+    parse_key_string,
+    create_model,
+    load_params!,
+    create_estimation_config,
+    estimate_energy
 
 """
 Test special function call key generation and serialization round-trip.
@@ -27,10 +38,41 @@ function run_special_function_call_tests()
             @test parse_key_string("rlam_immediate_2") == (:rlam, :immediate, 2)
         end
 
+        @testset "parse_key_string round-trips feature-function keys" begin
+            @test parse_key_string("call_memcpy") == (:call_memcpy,)
+            @test parse_key_string("call_memcpy_bytes") == (:call_memcpy, :bytes)
+            @test parse_key_string("call_memset") == (:call_memset,)
+            @test parse_key_string("call_memset_bytes") == (:call_memset, :bytes)
+        end
+
         @testset "Key serialization produces correct string" begin
             key = (:call, :__mspabi_divu)
             key_str = join(string.(key), "_")
             @test key_str == "call___mspabi_divu"
+        end
+
+        @testset "Mean estimation scales feature-valued events" begin
+            model = create_model("mean_per_addressing_mode")
+            load_params!(
+                model,
+                Dict(
+                    "model" => "mean_per_addressing_mode",
+                    "parameters" => Dict(
+                        "call_memcpy" => 2.0,
+                        "call_memcpy_bytes" => 0.5,
+                    ),
+                ),
+            )
+
+            trace = ExecutionTrace([
+                ExecutionEvent((:call_memcpy,), 1.0),
+                ExecutionEvent((:call_memcpy, :bytes), 16.0),
+            ])
+            stats = estimate_energy(model, trace, create_estimation_config(model, 1))
+
+            @test stats.mean ≈ 10.0 atol=1e-9
+            @test stats.min ≈ 10.0 atol=1e-9
+            @test stats.max ≈ 10.0 atol=1e-9
         end
 
         @testset "Interpreter handles special function calls" begin

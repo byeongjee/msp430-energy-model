@@ -689,13 +689,14 @@ function estimate_energy_sum_means(
 
     for execution_event in execution_trace
         key = execution_event.key
+        contribution = execution_event.feature_value
 
         if haskey(model.params, key)
-            total_energy += model.params[key]
+            total_energy += model.params[key] * contribution
         else
             # Use default if not found
             push!(unknown_keys, key)
-            total_energy += default_energy
+            total_energy += default_energy * contribution
         end
     end
 

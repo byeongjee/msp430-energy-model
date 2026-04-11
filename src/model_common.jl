@@ -18,6 +18,9 @@ using ..Types:
     PerAddressingModeConstantWithMemAccess,
     get_instruction_key,
     SPECIAL_CALL_FUNCTIONS
+using ..Interpreter: FEATURE_FUNCTIONS
+
+const FEATURE_FUNCTION_KEY_SYMBOLS = Set(first(spec) for spec in values(FEATURE_FUNCTIONS))
 
 """
 Check if an (opcode, addressing_mode) combination is meaningful for energy modeling.
@@ -88,6 +91,18 @@ Handles special function call keys like "call___mspabi_divu" which contain
 underscores in the function name, making naive split("_") incorrect.
 """
 function parse_key_string(key_str::String)::Key
+    # Check for feature-function keys that serialize as a single symbol, e.g.
+    # (:call_memcpy,) -> "call_memcpy" and (:call_memcpy, :bytes) -> "call_memcpy_bytes".
+    for key_sym in FEATURE_FUNCTION_KEY_SYMBOLS
+        base_key = string(key_sym)
+        if key_str == base_key
+            return (key_sym,)
+        end
+        if key_str == base_key * "_bytes"
+            return (key_sym, :bytes)
+        end
+    end
+
     # Check for special function call keys first (use canonical names only)
     for canonical_sym in unique(values(SPECIAL_CALL_FUNCTIONS))
         func_name = string(canonical_sym)
