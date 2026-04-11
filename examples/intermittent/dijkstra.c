@@ -20,7 +20,7 @@ typedef struct {
     uint16_t iPrev;
 } NODE;
 
-static const uint8_t AdjMatrix[NUM_NODES][NUM_NODES] = {
+static const uint8_t AdjMatrix[NUM_NODES][NUM_NODES] SRAM_RODATA = {
     {0,   8,   255, 255, 3,  45,  255, 255, 16, 255, 255, 255, 42,  31, 30,  255,
      255, 255, 8,   255, 32, 255, 255, 35,  5,  44,  255, 38,  255, 36, 255, 20},
     {23,  0,  16,  13,  34, 2,   5,  255, 10, 31, 25, 255, 255, 255, 32, 255,
@@ -87,7 +87,7 @@ static const uint8_t AdjMatrix[NUM_NODES][NUM_NODES] = {
      255, 255, 255, 255, 3,   10, 255, 50,  30, 46, 38, 37,  38, 255, 20, 0},
 };
 
-static uint32_t g_checksum_sink __attribute__((used, section(".persistent"))) = 0;
+static uint32_t g_checksum_sink __attribute__((used)) SRAM_BSS;
 
 FORCE_INLINE uint16_t dijkstra(uint16_t start, uint16_t end) {
     uint16_t ch;

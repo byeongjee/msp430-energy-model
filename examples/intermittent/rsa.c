@@ -30,15 +30,15 @@ typedef struct {
   digit_t e;             // exponent
 } pubkey_t;
 
-static const uint8_t PAD_DIGITS[] = {0x01};
+static const uint8_t PAD_DIGITS[] SRAM_RODATA = {0x01};
 #define NUM_PAD_DIGITS (sizeof(PAD_DIGITS) / sizeof(PAD_DIGITS[0]))
 
 // modulus: byte order: LSB to MSB, constraint MSB>=0x80
-static const pubkey_t pubkey = {
+static const pubkey_t pubkey SRAM_RODATA = {
 #include "./data/key.txt"
 };
 
-static const unsigned char PLAINTEXT[] =
+static const unsigned char PLAINTEXT[] SRAM_RODATA =
 #include "./data/plaintext.txt"
     ;
 
@@ -49,13 +49,13 @@ static const unsigned char PLAINTEXT[] =
 // --- Global Buffers (replacing Channels) ---
 // We use globals to avoid stack overflow on MSP430 and mimic channel
 // persistence
-digit_t g_A[NUM_DIGITS];
-digit_t g_B[NUM_DIGITS];
-digit_t g_product[NUM_DIGITS * 2];
-digit_t g_base[NUM_DIGITS * 2]; // Needs space for padding during ops
-digit_t g_block[NUM_DIGITS * 2];
-digit_t g_cyphertext[CYPHERTEXT_SIZE];
-unsigned g_cyphertext_len = 0;
+digit_t g_A[NUM_DIGITS] SRAM_BSS;
+digit_t g_B[NUM_DIGITS] SRAM_BSS;
+digit_t g_product[NUM_DIGITS * 2] SRAM_BSS;
+digit_t g_base[NUM_DIGITS * 2] SRAM_BSS; // Needs space for padding during ops
+digit_t g_block[NUM_DIGITS * 2] SRAM_BSS;
+digit_t g_cyphertext[CYPHERTEXT_SIZE] SRAM_BSS;
+unsigned g_cyphertext_len SRAM_BSS;
 
 // --- Helper Functions ---
 

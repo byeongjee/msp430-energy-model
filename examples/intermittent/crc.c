@@ -44,7 +44,7 @@ typedef uint32_t crc;
         0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF,  \
         0x00
 
-static const uint8_t test_data[TEST_DATA_LEN] = {
+static const uint8_t test_data[TEST_DATA_LEN] SRAM_RODATA = {
     CRC_TEST_DATA_256,
     CRC_TEST_DATA_256,
     CRC_TEST_DATA_256,
@@ -52,7 +52,7 @@ static const uint8_t test_data[TEST_DATA_LEN] = {
 };
 
 /* Mutable global: CRC lookup table */
-static crc crcTable[256] __attribute__((used));
+static crc crcTable[256] __attribute__((used)) SRAM_BSS;
 
 /*********************************************************************
  * reflect() - Reorder the bits of a binary sequence by reflecting

@@ -13,10 +13,10 @@
 #define RNG_SEED 0x0C728394u
 #define ITERATIONS 20000U
 
-static uint32_t g_seed __attribute__((section(".persistent"))) = RNG_SEED;
-static uint32_t g_totals[NUM_FUNCS] __attribute__((used, section(".persistent")));
+static uint32_t g_seed SRAM_DATA = RNG_SEED;
+static uint32_t g_totals[NUM_FUNCS] __attribute__((used)) SRAM_BSS;
 
-static const uint8_t g_bits[256] = {
+static const uint8_t g_bits[256] SRAM_RODATA = {
     0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,

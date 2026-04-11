@@ -18,7 +18,7 @@
 #define SAMPLE_NOISE_FLOOR 10
 #define SAMPLES_TO_COLLECT 64 // Reduced for faster demo loop
 
-static uint16_t lfsr_state __attribute__((section(".noinit")));
+static uint16_t lfsr_state SRAM_BSS;
 
 INLINE uint16_t simple_rand(void) {
   // If the last bit is 1, shift and XOR. If 0, just shift.
@@ -85,8 +85,7 @@ INLINE unsigned sqrt16(unsigned long n) {
 // If you have a real ADXL362, you would replace these with actual driver calls.
 // For now, we generate fake data to prove the logic works.
 
-volatile static int mock_scenario
-    __attribute__((section(".noinit"))); // 0=Stationary, 1=Moving
+volatile static int mock_scenario SRAM_BSS; // 0=Stationary, 1=Moving
 
 void ACCEL_init() {
   // Real sensor init would go here
@@ -290,7 +289,7 @@ void recognize_loop(volatile model_t *model) {
 // --- Main ---
 
 // Global model storage (in RAM for this simple version)
-volatile model_t global_model __attribute__((section(".noinit")));
+volatile model_t global_model SRAM_BSS;
 
 int main() {
   initialize();
@@ -305,6 +304,7 @@ int main() {
   mock_scenario = 0;
 
   begin_measurement_window();
+  begin_event();
 
   DEBUG_OUT_STR("\n\n--- Activity Recognition Demo ---\n");
 
@@ -312,26 +312,25 @@ int main() {
   // We set mock_scenario to 0 (Stationary)
   DEBUG_OUT_STR("\n[Mode] Training Stationary Class...\n");
   mock_scenario = 0;
-  begin_event();
   train(global_model.stationary);
-  end_event();
+#ifdef DEBUG
   delay(SEC_TO_CYCLES);
+#endif
 
   // 2. Train "Moving"
   // We set mock_scenario to 1 (Moving)
   DEBUG_OUT_STR("\n[Mode] Training Moving Class...\n");
   mock_scenario = 1;
-  begin_event();
   train(global_model.moving);
-  end_event();
+#ifdef DEBUG
   delay(SEC_TO_CYCLES);
+#endif
 
   // 3. Recognize
   // We reset mock to 0, but recognize_loop will flip it halfway
   DEBUG_OUT_STR("\n[Mode] Recognition...\n");
   mock_scenario = 0;
 
-  begin_event();
   recognize_loop(&global_model);
 #ifdef DEBUG
   delay(SEC_TO_CYCLES);

@@ -22,12 +22,12 @@ typedef uint16_t index_t; // bucket index
 #define LED2_PIN BIT1 // P1.1 (Green)
 
 // Storage for the filter (Zero initialized by startup code or explicit loop)
-static fingerprint_t filter[NUM_BUCKETS];
+static fingerprint_t filter[NUM_BUCKETS] SRAM_BSS;
 
 // this should be initialized to a random value
 // we don't do it here because currently my interpreter
 // doesn't support initializing variables from data section
-static uint16_t lfsr_state;
+static uint16_t lfsr_state SRAM_BSS;
 
 INLINE uint16_t simple_rand(void) {
   // If the last bit is 1, shift and XOR. If 0, just shift.
@@ -220,7 +220,6 @@ int main() {
     delay(5000);
 #endif
   }
-  end_event();
 
 #ifdef DEBUG
   print_filter(filter);
@@ -236,7 +235,6 @@ int main() {
   key = INIT_KEY;              // Reset key generator
   volatile unsigned found = 0; // volatile to prevent optimization
 
-  begin_event();
   for (int i = 0; i < NUM_KEYS; ++i) {
     key = generate_key(key);
     bool member = lookup(filter, key);
