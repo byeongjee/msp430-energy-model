@@ -6,13 +6,13 @@ using .Types: MachineState, Instruction, Inst, get_inst
 Test that br_immediate benchmark executes the correct number of br instructions.
 
 The benchmark should execute TEXTUAL_REPT * INNER_ITERS br instructions.
-With default values (TEXTUAL_REPT=100, INNER_ITERS=100), this is 10,000 br instructions.
+With current defaults (TEXTUAL_REPT=100, INNER_ITERS=10), this is 1,000 br instructions.
 """
 function run_br_immediate_tests()
     @testset "BR Immediate Benchmark" begin
         @testset "br_immediate instruction count" begin
-            # Generate br_immediate_benchmark.S using two-pass compilation
-            @info "Generating br_immediate_benchmark.S (two-pass compilation)..."
+            # Generate br_immediate_benchmark.S via the branch benchmark helper
+            @info "Generating br_immediate_benchmark.S..."
             run(
                 `bash -c "./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c"`,
             )
@@ -48,10 +48,10 @@ function run_br_immediate_tests()
             )
 
             # Expected: TEXTUAL_REPT (100) br instructions per inner iteration
-            # INNER_ITERS (100) iterations
-            # Total: 100 * 100 = 10,000 br instructions should be executed
+            # INNER_ITERS (10) iterations
+            # Total: 100 * 10 = 1,000 br instructions should be executed
             TEXTUAL_REPT = 100
-            INNER_ITERS = 100
+            INNER_ITERS = 10
             expected_br_executions = TEXTUAL_REPT * INNER_ITERS
 
             @info "Expected br executions" expected = expected_br_executions
@@ -82,7 +82,7 @@ function run_br_immediate_tests()
         end
 
         @testset "br_indexed instruction count" begin
-            @info "Generating br_indexed_benchmark.S (two-pass compilation)..."
+            @info "Generating br_indexed_benchmark.S..."
             run(
                 `bash -c "./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_indexed_benchmark.c"`,
             )
@@ -113,7 +113,7 @@ function run_br_immediate_tests()
             )
 
             TEXTUAL_REPT = 100
-            INNER_ITERS = 100
+            INNER_ITERS = 10
             expected_br_executions = TEXTUAL_REPT * INNER_ITERS
 
             @test br_count == TEXTUAL_REPT

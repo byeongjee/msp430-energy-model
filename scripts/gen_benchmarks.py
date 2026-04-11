@@ -583,7 +583,8 @@ def main():
                     script_dir / "scripts" / "compile_br_immediate_benchmark.sh"
                 )
                 print(
-                    f"Generating {name}.S via two-pass compilation...", file=sys.stderr
+                    f"Generating {name}.S via branch benchmark helper...",
+                    file=sys.stderr,
                 )
                 try:
                     subprocess.run(

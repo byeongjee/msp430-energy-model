@@ -1,32 +1,23 @@
 #include "setup.h"
 
-// Hardcoded macros automatically determined via two-pass compilation
-// BR_INITIAL_ADDR: Address of the first br instruction (at loop_header label)
-// LOOP_HEADER_ADDR: Address where loop counter is decremented (after all br instructions)
-// These addresses are extracted from the first compilation pass and passed as -D flags
-// Use scripts/compile_hardcoded_benchmarks.sh to compile this file
-#ifndef BR_INITIAL_ADDR
-#define BR_INITIAL_ADDR 0x4154
-#endif
-
-#ifndef LOOP_HEADER_ADDR
-#define LOOP_HEADER_ADDR 0x42e4
-#endif
-
 INLINE void bench_br_immediate(void) {
-  REPEAT_INNER_ITERS(
-    __asm__ volatile(
-      "loop_header:\n"
-      ".set br_addr, " STR(BR_INITIAL_ADDR) "\n"
-      ".rept " STR(TEXTUAL_REPT) " - 1\n"
-      "  br #br_addr + 4\n"  // Each br instruction is 4 bytes, jump to next br
-      "  .set br_addr, br_addr + 4\n"
-      ".endr\n"
-      "  br #" STR(LOOP_HEADER_ADDR) "\n"  // Last br jumps to loop decrement
-      :
-      :
-      : "memory"
-    )
+  __asm__ volatile(
+    "mov #" STR(INNER_ITERS) ", r13\n"
+    "bench_br_immediate_outer_loop:\n"
+    "bench_br_immediate_loop_header:\n"
+    ".rept " STR(TEXTUAL_REPT) " - 1\n"
+    "  .word 0x4030\n"
+    "  .word . + 2\n"
+    ".endr\n"
+    "  .word 0x4030\n"
+    "  .word bench_br_immediate_loop_footer\n"
+    "bench_br_immediate_loop_footer:\n"
+    "  add #-1, r13\n"
+    "  cmp #0, r13\n"
+    "  jne bench_br_immediate_outer_loop\n"
+    :
+    :
+    : "r13", "cc", "memory"
   );
 }
 

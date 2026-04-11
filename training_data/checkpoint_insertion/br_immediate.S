@@ -235,7 +235,7 @@ bench_empty_function:
 ; saved regs:(none)
 	; start of prologue
 	; end of prologue
- ; 207 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 210 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	nop
  nop
  nop
@@ -304,7 +304,7 @@ bench_empty_interrupt:
 ; elim ap -> fp       2
 ; elim fp -> sp       0
 ; saved regs:(none)
- ; 221 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 224 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	push r2
 dint
 nop
@@ -419,7 +419,7 @@ initialize:
 	POP	r13
 	JMP	.+2
 	; End 160000000 cycle delay
- ; 336 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
+ ; 339 "/Users/byeongjee/migration/probabilistic-energy-modeling//include/setup.h" 1
 	bic #0x0107, r2
  ; 0 "" 2
 	; start of epilogue
@@ -442,20 +442,22 @@ main:
 	CALL	#initialize
 	CALL	#begin_measurement_window
 	CALL	#begin_event
-	MOV.B	#100, R12
-.L21:
- ; 17 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
-	loop_header:
-.set br_addr, 0x426a
+ ; 4 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
+	mov #10, r13
+bench_br_immediate_outer_loop:
+bench_br_immediate_loop_header:
 .rept 100 - 1
-  br #br_addr + 4
-  .set br_addr, br_addr + 4
+  .word 0x4030
+  .word . + 2
 .endr
-  br #0x43fa
+  .word 0x4030
+  .word bench_br_immediate_loop_footer
+bench_br_immediate_loop_footer:
+  add #-1, r13
+  cmp #0, r13
+  jne bench_br_immediate_outer_loop
 
  ; 0 "" 2
-	ADD.W	#-1, R12
-	CMP.W	#0, R12 { JNE	.L21
 	CALL	#end_event
 	CALL	#end_measurement_window
 	MOV.B	#0, R12

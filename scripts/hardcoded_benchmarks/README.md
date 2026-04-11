@@ -1,32 +1,30 @@
 # Hardcoded Benchmarks
 
-This directory contains benchmarks that require hardcoded absolute addresses, which cannot be generated using the standard benchmark generation pipeline.
+This directory contains benchmarks that use handwritten control flow and need a helper script to emit stable `.S` sources for the normal pipeline.
 
 ## br_immediate
 
-The `br_immediate` benchmark creates a chain of `br` (branch) instructions where each instruction jumps to the next one, and the last one jumps back to the loop counter decrement. This requires absolute addresses.
+The `br_immediate` benchmark creates a chain of `br` (branch) instructions where each instruction jumps to the next one, and the last one jumps to an inline-asm footer that maintains the outer loop.
 
 ### Compilation
 
-**Important:** Do not compile this file using `make compile` or `make disasm` directly. Use the two-pass compilation script:
+**Important:** Do not compile this file using `make compile` or `make disasm` directly. Use the helper script that emits a standalone `.S` file:
 
 ```bash
-./scripts/compile_hardcoded_benchmarks.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c
+./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c
 ```
 
-### How Two-Pass Compilation Works
+### How Assembly Generation Works
 
-1. **Pass 1:** Compile with placeholder addresses and disassemble
-2. **Extract:** Parse the disassembly to find actual addresses of:
-   - `loop_header` label (first br instruction)
-   - Loop counter decrement instruction (`add #-1, r12`)
-3. **Pass 2:** Generate `.S` assembly file with correct addresses passed as `-D` flags
+1. Compile the C benchmark to assembly with `gcc -S`
+2. Keep the full branch-chain control flow inside one inline-asm block so the optimizer cannot duplicate labels
+3. Normalize the emitted ISA attribute and write `build/asm/<benchmark>.S`
 
-This generates `build/asm/br_immediate_benchmark.S` which can then be compiled normally. The addresses are always correct, even if `setup.h` or other included files change.
+This generates `build/asm/br_immediate_benchmark.S` which can then be compiled normally.
 
 ### Using the Generated .S File
 
-After running two-pass compilation, you can use the `.S` file with all make targets:
+After generating the `.S` file, you can use it with all make targets:
 
 ```bash
 # Compile to ELF
@@ -41,19 +39,19 @@ make interpret FILE=build/asm/br_immediate_benchmark.S
 
 ### Custom Defines
 
-You can pass custom defines to the two-pass compilation:
+You can pass custom defines to the helper script:
 
 ```bash
-./scripts/compile_hardcoded_benchmarks.sh \
+./scripts/compile_br_immediate_benchmark.sh \
     --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c \
     --defines "TEXTUAL_REPT=50 INNER_ITERS=200"
 ```
 
 ### Integration with gen_benchmarks.py
 
-When `gen_benchmarks.py` encounters a hardcoded benchmark (identified by `hardcoded_benchmark_path` field):
+When `gen_benchmarks.py` encounters a hardcoded benchmark:
 
-1. Automatically runs two-pass compilation
+1. Automatically runs the branch benchmark helper
 2. Copies the generated `.S` file to the output directory
 
 Example:
@@ -101,8 +99,8 @@ All of the special-call keys share one source file, so it is compiled only once 
 ## Adding New Hardcoded Benchmarks
 
 1. Create the benchmark C file in this directory
-2. Update `scripts/compile_hardcoded_benchmarks.sh` to handle the new benchmark:
-   - Add address extraction logic
+2. Update `scripts/compile_br_immediate_benchmark.sh` to handle the new benchmark:
+   - Add any custom assembly-generation logic
    - Add benchmark name to supported list
 3. Add an `InstructionSpec` in `scripts/benchmark_common.py` with:
    ```python
