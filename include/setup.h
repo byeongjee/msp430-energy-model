@@ -5,6 +5,9 @@
 #define CLOCK_HZ 16000000UL
 #define NOINLINE __attribute__((noinline))
 #define INLINE static inline __attribute__((always_inline))
+#define SRAM_DATA __attribute__((section(".data.sram")))
+#define SRAM_BSS __attribute__((section(".bss.sram")))
+#define SRAM_RODATA __attribute__((section(".data.sram_ro")))
 
 // ============================================================================
 // SRAM Code Execution Support
@@ -350,11 +353,11 @@ NOINLINE void initialize(void) {
   }
 
 #ifndef INNER_ITERS
-#define INNER_ITERS 100
+#define INNER_ITERS 30
 #endif
 
 #ifndef TEXTUAL_REPT
-#define TEXTUAL_REPT 100
+#define TEXTUAL_REPT 30
 #endif
 
 #define REPEAT_INNER_ITERS(X)                                                  \
