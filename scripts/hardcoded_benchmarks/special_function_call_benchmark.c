@@ -20,6 +20,22 @@ static volatile uint16_t sink16;
 static volatile uint32_t sink32;
 
 /*
+ * Keep special-call event pulses comfortably above the measurement/export
+ * resolution. The global INNER_ITERS default is tuned for generated batches,
+ * but these helper calls need a larger runtime loop to avoid dropped segments.
+ */
+#ifndef SPECIAL_FUNCTION_CALL_INNER_ITERS
+#define SPECIAL_FUNCTION_CALL_INNER_ITERS 100
+#endif
+
+#define REPEAT_SPECIAL_FUNCTION_INNER_ITERS(X)                                 \
+    for (int _rep_special_call_ = 0;                                           \
+         _rep_special_call_ < (SPECIAL_FUNCTION_CALL_INNER_ITERS);             \
+         ++_rep_special_call_) {                                               \
+        X;                                                                     \
+    }
+
+/*
  * __mspabi_divu: unsigned 16-bit division (a / b)
  *
  * Worst-case inputs: dividend=0xFFFF, divisor=1.
@@ -33,7 +49,7 @@ static volatile uint32_t sink32;
 INLINE void bench_call___mspabi_divu(void) {
     volatile uint16_t a = 0xFFFF;
     volatile uint16_t b = 1;
-    REPEAT_INNER_ITERS(sink16 = a / b);
+    REPEAT_SPECIAL_FUNCTION_INNER_ITERS(sink16 = a / b);
 }
 
 /*
@@ -45,7 +61,7 @@ INLINE void bench_call___mspabi_divu(void) {
 INLINE void bench_call___mspabi_divi(void) {
     volatile int16_t a = -32767;
     volatile int16_t b = 1;
-    REPEAT_INNER_ITERS(sink16 = (uint16_t)(a / b));
+    REPEAT_SPECIAL_FUNCTION_INNER_ITERS(sink16 = (uint16_t)(a / b));
 }
 
 /*
@@ -57,7 +73,7 @@ INLINE void bench_call___mspabi_divi(void) {
 INLINE void bench_call___mspabi_divli(void) {
     volatile int32_t a = 2147483647;
     volatile int32_t b = 1;
-    REPEAT_INNER_ITERS(sink32 = (uint32_t)(a / b));
+    REPEAT_SPECIAL_FUNCTION_INNER_ITERS(sink32 = (uint32_t)(a / b));
 }
 
 /*
@@ -72,7 +88,7 @@ INLINE void bench_call___mspabi_divli(void) {
 INLINE void bench_call___mspabi_mpyi(void) {
     volatile int16_t a = -1;
     volatile int16_t b = -1;
-    REPEAT_INNER_ITERS(sink16 = (uint16_t)(a * b));
+    REPEAT_SPECIAL_FUNCTION_INNER_ITERS(sink16 = (uint16_t)(a * b));
 }
 
 /*
@@ -86,7 +102,7 @@ INLINE void bench_call___mspabi_mpyi(void) {
 INLINE void bench_call___mspabi_mpyl(void) {
     volatile int32_t a = -1;
     volatile int32_t b = -1;
-    REPEAT_INNER_ITERS(sink32 = (uint32_t)(a * b));
+    REPEAT_SPECIAL_FUNCTION_INNER_ITERS(sink32 = (uint32_t)(a * b));
 }
 
 /*
@@ -98,7 +114,7 @@ INLINE void bench_call___mspabi_mpyl(void) {
 INLINE void bench_call___mspabi_remu(void) {
     volatile uint16_t a = 0xFFFF;
     volatile uint16_t b = 1;
-    REPEAT_INNER_ITERS(sink16 = a % b);
+    REPEAT_SPECIAL_FUNCTION_INNER_ITERS(sink16 = a % b);
 }
 
 int main(void) {

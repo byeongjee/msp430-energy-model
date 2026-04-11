@@ -86,6 +86,12 @@ class TestHardcodedBenchmarksRegistry(unittest.TestCase):
                 f"Missing BENCH invocation for {key}",
             )
 
+    def test_source_file_uses_dedicated_repeat_count(self):
+        """Special-call benchmarks keep a larger local repeat count for measurement stability."""
+        source_text = SPECIAL_BENCHMARK_SOURCE.read_text()
+        self.assertIn("#define SPECIAL_FUNCTION_CALL_INNER_ITERS 100", source_text)
+        self.assertIn("REPEAT_SPECIAL_FUNCTION_INNER_ITERS", source_text)
+
 
 class TestListBenchmarks(unittest.TestCase):
     """Test that list_benchmarks.py includes special function call keys."""

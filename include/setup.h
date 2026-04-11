@@ -353,7 +353,7 @@ NOINLINE void initialize(void) {
   }
 
 #ifndef INNER_ITERS
-#define INNER_ITERS 10
+#define INNER_ITERS 100
 #endif
 
 #ifndef TEXTUAL_REPT

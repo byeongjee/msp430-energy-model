@@ -443,7 +443,7 @@ main:
 	CALL	#begin_measurement_window
 	CALL	#begin_event
  ; 4 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
-	mov #10, r13
+	mov #100, r13
 bench_br_immediate_outer_loop:
 bench_br_immediate_loop_header:
 .rept 100 - 1

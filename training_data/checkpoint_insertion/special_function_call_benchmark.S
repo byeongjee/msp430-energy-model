@@ -235,7 +235,7 @@ bench_empty_function:
 ; saved regs:(none)
 	; start of prologue
 	; end of prologue
- ; 207 "include/setup.h" 1
+ ; 210 "include/setup.h" 1
 	nop
  nop
  nop
@@ -304,7 +304,7 @@ bench_empty_interrupt:
 ; elim ap -> fp       2
 ; elim fp -> sp       0
 ; saved regs:(none)
- ; 221 "include/setup.h" 1
+ ; 224 "include/setup.h" 1
 	push r2
 dint
 nop
@@ -419,7 +419,7 @@ initialize:
 	POP	r13
 	JMP	.+2
 	; End 160000000 cycle delay
- ; 336 "include/setup.h" 1
+ ; 339 "include/setup.h" 1
 	bic #0x0107, r2
  ; 0 "" 2
 	; start of epilogue

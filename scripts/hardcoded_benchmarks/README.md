@@ -70,6 +70,10 @@ This generates `/path/to/output/br_immediate.S` automatically.
 
 Benchmarks for MSP430 ABI software function calls (`__mspabi_divi`, `__mspabi_divli`, `__mspabi_divu`, `__mspabi_mpyi`, `__mspabi_mpyl`, `__mspabi_remu`). The multiply helpers are normally inlined by GCC when targeting MSP430FR5994 (which has a hardware multiplier), so the shared benchmark must be compiled with `-mhwmult=none` to force software calls consistently.
 
+The shared source also uses a file-local `SPECIAL_FUNCTION_CALL_INNER_ITERS=100`
+runtime loop so each GPIO-bounded event stays long enough to survive the
+measurement export/preprocess pipeline.
+
 ### Keys
 
 - `call___mspabi_divi` — signed 16-bit division
