@@ -353,11 +353,11 @@ NOINLINE void initialize(void) {
   }
 
 #ifndef INNER_ITERS
-#define INNER_ITERS 30
+#define INNER_ITERS 10
 #endif
 
 #ifndef TEXTUAL_REPT
-#define TEXTUAL_REPT 30
+#define TEXTUAL_REPT 100
 #endif
 
 #define REPEAT_INNER_ITERS(X)                                                  \
