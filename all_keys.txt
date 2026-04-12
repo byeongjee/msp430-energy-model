@@ -64,6 +64,7 @@ jmp_symbolic
 jnc_symbolic
 jnz_symbolic
 jz_symbolic
+mov_RESHI_register
 mov_absolute_absolute
 mov_absolute_indexed
 mov_absolute_register

@@ -407,11 +407,17 @@ class TestKeyGeneration(unittest.TestCase):
 
         self.assertIn("mov_MPY_register", lookup)
         self.assertIn("mov_register_MPY", lookup)
+        self.assertIn("mov_RESHI_register", lookup)
 
         read_spec = lookup["mov_MPY_register"]
         bench = generate_benchmark(read_spec)
         self.assertEqual(read_spec.get_key(), ("mov", "MPY", "register"))
         self.assertIn("&0x04c0".lower(), bench["code"].lower())
+
+        reshi_spec = lookup["mov_RESHI_register"]
+        reshi_bench = generate_benchmark(reshi_spec)
+        self.assertEqual(reshi_spec.get_key(), ("mov", "RESHI", "register"))
+        self.assertIn("&0x04cc".lower(), reshi_bench["code"].lower())
 
     def test_multiplier_register_constant_keys(self):
         """Immediate writes to multiplier registers should carry constants in the key"""

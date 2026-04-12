@@ -28,6 +28,17 @@ INLINE void bench_swpb_register(void) {
       : "cc"));
 }
 
+INLINE void bench_mov_RESHI_register(void) {
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  mov.w &0x04CC, %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc", "memory"));
+}
+
 INLINE void bench_jmp_symbolic(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -124,6 +135,7 @@ int main(void) {
 
 
   BENCH(bench_swpb_register());
+  BENCH(bench_mov_RESHI_register());
   BENCH(bench_jmp_symbolic());
   BENCH(bench_jge_symbolic());
   BENCH(bench_jl_symbolic());

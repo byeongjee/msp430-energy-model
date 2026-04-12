@@ -5,6 +5,8 @@ using .Types:
     ExecutionEvent,
     ExecutionTrace,
     Inst,
+    Instruction,
+    Operand,
     PerAddressingMode,
     PerAddressingModeConstant,
     PerOpcode
@@ -43,6 +45,24 @@ function run_special_function_call_tests()
             @test parse_key_string("call_memcpy_bytes") == (:call_memcpy, :bytes)
             @test parse_key_string("call_memset") == (:call_memset,)
             @test parse_key_string("call_memset_bytes") == (:call_memset, :bytes)
+        end
+
+        @testset "Multiplier absolute addresses remap to dedicated keys" begin
+            reshi_read = Instruction(
+                :mov,
+                [Operand(UInt32(0x04CC), :absolute), Operand(:R9, :register)],
+                :word,
+            )
+            regular_absolute_read = Instruction(
+                :mov,
+                [Operand(UInt32(0x1C00), :absolute), Operand(:R9, :register)],
+                :word,
+            )
+
+            @test Types.get_instruction_key(reshi_read, PerAddressingMode) ==
+                  (:mov, :RESHI, :register)
+            @test Types.get_instruction_key(regular_absolute_read, PerAddressingMode) ==
+                  (:mov, :absolute, :register)
         end
 
         @testset "Key serialization produces correct string" begin

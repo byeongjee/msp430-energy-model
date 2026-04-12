@@ -34,6 +34,7 @@ MULTIPLIER_REGISTERS = [
     ("MPY", 0x04C0),
     ("OP2", 0x04C8),
     ("RESLO", 0x04CA),
+    ("RESHI", 0x04CC),
     ("MPY32L", 0x04D0),
     ("MPY32H", 0x04D2),
     ("OP2L", 0x04E0),

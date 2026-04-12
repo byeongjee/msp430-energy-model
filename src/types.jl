@@ -103,6 +103,7 @@ const multiplier_address_modes = Dict(
     UInt32(0x04C0) => :MPY,
     UInt32(0x04C8) => :OP2,
     UInt32(0x04CA) => :RESLO,
+    UInt32(0x04CC) => :RESHI,
     UInt32(0x04D0) => :MPY32L,
     UInt32(0x04D2) => :MPY32H,
     UInt32(0x04E0) => :OP2L,
