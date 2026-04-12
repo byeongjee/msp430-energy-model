@@ -17,6 +17,18 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_bis_indexed_register(void) {
+  uint16_t* base_src = BASE_PTR;
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  bis.w %c[offs_src](%[base_src]), %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
+      : "cc", "memory"));
+}
+
 INLINE void bench_bis_indexed_indexed(void) {
   uint16_t* base_src = BASE_PTR;
   uint16_t* base_dst = BASE_PTR + 8;
@@ -115,21 +127,12 @@ INLINE void bench_clr_register(void) {
       : "cc"));
 }
 
-INLINE void bench_clr_symbolic(void) {
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  clr.w sym_data\n"
-      ".endr\n"
-      : 
-      : 
-      : "cc", "memory"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
+  BENCH(bench_bis_indexed_register());
   BENCH(bench_bis_indexed_indexed());
   BENCH(bench_bis_symbolic_register());
   BENCH(bench_bis_symbolic_absolute());
@@ -139,7 +142,6 @@ int main(void) {
   BENCH(bench_inc_symbolic());
   BENCH(bench_incd_register());
   BENCH(bench_clr_register());
-  BENCH(bench_clr_symbolic());
 
   end_measurement_window();
 

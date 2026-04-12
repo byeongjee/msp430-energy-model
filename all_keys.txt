@@ -1,6 +1,7 @@
 adc_indexed
 add_immediate_indexed
 add_immediate_register
+add_indirect_register
 add_indexed_register
 add_register_register
 addc_immediate_register
@@ -64,6 +65,7 @@ jmp_symbolic
 jnc_symbolic
 jnz_symbolic
 jz_symbolic
+mov_RESLO_register
 mov_RESHI_register
 mov_absolute_absolute
 mov_absolute_indexed
@@ -79,6 +81,8 @@ mov_indexed_register
 mov_indirect_absolute
 mov_indirect_indexed
 mov_indirect_register
+mov_register_MPY
+mov_register_OP2
 mov_register_absolute
 mov_register_indexed
 mov_register_register

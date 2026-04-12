@@ -17,6 +17,56 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 
+INLINE void bench_jz_symbolic(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  jz 1f\n1:\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
+INLINE void bench_jnc_symbolic(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  jnc 1f\n1:\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
+INLINE void bench_jc_symbolic(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  jc 1f\n1:\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
+INLINE void bench_dint(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  dint\n  nop\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
+INLINE void bench_nop(void) {
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  nop\n"
+      ".endr\n"
+      : 
+      : 
+      : "cc"));
+}
+
 INLINE void bench_clrc(void) {
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
@@ -68,6 +118,11 @@ int main(void) {
   begin_measurement_window();
 
 
+  BENCH(bench_jz_symbolic());
+  BENCH(bench_jnc_symbolic());
+  BENCH(bench_jc_symbolic());
+  BENCH(bench_dint());
+  BENCH(bench_nop());
   BENCH(bench_clrc());
   BENCH(bench_call_and_ret());
   BENCH(bench_push_and_reti());

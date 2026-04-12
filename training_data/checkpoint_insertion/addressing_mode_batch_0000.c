@@ -63,6 +63,18 @@ INLINE void bench_add_indexed_register(void) {
       : "cc", "memory"));
 }
 
+INLINE void bench_add_indirect_register(void) {
+  uint16_t* psrc = BASE_PTR;
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  add.w @%[psrc], %[dst]\n"
+      ".endr\n"
+      : [psrc] "+r"(psrc), [dst] "+r"(dst)
+      : 
+      : "cc", "memory"));
+}
+
 INLINE void bench_addc_register_register(void) {
   uint16_t src = 0x5678;
   uint16_t dst = 0x1234;
@@ -121,17 +133,6 @@ INLINE void bench_mov_register_absolute(void) {
       : "cc", "memory"));
 }
 
-INLINE void bench_mov_immediate_register(void) {
-  uint16_t dst = 0x1234;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w #0x1357, %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
@@ -141,12 +142,12 @@ int main(void) {
   BENCH(bench_add_immediate_register());
   BENCH(bench_add_immediate_indexed());
   BENCH(bench_add_indexed_register());
+  BENCH(bench_add_indirect_register());
   BENCH(bench_addc_register_register());
   BENCH(bench_addc_immediate_register());
   BENCH(bench_mov_register_register());
   BENCH(bench_mov_register_indexed());
   BENCH(bench_mov_register_absolute());
-  BENCH(bench_mov_immediate_register());
 
   end_measurement_window();
 
