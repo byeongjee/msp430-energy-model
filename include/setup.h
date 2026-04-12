@@ -1,3 +1,6 @@
+#ifndef PROBABILISTIC_ENERGY_MODELING_SETUP_H
+#define PROBABILISTIC_ENERGY_MODELING_SETUP_H
+
 #include <msp430.h>
 #include <stdint.h>
 
@@ -5,9 +8,15 @@
 #define CLOCK_HZ 16000000UL
 #define NOINLINE __attribute__((noinline))
 #define INLINE static inline __attribute__((always_inline))
+#ifndef SRAM_DATA
 #define SRAM_DATA __attribute__((section(".data.sram")))
+#endif
+#ifndef SRAM_BSS
 #define SRAM_BSS __attribute__((section(".bss.sram")))
+#endif
+#ifndef SRAM_RODATA
 #define SRAM_RODATA __attribute__((section(".data.sram_ro")))
+#endif
 
 // ============================================================================
 // SRAM Code Execution Support
@@ -25,7 +34,9 @@
 // The function is stored in FRAM but copied to SRAM at startup by
 // copy_text_sram(). Call copy_text_sram() before using any SRAM_CODE functions.
 // ============================================================================
+#ifndef SRAM_CODE
 #define SRAM_CODE __attribute__((section(".text_sram")))
+#endif
 
 // Linker symbols for .text_sram section
 extern char __text_sram_start[];
@@ -367,3 +378,5 @@ NOINLINE void initialize(void) {
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
+
+#endif
