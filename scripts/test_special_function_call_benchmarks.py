@@ -17,6 +17,11 @@ from benchmark.common import (
     HARDCODED_BENCHMARKS,
     get_hardcoded_benchmarks,
 )
+from gen_benchmarks import (
+    build_branch_benchmark_command,
+    build_define_flags,
+    build_special_function_compile_command,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ALL_KEYS_FILE = PROJECT_ROOT / "all_keys.txt"
@@ -91,6 +96,61 @@ class TestHardcodedBenchmarksRegistry(unittest.TestCase):
         source_text = SPECIAL_BENCHMARK_SOURCE.read_text()
         self.assertIn("#define SPECIAL_FUNCTION_CALL_INNER_ITERS 100", source_text)
         self.assertIn("REPEAT_SPECIAL_FUNCTION_INNER_ITERS", source_text)
+
+
+class TestHardcodedBenchmarkCommandBuilders(unittest.TestCase):
+    def test_build_define_flags_prefixes_each_macro(self):
+        self.assertEqual(
+            build_define_flags("NUM_REPEAT=30 TEXTUAL_REPT=50"),
+            ["-DNUM_REPEAT=30", "-DTEXTUAL_REPT=50"],
+        )
+
+    def test_branch_command_forwards_defines(self):
+        cmd = build_branch_benchmark_command(
+            Path("/tmp/compile_br_immediate_benchmark.sh"),
+            Path("/tmp/br_immediate_benchmark.c"),
+            "NUM_REPEAT=30 INNER_ITERS=7",
+        )
+
+        self.assertEqual(
+            cmd,
+            [
+                "/tmp/compile_br_immediate_benchmark.sh",
+                "--file",
+                "/tmp/br_immediate_benchmark.c",
+                "--defines",
+                "NUM_REPEAT=30 INNER_ITERS=7",
+            ],
+        )
+
+    def test_special_function_compile_command_includes_define_flags(self):
+        cmd = build_special_function_compile_command(
+            "msp430-elf-gcc",
+            "-mmcu=MSP430FR5994 -O3",
+            "-I include -I support/include",
+            "NUM_REPEAT=30",
+            Path("/tmp/special_function_call_benchmark.S"),
+            Path("/tmp/special_function_call_benchmark.c"),
+        )
+
+        self.assertEqual(
+            cmd,
+            [
+                "msp430-elf-gcc",
+                "-S",
+                "-mmcu=MSP430FR5994",
+                "-O3",
+                "-mhwmult=none",
+                "-DNUM_REPEAT=30",
+                "-I",
+                "include",
+                "-I",
+                "support/include",
+                "-o",
+                "/tmp/special_function_call_benchmark.S",
+                "/tmp/special_function_call_benchmark.c",
+            ],
+        )
 
 
 class TestListBenchmarks(unittest.TestCase):

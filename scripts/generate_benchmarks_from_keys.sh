@@ -16,13 +16,15 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 usage() {
     cat <<'EOF'
 Usage: generate_benchmarks_from_keys.sh --keys FILE --granularity GRAN
-       [--output-dir DIR] [--batch N]
+       [--output-dir DIR] [--batch N] [--defines "MACROS"]
 
 Arguments:
   --keys FILE          File containing newline- or comma-separated key names
   --granularity GRAN   Model granularity (e.g., addressing_mode, addressing_mode_constant)
   --output-dir DIR     Output directory for generated benchmarks (default: tmp/)
   --batch N            Number of instructions per batch file
+  --defines "MACROS"   Space-separated compiler macros to bake into generated
+                       hardcoded .S benchmarks (e.g., "NUM_REPEAT=30")
 EOF
 }
 
@@ -31,6 +33,7 @@ KEYS_FILE="$REPO_ROOT/all_keys.txt"
 GRANULARITY="addressing_mode"
 OUTPUT_DIR="$REPO_ROOT/training_data/checkpoint_insertion"
 BATCH="10"
+DEFINES=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -38,6 +41,7 @@ while [[ $# -gt 0 ]]; do
         --granularity) GRANULARITY="$2"; shift 2 ;;
         --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --batch)      BATCH="$2"; shift 2 ;;
+        --defines)    DEFINES="$2"; shift 2 ;;
         -h|--help)    usage; exit 0 ;;
         *)            echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
@@ -62,6 +66,9 @@ GEN_ARGS=(--granularity "$GRANULARITY" --output-dir "$OUTPUT_DIR")
 if [[ -n "$BATCH" ]]; then
     GEN_ARGS+=(--batch "$BATCH")
 fi
+if [[ -n "$DEFINES" ]]; then
+    GEN_ARGS+=(--defines "$DEFINES")
+fi
 
 # Determine the payload field name based on granularity
 PAYLOAD_NAME="instructions"
@@ -74,6 +81,9 @@ echo "Keys file:    $KEYS_FILE"
 echo "Granularity:  $GRANULARITY"
 echo "Output dir:   $OUTPUT_DIR"
 echo "Key count:    $(echo $KEYS | wc -w | tr -d ' ')"
+if [[ -n "$DEFINES" ]]; then
+    echo "Defines:      $DEFINES"
+fi
 echo ""
 
 uv run python "$SCRIPT_DIR/list_benchmarks.py" --granularity "$GRANULARITY" \

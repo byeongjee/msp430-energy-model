@@ -21,6 +21,7 @@ USAGE:
 import argparse
 import json
 import os
+import shlex
 import sys
 import shutil
 import subprocess
@@ -102,6 +103,45 @@ def normalize_generated_asm_isa(asm_path: Path) -> None:
     updated = text.replace(".mspabi_attribute 4, 1", ".mspabi_attribute 4, 2")
     if updated != text:
         asm_path.write_text(updated)
+
+
+def build_define_flags(defines: str) -> List[str]:
+    """Convert a space-separated DEFINES string into compiler flags."""
+    if not defines:
+        return []
+    return [f"-D{token}" for token in defines.split() if token]
+
+
+def build_branch_benchmark_command(
+    compile_script: Path, src_c_file: Path, defines: str
+) -> List[str]:
+    """Build the helper command for hardcoded branch benchmark generation."""
+    cmd = [str(compile_script), "--file", str(src_c_file)]
+    if defines:
+        cmd.extend(["--defines", defines])
+    return cmd
+
+
+def build_special_function_compile_command(
+    cc: str,
+    cflags: str,
+    includes: str,
+    defines: str,
+    asm_path: Path,
+    src_c_file: Path,
+) -> List[str]:
+    """Build the compiler command for special-function-call benchmark assembly."""
+    return [
+        cc,
+        "-S",
+        *shlex.split(cflags),
+        "-mhwmult=none",
+        *build_define_flags(defines),
+        *shlex.split(includes),
+        "-o",
+        str(asm_path),
+        str(src_c_file),
+    ]
 
 
 # ============================================================================
@@ -508,6 +548,11 @@ def main():
         default=0,
         help="Starting batch number (only for batched mode, default: 0)",
     )
+    parser.add_argument(
+        "--defines",
+        default="",
+        help='Space-separated compiler macros to bake into generated hardcoded benchmarks (e.g., "NUM_REPEAT=30")',
+    )
 
     args = parser.parse_args()
 
@@ -598,7 +643,9 @@ def main():
                 )
                 try:
                     subprocess.run(
-                        [str(compile_script), "--file", str(src_c_file)],
+                        build_branch_benchmark_command(
+                            compile_script, src_c_file, args.defines
+                        ),
                         check=True,
                         cwd=str(script_dir),
                         capture_output=True,
@@ -649,10 +696,13 @@ def main():
                     )
                     includes = os.environ.get("INCLUDES", "-I include")
 
-                    # Use gcc -S to produce reassemblable assembly with -mhwmult=none
-                    compile_cmd = (
-                        f"{cc} -S {cflags} -mhwmult=none {includes}"
-                        f" -o {asm_path} {src_c_file}"
+                    compile_cmd = build_special_function_compile_command(
+                        cc,
+                        cflags,
+                        includes,
+                        args.defines,
+                        asm_path,
+                        src_c_file,
                     )
                     print(
                         f"Compiling {basename} to assembly with -mhwmult=none...",
@@ -661,7 +711,6 @@ def main():
                     try:
                         subprocess.run(
                             compile_cmd,
-                            shell=True,
                             check=True,
                             cwd=str(script_dir),
                             capture_output=True,
@@ -672,7 +721,10 @@ def main():
                             f"ERROR: Failed to compile special function call benchmark",
                             file=sys.stderr,
                         )
-                        print(f"Command: {compile_cmd}", file=sys.stderr)
+                        print(
+                            f"Command: {' '.join(shlex.quote(part) for part in compile_cmd)}",
+                            file=sys.stderr,
+                        )
                         print(f"STDOUT: {e.stdout}", file=sys.stderr)
                         print(f"STDERR: {e.stderr}", file=sys.stderr)
                         raise
