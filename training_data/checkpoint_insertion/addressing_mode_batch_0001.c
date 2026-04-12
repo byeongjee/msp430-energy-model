@@ -50,37 +50,49 @@ INLINE void bench_mov_immediate_absolute(void) {
 }
 
 INLINE void bench_mov_indexed_register(void) {
-  uint16_t* base_src = BASE_PTR;
+  uint16_t* base_src0 = BASE_PTR;
+  uint16_t* base_src1 = (BASE_PTR) + 8;
+  uint16_t* base_src2 = (BASE_PTR) + 16;
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w %c[offs_src](%[base_src]), %[dst]\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w %c[offs_src](%[base_src0]), %[dst]\n"
+      "  mov.w %c[offs_src](%[base_src1]), %[dst]\n"
+      "  mov.w %c[offs_src](%[base_src2]), %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
+      : [base_src0] "r"(base_src0), [base_src1] "r"(base_src1), [base_src2] "r"(base_src2), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_mov_indexed_indexed(void) {
-  uint16_t* base_src = BASE_PTR;
+  uint16_t* base_src0 = BASE_PTR;
+  uint16_t* base_src1 = (BASE_PTR) + 8;
+  uint16_t* base_src2 = (BASE_PTR) + 16;
   uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w %c[offs_src](%[base_src0]), %c[offs_dst](%[base_dst])\n"
+      "  mov.w %c[offs_src](%[base_src1]), %c[offs_dst](%[base_dst])\n"
+      "  mov.w %c[offs_src](%[base_src2]), %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [base_src0] "r"(base_src0), [base_src1] "r"(base_src1), [base_src2] "r"(base_src2), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_mov_indexed_absolute(void) {
-  uint16_t* base_src = BASE_PTR;
+  uint16_t* base_src0 = BASE_PTR;
+  uint16_t* base_src1 = (BASE_PTR) + 8;
+  uint16_t* base_src2 = (BASE_PTR) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w %c[offs_src](%[base_src]), &sym_data\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w %c[offs_src](%[base_src0]), &sym_data\n"
+      "  mov.w %c[offs_src](%[base_src1]), &sym_data\n"
+      "  mov.w %c[offs_src](%[base_src2]), &sym_data\n"
       ".endr\n"
       : 
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
+      : [base_src0] "r"(base_src0), [base_src1] "r"(base_src1), [base_src2] "r"(base_src2), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
 

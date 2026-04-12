@@ -56,12 +56,14 @@ INLINE void bench_{{ name }}(void) {
   {{ var.type }} {{ var.name }} = {{ var.value }};
 {%- endfor %}
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\\n"
-      "  {{ instruction }}\\n"
+      ".rept " {{ repeat_count_expr }} "\\n"
+{%- for line in instruction_lines %}
+      "  {{ line }}\\n"
+{%- endfor %}
       ".endr\\n"
-{%- if post_asm %}
-      "  {{ post_asm }}\\n"
-{%- endif %}
+{%- for line in post_asm_lines %}
+      "  {{ line }}\\n"
+{%- endfor %}
       : {{ constraints.outputs }}
       : {{ constraints.inputs }}
       : {{ constraints.clobbers }}));
@@ -258,13 +260,18 @@ INLINE void bench_push_and_pop(void) {
 def generate_benchmark(spec: InstructionSpec) -> Dict[str, Any]:
     """Generate a benchmark for a single instruction"""
     name = spec.get_key_str()
+    instruction_lines = spec.instruction_lines or [spec.asm_template]
+    post_asm_lines = spec.post_asm_lines or (
+        [line for line in spec.post_asm.split("\n") if line] if spec.post_asm else []
+    )
 
     function_code = BENCHMARK_FUNCTION_TEMPLATE.render(
         name=name,
         variables=spec.variables,
-        instruction=spec.asm_template,
+        repeat_count_expr=spec.repeat_count_expr,
+        instruction_lines=instruction_lines,
         constraints=spec.constraints,
-        post_asm=spec.post_asm,
+        post_asm_lines=post_asm_lines,
     )
     support_code = ""
     if spec.support_declarations:

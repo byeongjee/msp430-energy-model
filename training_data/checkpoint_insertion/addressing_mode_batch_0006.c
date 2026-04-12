@@ -18,24 +18,32 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 
 
 INLINE void bench_bit_immediate_indexed(void) {
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t* base_dst0 = BASE_PTR + 8;
+  uint16_t* base_dst1 = (BASE_PTR + 8) + 8;
+  uint16_t* base_dst2 = (BASE_PTR + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  bit.w #0x1357, %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  bit.w #0x1357, %c[offs_dst](%[base_dst0])\n"
+      "  bit.w #0x1357, %c[offs_dst](%[base_dst1])\n"
+      "  bit.w #0x1357, %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_bit_symbolic_indexed(void) {
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t* base_dst0 = BASE_PTR + 8;
+  uint16_t* base_dst1 = (BASE_PTR + 8) + 8;
+  uint16_t* base_dst2 = (BASE_PTR + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  bit.w sym_data, %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  bit.w sym_data, %c[offs_dst](%[base_dst0])\n"
+      "  bit.w sym_data, %c[offs_dst](%[base_dst1])\n"
+      "  bit.w sym_data, %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -107,13 +115,17 @@ INLINE void bench_bis_register_register(void) {
 
 INLINE void bench_bis_register_indexed(void) {
   uint16_t src = 0x5678;
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t* base_dst0 = BASE_PTR + 8;
+  uint16_t* base_dst1 = (BASE_PTR + 8) + 8;
+  uint16_t* base_dst2 = (BASE_PTR + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  bis.w %[src], %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  bis.w %[src], %c[offs_dst](%[base_dst0])\n"
+      "  bis.w %[src], %c[offs_dst](%[base_dst1])\n"
+      "  bis.w %[src], %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [src] "r"(src), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [src] "r"(src), [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 

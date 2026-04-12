@@ -16,18 +16,22 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 #define OFFS 4
 
 
-static volatile uint16_t bench_xor_register_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+static volatile uint16_t bench_xor_register_indexed_dst_buf[32] __attribute__((aligned(64))) = {0};
 
 
 INLINE void bench_xor_register_indexed(void) {
   uint16_t src = 0xFFFF;
-  uint16_t* base_dst = bench_xor_register_indexed_dst_buf + 8;
+  uint16_t* base_dst0 = bench_xor_register_indexed_dst_buf + 8;
+  uint16_t* base_dst1 = (bench_xor_register_indexed_dst_buf + 8) + 8;
+  uint16_t* base_dst2 = (bench_xor_register_indexed_dst_buf + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w %[src], %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  xor.w %[src], %c[offs_dst](%[base_dst0])\n"
+      "  xor.w %[src], %c[offs_dst](%[base_dst1])\n"
+      "  xor.w %[src], %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [src] "r"(src), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [src] "r"(src), [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -41,46 +45,60 @@ INLINE void bench_xor_immediate_register(void) {
       : 
       : "cc"));
 }
-static volatile uint16_t bench_xor_immediate_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+static volatile uint16_t bench_xor_immediate_indexed_dst_buf[32] __attribute__((aligned(64))) = {0};
 
 
 INLINE void bench_xor_immediate_indexed(void) {
-  uint16_t* base_dst = bench_xor_immediate_indexed_dst_buf + 8;
+  uint16_t* base_dst0 = bench_xor_immediate_indexed_dst_buf + 8;
+  uint16_t* base_dst1 = (bench_xor_immediate_indexed_dst_buf + 8) + 8;
+  uint16_t* base_dst2 = (bench_xor_immediate_indexed_dst_buf + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst0])\n"
+      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst1])\n"
+      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
-static volatile uint16_t bench_xor_indexed_register_src_buf[16] __attribute__((aligned(64))) = { [0 ... 15] = 0xFFFF };
+static volatile uint16_t bench_xor_indexed_register_src_buf[32] __attribute__((aligned(64))) = { [0 ... 31] = 0xFFFF };
 
 
 INLINE void bench_xor_indexed_register(void) {
-  uint16_t* base_src = bench_xor_indexed_register_src_buf;
+  uint16_t* base_src0 = bench_xor_indexed_register_src_buf;
+  uint16_t* base_src1 = (bench_xor_indexed_register_src_buf) + 8;
+  uint16_t* base_src2 = (bench_xor_indexed_register_src_buf) + 16;
   uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w %c[offs_src](%[base_src]), %[dst]\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  xor.w %c[offs_src](%[base_src0]), %[dst]\n"
+      "  xor.w %c[offs_src](%[base_src1]), %[dst]\n"
+      "  xor.w %c[offs_src](%[base_src2]), %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
+      : [base_src0] "r"(base_src0), [base_src1] "r"(base_src1), [base_src2] "r"(base_src2), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
-static volatile uint16_t bench_xor_indexed_indexed_src_buf[16] __attribute__((aligned(64))) = { [0 ... 15] = 0xFFFF };
-static volatile uint16_t bench_xor_indexed_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+static volatile uint16_t bench_xor_indexed_indexed_src_buf[32] __attribute__((aligned(64))) = { [0 ... 31] = 0xFFFF };
+static volatile uint16_t bench_xor_indexed_indexed_dst_buf[32] __attribute__((aligned(64))) = {0};
 
 
 INLINE void bench_xor_indexed_indexed(void) {
-  uint16_t* base_src = bench_xor_indexed_indexed_src_buf;
-  uint16_t* base_dst = bench_xor_indexed_indexed_dst_buf + 8;
+  uint16_t* base_src0 = bench_xor_indexed_indexed_src_buf;
+  uint16_t* base_src1 = (bench_xor_indexed_indexed_src_buf) + 8;
+  uint16_t* base_src2 = (bench_xor_indexed_indexed_src_buf) + 16;
+  uint16_t* base_dst0 = bench_xor_indexed_indexed_dst_buf + 8;
+  uint16_t* base_dst1 = (bench_xor_indexed_indexed_dst_buf + 8) + 8;
+  uint16_t* base_dst2 = (bench_xor_indexed_indexed_dst_buf + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  xor.w %c[offs_src](%[base_src0]), %c[offs_dst](%[base_dst0])\n"
+      "  xor.w %c[offs_src](%[base_src1]), %c[offs_dst](%[base_dst1])\n"
+      "  xor.w %c[offs_src](%[base_src2]), %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [base_src0] "r"(base_src0), [base_src1] "r"(base_src1), [base_src2] "r"(base_src2), [offs_src] "i"(OFFS), [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 static volatile uint16_t bench_xor_symbolic_register_src = 0xFFFF;
@@ -97,17 +115,21 @@ INLINE void bench_xor_symbolic_register(void) {
       : "cc", "memory"));
 }
 static volatile uint16_t bench_xor_symbolic_indexed_src = 0xFFFF;
-static volatile uint16_t bench_xor_symbolic_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+static volatile uint16_t bench_xor_symbolic_indexed_dst_buf[32] __attribute__((aligned(64))) = {0};
 
 
 INLINE void bench_xor_symbolic_indexed(void) {
-  uint16_t* base_dst = bench_xor_symbolic_indexed_dst_buf + 8;
+  uint16_t* base_dst0 = bench_xor_symbolic_indexed_dst_buf + 8;
+  uint16_t* base_dst1 = (bench_xor_symbolic_indexed_dst_buf + 8) + 8;
+  uint16_t* base_dst2 = (bench_xor_symbolic_indexed_dst_buf + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w bench_xor_symbolic_indexed_src, %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  xor.w bench_xor_symbolic_indexed_src, %c[offs_dst](%[base_dst0])\n"
+      "  xor.w bench_xor_symbolic_indexed_src, %c[offs_dst](%[base_dst1])\n"
+      "  xor.w bench_xor_symbolic_indexed_src, %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 static volatile uint16_t bench_xor_absolute_register_src = 0xFFFF;
@@ -123,17 +145,21 @@ INLINE void bench_xor_absolute_register(void) {
       : 
       : "cc", "memory"));
 }
-static volatile uint16_t bench_xor_indirect_register_src_buf[16] __attribute__((aligned(64))) = { [0 ... 15] = 0xFFFF };
+static volatile uint16_t bench_xor_indirect_register_src_buf[32] __attribute__((aligned(64))) = { [0 ... 31] = 0xFFFF };
 
 
 INLINE void bench_xor_indirect_register(void) {
-  uint16_t* psrc = bench_xor_indirect_register_src_buf;
+  uint16_t* psrc0 = bench_xor_indirect_register_src_buf;
+  uint16_t* psrc1 = (bench_xor_indirect_register_src_buf) + 8;
+  uint16_t* psrc2 = (bench_xor_indirect_register_src_buf) + 16;
   uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w @%[psrc], %[dst]\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  xor.w @%[psrc0], %[dst]\n"
+      "  xor.w @%[psrc1], %[dst]\n"
+      "  xor.w @%[psrc2], %[dst]\n"
       ".endr\n"
-      : [psrc] "+r"(psrc), [dst] "+r"(dst)
+      : [psrc0] "+r"(psrc0), [psrc1] "+r"(psrc1), [psrc2] "+r"(psrc2), [dst] "+r"(dst)
       : 
       : "cc", "memory"));
 }

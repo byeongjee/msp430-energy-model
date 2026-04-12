@@ -342,6 +342,9 @@ class InstructionSpec:
     inner_opcode: Optional[str] = None
     composite_group: Optional[str] = None
     support_declarations: List[str] = field(default_factory=list)
+    repeat_count_expr: str = "STR(TEXTUAL_REPT)"
+    instruction_lines: List[str] = field(default_factory=list)
+    post_asm_lines: List[str] = field(default_factory=list)
 
     def get_key(self) -> Tuple:
         """Get the parameter key for this instruction (matches model_common.jl)"""
@@ -583,7 +586,7 @@ SINGLE_OPERAND_TOGGLE_SEEDS = {
 
 ISOLATED_MEMORY_DUAL_OPCODES = {"xor"}
 ISOLATED_MEMORY_SINGLE_OPCODES = {"inv", "swpb"}
-ISOLATED_MEMORY_BUFFER_SIZE = 16
+ISOLATED_MEMORY_BUFFER_SIZE = 32
 
 
 def get_dual_operand_register_src_value(opcode: str) -> str:
@@ -639,6 +642,155 @@ def _set_variable_value(
             variable["value"] = value
             return
     raise ValueError(f"Variable '{variable_name}' not found in benchmark spec")
+
+
+CACHE_THRASH_POINTER_WORD_OFFSETS = (0, 8, 16)
+THREE_ADDRESS_REPEAT_COUNT_EXPR = 'STR(TEXTUAL_REPT) " / 3"'
+
+
+def _get_instruction_lines(spec: InstructionSpec) -> List[str]:
+    return spec.instruction_lines or [spec.asm_template]
+
+
+def _get_post_asm_lines(spec: InstructionSpec) -> List[str]:
+    if spec.post_asm_lines:
+        return spec.post_asm_lines
+    if spec.post_asm:
+        return [line for line in spec.post_asm.split("\n") if line]
+    return []
+
+
+def _replace_variable_with_triplet(
+    variables: List[Dict[str, str]], variable_name: str
+) -> bool:
+    for idx, variable in enumerate(variables):
+        if variable["name"] != variable_name:
+            continue
+
+        base_variable = variables.pop(idx)
+        replacements = []
+        for slot, offset in enumerate(CACHE_THRASH_POINTER_WORD_OFFSETS):
+            clone = copy.deepcopy(base_variable)
+            clone["name"] = f"{variable_name}{slot}"
+            clone["value"] = (
+                base_variable["value"]
+                if offset == 0
+                else f"({base_variable['value']}) + {offset}"
+            )
+            replacements.append(clone)
+
+        variables[idx:idx] = replacements
+        return True
+
+    return False
+
+
+def _replace_constraint_binding(
+    constraint: str, variable_name: str, binding_class: str
+) -> str:
+    original = f'[{variable_name}] "{binding_class}"({variable_name})'
+    replacement = ", ".join(
+        f'[{variable_name}{slot}] "{binding_class}"({variable_name}{slot})'
+        for slot in range(len(CACHE_THRASH_POINTER_WORD_OFFSETS))
+    )
+    return constraint.replace(original, replacement, 1)
+
+
+def _expand_triplet_lines(lines: List[str], variable_name: str) -> List[str]:
+    token = f"%[{variable_name}]"
+    if not any(token in line for line in lines):
+        return lines
+
+    if len(lines) == 1:
+        line = lines[0]
+        return [
+            line.replace(token, f"%[{variable_name}{slot}]")
+            for slot in range(len(CACHE_THRASH_POINTER_WORD_OFFSETS))
+        ]
+
+    if len(lines) == len(CACHE_THRASH_POINTER_WORD_OFFSETS):
+        return [
+            line.replace(token, f"%[{variable_name}{slot}]")
+            for slot, line in enumerate(lines)
+        ]
+
+    raise ValueError(
+        f"Unexpected line count {len(lines)} while expanding {variable_name}"
+    )
+
+
+def _apply_three_address_pointer_pattern(
+    spec: InstructionSpec,
+    *,
+    variable_name: str,
+    constraint_kind: str,
+    binding_class: str,
+    expand_post_lines: bool = False,
+) -> None:
+    if not _replace_variable_with_triplet(spec.variables, variable_name):
+        return
+
+    spec.constraints[constraint_kind] = _replace_constraint_binding(
+        spec.constraints[constraint_kind], variable_name, binding_class
+    )
+    spec.instruction_lines = _expand_triplet_lines(
+        _get_instruction_lines(spec), variable_name
+    )
+
+    if expand_post_lines:
+        spec.post_asm_lines = _expand_triplet_lines(
+            _get_post_asm_lines(spec), variable_name
+        )
+
+    spec.repeat_count_expr = THREE_ADDRESS_REPEAT_COUNT_EXPR
+
+
+def apply_three_address_fram_read_pattern(spec: InstructionSpec) -> None:
+    """Rotate selected FRAM-read benchmarks across three same-set addresses.
+
+    This lowers cache hit bias in generated single-instruction training data by
+    cycling through three cache lines that cannot fit simultaneously in the
+    2-way FRAM cache set.
+    """
+
+    if spec.src_mode == "indexed":
+        base_var = "base_src" if any(v["name"] == "base_src" for v in spec.variables) else "base"
+        _apply_three_address_pointer_pattern(
+            spec,
+            variable_name=base_var,
+            constraint_kind="inputs",
+            binding_class="r",
+        )
+    elif spec.src_mode == "indirect":
+        _apply_three_address_pointer_pattern(
+            spec,
+            variable_name="psrc",
+            constraint_kind="outputs",
+            binding_class="+r",
+        )
+    elif spec.src_mode == "autoincrement":
+        _apply_three_address_pointer_pattern(
+            spec,
+            variable_name="psrc",
+            constraint_kind="outputs",
+            binding_class="+r",
+            expand_post_lines=True,
+        )
+        _apply_three_address_pointer_pattern(
+            spec,
+            variable_name="psrc_reset",
+            constraint_kind="inputs",
+            binding_class="r",
+            expand_post_lines=True,
+        )
+
+    if spec.dst_mode == "indexed" and spec.opcode not in {"mov", "mova"}:
+        _apply_three_address_pointer_pattern(
+            spec,
+            variable_name="base_dst",
+            constraint_kind="inputs",
+            binding_class="r",
+        )
 
 
 def apply_isolated_memory_layout_to_dual_spec(spec: InstructionSpec) -> None:
@@ -1414,6 +1566,9 @@ def create_addressing_mode_specs(
     specs.extend(create_reti_specs())
     specs.extend(create_no_operand_specs("nop"))
     specs.extend(create_no_operand_specs("clrc"))
+
+    for spec in specs:
+        apply_three_address_fram_read_pattern(spec)
 
     # Note: br_immediate and fram_cache benchmarks are handled separately
     # via HARDCODED_BENCHMARKS registry, not through InstructionSpec

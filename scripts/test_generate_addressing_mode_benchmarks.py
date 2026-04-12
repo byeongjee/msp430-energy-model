@@ -256,11 +256,11 @@ INLINE void bench_inc_register(void) {
         bench = generate_benchmark(spec)
 
         self.assertIn(
-            "static volatile uint16_t bench_xor_indexed_indexed_src_buf[16]",
+            "static volatile uint16_t bench_xor_indexed_indexed_src_buf[32]",
             bench["code"],
         )
         self.assertIn(
-            "static volatile uint16_t bench_xor_indexed_indexed_dst_buf[16]",
+            "static volatile uint16_t bench_xor_indexed_indexed_dst_buf[32]",
             bench["code"],
         )
         self.assertIn(
@@ -292,7 +292,7 @@ INLINE void bench_inc_register(void) {
         bench = generate_benchmark(spec)
 
         self.assertIn(
-            "static volatile uint16_t bench_swpb_indexed_dst_buf[16]",
+            "static volatile uint16_t bench_swpb_indexed_dst_buf[32]",
             bench["code"],
         )
         self.assertIn(
@@ -300,6 +300,40 @@ INLINE void bench_inc_register(void) {
             bench["code"],
         )
         self.assertIn("swpb.w %c[offs](%[base])", bench["code"])
+
+    def test_get_instruction_specs_applies_three_address_pattern_to_indexed_reads(self):
+        specs = get_instruction_specs("addressing_mode")
+        spec = next(
+            s for s in specs if s.get_key() == ("add", "indexed", "register")
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn('".rept " STR(TEXTUAL_REPT) " / 3" "\\n"', bench["code"])
+        self.assertIn("uint16_t* base_src0 = BASE_PTR;", bench["code"])
+        self.assertIn("uint16_t* base_src1 = (BASE_PTR) + 8;", bench["code"])
+        self.assertIn("uint16_t* base_src2 = (BASE_PTR) + 16;", bench["code"])
+        self.assertIn(
+            '"  add.w %c[offs_src](%[base_src0]), %[dst]\\n"', bench["code"]
+        )
+        self.assertIn(
+            '"  add.w %c[offs_src](%[base_src1]), %[dst]\\n"', bench["code"]
+        )
+        self.assertIn(
+            '"  add.w %c[offs_src](%[base_src2]), %[dst]\\n"', bench["code"]
+        )
+
+    def test_get_instruction_specs_skips_three_address_pattern_for_mov_store_only(self):
+        specs = get_instruction_specs("addressing_mode")
+        spec = next(
+            s for s in specs if s.get_key() == ("mov", "register", "indexed")
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn('".rept " STR(TEXTUAL_REPT) "\\n"', bench["code"])
+        self.assertIn("uint16_t* base_dst = BASE_PTR + 8;", bench["code"])
+        self.assertNotIn("base_dst0", bench["code"])
 
     def test_rlam_constant_variants(self):
         """Test rlam with different constants

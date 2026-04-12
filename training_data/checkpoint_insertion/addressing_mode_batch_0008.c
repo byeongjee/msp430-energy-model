@@ -82,13 +82,17 @@ INLINE void bench_rrc_register(void) {
 }
 
 INLINE void bench_rrc_indexed(void) {
-  uint16_t* base = BASE_PTR;
+  uint16_t* base0 = BASE_PTR;
+  uint16_t* base1 = (BASE_PTR) + 8;
+  uint16_t* base2 = (BASE_PTR) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  rrc.w %c[offs](%[base])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  rrc.w %c[offs](%[base0])\n"
+      "  rrc.w %c[offs](%[base1])\n"
+      "  rrc.w %c[offs](%[base2])\n"
       ".endr\n"
       : 
-      : [base] "r"(base), [offs] "i"(OFFS)
+      : [base0] "r"(base0), [base1] "r"(base1), [base2] "r"(base2), [offs] "i"(OFFS)
       : "cc", "memory"));
 }
 

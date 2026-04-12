@@ -39,65 +39,93 @@ INLINE void bench_mov_absolute_absolute(void) {
 }
 
 INLINE void bench_mov_indirect_register(void) {
-  uint16_t* psrc = BASE_PTR;
+  uint16_t* psrc0 = BASE_PTR;
+  uint16_t* psrc1 = (BASE_PTR) + 8;
+  uint16_t* psrc2 = (BASE_PTR) + 16;
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w @%[psrc], %[dst]\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w @%[psrc0], %[dst]\n"
+      "  mov.w @%[psrc1], %[dst]\n"
+      "  mov.w @%[psrc2], %[dst]\n"
       ".endr\n"
-      : [psrc] "+r"(psrc), [dst] "+r"(dst)
+      : [psrc0] "+r"(psrc0), [psrc1] "+r"(psrc1), [psrc2] "+r"(psrc2), [dst] "+r"(dst)
       : 
       : "cc", "memory"));
 }
 
 INLINE void bench_mov_indirect_indexed(void) {
-  uint16_t* psrc = BASE_PTR;
+  uint16_t* psrc0 = BASE_PTR;
+  uint16_t* psrc1 = (BASE_PTR) + 8;
+  uint16_t* psrc2 = (BASE_PTR) + 16;
   uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w @%[psrc], %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w @%[psrc0], %c[offs_dst](%[base_dst])\n"
+      "  mov.w @%[psrc1], %c[offs_dst](%[base_dst])\n"
+      "  mov.w @%[psrc2], %c[offs_dst](%[base_dst])\n"
       ".endr\n"
-      : [psrc] "+r"(psrc)
+      : [psrc0] "+r"(psrc0), [psrc1] "+r"(psrc1), [psrc2] "+r"(psrc2)
       : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
 INLINE void bench_mov_indirect_absolute(void) {
-  uint16_t* psrc = BASE_PTR;
+  uint16_t* psrc0 = BASE_PTR;
+  uint16_t* psrc1 = (BASE_PTR) + 8;
+  uint16_t* psrc2 = (BASE_PTR) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w @%[psrc], &sym_data\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w @%[psrc0], &sym_data\n"
+      "  mov.w @%[psrc1], &sym_data\n"
+      "  mov.w @%[psrc2], &sym_data\n"
       ".endr\n"
-      : [psrc] "+r"(psrc)
+      : [psrc0] "+r"(psrc0), [psrc1] "+r"(psrc1), [psrc2] "+r"(psrc2)
       : 
       : "cc", "memory"));
 }
 
 INLINE void bench_mov_autoincrement_register(void) {
-  uint16_t* psrc = BASE_PTR;
-  uint16_t* psrc_reset = BASE_PTR;
+  uint16_t* psrc0 = BASE_PTR;
+  uint16_t* psrc1 = (BASE_PTR) + 8;
+  uint16_t* psrc2 = (BASE_PTR) + 16;
+  uint16_t* psrc_reset0 = BASE_PTR;
+  uint16_t* psrc_reset1 = (BASE_PTR) + 8;
+  uint16_t* psrc_reset2 = (BASE_PTR) + 16;
   uint16_t dst = 0x1234;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w @%[psrc]+, %[dst]\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w @%[psrc0]+, %[dst]\n"
+      "  mov.w @%[psrc1]+, %[dst]\n"
+      "  mov.w @%[psrc2]+, %[dst]\n"
       ".endr\n"
-      "  mov %[psrc_reset], %[psrc]\n"
-      : [psrc] "+r"(psrc), [dst] "+r"(dst)
-      : [psrc_reset] "r"(psrc_reset)
+      "  mov %[psrc_reset0], %[psrc0]\n"
+      "  mov %[psrc_reset1], %[psrc1]\n"
+      "  mov %[psrc_reset2], %[psrc2]\n"
+      : [psrc0] "+r"(psrc0), [psrc1] "+r"(psrc1), [psrc2] "+r"(psrc2), [dst] "+r"(dst)
+      : [psrc_reset0] "r"(psrc_reset0), [psrc_reset1] "r"(psrc_reset1), [psrc_reset2] "r"(psrc_reset2)
       : "cc", "memory"));
 }
 
 INLINE void bench_mov_autoincrement_indexed(void) {
-  uint16_t* psrc = BASE_PTR;
-  uint16_t* psrc_reset = BASE_PTR;
+  uint16_t* psrc0 = BASE_PTR;
+  uint16_t* psrc1 = (BASE_PTR) + 8;
+  uint16_t* psrc2 = (BASE_PTR) + 16;
+  uint16_t* psrc_reset0 = BASE_PTR;
+  uint16_t* psrc_reset1 = (BASE_PTR) + 8;
+  uint16_t* psrc_reset2 = (BASE_PTR) + 16;
   uint16_t* base_dst = BASE_PTR + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  mov.w @%[psrc]+, %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  mov.w @%[psrc0]+, %c[offs_dst](%[base_dst])\n"
+      "  mov.w @%[psrc1]+, %c[offs_dst](%[base_dst])\n"
+      "  mov.w @%[psrc2]+, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
-      "  mov %[psrc_reset], %[psrc]\n"
-      : [psrc] "+r"(psrc)
-      : [psrc_reset] "r"(psrc_reset), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      "  mov %[psrc_reset0], %[psrc0]\n"
+      "  mov %[psrc_reset1], %[psrc1]\n"
+      "  mov %[psrc_reset2], %[psrc2]\n"
+      : [psrc0] "+r"(psrc0), [psrc1] "+r"(psrc1), [psrc2] "+r"(psrc2)
+      : [psrc_reset0] "r"(psrc_reset0), [psrc_reset1] "r"(psrc_reset1), [psrc_reset2] "r"(psrc_reset2), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
@@ -115,13 +143,17 @@ INLINE void bench_cmp_register_register(void) {
 
 INLINE void bench_cmp_register_indexed(void) {
   uint16_t src = 0x5678;
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t* base_dst0 = BASE_PTR + 8;
+  uint16_t* base_dst1 = (BASE_PTR + 8) + 8;
+  uint16_t* base_dst2 = (BASE_PTR + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  cmp.w %[src], %c[offs_dst](%[base_dst])\n"
+      ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
+      "  cmp.w %[src], %c[offs_dst](%[base_dst0])\n"
+      "  cmp.w %[src], %c[offs_dst](%[base_dst1])\n"
+      "  cmp.w %[src], %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
-      : [src] "r"(src), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
+      : [src] "r"(src), [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
 
