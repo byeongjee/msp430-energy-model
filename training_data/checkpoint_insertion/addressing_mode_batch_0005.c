@@ -16,10 +16,12 @@ static volatile uint16_t mem_buf[1024] __attribute__((aligned(64)));
 #define OFFS 4
 
 
+static volatile uint16_t bench_xor_register_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+
 
 INLINE void bench_xor_register_indexed(void) {
-  uint16_t src = 0x5678;
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t src = 0xFFFF;
+  uint16_t* base_dst = bench_xor_register_indexed_dst_buf + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  xor.w %[src], %c[offs_dst](%[base_dst])\n"
@@ -30,30 +32,34 @@ INLINE void bench_xor_register_indexed(void) {
 }
 
 INLINE void bench_xor_immediate_register(void) {
-  uint16_t dst = 0x1234;
+  uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w #0x1357, %[dst]\n"
+      "  xor.w #0xFFFF, %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
       : 
       : "cc"));
 }
+static volatile uint16_t bench_xor_immediate_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+
 
 INLINE void bench_xor_immediate_indexed(void) {
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t* base_dst = bench_xor_immediate_indexed_dst_buf + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w #0x1357, %c[offs_dst](%[base_dst])\n"
+      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
       : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
+static volatile uint16_t bench_xor_indexed_register_src_buf[16] __attribute__((aligned(64))) = { [0 ... 15] = 0xFFFF };
+
 
 INLINE void bench_xor_indexed_register(void) {
-  uint16_t* base_src = BASE_PTR;
-  uint16_t dst = 0x1234;
+  uint16_t* base_src = bench_xor_indexed_register_src_buf;
+  uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  xor.w %c[offs_src](%[base_src]), %[dst]\n"
@@ -62,10 +68,13 @@ INLINE void bench_xor_indexed_register(void) {
       : [base_src] "r"(base_src), [offs_src] "i"(OFFS)
       : "cc", "memory"));
 }
+static volatile uint16_t bench_xor_indexed_indexed_src_buf[16] __attribute__((aligned(64))) = { [0 ... 15] = 0xFFFF };
+static volatile uint16_t bench_xor_indexed_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+
 
 INLINE void bench_xor_indexed_indexed(void) {
-  uint16_t* base_src = BASE_PTR;
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t* base_src = bench_xor_indexed_indexed_src_buf;
+  uint16_t* base_dst = bench_xor_indexed_indexed_dst_buf + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  xor.w %c[offs_src](%[base_src]), %c[offs_dst](%[base_dst])\n"
@@ -74,43 +83,52 @@ INLINE void bench_xor_indexed_indexed(void) {
       : [base_src] "r"(base_src), [offs_src] "i"(OFFS), [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
+static volatile uint16_t bench_xor_symbolic_register_src = 0xFFFF;
+
 
 INLINE void bench_xor_symbolic_register(void) {
-  uint16_t dst = 0x1234;
+  uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w sym_data, %[dst]\n"
+      "  xor.w bench_xor_symbolic_register_src, %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
       : 
       : "cc", "memory"));
 }
+static volatile uint16_t bench_xor_symbolic_indexed_src = 0xFFFF;
+static volatile uint16_t bench_xor_symbolic_indexed_dst_buf[16] __attribute__((aligned(64))) = {0};
+
 
 INLINE void bench_xor_symbolic_indexed(void) {
-  uint16_t* base_dst = BASE_PTR + 8;
+  uint16_t* base_dst = bench_xor_symbolic_indexed_dst_buf + 8;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w sym_data, %c[offs_dst](%[base_dst])\n"
+      "  xor.w bench_xor_symbolic_indexed_src, %c[offs_dst](%[base_dst])\n"
       ".endr\n"
       : 
       : [base_dst] "r"(base_dst), [offs_dst] "i"(OFFS)
       : "cc", "memory"));
 }
+static volatile uint16_t bench_xor_absolute_register_src = 0xFFFF;
+
 
 INLINE void bench_xor_absolute_register(void) {
-  uint16_t dst = 0x1234;
+  uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w &sym_data, %[dst]\n"
+      "  xor.w &bench_xor_absolute_register_src, %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
       : 
       : "cc", "memory"));
 }
+static volatile uint16_t bench_xor_indirect_register_src_buf[16] __attribute__((aligned(64))) = { [0 ... 15] = 0xFFFF };
+
 
 INLINE void bench_xor_indirect_register(void) {
-  uint16_t* psrc = BASE_PTR;
-  uint16_t dst = 0x1234;
+  uint16_t* psrc = bench_xor_indirect_register_src_buf;
+  uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  xor.w @%[psrc], %[dst]\n"

@@ -28,7 +28,7 @@ INLINE void bench_rra_symbolic(void) {
 }
 
 INLINE void bench_swpb_register(void) {
-  uint16_t dst = 0x2222;
+  uint16_t dst = 0x00FF;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  swpb.w %[dst]\n"

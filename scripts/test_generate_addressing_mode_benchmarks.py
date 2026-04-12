@@ -26,6 +26,7 @@ from benchmark.common import (
     create_dint_specs,
     create_dual_operand_specs,
     create_push_specs,
+    create_single_operand_specs,
     UNSAFE_OPCODES,
 )
 from gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
@@ -182,6 +183,123 @@ INLINE void bench_inc_register(void) {
 """
         self.assertEqual(result["code"].strip(), expected_code.strip())
         self.assertEqual(result["key"], ("inc", "register"))
+
+    def test_xor_register_register_uses_toggle_seeds(self):
+        specs = create_dual_operand_specs("xor")
+        spec = next(
+            s for s in specs if s.src_mode == "register" and s.dst_mode == "register"
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn("uint16_t src = 0xFFFF;", bench["code"])
+        self.assertIn("uint16_t dst = 0x0000;", bench["code"])
+        self.assertIn("xor.w %[src], %[dst]", bench["code"])
+
+    def test_xor_immediate_register_uses_all_ones_immediate(self):
+        specs = create_dual_operand_specs("xor")
+        spec = next(
+            s for s in specs if s.src_mode == "immediate" and s.dst_mode == "register"
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn("xor.w #0xFFFF, %[dst]", bench["code"])
+        self.assertIn("uint16_t dst = 0x0000;", bench["code"])
+
+    def test_inv_register_uses_toggle_seed(self):
+        specs = create_single_operand_specs("inv")
+        spec = next(s for s in specs if s.src_mode == "register")
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn("uint16_t dst = 0x0000;", bench["code"])
+        self.assertIn("inv.w %[dst]", bench["code"])
+
+    def test_swpb_register_uses_cross_byte_seed(self):
+        specs = create_single_operand_specs("swpb")
+        spec = next(s for s in specs if s.src_mode == "register")
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn("uint16_t dst = 0x00FF;", bench["code"])
+        self.assertIn("swpb.w %[dst]", bench["code"])
+
+    def test_xor_symbolic_absolute_uses_isolated_memory_symbols(self):
+        specs = create_dual_operand_specs("xor")
+        spec = next(
+            s for s in specs if s.src_mode == "symbolic" and s.dst_mode == "absolute"
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn(
+            "static volatile uint16_t bench_xor_symbolic_absolute_src = 0xFFFF;",
+            bench["code"],
+        )
+        self.assertIn(
+            "static volatile uint16_t bench_xor_symbolic_absolute_dst = 0x0000;",
+            bench["code"],
+        )
+        self.assertIn(
+            "xor.w bench_xor_symbolic_absolute_src, &bench_xor_symbolic_absolute_dst",
+            bench["code"],
+        )
+        self.assertNotIn("xor.w sym_data, &sym_data", bench["code"])
+
+    def test_xor_indexed_indexed_uses_isolated_memory_buffers(self):
+        specs = create_dual_operand_specs("xor")
+        spec = next(
+            s for s in specs if s.src_mode == "indexed" and s.dst_mode == "indexed"
+        )
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn(
+            "static volatile uint16_t bench_xor_indexed_indexed_src_buf[16]",
+            bench["code"],
+        )
+        self.assertIn(
+            "static volatile uint16_t bench_xor_indexed_indexed_dst_buf[16]",
+            bench["code"],
+        )
+        self.assertIn(
+            "uint16_t* base_src = bench_xor_indexed_indexed_src_buf;",
+            bench["code"],
+        )
+        self.assertIn(
+            "uint16_t* base_dst = bench_xor_indexed_indexed_dst_buf + 8;",
+            bench["code"],
+        )
+
+    def test_inv_symbolic_uses_isolated_memory_symbol(self):
+        specs = create_single_operand_specs("inv")
+        spec = next(s for s in specs if s.src_mode == "symbolic")
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn(
+            "static volatile uint16_t bench_inv_symbolic_dst = 0x0000;",
+            bench["code"],
+        )
+        self.assertIn("inv.w bench_inv_symbolic_dst", bench["code"])
+        self.assertNotIn("inv.w sym_data", bench["code"])
+
+    def test_swpb_indexed_uses_isolated_memory_buffer(self):
+        specs = create_single_operand_specs("swpb")
+        spec = next(s for s in specs if s.src_mode == "indexed")
+
+        bench = generate_benchmark(spec)
+
+        self.assertIn(
+            "static volatile uint16_t bench_swpb_indexed_dst_buf[16]",
+            bench["code"],
+        )
+        self.assertIn(
+            "uint16_t* base = bench_swpb_indexed_dst_buf;",
+            bench["code"],
+        )
+        self.assertIn("swpb.w %c[offs](%[base])", bench["code"])
 
     def test_rlam_constant_variants(self):
         """Test rlam with different constants

@@ -341,6 +341,7 @@ class InstructionSpec:
     key_override: Optional[Tuple] = None
     inner_opcode: Optional[str] = None
     composite_group: Optional[str] = None
+    support_declarations: List[str] = field(default_factory=list)
 
     def get_key(self) -> Tuple:
         """Get the parameter key for this instruction (matches model_common.jl)"""
@@ -561,6 +562,190 @@ DESTINATION_MODES = ["register", "indexed", "symbolic", "absolute"]
 # Instruction Specification Generators
 # ============================================================================
 
+DEFAULT_REGISTER_SRC_VALUE = "0x5678"
+DEFAULT_IMMEDIATE_VALUE = "0x1357"
+DEFAULT_REGISTER_DST_VALUE = "0x1234"
+DEFAULT_SINGLE_OPERAND_DST_VALUE = "0x2222"
+DEFAULT_CONSTANT_DST_VALUE = "0x3333"
+
+DUAL_OPERAND_TOGGLE_SEEDS = {
+    "xor": {
+        "register_src": "0xFFFF",
+        "immediate_src": "0xFFFF",
+        "register_dst": "0x0000",
+    }
+}
+
+SINGLE_OPERAND_TOGGLE_SEEDS = {
+    "inv": "0x0000",
+    "swpb": "0x00FF",
+}
+
+ISOLATED_MEMORY_DUAL_OPCODES = {"xor"}
+ISOLATED_MEMORY_SINGLE_OPCODES = {"inv", "swpb"}
+ISOLATED_MEMORY_BUFFER_SIZE = 16
+
+
+def get_dual_operand_register_src_value(opcode: str) -> str:
+    return DUAL_OPERAND_TOGGLE_SEEDS.get(opcode, {}).get(
+        "register_src", DEFAULT_REGISTER_SRC_VALUE
+    )
+
+
+def get_dual_operand_immediate_value(opcode: str) -> str:
+    return DUAL_OPERAND_TOGGLE_SEEDS.get(opcode, {}).get(
+        "immediate_src", DEFAULT_IMMEDIATE_VALUE
+    )
+
+
+def get_dual_operand_register_dst_value(opcode: str) -> str:
+    return DUAL_OPERAND_TOGGLE_SEEDS.get(opcode, {}).get(
+        "register_dst", DEFAULT_REGISTER_DST_VALUE
+    )
+
+
+def get_single_operand_register_dst_value(opcode: str) -> str:
+    return SINGLE_OPERAND_TOGGLE_SEEDS.get(opcode, DEFAULT_SINGLE_OPERAND_DST_VALUE)
+
+
+def _make_benchmark_symbol(spec: InstructionSpec, suffix: str) -> str:
+    return f"bench_{spec.get_key_str()}_{suffix}"
+
+
+def _make_isolated_word_declaration(symbol: str, value: str) -> str:
+    return f"static volatile uint16_t {symbol} = {value};"
+
+
+def _make_isolated_buffer_declaration(symbol: str, value: str) -> str:
+    if value == "0x0000":
+        initializer = "{0}"
+    else:
+        initializer = (
+            "{ [0 ... "
+            f"{ISOLATED_MEMORY_BUFFER_SIZE - 1}"
+            f"] = {value} }}"
+        )
+    return (
+        f"static volatile uint16_t {symbol}[{ISOLATED_MEMORY_BUFFER_SIZE}] "
+        f"__attribute__((aligned(64))) = {initializer};"
+    )
+
+
+def _set_variable_value(
+    variables: List[Dict[str, str]], variable_name: str, value: str
+) -> None:
+    for variable in variables:
+        if variable["name"] == variable_name:
+            variable["value"] = value
+            return
+    raise ValueError(f"Variable '{variable_name}' not found in benchmark spec")
+
+
+def apply_isolated_memory_layout_to_dual_spec(spec: InstructionSpec) -> None:
+    if spec.opcode not in ISOLATED_MEMORY_DUAL_OPCODES:
+        return
+    if spec.src_mode not in {"indexed", "symbolic", "absolute", "indirect", "autoincrement"} and (
+        spec.dst_mode not in {"indexed", "symbolic", "absolute"}
+    ):
+        return
+
+    src_seed = get_dual_operand_register_src_value(spec.opcode)
+    dst_seed = get_dual_operand_register_dst_value(spec.opcode)
+
+    if spec.src_mode == "register":
+        src_asm = "%[src]"
+    elif spec.src_mode == "immediate":
+        src_asm = f"#{get_dual_operand_immediate_value(spec.opcode)}"
+    elif spec.src_mode == "symbolic":
+        src_symbol = _make_benchmark_symbol(spec, "src")
+        spec.support_declarations.append(
+            _make_isolated_word_declaration(src_symbol, src_seed)
+        )
+        src_asm = src_symbol
+    elif spec.src_mode == "absolute":
+        src_symbol = _make_benchmark_symbol(spec, "src")
+        spec.support_declarations.append(
+            _make_isolated_word_declaration(src_symbol, src_seed)
+        )
+        src_asm = f"&{src_symbol}"
+    elif spec.src_mode == "indexed":
+        src_buffer = _make_benchmark_symbol(spec, "src_buf")
+        spec.support_declarations.append(
+            _make_isolated_buffer_declaration(src_buffer, src_seed)
+        )
+        _set_variable_value(spec.variables, "base_src", src_buffer)
+        src_asm = "%c[offs_src](%[base_src])"
+    elif spec.src_mode == "indirect":
+        src_buffer = _make_benchmark_symbol(spec, "src_buf")
+        spec.support_declarations.append(
+            _make_isolated_buffer_declaration(src_buffer, src_seed)
+        )
+        _set_variable_value(spec.variables, "psrc", src_buffer)
+        src_asm = "@%[psrc]"
+    else:  # autoincrement
+        src_buffer = _make_benchmark_symbol(spec, "src_buf")
+        spec.support_declarations.append(
+            _make_isolated_buffer_declaration(src_buffer, src_seed)
+        )
+        _set_variable_value(spec.variables, "psrc", src_buffer)
+        _set_variable_value(spec.variables, "psrc_reset", src_buffer)
+        src_asm = "@%[psrc]+"
+
+    if spec.dst_mode == "register":
+        dst_asm = "%[dst]"
+    elif spec.dst_mode == "symbolic":
+        dst_symbol = _make_benchmark_symbol(spec, "dst")
+        spec.support_declarations.append(
+            _make_isolated_word_declaration(dst_symbol, dst_seed)
+        )
+        dst_asm = dst_symbol
+    elif spec.dst_mode == "absolute":
+        dst_symbol = _make_benchmark_symbol(spec, "dst")
+        spec.support_declarations.append(
+            _make_isolated_word_declaration(dst_symbol, dst_seed)
+        )
+        dst_asm = f"&{dst_symbol}"
+    else:
+        dst_buffer = _make_benchmark_symbol(spec, "dst_buf")
+        spec.support_declarations.append(
+            _make_isolated_buffer_declaration(dst_buffer, dst_seed)
+        )
+        _set_variable_value(spec.variables, "base_dst", f"{dst_buffer} + 8")
+        dst_asm = "%c[offs_dst](%[base_dst])"
+
+    spec.asm_template = f"{spec.opcode}.w {src_asm}, {dst_asm}"
+
+
+def apply_isolated_memory_layout_to_single_spec(spec: InstructionSpec) -> None:
+    if spec.opcode not in ISOLATED_MEMORY_SINGLE_OPCODES:
+        return
+    if spec.src_mode not in {"indexed", "symbolic", "absolute"}:
+        return
+
+    dst_seed = get_single_operand_register_dst_value(spec.opcode)
+
+    if spec.src_mode == "symbolic":
+        dst_symbol = _make_benchmark_symbol(spec, "dst")
+        spec.support_declarations.append(
+            _make_isolated_word_declaration(dst_symbol, dst_seed)
+        )
+        operand_asm = dst_symbol
+    elif spec.src_mode == "absolute":
+        dst_symbol = _make_benchmark_symbol(spec, "dst")
+        spec.support_declarations.append(
+            _make_isolated_word_declaration(dst_symbol, dst_seed)
+        )
+        operand_asm = f"&{dst_symbol}"
+    else:
+        dst_buffer = _make_benchmark_symbol(spec, "dst_buf")
+        spec.support_declarations.append(
+            _make_isolated_buffer_declaration(dst_buffer, dst_seed)
+        )
+        _set_variable_value(spec.variables, "base", dst_buffer)
+        operand_asm = "%c[offs](%[base])"
+
+    spec.asm_template = f"{spec.opcode}.w {operand_asm}"
+
 
 def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     """Create instruction specs for dual-operand instructions (add, mov, cmp, etc.)
@@ -581,10 +766,16 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
         # Build source operand
         if src_mode == "register":
             src_asm = "%[src]"
-            variables.append({"name": "src", "type": "uint16_t", "value": "0x5678"})
+            variables.append(
+                {
+                    "name": "src",
+                    "type": "uint16_t",
+                    "value": get_dual_operand_register_src_value(opcode),
+                }
+            )
             constraints["inputs"] = '[src] "r"(src)'
         elif src_mode == "immediate":
-            src_asm = "#0x1357"
+            src_asm = f"#{get_dual_operand_immediate_value(opcode)}"
         elif src_mode == "indexed":
             src_asm = "%c[offs_src](%[base_src])"
             variables.append(
@@ -617,7 +808,13 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
         # Build destination operand
         if dst_mode == "register":
             dst_asm = "%[dst]"
-            variables.append({"name": "dst", "type": "uint16_t", "value": "0x1234"})
+            variables.append(
+                {
+                    "name": "dst",
+                    "type": "uint16_t",
+                    "value": get_dual_operand_register_dst_value(opcode),
+                }
+            )
             # Merge with any source-side outputs (e.g., autoincrement pointers)
             if constraints["outputs"]:
                 constraints["outputs"] += ", "
@@ -641,7 +838,7 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
 
         asm_template = f"{opcode}.w {src_asm}, {dst_asm}"
 
-        return InstructionSpec(
+        spec = InstructionSpec(
             opcode=opcode,
             src_mode=src_mode,
             dst_mode=dst_mode,
@@ -650,6 +847,8 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
             variables=variables,
             constraints=constraints,
         )
+        apply_isolated_memory_layout_to_dual_spec(spec)
+        return spec
 
     # Generate all combinations
     for src_mode in SOURCE_MODES:
@@ -677,7 +876,13 @@ def create_multiplier_mov_specs(include_constant: bool) -> List[InstructionSpec]
                 src_mode="absolute",
                 dst_mode="register",
                 asm_template=f"mov.w &{hex_addr}, %[dst]",
-                variables=[{"name": "dst", "type": "uint16_t", "value": "0x1234"}],
+                variables=[
+                    {
+                        "name": "dst",
+                        "type": "uint16_t",
+                        "value": DEFAULT_REGISTER_DST_VALUE,
+                    }
+                ],
                 constraints={
                     "outputs": '[dst] "+r"(dst)',
                     "inputs": "",
@@ -694,7 +899,13 @@ def create_multiplier_mov_specs(include_constant: bool) -> List[InstructionSpec]
                 src_mode="register",
                 dst_mode="absolute",
                 asm_template=f"mov.w %[src], &{hex_addr}",
-                variables=[{"name": "src", "type": "uint16_t", "value": "0x5678"}],
+                variables=[
+                    {
+                        "name": "src",
+                        "type": "uint16_t",
+                        "value": DEFAULT_REGISTER_SRC_VALUE,
+                    }
+                ],
                 constraints={
                     "outputs": "",
                     "inputs": '[src] "r"(src)',
@@ -735,23 +946,27 @@ def create_single_operand_specs(opcode: str) -> List[InstructionSpec]:
     specs = []
 
     # reg
-    specs.append(
-        InstructionSpec(
+    spec = InstructionSpec(
             opcode=opcode,
             src_mode="register",
             asm_template=f"{opcode}.w %[dst]",
-            variables=[{"name": "dst", "type": "uint16_t", "value": "0x2222"}],
+            variables=[
+                {
+                    "name": "dst",
+                    "type": "uint16_t",
+                    "value": get_single_operand_register_dst_value(opcode),
+                }
+            ],
             constraints={
                 "outputs": '[dst] "+r"(dst)',
                 "inputs": "",
                 "clobbers": '"cc"',
             },
         )
-    )
+    specs.append(spec)
 
     # idx
-    specs.append(
-        InstructionSpec(
+    spec = InstructionSpec(
             opcode=opcode,
             src_mode="indexed",
             asm_template=f"{opcode}.w %c[offs](%[base])",
@@ -762,29 +977,30 @@ def create_single_operand_specs(opcode: str) -> List[InstructionSpec]:
                 "clobbers": '"cc", "memory"',
             },
         )
-    )
+    apply_isolated_memory_layout_to_single_spec(spec)
+    specs.append(spec)
 
     # sym
-    specs.append(
-        InstructionSpec(
+    spec = InstructionSpec(
             opcode=opcode,
             src_mode="symbolic",
             asm_template=f"{opcode}.w sym_data",
             variables=[],
             constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
         )
-    )
+    apply_isolated_memory_layout_to_single_spec(spec)
+    specs.append(spec)
 
     # abs
-    specs.append(
-        InstructionSpec(
+    spec = InstructionSpec(
             opcode=opcode,
             src_mode="absolute",
             asm_template=f"{opcode}.w &sym_data",
             variables=[],
             constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
         )
-    )
+    apply_isolated_memory_layout_to_single_spec(spec)
+    specs.append(spec)
 
     return specs
 
@@ -873,7 +1089,13 @@ def create_constant_imm_to_reg_specs(
                 dst_mode="register",
                 constant=constant if include_constant else None,
                 asm_template=f"{opcode} #{constant}, %[dst]",
-                variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
+                variables=[
+                    {
+                        "name": "dst",
+                        "type": "uint16_t",
+                        "value": DEFAULT_CONSTANT_DST_VALUE,
+                    }
+                ],
                 constraints={
                     "outputs": '[dst] "+r"(dst)',
                     "inputs": "",
@@ -983,10 +1205,16 @@ def create_push_specs() -> List[InstructionSpec]:
 
         if mode == "register":
             op_asm = "%[src]"
-            variables.append({"name": "src", "type": "uint16_t", "value": "0x2222"})
+            variables.append(
+                {
+                    "name": "src",
+                    "type": "uint16_t",
+                    "value": DEFAULT_SINGLE_OPERAND_DST_VALUE,
+                }
+            )
             constraints["inputs"] = '[src] "r"(src)'
         elif mode == "immediate":
-            op_asm = "#0x2222"
+            op_asm = f"#{DEFAULT_SINGLE_OPERAND_DST_VALUE}"
             constraints["clobbers"] = '"cc", "memory"'
         elif mode == "indexed":
             op_asm = "%c[offs](%[base])"
@@ -1052,8 +1280,16 @@ def create_opcode_specs() -> List[InstructionSpec]:
                 dst_mode=None,
                 asm_template=f"{opcode}.w %[src], %[dst]",
                 variables=[
-                    {"name": "src", "type": "uint16_t", "value": "0x5678"},
-                    {"name": "dst", "type": "uint16_t", "value": "0x1234"},
+                    {
+                        "name": "src",
+                        "type": "uint16_t",
+                        "value": get_dual_operand_register_src_value(opcode),
+                    },
+                    {
+                        "name": "dst",
+                        "type": "uint16_t",
+                        "value": get_dual_operand_register_dst_value(opcode),
+                    },
                 ],
                 constraints={
                     "outputs": '[dst] "+r"(dst)',
@@ -1069,7 +1305,13 @@ def create_opcode_specs() -> List[InstructionSpec]:
                 opcode=opcode,
                 src_mode=None,
                 asm_template=f"{opcode}.w %[dst]",
-                variables=[{"name": "dst", "type": "uint16_t", "value": "0x2222"}],
+                variables=[
+                    {
+                        "name": "dst",
+                        "type": "uint16_t",
+                        "value": get_single_operand_register_dst_value(opcode),
+                    }
+                ],
                 constraints={
                     "outputs": '[dst] "+r"(dst)',
                     "inputs": "",
@@ -1084,7 +1326,13 @@ def create_opcode_specs() -> List[InstructionSpec]:
                 opcode=opcode,
                 src_mode=None,
                 asm_template=f"{opcode} #1, %[dst]",
-                variables=[{"name": "dst", "type": "uint16_t", "value": "0x3333"}],
+                variables=[
+                    {
+                        "name": "dst",
+                        "type": "uint16_t",
+                        "value": DEFAULT_CONSTANT_DST_VALUE,
+                    }
+                ],
                 constraints={
                     "outputs": '[dst] "+r"(dst)',
                     "inputs": "",

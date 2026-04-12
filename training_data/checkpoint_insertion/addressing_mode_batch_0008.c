@@ -28,7 +28,7 @@ INLINE void bench_clr_symbolic(void) {
 }
 
 INLINE void bench_inv_register(void) {
-  uint16_t dst = 0x2222;
+  uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  inv.w %[dst]\n"

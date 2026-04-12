@@ -219,17 +219,20 @@ def generate_benchmark(spec: InstructionSpec) -> Dict[str, Any]:
     """Generate a benchmark for a single instruction"""
     name = spec.get_key_str()
 
-    code = BENCHMARK_FUNCTION_TEMPLATE.render(
+    function_code = BENCHMARK_FUNCTION_TEMPLATE.render(
         name=name,
         variables=spec.variables,
         instruction=spec.asm_template,
         constraints=spec.constraints,
         post_asm=spec.post_asm,
     )
+    support_code = ""
+    if spec.support_declarations:
+        support_code = "\n".join(spec.support_declarations) + "\n\n"
 
     return {
         "name": name,
-        "code": code,
+        "code": support_code + function_code,
         "key": spec.get_key(),
     }
 
@@ -348,17 +351,24 @@ def generate_pair_benchmark(
     post_lines = [s.post_asm for s in (spec1, spec2) if getattr(s, "post_asm", "")]
     post_asm = "\\n  ".join(post_lines) if post_lines else ""
 
-    code = PAIR_BENCHMARK_FUNCTION_TEMPLATE.render(
+    function_code = PAIR_BENCHMARK_FUNCTION_TEMPLATE.render(
         name=name,
         variables=variables,
         instructions=instructions,
         constraints=constraints,
         post_asm=post_asm,
     )
+    support_declarations = []
+    for declaration in spec1.support_declarations + spec2.support_declarations:
+        if declaration not in support_declarations:
+            support_declarations.append(declaration)
+    support_code = ""
+    if support_declarations:
+        support_code = "\n".join(support_declarations) + "\n\n"
 
     return {
         "name": name,
-        "code": code,
+        "code": support_code + function_code,
         "key1": spec1.get_key(),
         "key2": spec2.get_key(),
     }

@@ -16,7 +16,12 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from benchmark.common import InstructionSpec, FILE_TEMPLATE
+from benchmark.common import (
+    InstructionSpec,
+    FILE_TEMPLATE,
+    create_dual_operand_specs,
+    create_single_operand_specs,
+)
 from gen_benchmarks import generate_pair_benchmark
 
 
@@ -207,6 +212,32 @@ INLINE void bench_add_indexed_register__inc_symbolic(void) {
 }
 """
         self.assertEqual(result["code"].strip(), expected_code.strip())
+
+    def test_pair_includes_support_declarations_for_isolated_memory_specs(self):
+        spec1 = next(
+            s
+            for s in create_dual_operand_specs("xor")
+            if s.src_mode == "symbolic" and s.dst_mode == "register"
+        )
+        spec2 = next(
+            s for s in create_single_operand_specs("inv") if s.src_mode == "symbolic"
+        )
+
+        result = generate_pair_benchmark(spec1, spec2)
+
+        self.assertIn(
+            "static volatile uint16_t bench_xor_symbolic_register_src = 0xFFFF;",
+            result["code"],
+        )
+        self.assertIn(
+            "static volatile uint16_t bench_inv_symbolic_dst = 0x0000;",
+            result["code"],
+        )
+        self.assertIn(
+            "xor.w bench_xor_symbolic_register_src, %[dst]",
+            result["code"],
+        )
+        self.assertIn("inv.w bench_inv_symbolic_dst", result["code"])
 
     def test_full_file_generation(self):
         """Test generating a complete C file with multiple benchmarks

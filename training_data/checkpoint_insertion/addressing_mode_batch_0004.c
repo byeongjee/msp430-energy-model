@@ -119,8 +119,8 @@ INLINE void bench_and_symbolic_absolute(void) {
 }
 
 INLINE void bench_xor_register_register(void) {
-  uint16_t src = 0x5678;
-  uint16_t dst = 0x1234;
+  uint16_t src = 0xFFFF;
+  uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
       "  xor.w %[src], %[dst]\n"
