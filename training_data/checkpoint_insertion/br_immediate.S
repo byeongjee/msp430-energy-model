@@ -430,20 +430,17 @@ initialize:
 	.type	main, @function
 main:
 ; start of function
-; framesize_regs:     2
+; framesize_regs:     0
 ; framesize_locals:   0
 ; framesize_outgoing: 0
-; framesize:          2
-; elim ap -> fp       4
+; framesize:          0
+; elim ap -> fp       2
 ; elim fp -> sp       0
-; saved regs: R10
+; saved regs:(none)
 	; start of prologue
-	PUSH	R10
 	; end of prologue
 	CALL	#initialize
 	CALL	#begin_measurement_window
-	MOV.B	#30, R10
-.L21:
 	CALL	#begin_event
  ; 4 "/Users/byeongjee/migration/probabilistic-energy-modeling/scripts/hardcoded_benchmarks/br_immediate_benchmark.c" 1
 	mov #100, r13
@@ -462,13 +459,10 @@ bench_br_immediate_loop_footer:
 
  ; 0 "" 2
 	CALL	#end_event
-	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L21
 	CALL	#end_measurement_window
 	MOV.B	#0, R12
 	; start of epilogue
 	.refsym	__crt0_call_exit
-	POP	R10
 	RET
 	.size	main, .-main
 	.ident	"GCC: (Mitto Systems Limited - msp430-gcc 9.3.1.11) 9.3.1"

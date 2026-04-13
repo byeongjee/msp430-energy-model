@@ -16,6 +16,7 @@ using ..Types:
     PerOpcodeWithMemAccess,
     PerAddressingModeWithMemAccess,
     PerAddressingModeConstantWithMemAccess,
+    get_should_track_memory_access,
     get_instruction_key,
     SPECIAL_CALL_FUNCTIONS
 using ..Interpreter: FEATURE_FUNCTIONS
@@ -83,6 +84,21 @@ function get_valid_param_keys(
     end
 
     return valid_keys
+end
+
+"""
+Return true when a key should be treated as baseline behavior rather than a
+separately learned feature for the given model granularity.
+
+For *_with_mem_access models, FRAM read hits are absorbed into the base
+instruction/addressing-mode terms. Only miss and non-FRAM access events are
+learned as explicit additive penalties.
+"""
+function is_baseline_mem_event_key(
+    key::Key, model_granularity::Union{ModelGranularity,Nothing}
+)::Bool
+    isnothing(model_granularity) && return false
+    return get_should_track_memory_access(model_granularity) && key == (:FRAMReadHit,)
 end
 
 """

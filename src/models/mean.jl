@@ -125,11 +125,17 @@ Build the training matrix A, vector B, and sorted keys from training data.
 A[i,j] = count of key j in execution trace i
 B[i] = measured energy of execution trace i
 """
-function build_training_matrix(training_data::TrainingData)
+function build_training_matrix(
+    training_data::TrainingData,
+    model_granularity::Union{Nothing,ModelGranularity}=nothing,
+)
     # Collect all unique instruction keys
     all_keys = Set{Key}()
     for execution_trace in training_data.execution_traces
         for execution_event in execution_trace
+            if is_baseline_mem_event_key(execution_event.key, model_granularity)
+                continue
+            end
             push!(all_keys, execution_event.key)
         end
     end
@@ -141,6 +147,9 @@ function build_training_matrix(training_data::TrainingData)
     A = zeros(Float64, num_traces, num_keys)
     for (i, execution_trace) in enumerate(training_data.execution_traces)
         for execution_event in execution_trace
+            if is_baseline_mem_event_key(execution_event.key, model_granularity)
+                continue
+            end
             j = key_to_idx[execution_event.key]
             A[i, j] += execution_event.feature_value
         end
@@ -180,7 +189,7 @@ function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingD
         training_data.execution_traces
     ) algorithm = "upper-bound-lp"
 
-    A, B, sorted_keys = build_training_matrix(training_data)
+    A, B, sorted_keys = build_training_matrix(training_data, model.granularity)
     num_execution_traces, num_keys = size(A)
     @info "Upper-bound LP system built" num_keys = num_keys
 
@@ -367,7 +376,7 @@ function learn_params_least_squares!(
         training_data.execution_traces
     ) algorithm = inference_algorithm
 
-    A, B, sorted_keys = build_training_matrix(training_data)
+    A, B, sorted_keys = build_training_matrix(training_data, model.granularity)
     num_execution_traces, num_keys = size(A)
     @info "Least-squares system built" num_keys = num_keys
 
@@ -485,7 +494,7 @@ The objective is: minimize ||b - A*exp(y)||² + λ*||y - μ₀||²
 where y = log(x), μ₀ is the prior mean in log-space, and λ controls prior strength.
 """
 function learn_params_map!(model::MeanModel, training_data::TrainingData)
-    A, B, sorted_keys = build_training_matrix(training_data)
+    A, B, sorted_keys = build_training_matrix(training_data, model.granularity)
     num_traces, num_keys = size(A)
 
     @info "MAP estimation" num_traces=num_traces num_keys=num_keys
@@ -690,6 +699,10 @@ function estimate_energy_sum_means(
     for execution_event in execution_trace
         key = execution_event.key
         contribution = execution_event.feature_value
+
+        if is_baseline_mem_event_key(key, model.granularity)
+            continue
+        end
 
         if haskey(model.params, key)
             total_energy += model.params[key] * contribution

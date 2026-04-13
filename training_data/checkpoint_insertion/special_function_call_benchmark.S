@@ -436,26 +436,19 @@ initialize:
 	.type	main, @function
 main:
 ; start of function
-; framesize_regs:     12
+; framesize_regs:     2
 ; framesize_locals:   32
 ; framesize_outgoing: 0
-; framesize:          44
-; elim ap -> fp       14
+; framesize:          34
+; elim ap -> fp       4
 ; elim fp -> sp       32
-; saved regs: R4 R5 R7 R8 R9 R10
+; saved regs: R10
 	; start of prologue
 	PUSH	R10
-	PUSH	R9
-	PUSH	R8
-	PUSH	R7
-	PUSH	R5
-	PUSH	R4
 	SUB.W	#32, R1
 	; end of prologue
 	CALL	#initialize
 	CALL	#begin_measurement_window
-	MOV.B	#30, R9
-.L22:
 	CALL	#begin_event
 	MOV.W	#-1, @R1
 	MOV.W	#1, 2(R1)
@@ -468,37 +461,25 @@ main:
 	ADD.W	#-1, R10
 	CMP.W	#0, R10 { JNE	.L21
 	CALL	#end_event
-	ADD.W	#-1, R9
-	CMP.W	#0, R9 { JNE	.L22
-	MOV.B	#30, R9
-.L24:
 	CALL	#begin_event
 	MOV.W	#-32767, 4(R1)
 	MOV.W	#1, 6(R1)
 	MOV.B	#100, R10
-.L23:
+.L22:
 	MOV.W	4(R1), R12
 	MOV.W	6(R1), R13
 	CALL	#__mspabi_divi
 	MOV.W	R12, &sink16
 	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L23
+	CMP.W	#0, R10 { JNE	.L22
 	CALL	#end_event
-	ADD.W	#-1, R9
-	CMP.W	#0, R9 { JNE	.L24
-	MOV.B	#30, R7
-	MOV.W	#-1, R8
-	MOV.W	#32767, R9
-	MOV.B	#1, R4
-	MOV.B	#0, R5
-.L26:
 	CALL	#begin_event
-	MOV.W	R8, 16(R1)
-	MOV.W	R9, 18(R1)
-	MOV.W	R4, 20(R1)
-	MOV.W	R5, 22(R1)
+	MOV.W	#-1, 16(R1)
+	MOV.W	#32767, 18(R1)
+	MOV.W	#1, 20(R1)
+	MOV.W	#0, 22(R1)
 	MOV.B	#100, R10
-.L25:
+.L23:
 	MOV.W	16(R1), R12
 	MOV.W	18(R1), R13
 	MOV.W	20(R1), R14
@@ -507,37 +488,27 @@ main:
 	MOV.W	R12, &sink32
 	MOV.W	R13, &sink32+2
 	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L25
+	CMP.W	#0, R10 { JNE	.L23
 	CALL	#end_event
-	ADD.W	#-1, R7
-	CMP.W	#0, R7 { JNE	.L26
-	MOV.B	#30, R9
-.L28:
 	CALL	#begin_event
 	MOV.W	#-1, 8(R1)
 	MOV.W	#-1, 10(R1)
 	MOV.B	#100, R10
-.L27:
+.L24:
 	MOV.W	8(R1), R12
 	MOV.W	10(R1), R13
 	CALL	#__mspabi_mpyi
 	MOV.W	R12, &sink16
 	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L27
+	CMP.W	#0, R10 { JNE	.L24
 	CALL	#end_event
-	ADD.W	#-1, R9
-	CMP.W	#0, R9 { JNE	.L28
-	MOV.B	#30, R10
-	MOV.W	#-1, R8
-	MOV.W	#-1, R9
-.L30:
 	CALL	#begin_event
-	MOV.W	R8, 24(R1)
-	MOV.W	R9, 26(R1)
-	MOV.W	R8, 28(R1)
-	MOV.W	R9, 30(R1)
-	MOV.B	#100, R7
-.L29:
+	MOV.W	#-1, 24(R1)
+	MOV.W	#-1, 26(R1)
+	MOV.W	#-1, 28(R1)
+	MOV.W	#-1, 30(R1)
+	MOV.B	#100, R10
+.L25:
 	MOV.W	24(R1), R12
 	MOV.W	26(R1), R13
 	MOV.W	28(R1), R14
@@ -545,37 +516,26 @@ main:
 	CALL	#__mspabi_mpyl
 	MOV.W	R12, &sink32
 	MOV.W	R13, &sink32+2
-	ADD.W	#-1, R7
-	CMP.W	#0, R7 { JNE	.L29
-	CALL	#end_event
 	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L30
-	MOV.B	#30, R9
-.L32:
+	CMP.W	#0, R10 { JNE	.L25
+	CALL	#end_event
 	CALL	#begin_event
 	MOV.W	#-1, 12(R1)
 	MOV.W	#1, 14(R1)
 	MOV.B	#100, R10
-.L31:
+.L26:
 	MOV.W	12(R1), R12
 	MOV.W	14(R1), R13
 	CALL	#__mspabi_remu
 	MOV.W	R12, &sink16
 	ADD.W	#-1, R10
-	CMP.W	#0, R10 { JNE	.L31
+	CMP.W	#0, R10 { JNE	.L26
 	CALL	#end_event
-	ADD.W	#-1, R9
-	CMP.W	#0, R9 { JNE	.L32
 	CALL	#end_measurement_window
 	MOV.B	#0, R12
 	; start of epilogue
 	.refsym	__crt0_call_exit
 	ADD.W	#32, R1
-	POP	R4
-	POP	R5
-	POP	R7
-	POP	R8
-	POP	R9
 	POP	R10
 	RET
 	.size	main, .-main

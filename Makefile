@@ -31,7 +31,7 @@ export CC OBJDUMP OBJCOPY
 # Compiler flags
 # Force the base MSP430 ISA so the default pipeline does not emit MSP430X-only
 # instructions such as rpt/pushm/popm/rrum/rlam in compiled binaries.
-CFLAGS ?= -mmcu=$(DEVICE) -mcpu=msp430 -msmall -mno-warn-mcu -O3 -Wall
+CFLAGS ?= -mmcu=$(DEVICE) -mcpu=msp430 -msmall -mhwmult=none -mno-warn-mcu -O3 -Wall
 ifeq ($(origin MSP430_CFLAGS), environment)
 CFLAGS := $(MSP430_CFLAGS)
 endif

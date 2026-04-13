@@ -471,6 +471,26 @@ function run_train_tests()
             @test regular_event.feature_value == 1.0
         end
 
+        @testset "With-mem-access training treats FRAM hits as baseline" begin
+            trace = ExecutionTrace[
+                [
+                    ExecutionEvent(Types.FRAMReadHit, nothing, Any[]),
+                    ExecutionEvent((:mov, :register, :register), 1.0),
+                    ExecutionEvent(Types.FRAMReadMiss, nothing, Any[]),
+                ],
+            ]
+            training_data = TrainingData(trace, [5.0])
+            model = Model.create_model("mean_per_addressing_mode_with_mem_access")
+
+            A, B, sorted_keys = Model.build_training_matrix(training_data, model.granularity)
+
+            @test size(A) == (1, 2)
+            @test B == [5.0]
+            @test (:FRAMReadHit,) ∉ sorted_keys
+            @test (:FRAMReadMiss,) ∈ sorted_keys
+            @test (:mov, :register, :register) ∈ sorted_keys
+        end
+
         @testset "process_training_data function" begin
             asm_content = load_test_asm_content()
             energy_df = DataFrame(; energy_nJ=[100.0])
@@ -631,6 +651,24 @@ function run_estimate_tests()
 
             rm(params_file; force=true)
             rm(estimate_output; force=true)
+        end
+
+        @testset "With-mem-access estimation ignores FRAM hit events" begin
+            model = Model.create_model("mean_per_addressing_mode_with_mem_access")
+            model.params = Dict(
+                (:mov, :register, :register) => 2.0,
+                (:FRAMReadMiss,) => 3.0,
+            )
+            config = Model.create_estimation_config(model, 10)
+            execution_trace = ExecutionTrace([
+                ExecutionEvent(Types.FRAMReadHit, nothing, Any[]),
+                ExecutionEvent((:mov, :register, :register), 1.0),
+                ExecutionEvent(Types.FRAMReadMiss, nothing, Any[]),
+            ])
+
+            stats = Model.estimate_energy(model, execution_trace, config)
+
+            @test stats.mean ≈ 5.0 atol=1e-9
         end
     end
 end

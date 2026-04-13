@@ -45,11 +45,15 @@ function collect_event_debug_info(
     execution_trace::ExecutionTrace,
     estimated_energy::Float64,
     model_params::Dict{Key,Float64},
+    model_granularity::ModelGranularity,
 )::Dict{String,Any}
     # Count occurrences of each instruction key
     key_counts = Dict{String,Int}()
     key_feature_sums = Dict{String,Float64}()
     for execution_event in execution_trace
+        if Model.is_baseline_mem_event_key(execution_event.key, model_granularity)
+            continue
+        end
         key_str = join(string.(execution_event.key), "_")
         key_counts[key_str] = get(key_counts, key_str, 0) + 1
         key_feature_sums[key_str] =
@@ -60,7 +64,9 @@ function collect_event_debug_info(
     key_energies = Dict{String,Float64}()
     for (key_str, feature_sum) in key_feature_sums
         param_key = parse_key_string(key_str)
-        if haskey(model_params, param_key)
+        if Model.is_baseline_mem_event_key(param_key, model_granularity)
+            key_energies[key_str] = 0.0
+        elseif haskey(model_params, param_key)
             key_energies[key_str] = model_params[param_key] * feature_sum
         else
             key_energies[key_str] = 1.0 * feature_sum  # default energy
@@ -233,7 +239,7 @@ function run_estimate(
 
         # Collect debug info for this event
         debug_info = collect_event_debug_info(
-            event_idx, execution_trace, stats.mean, model.params
+            event_idx, execution_trace, stats.mean, model.params, granularity
         )
         push!(event_debug_info, debug_info)
 
