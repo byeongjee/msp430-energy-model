@@ -196,23 +196,23 @@ Gamma models generate samples by:
 
 ```bash
 # Mean model with dominant-key inference
-make train FILES="benchmarks/*.c" MODEL=mean_per_addressing_mode INFERENCE=dominant-key
+uv run pem train --files "benchmarks/*.c" --model mean_per_addressing_mode --inference dominant-key
 
 # Mean model with least-squares inference
-make train FILES="programs/*.c" MODEL=mean_per_addressing_mode_constant INFERENCE=least-squares-fnnls
+uv run pem train --files "programs/*.c" --model mean_per_addressing_mode_constant --inference least-squares-fnnls
 
 # Mean model with conservative upper-bound inference
-make train FILES="programs/*.c" MODEL=mean_per_addressing_mode INFERENCE=upper-bound-lp
+uv run pem train --files "programs/*.c" --model mean_per_addressing_mode --inference upper-bound-lp
 
 # Gamma model with MCMC inference
-make train FILES="benchmarks/*.c" MODEL=gamma_per_addressing_mode INFERENCE=mcmc-blocked
+uv run pem train --files "benchmarks/*.c" --model gamma_per_addressing_mode --inference mcmc-blocked
 ```
 
 ### Estimation
 
 ```bash
 # Estimate with trained parameters
-make estimate FILE=program.c PARAMS=trained_params.json
+uv run pem estimate --file program.c --params trained_params.json
 ```
 
 ---

@@ -69,8 +69,8 @@ A typical result of the measurement script is shown in the figure below:
 
 ## Usage
 
-The main entrypoint is the Makefile.
-Run `make help` for a list of available commands.
+The main entrypoint is the `pem` command, installed by `uv sync`.
+Run `uv run pem --help` for a list of available commands.
 
 The main features include:
 - `train`: Train the energy model from measurement data.
@@ -78,7 +78,7 @@ The main features include:
 
 ## Testing
 
-Run `make test` to run the test suite.
+Run `uv run pem test` to run the test suite.
 
 For now, we only have a few tests for the interpreter, which are done by
 comparing the output of the interpreter to the output of the GDB interpreter.

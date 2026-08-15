@@ -14,63 +14,76 @@ Python scripts should be run via `uv run` instead of activating a virtual enviro
 
 ## Common Commands
 
+All commands run through the `pem` CLI (`scripts/pipeline/cli.py`), installed by
+`uv sync`. Run `uv run pem --help` for the full list.
+
 ### Testing
 ```bash
 # Run all tests (Julia and Python)
-make test
+uv run pem test
 
 # Run specific test fixture by pattern
-make test PATTERN="{fixture_name}"
+uv run pem test --pattern "{fixture_name}"
 ```
 
 ### Interpreting MSP430 Programs
 ```bash
 # Compile and interpret a C or assembly file
-make interpret FILE=<file.c|file.S>
+uv run pem interpret --file <file.c|file.S>
 
 # With optional parameters
-make interpret FILE=examples/misc/simple.c MAX_STEPS=1000
-make interpret FILE=<file.c> GRANULARITY=addressing_mode
-make interpret FILE=<file.c> MODEL=mean_per_addressing_mode
+uv run pem interpret --file examples/misc/simple.c --max-steps 1000
+uv run pem interpret --file <file.c> --granularity addressing_mode
+uv run pem interpret --file <file.c> --model mean_per_addressing_mode
 
-# Valid GRANULARITY values: opcode, addressing_mode, addressing_mode_constant, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair
+# Valid --granularity values: opcode, addressing_mode, addressing_mode_constant, addressing_mode_with_mem_access, addressing_mode_constant_with_mem_access, opcode_pair, addressing_mode_pair, addressing_mode_constant_pair
 ```
 
 ### Training Energy Models
 ```bash
 # Train from measurement data
-make train FILES="examples/**/*.c" MODEL=mean_per_addressing_mode INFERENCE=dominant-key
+uv run pem train --files "examples/**/*.c" --model mean_per_addressing_mode --inference dominant-key
 
 # With output file
-make train FILES="examples/**/*.c" PARAMS=output.json
+uv run pem train --files "examples/**/*.c" --params output.json
+
+# Reuse already measured segments instead of measuring again
+uv run pem train --files "examples/**/*.c" --training-segments-csv "tmp/*_segments.csv"
 ```
 
 ### Estimating Energy Consumption
 ```bash
 # Estimate energy for a program using trained parameters
-make estimate FILE=<file.c> PARAMS=<params.json>
+uv run pem estimate --file <file.c> --params <params.json>
 
 # With optional parameters
-make estimate FILE=<file.c> PARAMS=params.json PLOT=output.png MAX_STEPS=1000
+uv run pem estimate --file <file.c> --params params.json --plot output.png --max-steps 1000
 ```
 
 ### Full Pipeline
 ```bash
 # Train and estimate in one command
-make train_and_estimate TRAIN_FILES="examples/benchmarks/*.c" ESTIMATE_FILE=examples/misc/test.c
+uv run pem train-and-estimate --train-files "examples/benchmarks/*.c" --estimate-file examples/misc/test.c --estimate-defines "NUM_REPEAT=30"
 ```
 
 ### Other Commands
 ```bash
-make compile FILE=<file.c>             # Compile to MSP430 binary
-make disasm FILE=<file.c>              # Compile and disassemble
-make flash FILE=<file.c>               # Flash binary to microcontroller
-make analyze_distribution FILES=<pattern>  # Flash, measure, and analyze energy distribution
-make generate_required_benchmarks FILE=<file.c>  # Generate benchmarks for a C file
-make info                              # Show build and toolchain information
-make clean                             # Clean build artifacts
-make help                              # Show all available commands
+uv run pem compile --file <file.c>                  # Compile to MSP430 binary
+uv run pem disasm --file <file.c>                   # Compile and disassemble
+uv run pem flash --file <file.c>                    # Flash binary to microcontroller
+uv run pem analyze-distribution --files <pattern>   # Flash, measure, and analyze energy distribution
+uv run pem gen-benchmarks --file <file.c>           # Generate the benchmarks a program needs
+uv run pem gen-benchmarks-from-keys --keys all_keys.txt --output-dir <dir>
+uv run pem compile-branch-benchmark --file <file.c> # Two-pass build of a hardcoded branch benchmark
+uv run pem create-fixture --file <file.c> --name <name>  # Create an interpreter test fixture
+uv run pem info                                     # Show build and toolchain information
+uv run pem clean                                    # Clean build artifacts
 ```
+
+Directories are configured through the environment: `BUILD_DIR` (default
+`build`), `ASM_DIR` (default `$BUILD_DIR/asm`), `TEMP_DIR` (default `./tmp`) and
+`REPORT_DIR` (default `./report`). `MSP430_DEVICE`, `MSP430_CFLAGS` and
+`MSP430_ASMFLAGS` override the compiler settings.
 
 ## Code Architecture
 
@@ -143,19 +156,23 @@ Utilities for trace analysis including memory region classification (FRAM/SRAM) 
 
 ### Scripts (scripts/)
 
-`scripts/` is the Python import root: every package below is invoked as
-`python -m <package>.<module>`, with `PYTHONPATH=scripts` set by the Makefile
-and by `scripts/pipeline/common.sh`.
+`scripts/` is the Python import root: the packages below are installed in
+editable mode by `uv sync`, so they import as `pipeline.*`, `measurement.*`,
+`benchmarks.*`, `reports.*` and `analysis.*`.
 
-#### `scripts/pipeline/` (shell)
-- `train.sh`: Full training pipeline
-- `train_and_estimate.sh`: Train + estimate + compare
-- `analyze_distribution.sh`: Flash + measure + analyze
-- `interpret.sh`: Interpret a compiled program
-- `disasm.sh`: Disassembly utilities
-- `common.sh`: Shared shell utilities; also exports `PYTHONPATH`
-- `pipeline_utils.sh`: Pipeline helper functions
-- `file_expansion_utils.sh`: File glob expansion utilities
+#### `scripts/pipeline/`
+- `cli.py`: The `pem` entry point; every command is a subparser here
+- `config.py`: Toolchain paths, compiler flags and directory layout, from the environment
+- `build.py`: Compilation and disassembly
+- `measure.py`: Compile → flash → measure → preprocess for one file
+- `train.py`, `train_and_estimate.py`, `analyze_distribution.py`: The pipelines
+- `commands.py`: compile, disasm, interpret, estimate, flash, info, clean
+- `fixtures.py`: Test fixture creation through the GDB simulator
+- `files.py`: Glob, brace and basename matching of file patterns
+- `defines.py`: Handling of the `"FOO=1 BAR"` macro lists
+- `process.py`: Subprocess and Julia invocation helpers
+- `testing.py`: The Julia and Python test suites
+- `log.py`, `errors.py`: Console logging and the `PipelineError` type
 
 #### `scripts/measurement/`
 - `measure.py`: Flash, run, and measure one program (see `docs/measurement_setup.md`)
@@ -171,9 +188,10 @@ and by `scripts/pipeline/common.sh`.
 - `gen_benchmarks.py`: Generate synthetic benchmarks for training
 - `list_benchmarks.py`: List available benchmarks
 - `extract_bench_labels.py`: Extract event labels from `BENCH()` macros
-- `generate_required_benchmarks.sh`: Generate benchmarks for specific files
-- `generate_benchmarks_from_keys.sh`: Generate benchmarks from a keys file
-- `compile_br_immediate_benchmark.sh`: Two-pass compile for branch benchmarks
+- `selection.py`: Filter the benchmark listing down to a set of parameter keys
+- `generate_required.py`: Generate the benchmarks a program needs
+- `generate_from_keys.py`: Generate benchmarks from a keys file
+- `compile_branch_benchmark.py`: Two-pass compile for branch benchmarks
 - `hardcoded/`: Hand-written C benchmarks
 
 #### `scripts/reports/`
@@ -192,9 +210,8 @@ Ad-hoc plotting tools: `compare_boards_heatmap.py`, `compare_boards_scatter.py`,
 - `test/test_sram_code.jl`: SRAM code execution tests
 - `test/test_stack_events.jl`: Stack event handling tests
 - `test/test_train.jl`: Training functionality tests
-- `test/python/`: Python test suite (unittest), run by `make test`
+- `test/python/`: Python test suite (unittest), run by `uv run pem test`
 - `test/fixtures/`: Test fixture data files
-- `test/scripts/`: Test helper scripts (e.g., create_fixture.sh)
 
 ## MSP430 Addressing Modes
 

@@ -6,9 +6,9 @@ This directory contains test fixtures for the MSP430 interpreter. Each fixture c
 
 ## Creating Fixtures
 
-Use the `make create_fixture` command:
+Use the `pem create-fixture` command:
 ```bash
-make create_fixture FILE=examples/misc/test_example.c NAME=test_example
+uv run pem create-fixture --file examples/misc/test_example.c --name test_example
 ```
 
 ## Known GDB Simulator Limitations
