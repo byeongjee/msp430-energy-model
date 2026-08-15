@@ -32,6 +32,17 @@ INLINE void bench_bit_immediate_indexed(void) {
       : "cc", "memory"));
 }
 
+INLINE void bench_bit_symbolic_register(void) {
+  uint16_t dst = 0x1234;
+  REPEAT_INNER_ITERS(__asm__ volatile(
+      ".rept " STR(TEXTUAL_REPT) "\n"
+      "  bit.w sym_data, %[dst]\n"
+      ".endr\n"
+      : [dst] "+r"(dst)
+      : 
+      : "cc", "memory"));
+}
+
 INLINE void bench_bit_symbolic_indexed(void) {
   uint16_t* base_dst0 = BASE_PTR + 8;
   uint16_t* base_dst1 = (BASE_PTR + 8) + 8;
@@ -129,23 +140,13 @@ INLINE void bench_bis_register_indexed(void) {
       : "cc", "memory"));
 }
 
-INLINE void bench_bis_immediate_register(void) {
-  uint16_t dst = 0x1234;
-  REPEAT_INNER_ITERS(__asm__ volatile(
-      ".rept " STR(TEXTUAL_REPT) "\n"
-      "  bis.w #0x1357, %[dst]\n"
-      ".endr\n"
-      : [dst] "+r"(dst)
-      : 
-      : "cc"));
-}
-
 int main(void) {
   initialize();
   begin_measurement_window();
 
 
   BENCH(bench_bit_immediate_indexed());
+  BENCH(bench_bit_symbolic_register());
   BENCH(bench_bit_symbolic_indexed());
   BENCH(bench_bit_symbolic_absolute());
   BENCH(bench_bic_register_register());
@@ -154,7 +155,6 @@ int main(void) {
   BENCH(bench_bic_symbolic_register());
   BENCH(bench_bis_register_register());
   BENCH(bench_bis_register_indexed());
-  BENCH(bench_bis_immediate_register());
 
   end_measurement_window();
 

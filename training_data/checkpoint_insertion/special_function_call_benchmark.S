@@ -431,21 +431,38 @@ initialize:
 	.global	__mspabi_mpyi
 	.global	__mspabi_mpyl
 	.global	__mspabi_remu
+	.global	__mspabi_remul
+	.global	__mspabi_mpyll
+	.global	__mspabi_addd
+	.global	__mspabi_subd
+	.global	__mspabi_mpyd
+	.global	__mspabi_divd
+	.global	__mspabi_addf
+	.global	__mspabi_mpyf
+	.global	__mspabi_divf
+	.global	__mspabi_cvtdf
+	.global	__mspabi_cvtfd
+	.global	__mspabi_fltuld
+	.global	__mspabi_fltulf
+	.global	__mspabi_fixfli
 	.balign 2
 	.global	main
 	.type	main, @function
 main:
 ; start of function
-; framesize_regs:     2
-; framesize_locals:   32
+; framesize_regs:     8
+; framesize_locals:   184
 ; framesize_outgoing: 0
-; framesize:          34
-; elim ap -> fp       4
-; elim fp -> sp       32
-; saved regs: R10
+; framesize:          192
+; elim ap -> fp       10
+; elim fp -> sp       184
+; saved regs: R7 R8 R9 R10
 	; start of prologue
 	PUSH	R10
-	SUB.W	#32, R1
+	PUSH	R9
+	PUSH	R8
+	PUSH	R7
+	SUB.W	#184, R1
 	; end of prologue
 	CALL	#initialize
 	CALL	#begin_measurement_window
@@ -531,14 +548,343 @@ main:
 	ADD.W	#-1, R10
 	CMP.W	#0, R10 { JNE	.L26
 	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#-1, 32(R1)
+	MOV.W	#-1, 34(R1)
+	MOV.W	#1, 36(R1)
+	MOV.W	#0, 38(R1)
+	MOV.B	#100, R10
+.L27:
+	MOV.W	32(R1), R12
+	MOV.W	34(R1), R13
+	MOV.W	36(R1), R14
+	MOV.W	38(R1), R15
+	CALL	#__mspabi_remul
+	MOV.W	R12, &sink32
+	MOV.W	R13, &sink32+2
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L27
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#-1, 80(R1)
+	MOV.W	#-1, 82(R1)
+	MOV.W	#-1, 84(R1)
+	MOV.W	#-1, 86(R1)
+	MOV.W	#-1, 88(R1)
+	MOV.W	#-1, 90(R1)
+	MOV.W	#-1, 92(R1)
+	MOV.W	#-1, 94(R1)
+	MOV.B	#100, R7
+.L28:
+	MOV.W	80(R1), R8
+	MOV.W	82(R1), R9
+	MOV.W	84(R1), R10
+	MOV.W	86(R1), R11
+	MOV.W	88(R1), R12
+	MOV.W	90(R1), R13
+	MOV.W	92(R1), R14
+	MOV.W	94(R1), R15
+	CALL	#__mspabi_mpyll
+	MOV.W	R12, &sink64
+	MOV.W	R13, &sink64+2
+	MOV.W	R14, &sink64+4
+	MOV.W	R15, &sink64+6
+	ADD.W	#-1, R7
+	CMP.W	#0, R7 { JNE	.L28
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 96(R1)
+	MOV.W	#0, 98(R1)
+	MOV.W	#0, 100(R1)
+	MOV.W	#0, 102(R1)
+	MOV.W	#2, 104(R1)
+	MOV.W	#0, 106(R1)
+	MOV.W	#0, 108(R1)
+	MOV.W	#-32768, 110(R1)
+	MOV.B	#100, R7
+.L29:
+	MOV.W	96(R1), R8
+	MOV.W	98(R1), R9
+	MOV.W	100(R1), R10
+	MOV.W	102(R1), R11
+	MOV.W	104(R1), R12
+	MOV.W	106(R1), R13
+	MOV.W	108(R1), R14
+	MOV.W	110(R1), R15
+	CALL	#__mspabi_addd
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	ADD.W	#-1, R7
+	CMP.W	#0, R7 { JNE	.L29
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 112(R1)
+	MOV.W	#0, 114(R1)
+	MOV.W	#0, 116(R1)
+	MOV.W	#0, 118(R1)
+	MOV.W	#2, 120(R1)
+	MOV.W	#0, 122(R1)
+	MOV.W	#0, 124(R1)
+	MOV.W	#0, 126(R1)
+	MOV.B	#100, R7
+.L30:
+	MOV.W	112(R1), R8
+	MOV.W	114(R1), R9
+	MOV.W	116(R1), R10
+	MOV.W	118(R1), R11
+	MOV.W	120(R1), R12
+	MOV.W	122(R1), R13
+	MOV.W	124(R1), R14
+	MOV.W	126(R1), R15
+	CALL	#__mspabi_subd
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	ADD.W	#-1, R7
+	CMP.W	#0, R7 { JNE	.L30
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#-1, 128(R1)
+	MOV.W	#-1, 130(R1)
+	MOV.W	#-1, 132(R1)
+	MOV.W	#16319, 134(R1)
+	MOV.W	#1, 136(R1)
+	MOV.W	#0, 138(R1)
+	MOV.W	#0, 140(R1)
+	MOV.W	#0, 142(R1)
+	MOV.B	#100, R7
+.L31:
+	MOV.W	128(R1), R8
+	MOV.W	130(R1), R9
+	MOV.W	132(R1), R10
+	MOV.W	134(R1), R11
+	MOV.W	136(R1), R12
+	MOV.W	138(R1), R13
+	MOV.W	140(R1), R14
+	MOV.W	142(R1), R15
+	CALL	#__mspabi_mpyd
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	ADD.W	#-1, R7
+	CMP.W	#0, R7 { JNE	.L31
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#15, 144(R1)
+	MOV.W	#0, 146(R1)
+	MOV.W	#0, 148(R1)
+	MOV.W	#0, 150(R1)
+	MOV.W	#31, 152(R1)
+	MOV.W	#0, 154(R1)
+	MOV.W	#0, 156(R1)
+	MOV.W	#0, 158(R1)
+	MOV.B	#100, R7
+.L32:
+	MOV.W	144(R1), R8
+	MOV.W	146(R1), R9
+	MOV.W	148(R1), R10
+	MOV.W	150(R1), R11
+	MOV.W	152(R1), R12
+	MOV.W	154(R1), R13
+	MOV.W	156(R1), R14
+	MOV.W	158(R1), R15
+	CALL	#__mspabi_divd
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	ADD.W	#-1, R7
+	CMP.W	#0, R7 { JNE	.L32
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 40(R1)
+	MOV.W	#0, 42(R1)
+	MOV.W	#2, 44(R1)
+	MOV.W	#-32768, 46(R1)
+	MOV.B	#100, R10
+.L33:
+	MOV.W	40(R1), R12
+	MOV.W	42(R1), R13
+	MOV.W	44(R1), R14
+	MOV.W	46(R1), R15
+	CALL	#__mspabi_addf
+	MOV.W	R12, &sinkf
+	MOV.W	R13, &sinkf+2
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L33
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#-1, 48(R1)
+	MOV.W	#16127, 50(R1)
+	MOV.W	#1, 52(R1)
+	MOV.W	#0, 54(R1)
+	MOV.B	#100, R10
+.L34:
+	MOV.W	48(R1), R12
+	MOV.W	50(R1), R13
+	MOV.W	52(R1), R14
+	MOV.W	54(R1), R15
+	CALL	#__mspabi_mpyf
+	MOV.W	R12, &sinkf
+	MOV.W	R13, &sinkf+2
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L34
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 56(R1)
+	MOV.W	#0, 58(R1)
+	MOV.W	#-28477, 60(R1)
+	MOV.W	#16384, 62(R1)
+	MOV.B	#100, R10
+.L35:
+	MOV.W	56(R1), R12
+	MOV.W	58(R1), R13
+	MOV.W	60(R1), R14
+	MOV.W	62(R1), R15
+	CALL	#__mspabi_divf
+	MOV.W	R12, &sinkf
+	MOV.W	R13, &sinkf+2
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L35
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 160(R1)
+	MOV.W	#0, 162(R1)
+	MOV.W	#0, 164(R1)
+	MOV.W	#0, 166(R1)
+	MOV.B	#100, R10
+.L36:
+	MOV.W	160(R1), R12
+	MOV.W	162(R1), R13
+	MOV.W	164(R1), R14
+	MOV.W	166(R1), R15
+	CALL	#__mspabi_cvtdf
+	MOV.W	R12, &sinkf
+	MOV.W	R13, &sinkf+2
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L36
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 64(R1)
+	MOV.W	#0, 66(R1)
+	MOV.B	#100, R10
+.L37:
+	MOV.W	64(R1), R12
+	MOV.W	66(R1), R13
+	CALL	#__mspabi_cvtfd
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L37
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 68(R1)
+	MOV.W	#0, 70(R1)
+	MOV.B	#100, R10
+.L38:
+	MOV.W	68(R1), R12
+	MOV.W	70(R1), R13
+	CALL	#__mspabi_fltuld
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L38
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#0, 72(R1)
+	MOV.W	#256, 74(R1)
+	MOV.B	#100, R10
+.L39:
+	MOV.W	72(R1), R12
+	MOV.W	74(R1), R13
+	CALL	#__mspabi_fltulf
+	MOV.W	R12, &sinkf
+	MOV.W	R13, &sinkf+2
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L39
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#1, 76(R1)
+	MOV.W	#0, 78(R1)
+	MOV.B	#100, R10
+.L40:
+	MOV.W	76(R1), R12
+	MOV.W	78(R1), R13
+	CALL	#__mspabi_fixfli
+	MOV.W	R12, &sink32
+	MOV.W	R13, &sink32+2
+	ADD.W	#-1, R10
+	CMP.W	#0, R10 { JNE	.L40
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#-1, 168(R1)
+	MOV.W	#-1, 170(R1)
+	MOV.W	#-1, 172(R1)
+	MOV.W	#32751, 174(R1)
+	MOV.W	168(R1), R12
+	MOV.W	170(R1), R13
+	MOV.W	172(R1), R14
+	MOV.W	174(R1), R15
+	CALL	#cos
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	MOV.W	168(R1), R12
+	MOV.W	170(R1), R13
+	MOV.W	172(R1), R14
+	MOV.W	174(R1), R15
+	CALL	#cos
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	CALL	#end_event
+	CALL	#begin_event
+	MOV.W	#-1, 176(R1)
+	MOV.W	#-1, 178(R1)
+	MOV.W	#-1, 180(R1)
+	MOV.W	#32751, 182(R1)
+	MOV.W	176(R1), R12
+	MOV.W	178(R1), R13
+	MOV.W	180(R1), R14
+	MOV.W	182(R1), R15
+	CALL	#sin
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	MOV.W	176(R1), R12
+	MOV.W	178(R1), R13
+	MOV.W	180(R1), R14
+	MOV.W	182(R1), R15
+	CALL	#sin
+	MOV.W	R12, &sinkd
+	MOV.W	R13, &sinkd+2
+	MOV.W	R14, &sinkd+4
+	MOV.W	R15, &sinkd+6
+	CALL	#end_event
 	CALL	#end_measurement_window
 	MOV.B	#0, R12
 	; start of epilogue
 	.refsym	__crt0_call_exit
-	ADD.W	#32, R1
-	POP	R10
-	RET
+	ADD.W	#184, R1
+	BR	#__mspabi_func_epilog_4
 	.size	main, .-main
+	.local	sinkd
+	.comm	sinkd,8,2
+	.local	sinkf
+	.comm	sinkf,4,2
+	.local	sink64
+	.comm	sink64,8,2
 	.local	sink32
 	.comm	sink32,4,2
 	.local	sink16
