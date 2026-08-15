@@ -1,11 +1,16 @@
 adc_indexed
+add_absolute_register
+add_autoincrement_register
 add_immediate_indexed
 add_immediate_register
 add_indexed_register
 add_indirect_register
+add_register_absolute
+add_register_indexed
 add_register_register
 addc_immediate_register
 addc_register_register
+and_absolute_register
 and_immediate_absolute
 and_immediate_register
 and_indexed_register
@@ -16,6 +21,7 @@ bic_immediate_absolute
 bic_immediate_register
 bic_register_register
 bic_symbolic_register
+bis_immediate_absolute
 bis_immediate_register
 bis_indexed_indexed
 bis_indexed_register
@@ -23,6 +29,7 @@ bis_register_indexed
 bis_register_register
 bis_symbolic_absolute
 bis_symbolic_register
+bit_immediate_absolute
 bit_immediate_indexed
 bit_immediate_register
 bit_symbolic_absolute
@@ -60,6 +67,7 @@ call_sin
 clr_register
 clr_symbolic
 clrc
+cmp_absolute_indexed
 cmp_immediate_absolute
 cmp_immediate_indexed
 cmp_immediate_register
@@ -121,6 +129,7 @@ rra_symbolic
 rrc_indexed
 rrc_register
 rrc_symbolic
+sub_absolute_register
 sub_immediate_register
 sub_indexed_indexed
 sub_indexed_register
@@ -130,7 +139,9 @@ sub_symbolic_register
 subc_register_register
 swpb_register
 sxt_register
+xor_absolute_indexed
 xor_absolute_register
+xor_autoincrement_register
 xor_immediate_indexed
 xor_immediate_register
 xor_indexed_indexed
