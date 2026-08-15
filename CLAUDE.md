@@ -26,6 +26,25 @@ uv run pem test
 uv run pem test --pattern "{fixture_name}"
 ```
 
+### Linting and Formatting
+Repository-wide checks, run directly rather than through `pem` (CI runs the same
+three commands):
+```bash
+# Check (what CI runs)
+julia tools/julia-format/format.jl --check
+uv run ruff format --check scripts test/python
+uv run ruff check scripts test/python
+
+# Fix in place
+julia tools/julia-format/format.jl
+uv run ruff format scripts test/python
+uv run ruff check --fix scripts test/python
+```
+
+Julia style comes from `.JuliaFormatter.toml`; JuliaFormatter is pinned in its
+own environment under `tools/julia-format/`. Python style comes from ruff,
+configured in `pyproject.toml`.
+
 ### Interpreting MSP430 Programs
 ```bash
 # Compile and interpret a C or assembly file
