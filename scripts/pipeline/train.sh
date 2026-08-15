@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Training pipeline: measure → preprocess → train
-# Usage: ./scripts/train.sh [options]
+# Usage: ./scripts/pipeline/train.sh [options]
 # Requires: bash 4.0+ (for mapfile)
 
 # Setup script directory before sourcing common

@@ -1,33 +1,32 @@
 """Tests for special function call benchmark registration and listing.
 
 Run with: make test
-Or: uv run python scripts/test_special_function_call_benchmarks.py
+Or: uv run python -m unittest discover -s test/python -k test_special_function_call_benchmarks
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-
-from benchmark.common import (
+from benchmarks.common import (
     HARDCODED_BENCHMARKS,
     SPECIAL_FUNCTION_CALL_BENCHMARKS,
     get_hardcoded_benchmarks,
 )
-from gen_benchmarks import (
+from benchmarks.gen_benchmarks import (
     build_branch_benchmark_command,
     build_define_flags,
     build_special_function_compile_command,
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ALL_KEYS_FILE = PROJECT_ROOT / "all_keys.txt"
 SPECIAL_BENCHMARK_SOURCE = (
-    PROJECT_ROOT / "scripts" / "hardcoded_benchmarks" / "special_function_call_benchmark.c"
+    PROJECT_ROOT / "scripts" / "benchmarks" / "hardcoded" / "special_function_call_benchmark.c"
 )
 
 
@@ -155,16 +154,18 @@ class TestHardcodedBenchmarkCommandBuilders(unittest.TestCase):
 
 
 class TestListBenchmarks(unittest.TestCase):
-    """Test that list_benchmarks.py includes special function call keys."""
+    """Test that benchmarks.list_benchmarks includes special function call keys."""
 
     def test_list_benchmarks_addressing_mode(self):
-        """list_benchmarks.py includes special function call keys for addressing_mode."""
+        """benchmarks.list_benchmarks includes special function call keys for addressing_mode."""
         result = subprocess.run(
-            [sys.executable, "scripts/list_benchmarks.py", "--granularity", "addressing_mode"],
+            [sys.executable, "-m", "benchmarks.list_benchmarks",
+             "--granularity", "addressing_mode"],
             capture_output=True,
             text=True,
+            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT / "scripts")},
         )
-        self.assertEqual(result.returncode, 0, f"list_benchmarks.py failed: {result.stderr}")
+        self.assertEqual(result.returncode, 0, f"benchmarks.list_benchmarks failed: {result.stderr}")
         data = json.loads(result.stdout)
 
         hardcoded_names = {

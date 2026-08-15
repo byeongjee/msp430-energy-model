@@ -4,13 +4,13 @@ Generate C benchmark files for any supported granularity (opcode/addressing-mode
 
 USAGE:
     # Generate addressing-mode benchmarks (single file)
-    python scripts/gen_benchmarks.py \
+    python -m benchmarks.gen_benchmarks \
         --granularity addressing_mode \
         --input add_instructions.json \
         --output add_benchmarks.c
 
     # Generate addressing-mode pair benchmarks in batches
-    python scripts/gen_benchmarks.py \
+    python -m benchmarks.gen_benchmarks \
         --granularity addressing_mode_pair \
         --input jl_pairs.json \
         --output-dir training_data/pairs \
@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from jinja2 import Template
 
-from benchmark.common import (
+from benchmarks.common import (
     InstructionSpec,
     generate_benchmark_file,
     generate_batched_files,
@@ -627,7 +627,7 @@ def main():
 
     # Generate and copy hardcoded benchmark files (only those that are requested)
     if requested_hardcoded:
-        script_dir = Path(__file__).parent.parent  # Go up to repo root
+        repo_root = Path(__file__).resolve().parents[2]
 
         compiled_special_function = False
         copied_special_function = False
@@ -637,13 +637,16 @@ def main():
         for entry in requested_hardcoded:
             name = entry["name"]
             hardcoded_path = entry["path"]
-            src_c_file = script_dir / hardcoded_path
+            src_c_file = repo_root / hardcoded_path
 
             if name in {"br_immediate", "br_indexed"}:
                 # Branch benchmarks require two-pass compilation to resolve the
                 # control-flow targets used in the hand-written assembly.
                 compile_script = (
-                    script_dir / "scripts" / "compile_br_immediate_benchmark.sh"
+                    repo_root
+                    / "scripts"
+                    / "benchmarks"
+                    / "compile_br_immediate_benchmark.sh"
                 )
                 print(
                     f"Generating {name}.S via branch benchmark helper...",
@@ -655,7 +658,7 @@ def main():
                             compile_script, src_c_file, args.defines
                         ),
                         check=True,
-                        cwd=str(script_dir),
+                        cwd=str(repo_root),
                         capture_output=True,
                         text=True,
                     )
@@ -670,7 +673,7 @@ def main():
 
                 # Copy the generated .S file from build/asm/ to output directory
                 basename = src_c_file.stem
-                src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
+                src_s_file = repo_root / "build" / "asm" / f"{basename}.S"
                 dst_s_file = args.output_dir / f"{name}.S"
 
                 if not src_s_file.exists():
@@ -692,7 +695,7 @@ def main():
                 # All special-call keys share one source file; compile to .S once.
                 if not compiled_special_function:
                     basename = src_c_file.stem  # "special_function_call_benchmark"
-                    asm_dir = script_dir / "build" / "asm"
+                    asm_dir = repo_root / "build" / "asm"
                     asm_dir.mkdir(parents=True, exist_ok=True)
                     asm_path = asm_dir / f"{basename}.S"
 
@@ -720,7 +723,7 @@ def main():
                         subprocess.run(
                             compile_cmd,
                             check=True,
-                            cwd=str(script_dir),
+                            cwd=str(repo_root),
                             capture_output=True,
                             text=True,
                         )
@@ -742,7 +745,7 @@ def main():
 
                 # Copy .S to output directory (same file for all special-call keys)
                 basename = src_c_file.stem
-                src_s_file = script_dir / "build" / "asm" / f"{basename}.S"
+                src_s_file = repo_root / "build" / "asm" / f"{basename}.S"
                 dst_s_file = args.output_dir / f"special_function_call_benchmark.S"
 
                 if not src_s_file.exists():
@@ -779,10 +782,10 @@ def main():
 
     # Copy model benchmarks (always included for certain granularities)
     if model_benchmarks:
-        script_dir = Path(__file__).parent.parent  # Go up to repo root
+        repo_root = Path(__file__).resolve().parents[2]
 
         for entry in model_benchmarks:
-            src_path = script_dir / entry["path"]
+            src_path = repo_root / entry["path"]
             dst_file = args.output_dir / src_path.name
             shutil.copy(src_path, dst_file)
             print(f"✓ Copied model benchmark: {dst_file}", file=sys.stderr)

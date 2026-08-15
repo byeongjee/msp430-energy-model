@@ -1,12 +1,10 @@
 import tempfile
 import unittest
 from pathlib import Path
-import sys
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from preprocess import preprocess_csv
+from measurement.preprocess import preprocess_csv
 
 
 class TestPreprocess(unittest.TestCase):

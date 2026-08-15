@@ -20,7 +20,7 @@ function run_br_immediate_tests()
             # Generate br_immediate_benchmark.S via the branch benchmark helper
             @info "Generating br_immediate_benchmark.S..."
             run(
-                `./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c --defines $BR_DEFINES`,
+                `./scripts/benchmarks/compile_br_immediate_benchmark.sh --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c --defines $BR_DEFINES`,
             )
 
             # Now compile and disassemble the .S file
@@ -85,7 +85,7 @@ function run_br_immediate_tests()
         @testset "br_indexed instruction count" begin
             @info "Generating br_indexed_benchmark.S..."
             run(
-                `./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_indexed_benchmark.c --defines $BR_DEFINES`,
+                `./scripts/benchmarks/compile_br_immediate_benchmark.sh --file scripts/benchmarks/hardcoded/br_indexed_benchmark.c --defines $BR_DEFINES`,
             )
 
             @info "Compiling and disassembling .S file..."

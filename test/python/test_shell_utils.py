@@ -6,7 +6,7 @@ These tests verify that shell utility functions work correctly by running
 them via subprocess. This ensures the actual shell code is tested.
 
 Run with: make test
-Or: uv run python -m unittest scripts/test_shell_utils.py -v
+Or: uv run python -m unittest discover -s test/python -k test_shell_utils -v
 """
 
 import os
@@ -21,7 +21,7 @@ class TestShellUtils(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
 
         # Get required environment variables from Makefile
@@ -61,7 +61,7 @@ class TestShellUtils(unittest.TestCase):
         """process_defines '' returns empty string"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             process_defines ""
             """
         )
@@ -72,7 +72,7 @@ class TestShellUtils(unittest.TestCase):
         """process_defines 'FOO=1' returns '-DFOO=1'"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             process_defines "FOO=1"
             """
         )
@@ -83,7 +83,7 @@ class TestShellUtils(unittest.TestCase):
         """process_defines 'BAR' returns '-DBAR'"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             process_defines "BAR"
             """
         )
@@ -94,7 +94,7 @@ class TestShellUtils(unittest.TestCase):
         """process_defines 'FOO=1 BAR' returns '-DFOO=1 -DBAR'"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             process_defines "FOO=1 BAR"
             """
         )
@@ -107,7 +107,7 @@ class TestShellUtils(unittest.TestCase):
         """process_defines handles complex values like 'ENABLE_FEATURE=value'"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             process_defines "ENABLE_FEATURE=value NUM_REPEAT=100"
             """
         )
@@ -124,7 +124,7 @@ class TestShellUtils(unittest.TestCase):
         """extract_define finds and returns define value"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             extract_define "FOO=1 NUM_REPEAT=100" "NUM_REPEAT"
             """
         )
@@ -135,7 +135,7 @@ class TestShellUtils(unittest.TestCase):
         """extract_define finds first define in list"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             extract_define "FOO=42 BAR=2" "FOO"
             """
         )
@@ -146,7 +146,7 @@ class TestShellUtils(unittest.TestCase):
         """extract_define returns empty when not found"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             result=$(extract_define "FOO=1" "BAR")
             echo "result='$result'"
             """
@@ -158,7 +158,7 @@ class TestShellUtils(unittest.TestCase):
         """extract_define handles empty input"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             result=$(extract_define "" "FOO")
             echo "result='$result'"
             """
@@ -170,7 +170,7 @@ class TestShellUtils(unittest.TestCase):
         """extract_define doesn't match partial names"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             result=$(extract_define "FOO_BAR=1 FOO=2" "FOO")
             echo "$result"
             """
@@ -186,7 +186,7 @@ class TestShellUtils(unittest.TestCase):
         """override_define replaces existing value"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             override_define "NUM_REPEAT=100" "NUM_REPEAT" "1"
             """
         )
@@ -199,7 +199,7 @@ class TestShellUtils(unittest.TestCase):
         """override_define adds new define when not present"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             override_define "FOO=1" "BAR" "2"
             """
         )
@@ -212,7 +212,7 @@ class TestShellUtils(unittest.TestCase):
         """override_define preserves other defines"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             override_define "FOO=1 BAR=2 NUM_REPEAT=100" "NUM_REPEAT" "1"
             """
         )
@@ -226,7 +226,7 @@ class TestShellUtils(unittest.TestCase):
         """override_define handles empty input by adding the define"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             override_define "" "FOO" "1"
             """
         )
@@ -241,7 +241,7 @@ class TestShellUtils(unittest.TestCase):
         """create_timestamp returns timestamp in expected format"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             create_timestamp
             """
         )
@@ -260,7 +260,7 @@ class TestFileExpansion(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
 
         cls.base_env = {
@@ -286,7 +286,7 @@ class TestFileExpansion(unittest.TestCase):
         """expand_file_input returns literal file if it exists"""
         result = self.run_bash(
             """
-            source scripts/file_expansion_utils.sh
+            source scripts/pipeline/file_expansion_utils.sh
             expand_file_input "test/fixtures/c_programs/simple.c"
             """
         )
@@ -297,7 +297,7 @@ class TestFileExpansion(unittest.TestCase):
         """expand_file_input expands glob patterns"""
         result = self.run_bash(
             """
-            source scripts/file_expansion_utils.sh
+            source scripts/pipeline/file_expansion_utils.sh
             expand_file_input "test/fixtures/c_programs/*.c"
             """
         )
@@ -311,7 +311,7 @@ class TestFileExpansion(unittest.TestCase):
         """expand_file_input expands brace patterns"""
         result = self.run_bash(
             """
-            source scripts/file_expansion_utils.sh
+            source scripts/pipeline/file_expansion_utils.sh
             expand_file_input "test/fixtures/c_programs/{simple,arithmetic}.c"
             """
         )
@@ -324,7 +324,7 @@ class TestFileExpansion(unittest.TestCase):
         """expand_file_input handles recursive glob (**/*.c)"""
         result = self.run_bash(
             """
-            source scripts/file_expansion_utils.sh
+            source scripts/pipeline/file_expansion_utils.sh
             expand_file_input "test/fixtures/**/*.c"
             """
         )
@@ -337,7 +337,7 @@ class TestFileExpansion(unittest.TestCase):
         """expand_file_input returns empty for no matches"""
         result = self.run_bash(
             """
-            source scripts/file_expansion_utils.sh
+            source scripts/pipeline/file_expansion_utils.sh
             result=$(expand_file_input "nonexistent_dir/*.c")
             if [ -z "$result" ]; then
                 echo "EMPTY"
@@ -353,7 +353,7 @@ class TestFileExpansion(unittest.TestCase):
         """expand_file_input removes duplicate entries"""
         result = self.run_bash(
             """
-            source scripts/file_expansion_utils.sh
+            source scripts/pipeline/file_expansion_utils.sh
             # Use patterns that might produce duplicates
             expand_file_input "test/fixtures/c_programs/simple.c" | wc -l
             """
@@ -375,7 +375,7 @@ class TestFileExpansion(unittest.TestCase):
 
             result = self.run_bash(
                 f"""
-                source scripts/file_expansion_utils.sh
+                source scripts/pipeline/file_expansion_utils.sh
 
                 # Define source files array
                 source_files=(
@@ -398,7 +398,7 @@ class TestLoggingFunctions(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         cls.base_env = {**os.environ, "SKIP_AUTO_INIT": "1"}
 
     def run_bash(
@@ -420,7 +420,7 @@ class TestLoggingFunctions(unittest.TestCase):
         """log_info outputs to stdout with [INFO] prefix"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             log_info "test message"
             """
         )
@@ -432,7 +432,7 @@ class TestLoggingFunctions(unittest.TestCase):
         """log_error outputs to stderr with [ERROR] prefix"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             log_error "error message"
             """
         )
@@ -444,7 +444,7 @@ class TestLoggingFunctions(unittest.TestCase):
         """log_success outputs to stdout with [SUCCESS] prefix"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             log_success "success message"
             """
         )
@@ -456,7 +456,7 @@ class TestLoggingFunctions(unittest.TestCase):
         """log_warn outputs to stderr with [WARN] prefix"""
         result = self.run_bash(
             """
-            source scripts/common.sh
+            source scripts/pipeline/common.sh
             log_warn "warning message"
             """
         )
@@ -470,7 +470,7 @@ class TestPipelineUtils(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
         cls.base_env = {**os.environ, "SKIP_AUTO_INIT": "1"}
 
@@ -497,7 +497,7 @@ class TestPipelineUtils(unittest.TestCase):
         """get_basename 'path/to/file.c' returns 'file'"""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             get_basename "path/to/file.c"
             """
         )
@@ -508,7 +508,7 @@ class TestPipelineUtils(unittest.TestCase):
         """get_basename 'path/to/file.S' returns 'file'"""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             get_basename "path/to/file.S"
             """
         )
@@ -519,7 +519,7 @@ class TestPipelineUtils(unittest.TestCase):
         """get_basename handles deeply nested paths"""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             get_basename "a/b/c/d/test_program.c"
             """
         )
@@ -534,7 +534,7 @@ class TestPipelineUtils(unittest.TestCase):
         """get_compile_flags returns CFLAGS for C sources."""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             get_compile_flags "training_data/checkpoint_insertion/addressing_mode_batch_0000.c"
             """,
             env={"CFLAGS": "CFLAGS_SENTINEL", "ASMFLAGS": "ASMFLAGS_SENTINEL"},
@@ -546,7 +546,7 @@ class TestPipelineUtils(unittest.TestCase):
         """get_compile_flags returns ASMFLAGS for assembly sources."""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             get_compile_flags "training_data/checkpoint_insertion/br_immediate.S"
             """,
             env={"CFLAGS": "CFLAGS_SENTINEL", "ASMFLAGS": "ASMFLAGS_SENTINEL"},
@@ -562,8 +562,8 @@ class TestPipelineUtils(unittest.TestCase):
         """granularity_to_model 'opcode' returns 'mean_per_instruction'"""
         result = self.run_bash(
             """
-            source scripts/common.sh
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/common.sh
+            source scripts/pipeline/pipeline_utils.sh
             granularity_to_model "opcode"
             """
         )
@@ -574,8 +574,8 @@ class TestPipelineUtils(unittest.TestCase):
         """granularity_to_model 'addressing_mode' returns correct model"""
         result = self.run_bash(
             """
-            source scripts/common.sh
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/common.sh
+            source scripts/pipeline/pipeline_utils.sh
             granularity_to_model "addressing_mode"
             """
         )
@@ -586,8 +586,8 @@ class TestPipelineUtils(unittest.TestCase):
         """granularity_to_model 'addressing_mode_constant' returns correct model"""
         result = self.run_bash(
             """
-            source scripts/common.sh
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/common.sh
+            source scripts/pipeline/pipeline_utils.sh
             granularity_to_model "addressing_mode_constant"
             """
         )
@@ -600,8 +600,8 @@ class TestPipelineUtils(unittest.TestCase):
             with self.subTest(granularity=granularity):
                 result = self.run_bash(
                     f"""
-                    source scripts/common.sh
-                    source scripts/pipeline_utils.sh
+                    source scripts/pipeline/common.sh
+                    source scripts/pipeline/pipeline_utils.sh
                     granularity_to_model "{granularity}"
                     """
                 )
@@ -612,8 +612,8 @@ class TestPipelineUtils(unittest.TestCase):
         """granularity_to_model with invalid input returns error"""
         result = self.run_bash(
             """
-            source scripts/common.sh
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/common.sh
+            source scripts/pipeline/pipeline_utils.sh
             granularity_to_model "invalid_granularity"
             """
         )
@@ -628,7 +628,7 @@ class TestPipelineUtils(unittest.TestCase):
         """build_julia_flags with all parameters"""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             build_julia_flags "1000" "100" "mean_per_addressing_mode" "importance-sampling"
             """
         )
@@ -643,7 +643,7 @@ class TestPipelineUtils(unittest.TestCase):
         """build_julia_flags with some empty parameters"""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             build_julia_flags "500" "" "mean_per_instruction" ""
             """
         )
@@ -658,7 +658,7 @@ class TestPipelineUtils(unittest.TestCase):
         """build_julia_flags with all empty parameters returns empty"""
         result = self.run_bash(
             """
-            source scripts/pipeline_utils.sh
+            source scripts/pipeline/pipeline_utils.sh
             result=$(build_julia_flags "" "" "" "")
             echo "result='$result'"
             """

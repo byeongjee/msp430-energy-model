@@ -6,7 +6,7 @@ This ensures the mapping between user-friendly granularity names and
 internal model names is consistent across all locations.
 
 Run with: make test
-Or: uv run python -m unittest scripts/test_granularity_mapping.py -v
+Or: uv run python -m unittest discover -s test/python -k test_granularity_mapping -v
 """
 
 import os
@@ -36,7 +36,7 @@ class TestGranularityMapping(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
 
     def test_makefile_mapping_opcode(self):
@@ -101,7 +101,7 @@ class TestGranularityMapping(unittest.TestCase):
         # The dry-run output should show interpret.sh being called with --granularity
         combined = result.stdout + result.stderr
         self.assertIn(
-            "./scripts/interpret.sh",
+            "./scripts/pipeline/interpret.sh",
             combined,
             f"Expected interpret.sh to be called. Output: {combined[:500]}...",
         )
@@ -161,7 +161,7 @@ class TestGenerateRequiredBenchmarksMapping(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
         cls.base_env = {**os.environ, "SKIP_AUTO_INIT": "1"}
 
@@ -170,7 +170,7 @@ class TestGenerateRequiredBenchmarksMapping(unittest.TestCase):
         # After refactoring, generate_required_benchmarks.sh uses granularity_to_model()
         # from pipeline_utils.sh instead of a local case statement
 
-        script_path = self.project_root / "scripts" / "generate_required_benchmarks.sh"
+        script_path = self.project_root / "scripts" / "benchmarks" / "generate_required_benchmarks.sh"
         if not script_path.exists():
             self.skipTest("generate_required_benchmarks.sh not found")
 
@@ -185,7 +185,7 @@ class TestGenerateRequiredBenchmarksMapping(unittest.TestCase):
 
         # Verify it sources common.sh (which sources pipeline_utils.sh)
         self.assertIn(
-            'source "$SCRIPT_DIR/common.sh"',
+            'source "$REPO_ROOT/scripts/pipeline/common.sh"',
             script_content,
             "Expected generate_required_benchmarks.sh to source common.sh",
         )
@@ -197,7 +197,7 @@ class TestGenerateRequiredBenchmarksMapping(unittest.TestCase):
                 "bash",
                 "-c",
                 """
-                source scripts/common.sh
+                source scripts/pipeline/common.sh
 
                 # Extract just the case statement logic
                 granularity="invalid_granularity"
@@ -241,12 +241,12 @@ class TestMappingConsistency(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
 
     def test_pipeline_utils_contains_all_granularities(self):
         """pipeline_utils.sh contains granularity_to_model with all expected granularities"""
-        script_path = self.project_root / "scripts" / "pipeline_utils.sh"
+        script_path = self.project_root / "scripts" / "pipeline" / "pipeline_utils.sh"
         script_content = script_path.read_text()
 
         # Verify the function exists
@@ -268,7 +268,7 @@ class TestMappingConsistency(unittest.TestCase):
         """pipeline_utils.sh granularity_to_model returns correct models"""
         # All unique model names should be in the file
         unique_models = set(self.EXPECTED_MAPPINGS.values())
-        script_path = self.project_root / "scripts" / "pipeline_utils.sh"
+        script_path = self.project_root / "scripts" / "pipeline" / "pipeline_utils.sh"
         script_content = script_path.read_text()
 
         for model in unique_models:

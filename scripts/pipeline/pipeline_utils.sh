@@ -103,7 +103,7 @@ granularity_to_model() {
 
 # extract_event_labels FILE OUTPUT_JSON
 #
-# Extract event labels from a C/S source file using extract_bench_labels.py.
+# Extract event labels from a C/S source file using benchmarks.extract_bench_labels.
 #
 # Arguments:
 #   FILE        - Path to the C or S source file
@@ -119,7 +119,7 @@ extract_event_labels() {
     local file="$1"
     local output_json="$2"
 
-    uv run python "$EXTRACT_BENCH_LABELS_PY" \
+    uv run python -m benchmarks.extract_bench_labels \
         --input "$file" \
         --output "$output_json" \
         --format json
@@ -191,7 +191,7 @@ build_julia_flags() {
 #   CC, CFLAGS, ASMFLAGS, INCLUDES, LDFLAGS - Compiler settings
 #   BUILD_DIR - Build output directory
 #   VOLTAGE, MAX_CURRENT - Measurement settings
-#   SKIP_FLASH - If set, passed to measure.py
+#   SKIP_FLASH - If set, passed to measurement.measure
 #   MEASURE_PY, PREPROCESS_PY - Python script paths
 #
 # Returns:
@@ -223,10 +223,10 @@ measure_and_preprocess() {
     $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file" ${LDLIBS:-}
     log_success "Compiled: $BUILD_DIR/${base}.elf"
 
-    # Measure (measure.py flashes through the switchboard-connected ez-FET)
+    # Measure (measurement.measure flashes through the switchboard-connected ez-FET)
     log_step "Flashing and measuring energy consumption for $base"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
-    uv run python "$MEASURE_PY" \
+    uv run python -m measurement.measure \
         "$BUILD_DIR/${base}.elf" \
         --voltage "$VOLTAGE" \
         --max-current "$MAX_CURRENT" \
@@ -236,7 +236,7 @@ measure_and_preprocess() {
 
     # Preprocess
     log_step "Preprocessing measurements for $base"
-    uv run python "$PREPROCESS_PY" \
+    uv run python -m measurement.preprocess \
         --input "$raw_csv" \
         --output "$segments_csv" \
         --event-labels "$event_labels_json"

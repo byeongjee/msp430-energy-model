@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Full pipeline: measure train → measure estimate → preprocess both → train → estimate → compare
-# Usage: ./scripts/train_and_estimate.sh [options]
+# Usage: ./scripts/pipeline/train_and_estimate.sh [options]
 # Requires: bash 4.0+ (for mapfile)
 
 # Setup script directory before sourcing common
@@ -429,7 +429,7 @@ fi
 
 log_info "Using NUM_REPEAT=$NUM_REPEAT from estimation defines"
 
-uv run python "$PROJECT_ROOT/scripts/generate_comparison_report.py" \
+uv run python -m reports.generate_comparison_report \
     --estimated-stats "$ESTIMATED_STATS_JSON" \
     --measured-data "$TEST_SEGMENTS_CSV" \
     --report-dir "$REPORT_DIR_FULL" \

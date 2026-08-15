@@ -24,7 +24,7 @@ the single source of truth for the setup's wiring and software.
 ```mermaid
 flowchart LR
     subgraph HOST[Host]
-        measure[scripts/measure.py]
+        measure[measurement.measure]
     end
 
     subgraph OTII[Otii Ace Pro]
@@ -82,7 +82,7 @@ therefore needs `RXD`/`TXD` refitted; such a build must not be measured.
 The target must never see both supplies at once: the runner keeps the Otii main
 output off whenever the relays are closed.
 
-`uv run python scripts/check_switchboard.py` verifies exactly that contract —
+`uv run python -m measurement.check_switchboard` verifies exactly that contract —
 mspdebug must reach the target with the relays closed and fail with them open.
 
 ## How a Run Works
@@ -102,7 +102,7 @@ For each measured program:
 4. **Export** — the recording is stopped at the first `GPI1` falling edge (the
    end of the measured window) and written as one CSV row per analog sample,
    with the `GPI1` level per sample and the `GPI2` edges aligned to the nearest
-   sample. `scripts/preprocess.py` turns that into per-event segments.
+   sample. `measurement.preprocess` turns that into per-event segments.
 
 After a run the relays are left open, so the ez-FET stays disconnected from the
 target until the next run closes them.

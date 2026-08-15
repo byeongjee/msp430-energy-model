@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Generate only the benchmarks required to estimate energy for a given C file.
 # Uses: make interpret (with granularity → model mapping) to list required keys,
-# then filters list_benchmarks.py output and calls gen_benchmarks.py.
+# then filters benchmarks.list_benchmarks output and calls benchmarks.gen_benchmarks.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-source "$SCRIPT_DIR/common.sh"
+source "$REPO_ROOT/scripts/pipeline/common.sh"
 
 usage() {
     cat <<'EOF'
@@ -18,13 +18,13 @@ Usage: generate_required_benchmarks.sh --file FILE --granularity GRAN
 
 Examples:
   # Single file output (all_benchmarks.c)
-  ./scripts/generate_required_benchmarks.sh \
+  ./scripts/benchmarks/generate_required_benchmarks.sh \
       --file examples/c_programs/simple.c \
       --granularity addressing_mode_constant \
       --output-dir tmp/simple_benchmarks
 
   # Batched output
-  ./scripts/generate_required_benchmarks.sh \
+  ./scripts/benchmarks/generate_required_benchmarks.sh \
       --file examples/c_programs/simple.c \
       --granularity addressing_mode_constant_pair \
       --output-dir training_data/simple_pairs \
@@ -104,7 +104,7 @@ fi
 
 FILTERED_JSON="$TEMP_DIR/required_keys_${TIMESTAMP}.json"
 echo "Filtering benchmark list for keys: $KEYS"
-python "$REPO_ROOT/scripts/list_benchmarks.py" --granularity "$GRANULARITY" \
+uv run python -m benchmarks.list_benchmarks --granularity "$GRANULARITY" \
   | jq --arg keys "$KEYS" --arg payload "$PAYLOAD_KEY" \
       '($keys | split(" ") | map(select(length>0))) as $wanted
        | ($payload) as $payload_key
@@ -124,7 +124,7 @@ python "$REPO_ROOT/scripts/list_benchmarks.py" --granularity "$GRANULARITY" \
 MISSING_COUNT=$(jq '.missing | length' "$FILTERED_JSON")
 if [[ "$MISSING_COUNT" -gt 0 ]]; then
     MISSING_KEYS="$(jq -r '.missing | join(" ")' "$FILTERED_JSON")"
-    log_warn "Missing benchmarks in list_benchmarks.py for: $MISSING_KEYS"
+    log_warn "Missing benchmarks in benchmarks.list_benchmarks for: $MISSING_KEYS"
 fi
 
 mkdir -p "$OUTPUT_DIR"
@@ -135,5 +135,5 @@ if [[ -n "$BATCH" ]]; then
     GEN_ARGS+=(--batch "$BATCH")
 fi
 
-python "$REPO_ROOT/scripts/gen_benchmarks.py" "${GEN_ARGS[@]}"
+uv run python -m benchmarks.gen_benchmarks "${GEN_ARGS[@]}"
 echo "✓ Benchmarks written to $OUTPUT_DIR (log: $LOG_FILE)"

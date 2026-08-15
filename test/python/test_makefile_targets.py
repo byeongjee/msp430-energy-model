@@ -6,7 +6,7 @@ These tests verify that the Makefile targets work correctly for both .c and .S f
 They use subprocess to run actual make commands and verify the expected outputs.
 
 Run with: make test
-Or: uv run python -m unittest scripts/test_makefile_targets.py -v
+Or: uv run python -m unittest discover -s test/python -k test_makefile_targets -v
 """
 
 import os
@@ -29,7 +29,7 @@ class TestMakefileTargets(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Verify test files exist and environment is set up"""
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
 
         # Verify test files exist
@@ -324,7 +324,7 @@ class TestMakefileClean(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
         os.chdir(cls.project_root)
 
     def test_clean_removes_build_dir(self):

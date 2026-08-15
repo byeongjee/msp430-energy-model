@@ -46,17 +46,12 @@ log_step() {
 # SCRIPT DIRECTORY AND PATHS
 # ============================================================
 
-# Determine script directory (must be set by calling script before sourcing)
-if [[ -z "${SCRIPT_DIR:-}" ]]; then
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-fi
+# Locate this file's own directory so sourcing works from any caller
+PIPELINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$PIPELINE_DIR/../.." && pwd)"
 
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-# Python script paths
-MEASURE_PY="$SCRIPT_DIR/measure.py"
-PREPROCESS_PY="$SCRIPT_DIR/preprocess.py"
-EXTRACT_BENCH_LABELS_PY="$SCRIPT_DIR/extract_bench_labels.py"
+# Python packages under scripts/ are invoked as `python -m <package>.<module>`
+export PYTHONPATH="$PROJECT_ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}"
 
 # ============================================================
 # ENVIRONMENT VARIABLE VALIDATION
@@ -215,7 +210,7 @@ VALID_GRANULARITIES="opcode, addressing_mode, addressing_mode_constant, addressi
 # DISASSEMBLY
 # ============================================================
 
-source "$SCRIPT_DIR/disasm.sh"
+source "$PIPELINE_DIR/disasm.sh"
 
 # ============================================================
 # UTILITY FUNCTIONS
@@ -228,12 +223,12 @@ create_timestamp() {
 
 # Source file expansion utilities
 source_file_expansion() {
-    source "$SCRIPT_DIR/file_expansion_utils.sh"
+    source "$PIPELINE_DIR/file_expansion_utils.sh"
 }
 
 # Source pipeline utilities
 source_pipeline_utils() {
-    source "$SCRIPT_DIR/pipeline_utils.sh"
+    source "$PIPELINE_DIR/pipeline_utils.sh"
 }
 
 # ============================================================
