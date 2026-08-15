@@ -13,7 +13,7 @@ source "$SCRIPT_DIR/common.sh"
 VOLTAGE="${VOLTAGE_DEFAULT}"
 MAX_CURRENT="${MAX_CURRENT_DEFAULT}"
 TEMP_DIR="${TEMP_DIR:-${TEMP_DIR_DEFAULT}}"
-SKIP_RESET=""
+SKIP_FLASH=""
 MAX_STEPS=""
 N_SAMPLES=""
 MODEL="gamma_per_instruction"
@@ -54,7 +54,7 @@ Optional arguments:
   --model MODEL             Energy model: gamma_per_instruction, gamma_per_addressing_mode, mean_per_instruction, mean_per_addressing_mode (default: gamma_per_instruction)
   --inference ALG           Inference algorithm: importance-sampling, mcmc-blocked, dominant-key, map, upper-bound-lp, or least-squares variants (default: importance-sampling)
   --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
-  --skip-reset              Skip device reset during measurement
+  --skip-flash              Measure the program already on the target
   --keep-intermediates      Keep intermediate files and suggest resume commands
   --help                    Show this help message
 
@@ -129,8 +129,8 @@ while [[ $# -gt 0 ]]; do
             DEFINES="$2"
             shift 2
             ;;
-        --skip-reset)
-            SKIP_RESET="--skip_reset"
+        --skip-flash)
+            SKIP_FLASH="--skip-flash"
             shift
             ;;
         --keep-intermediates)

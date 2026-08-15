@@ -160,7 +160,7 @@ endif
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
-	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
+	[ "$(SKIP_FLASH)" = "1" ] && ARGS+=("--skip-flash"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
 	./scripts/train.sh "$${ARGS[@]}"
@@ -208,7 +208,7 @@ endif
 	[ -n "$(INFERENCE)" ] && ARGS+=("--inference" "$(INFERENCE)"); \
 	[ -n "$(TRAIN_DEFINES)" ] && ARGS+=("--train-defines" "$(TRAIN_DEFINES)"); \
 	[ -n "$(ESTIMATE_DEFINES)" ] && ARGS+=("--estimate-defines" "$(ESTIMATE_DEFINES)"); \
-	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
+	[ "$(SKIP_FLASH)" = "1" ] && ARGS+=("--skip-flash"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
 	./scripts/train_and_estimate.sh "$${ARGS[@]}"
@@ -224,7 +224,7 @@ endif
 	[ -n "$(MAX_CURRENT)" ] && ARGS+=("--max-current" "$(MAX_CURRENT)"); \
 	[ -n "$(REPORT_DIR)" ] && ARGS+=("--report-dir" "$(REPORT_DIR)"); \
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
-	[ "$(SKIP_RESET)" = "1" ] && ARGS+=("--skip-reset"); \
+	[ "$(SKIP_FLASH)" = "1" ] && ARGS+=("--skip-flash"); \
 	./scripts/analyze_distribution.sh "$${ARGS[@]}"
 
 BENCH_GRANULARITY ?= addressing_mode_constant

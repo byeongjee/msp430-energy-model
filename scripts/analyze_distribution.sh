@@ -14,7 +14,7 @@ VOLTAGE="${VOLTAGE_DEFAULT}"
 MAX_CURRENT="${MAX_CURRENT_DEFAULT}"
 TEMP_DIR="${TEMP_DIR:-${TEMP_DIR_DEFAULT}}"
 REPORT_DIR="${REPORT_DIR:-${REPORT_DIR_DEFAULT}}"
-SKIP_RESET=""
+SKIP_FLASH=""
 TAG=""
 DEFINES=""  # Space-separated list of compiler macros
 SEGMENTS_CSV=""  # Pre-measured segments CSV files (optional, for resuming)
@@ -41,7 +41,7 @@ Optional arguments:
   --max-current A           Max current for measurement (default: 0.01)
   --defines "MACROS"        Space-separated compiler macros (e.g., "FOO=1 BAR ENABLE_FEATURE=value")
   --report-dir DIR          Directory for report (default: ./report)
-  --skip-reset              Skip device reset during measurement
+  --skip-flash              Measure the program already on the target
   --help                    Show this help message
 
 Examples:
@@ -102,8 +102,8 @@ while [[ $# -gt 0 ]]; do
             REPORT_DIR="$2"
             shift 2
             ;;
-        --skip-reset)
-            SKIP_RESET="--skip_reset"
+        --skip-flash)
+            SKIP_FLASH="--skip-flash"
             shift
             ;;
         --help)
