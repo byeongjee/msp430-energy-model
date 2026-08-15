@@ -183,8 +183,8 @@ void clockSetup(void) {
   // Set Dividers to 1
   CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;
 
-  // Turn on VLO
-  CSCTL4 &= ~VLOOFF;
+  // VLOOFF is left at its reset value (VLO off unless a module requests ACLK),
+  // so the VLO is not running during measurement. No benchmark uses ACLK.
   CSCTL0_H = 0;
 }
 
