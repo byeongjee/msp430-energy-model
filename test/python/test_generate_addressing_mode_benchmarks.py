@@ -6,18 +6,15 @@ These tests validate the generated C code and serve as documentation
 showing what the generator produces for different instruction variations.
 
 Run with: make test
-Or: uv run python scripts/test_generate_addressing_mode_benchmarks.py
+Or: uv run python -m unittest discover -s test/python -k test_generate_addressing_mode_benchmarks
 """
 
-import sys
 import re
 import unittest
 from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
-
-from benchmark.common import (
+from benchmarks.common import (
     InstructionSpec,
     FILE_TEMPLATE,
     get_instruction_specs,
@@ -29,7 +26,7 @@ from benchmark.common import (
     create_single_operand_specs,
     UNSAFE_OPCODES,
 )
-from gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
+from benchmarks.gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
 
 
 class TestGeneratedCode(unittest.TestCase):
@@ -452,7 +449,7 @@ INLINE void bench_inc_register(void) {
         - 7 source modes: register, immediate, indexed, symbolic, absolute, indirect, autoincrement
         - 4 destination modes: register, indexed, symbolic, absolute
         """
-        from benchmark.common import create_dual_operand_specs
+        from benchmarks.common import create_dual_operand_specs
 
         specs = create_dual_operand_specs("add")
         self.assertEqual(len(specs), 28)
@@ -683,7 +680,7 @@ class TestAllKeysCoverage(unittest.TestCase):
         }
         available_names = instruction_names | hardcoded_names | model_names
 
-        all_keys_path = Path(__file__).resolve().parent.parent / "all_keys.txt"
+        all_keys_path = Path(__file__).resolve().parents[2] / "all_keys.txt"
         requested_keys = {
             key for key in re.split(r"[\s,]+", all_keys_path.read_text().strip()) if key
         }

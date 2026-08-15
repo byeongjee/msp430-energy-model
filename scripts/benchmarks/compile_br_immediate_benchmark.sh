@@ -7,18 +7,18 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 usage() {
     cat <<'EOF'
 Usage: compile_br_immediate_benchmark.sh --file FILE [--defines "MACROS"]
 
 Examples:
-  ./scripts/compile_br_immediate_benchmark.sh \
-      --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c
+  ./scripts/benchmarks/compile_br_immediate_benchmark.sh \
+      --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c
 
-  ./scripts/compile_br_immediate_benchmark.sh \
-      --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c \
+  ./scripts/benchmarks/compile_br_immediate_benchmark.sh \
+      --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c \
       --defines "TEXTUAL_REPT=50 INNER_ITERS=200"
 EOF
 }

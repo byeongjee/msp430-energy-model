@@ -141,41 +141,48 @@ Cache simulation logic, memory region classification, and hardware multiplier im
 #### `src/TraceMetrics.jl`
 Utilities for trace analysis including memory region classification (FRAM/SRAM) and event access computation.
 
-### Python Scripts (scripts/)
+### Scripts (scripts/)
 
-#### Measurement and Analysis
-- `measure.py`: Flash, run, and measure one program (see `docs/measurement_setup.md`)
-- `flash.py`: Flash a program without measuring it
-- `check_switchboard.py`: Verify that the switchboard relays connect and isolate the ez-FET
-- `measurement/`: Package behind the three scripts above. `device/otii.py` (Otii
-  session, switchboard relays), `device/flash.py` (mspdebug `flash_and_hold`),
-  `device/recording.py` (recording and CSV export), plus `errors.py` and
-  `log.py`.
-- `preprocess.py`: Processes raw measurements into CSV format
-- `generate_comparison_report.py`: Compare estimated vs measured energy
-- `generate_distribution_report.py`: Analyze energy distributions
+`scripts/` is the Python import root: every package below is invoked as
+`python -m <package>.<module>`, with `PYTHONPATH=scripts` set by the Makefile
+and by `scripts/pipeline/common.sh`.
 
-#### Benchmark Generation
-- `gen_benchmarks.py`: Generate synthetic benchmarks for training
-- `list_benchmarks.py`: List available benchmarks
-
-#### Test Files (in scripts/)
-- `test_generate_addressing_mode_benchmarks.py`: Tests for addressing mode benchmarks
-- `test_generate_pair_benchmarks.py`: Tests for pair benchmarks
-- `test_granularity_mapping.py`: Tests for granularity mapping
-- `test_makefile_targets.py`: Tests for Makefile targets
-- `test_shell_utils.py`: Tests for shell utilities
-
-### Shell Scripts (scripts/)
+#### `scripts/pipeline/` (shell)
 - `train.sh`: Full training pipeline
 - `train_and_estimate.sh`: Train + estimate + compare
 - `analyze_distribution.sh`: Flash + measure + analyze
 - `interpret.sh`: Interpret a compiled program
 - `disasm.sh`: Disassembly utilities
-- `common.sh`: Shared shell utilities
+- `common.sh`: Shared shell utilities; also exports `PYTHONPATH`
 - `pipeline_utils.sh`: Pipeline helper functions
 - `file_expansion_utils.sh`: File glob expansion utilities
+
+#### `scripts/measurement/`
+- `measure.py`: Flash, run, and measure one program (see `docs/measurement_setup.md`)
+- `flash.py`: Flash a program without measuring it
+- `check_switchboard.py`: Verify that the switchboard relays connect and isolate the ez-FET
+- `preprocess.py`: Processes raw measurements into CSV format
+- `device/otii.py` (Otii session, switchboard relays), `device/flash.py`
+  (mspdebug `flash_and_hold`), `device/recording.py` (recording and CSV
+  export), plus `errors.py` and `log.py`
+
+#### `scripts/benchmarks/`
+- `common.py`: Instruction specs and benchmark templates
+- `gen_benchmarks.py`: Generate synthetic benchmarks for training
+- `list_benchmarks.py`: List available benchmarks
+- `extract_bench_labels.py`: Extract event labels from `BENCH()` macros
 - `generate_required_benchmarks.sh`: Generate benchmarks for specific files
+- `generate_benchmarks_from_keys.sh`: Generate benchmarks from a keys file
+- `compile_br_immediate_benchmark.sh`: Two-pass compile for branch benchmarks
+- `hardcoded/`: Hand-written C benchmarks
+
+#### `scripts/reports/`
+- `generate_comparison_report.py`: Compare estimated vs measured energy
+- `generate_distribution_report.py`: Analyze energy distributions
+
+#### `scripts/analysis/`
+Ad-hoc plotting tools: `compare_boards_heatmap.py`, `compare_boards_scatter.py`,
+`compare_params.py`, `plot_instruction_costs.py`, `plot_measurement_setup.py`
 
 ### Test Structure
 - `test/runtests.jl`: Main test suite
@@ -185,6 +192,7 @@ Utilities for trace analysis including memory region classification (FRAM/SRAM) 
 - `test/test_sram_code.jl`: SRAM code execution tests
 - `test/test_stack_events.jl`: Stack event handling tests
 - `test/test_train.jl`: Training functionality tests
+- `test/python/`: Python test suite (unittest), run by `make test`
 - `test/fixtures/`: Test fixture data files
 - `test/scripts/`: Test helper scripts (e.g., create_fixture.sh)
 

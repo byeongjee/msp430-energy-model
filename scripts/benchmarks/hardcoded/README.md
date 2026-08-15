@@ -11,7 +11,7 @@ The `br_immediate` benchmark creates a chain of `br` (branch) instructions where
 **Important:** Do not compile this file using `make compile` or `make disasm` directly. Use the helper script that emits a standalone `.S` file:
 
 ```bash
-./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c
+./scripts/benchmarks/compile_br_immediate_benchmark.sh --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c
 ```
 
 ### How Assembly Generation Works
@@ -42,8 +42,8 @@ make interpret FILE=build/asm/br_immediate_benchmark.S
 You can pass custom defines to the helper script:
 
 ```bash
-./scripts/compile_br_immediate_benchmark.sh \
-    --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c \
+./scripts/benchmarks/compile_br_immediate_benchmark.sh \
+    --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c \
     --defines "TEXTUAL_REPT=50 INNER_ITERS=200"
 ```
 
@@ -56,10 +56,10 @@ When `gen_benchmarks.py` encounters a hardcoded benchmark:
 
 Example:
 ```bash
-python scripts/list_benchmarks.py --granularity addressing_mode_constant \
+python -m benchmarks.list_benchmarks --granularity addressing_mode_constant \
     | jq '.instructions[] | select(.opcode == "br")' \
     | jq -s '{instructions: .}' \
-    | python scripts/gen_benchmarks.py \
+    | python -m benchmarks.gen_benchmarks \
         --granularity addressing_mode_constant \
         --output-dir /path/to/output
 ```
@@ -88,7 +88,7 @@ measurement export/preprocess pipeline.
 The `gen_benchmarks.py` script handles compilation automatically with `-mhwmult=none`. To compile manually:
 
 ```bash
-make disasm FILE=scripts/hardcoded_benchmarks/special_function_call_benchmark.c MSP430_CFLAGS="-mmcu=MSP430FR5994 -mcpu=msp430 -msmall -mno-warn-mcu -O3 -mhwmult=none"
+make disasm FILE=scripts/benchmarks/hardcoded/special_function_call_benchmark.c MSP430_CFLAGS="-mmcu=MSP430FR5994 -mcpu=msp430 -msmall -mno-warn-mcu -O3 -mhwmult=none"
 ```
 
 ### Integration with gen_benchmarks.py
@@ -103,11 +103,11 @@ All of the special-call keys share one source file, so it is compiled only once 
 ## Adding New Hardcoded Benchmarks
 
 1. Create the benchmark C file in this directory
-2. Update `scripts/compile_br_immediate_benchmark.sh` to handle the new benchmark:
+2. Update `scripts/benchmarks/compile_br_immediate_benchmark.sh` to handle the new benchmark:
    - Add any custom assembly-generation logic
    - Add benchmark name to supported list
-3. Add an `InstructionSpec` in `scripts/benchmark_common.py` with:
+3. Add an `InstructionSpec` in `scripts/benchmarks/common.py` with:
    ```python
-   hardcoded_benchmark_path="scripts/hardcoded_benchmarks/your_benchmark.c"
+   hardcoded_benchmark_path="scripts/benchmarks/hardcoded/your_benchmark.c"
    ```
 4. The benchmark will automatically be included in `list_benchmarks.py` and `gen_benchmarks.py`

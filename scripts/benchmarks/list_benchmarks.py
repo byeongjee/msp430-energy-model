@@ -5,13 +5,13 @@ Output goes to stdout by default for easy piping.
 
 USAGE:
     # All addressing-mode keys to stdout
-    ./scripts/list_benchmarks.py --granularity addressing_mode
+    python -m benchmarks.list_benchmarks --granularity addressing_mode
 
     # Filter for specific opcodes with jq
-    ./scripts/list_benchmarks.py --granularity addressing_mode | jq '.instructions[] | select(.opcode == "add")'
+    python -m benchmarks.list_benchmarks --granularity addressing_mode | jq '.instructions[] | select(.opcode == "add")'
 
     # All addressing-mode pairs written to file
-    ./scripts/list_benchmarks.py --granularity addressing_mode_pair --output all_pairs.json
+    python -m benchmarks.list_benchmarks --granularity addressing_mode_pair --output all_pairs.json
 """
 
 import argparse
@@ -21,7 +21,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import List
 
-from benchmark.common import (
+from benchmarks.common import (
     InstructionSpec,
     get_instruction_specs,
     get_hardcoded_benchmarks,

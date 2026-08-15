@@ -70,6 +70,10 @@ export REPORT_DIR
 export BUILD_DIR
 export ASM_DIR
 
+# Python packages under scripts/ are invoked as `python -m <package>.<module>`
+PYTHONPATH := $(MKFILE_DIR)scripts
+export PYTHONPATH
+
 # Julia thread configuration
 # Default: 'auto' uses all available cores (Julia 1.5+)
 # Override with: make <target> JULIA_NUM_THREADS=4
@@ -127,7 +131,7 @@ disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)
 	else \
 		BASENAME=$$(basename $(FILE) .c); \
 	fi; \
-	source scripts/disasm.sh && disasm $(BUILD_DIR)/$$BASENAME.elf $(ASM_DIR)/$$BASENAME.asm $(ASM_DIR)/$$BASENAME.data; \
+	source scripts/pipeline/disasm.sh && disasm $(BUILD_DIR)/$$BASENAME.elf $(ASM_DIR)/$$BASENAME.asm $(ASM_DIR)/$$BASENAME.data; \
 	echo "✓ Disassembly saved to: $(ASM_DIR)/$$BASENAME.asm"; \
 	echo "✓ Data dump saved to: $(ASM_DIR)/$$BASENAME.data"
 
@@ -144,7 +148,7 @@ interpret: disasm ## Interpret assembly program (FILE=<file.c|file.S> [MAX_STEPS
 	[ -n "$(GRANULARITY)" ] && ARGS+=("--granularity" "$(GRANULARITY)"); \
 	[ -n "$(MODEL)" ] && ARGS+=("--model" "$(MODEL)"); \
 	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
-	./scripts/interpret.sh "$${ARGS[@]}"
+	./scripts/pipeline/interpret.sh "$${ARGS[@]}"
 
 train: MODEL?=mean_per_addressing_mode
 train: INFERENCE?=map
@@ -166,7 +170,7 @@ endif
 	[ "$(SKIP_FLASH)" = "1" ] && ARGS+=("--skip-flash"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
-	./scripts/train.sh "$${ARGS[@]}"
+	./scripts/pipeline/train.sh "$${ARGS[@]}"
 
 estimate: disasm ## Estimate energy consumption (FILE=<file.c|file.S> PARAMS=<params> [PLOT=<file>] [MAX_STEPS=<n>] [DEFINES="..."] [INTERCEPT_SPECIAL_CALLS=1])
 ifndef PARAMS
@@ -214,7 +218,7 @@ endif
 	[ "$(SKIP_FLASH)" = "1" ] && ARGS+=("--skip-flash"); \
 	[ "$(KEEP_INTERMEDIATES)" = "1" ] && ARGS+=("--keep-intermediates"); \
 	[ "$(INTERCEPT_SPECIAL_CALLS)" = "1" ] && ARGS+=("--intercept-special-calls"); \
-	./scripts/train_and_estimate.sh "$${ARGS[@]}"
+	./scripts/pipeline/train_and_estimate.sh "$${ARGS[@]}"
 
 analyze_distribution: ## Flash, measure, and analyze energy distribution per event (FILES=<pattern> [TAG=<tag>] [SEGMENTS_CSV=<pattern>] [DEFINES="..."] [options])
 ifndef FILES
@@ -228,7 +232,7 @@ endif
 	[ -n "$(REPORT_DIR)" ] && ARGS+=("--report-dir" "$(REPORT_DIR)"); \
 	[ -n "$(DEFINES)" ] && ARGS+=("--defines" "$(DEFINES)"); \
 	[ "$(SKIP_FLASH)" = "1" ] && ARGS+=("--skip-flash"); \
-	./scripts/analyze_distribution.sh "$${ARGS[@]}"
+	./scripts/pipeline/analyze_distribution.sh "$${ARGS[@]}"
 
 BENCH_GRANULARITY ?= addressing_mode_constant
 BENCH_OUTPUT_DIR ?= $(TEMP_DIR)
@@ -242,7 +246,7 @@ endif
 	[ -n "$(BENCH_BATCH)" ] && ARGS+=(--batch "$(BENCH_BATCH)"); \
 	[ -n "$(MAX_STEPS)" ] && ARGS+=(--max-steps "$(MAX_STEPS)"); \
 	[ -n "$(DEFINES)" ] && ARGS+=(--defines "$(DEFINES)"); \
-	./scripts/generate_required_benchmarks.sh "$${ARGS[@]}"
+	./scripts/benchmarks/generate_required_benchmarks.sh "$${ARGS[@]}"
 
 create_fixture: ## Create test fixture (FILE=<file.c> NAME=<name>)
 ifndef FILE
@@ -264,13 +268,13 @@ test: ## Run Julia and Python test suites ([PATTERN=<regex>])
 	echo ""; \
 	echo "Running Python test suite..."; \
 	if [ -n "$(PATTERN)" ]; then \
-		uv run python -m unittest discover -s scripts -p 'test_*.py' -v -k "$(PATTERN)" && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
+		uv run python -m unittest discover -s test/python -p 'test_*.py' -v -k "$(PATTERN)" && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
 		if [ $$PYTHON_EXIT -eq 5 ]; then \
 			echo "(No Python tests matched pattern '$(PATTERN)')"; \
 			PYTHON_EXIT=0; \
 		fi; \
 	else \
-		uv run python -m unittest discover -s scripts -p 'test_*.py' -v && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
+		uv run python -m unittest discover -s test/python -p 'test_*.py' -v && PYTHON_EXIT=0 || PYTHON_EXIT=$$?; \
 	fi; \
 	echo ""; \
 	echo "========================================"; \
@@ -298,7 +302,7 @@ endif
 	else \
 		BASENAME=$$(basename $(FILE) .c); \
 	fi; \
-	uv run python scripts/flash.py "$(BUILD_DIR)/$$BASENAME.elf"
+	uv run python -m measurement.flash "$(BUILD_DIR)/$$BASENAME.elf"
 	@echo "✓ Flash completed!"
 
 clean: ## Clean build artifacts

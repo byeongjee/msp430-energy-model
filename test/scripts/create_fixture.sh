@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Source disassembly utility
-source "$PROJECT_ROOT/scripts/disasm.sh"
+source "$PROJECT_ROOT/scripts/pipeline/disasm.sh"
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <c_file> <test_name>"

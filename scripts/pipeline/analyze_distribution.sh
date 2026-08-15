@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Analyze energy distribution: flash → measure → preprocess → analyze
-# Usage: ./scripts/analyze_distribution.sh [options]
+# Usage: ./scripts/pipeline/analyze_distribution.sh [options]
 # Requires: bash 4.0+ (for mapfile)
 
 # Setup script directory before sourcing common
@@ -21,9 +21,6 @@ SEGMENTS_CSV=""  # Pre-measured segments CSV files (optional, for resuming)
 
 # Required parameters (to be set via command line)
 FILES=""  # Semicolon-separated list of files
-
-# Additional script path specific to this script
-GENERATE_REPORT_PY="$SCRIPT_DIR/generate_distribution_report.py"
 
 usage() {
     cat << EOF
@@ -318,7 +315,7 @@ done
 FILE_LIST="${FILE_LIST%, }"  # Remove trailing comma and space
 
 
-uv run python "$GENERATE_REPORT_PY" \
+uv run python -m reports.generate_distribution_report \
     --segments-csv "$COMBINED_SEGMENTS_CSV" \
     --num-repeat "$NUM_REPEAT" \
     --report-dir "$REPORT_DIR_FULL" \

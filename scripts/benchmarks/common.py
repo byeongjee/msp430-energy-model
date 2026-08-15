@@ -194,7 +194,7 @@ SPECIAL_FUNCTION_CALL_BENCHMARKS = {
 
 HARDCODED_BENCHMARKS = {
     "br_immediate": {
-        "path": "scripts/hardcoded_benchmarks/br_immediate_benchmark.c",
+        "path": "scripts/benchmarks/hardcoded/br_immediate_benchmark.c",
         "granularities": [
             "addressing_mode",
             "addressing_mode_constant",
@@ -204,7 +204,7 @@ HARDCODED_BENCHMARKS = {
         "description": "Branch with immediate addressing (requires two-pass compilation)",
     },
     "br_indexed": {
-        "path": "scripts/hardcoded_benchmarks/br_indexed_benchmark.c",
+        "path": "scripts/benchmarks/hardcoded/br_indexed_benchmark.c",
         "granularities": [
             "addressing_mode",
             "addressing_mode_constant",
@@ -215,14 +215,14 @@ HARDCODED_BENCHMARKS = {
     },
     **{
         key: {
-            "path": "scripts/hardcoded_benchmarks/special_function_call_benchmark.c",
+            "path": "scripts/benchmarks/hardcoded/special_function_call_benchmark.c",
             "granularities": list(SPECIAL_FUNCTION_CALL_GRANULARITIES),
             "description": f"{description} (requires -mhwmult=none)",
         }
         for key, description in SPECIAL_FUNCTION_CALL_BENCHMARKS.items()
     },
     "call_memcpy": {
-        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "path": "scripts/benchmarks/hardcoded/memcpy_memset_benchmark.c",
         "granularities": [
             "addressing_mode",
             "addressing_mode_constant",
@@ -232,7 +232,7 @@ HARDCODED_BENCHMARKS = {
         "description": "memcpy/memset benchmark with varying byte sizes for linear cost model",
     },
     "call_memcpy_bytes": {
-        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "path": "scripts/benchmarks/hardcoded/memcpy_memset_benchmark.c",
         "granularities": [
             "addressing_mode",
             "addressing_mode_constant",
@@ -242,7 +242,7 @@ HARDCODED_BENCHMARKS = {
         "description": "memcpy slope parameter (same benchmark file as call_memcpy)",
     },
     "call_memset": {
-        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "path": "scripts/benchmarks/hardcoded/memcpy_memset_benchmark.c",
         "granularities": [
             "addressing_mode",
             "addressing_mode_constant",
@@ -252,7 +252,7 @@ HARDCODED_BENCHMARKS = {
         "description": "memset benchmark with varying byte sizes for linear cost model",
     },
     "call_memset_bytes": {
-        "path": "scripts/hardcoded_benchmarks/memcpy_memset_benchmark.c",
+        "path": "scripts/benchmarks/hardcoded/memcpy_memset_benchmark.c",
         "granularities": [
             "addressing_mode",
             "addressing_mode_constant",
@@ -276,13 +276,13 @@ HARDCODED_BENCHMARKS = {
 MODEL_BENCHMARKS: Dict[str, List[Dict[str, str]]] = {
     "addressing_mode_with_mem_access": [
         {
-            "path": "scripts/hardcoded_benchmarks/cache_benchmark.c",
+            "path": "scripts/benchmarks/hardcoded/cache_benchmark.c",
             "description": "FRAM cache hit/miss benchmarks for memory access energy",
         },
     ],
     "addressing_mode_constant_with_mem_access": [
         {
-            "path": "scripts/hardcoded_benchmarks/cache_benchmark.c",
+            "path": "scripts/benchmarks/hardcoded/cache_benchmark.c",
             "description": "FRAM cache hit/miss benchmarks for memory access energy",
         },
     ],

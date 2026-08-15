@@ -6,23 +6,20 @@ These tests validate the generated C code and serve as documentation
 showing what the generator produces for different instruction pairs.
 
 Run with: make test
-Or: uv run python scripts/test_generate_pair_benchmarks.py
+Or: uv run python -m unittest discover -s test/python -k test_generate_pair_benchmarks
 """
 
 import unittest
-import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
-
-from benchmark.common import (
+from benchmarks.common import (
     InstructionSpec,
     FILE_TEMPLATE,
     create_dual_operand_specs,
     create_single_operand_specs,
 )
-from gen_benchmarks import generate_pair_benchmark
+from benchmarks.gen_benchmarks import generate_pair_benchmark
 
 
 class TestGeneratedCode(unittest.TestCase):

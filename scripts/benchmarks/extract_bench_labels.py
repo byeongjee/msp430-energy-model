@@ -11,7 +11,7 @@ import re
 import sys
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def extract_bench_labels_from_c_content(content):
@@ -52,7 +52,7 @@ def resolve_assembly_source(asm_path, candidate):
         asm_path.parent / candidate_name,
         REPO_ROOT / candidate_path,
         REPO_ROOT / candidate_name,
-        REPO_ROOT / "scripts" / "hardcoded_benchmarks" / candidate_name,
+        REPO_ROOT / "scripts" / "benchmarks" / "hardcoded" / candidate_name,
     ]
 
     for path in direct_candidates:
@@ -66,7 +66,7 @@ def resolve_assembly_source(asm_path, candidate):
     hardcoded_matches = [
         path.resolve()
         for path in matches
-        if path.parent == REPO_ROOT / "scripts" / "hardcoded_benchmarks"
+        if path.parent == REPO_ROOT / "scripts" / "benchmarks" / "hardcoded"
     ]
     if len(hardcoded_matches) == 1:
         return hardcoded_matches[0]

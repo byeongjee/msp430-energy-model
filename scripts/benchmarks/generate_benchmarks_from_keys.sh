@@ -2,7 +2,7 @@
 # Generate benchmarks from a keys file (newline- or comma-separated key names).
 #
 # Usage:
-#   ./scripts/generate_benchmarks_from_keys.sh \
+#   ./scripts/benchmarks/generate_benchmarks_from_keys.sh \
 #       --keys all_keys.txt \
 #       --granularity addressing_mode \
 #       --output-dir training_data/checkpoint_insertion \
@@ -11,7 +11,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Python packages under scripts/ are invoked as `python -m <package>.<module>`
+export PYTHONPATH="$REPO_ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}"
 
 usage() {
     cat <<'EOF'
@@ -86,7 +89,7 @@ if [[ -n "$DEFINES" ]]; then
 fi
 echo ""
 
-uv run python "$SCRIPT_DIR/list_benchmarks.py" --granularity "$GRANULARITY" \
+uv run python -m benchmarks.list_benchmarks --granularity "$GRANULARITY" \
     | jq --arg keys "$KEYS" --arg payload "$PAYLOAD_NAME" \
         '($keys | split(" ") | map(select(length>0))) as $wanted
          | .[$payload] as $all
@@ -97,4 +100,4 @@ uv run python "$SCRIPT_DIR/list_benchmarks.py" --granularity "$GRANULARITY" \
     | CC="$MSP430GCC_TOOLCHAIN_PATH/bin/msp430-elf-gcc" \
       INCLUDES="-I$MSP430GCC_SUPPORT_PATH/include -I include" \
       PATH="$MSP430GCC_TOOLCHAIN_PATH/bin:$PATH" \
-      uv run python "$SCRIPT_DIR/gen_benchmarks.py" "${GEN_ARGS[@]}"
+      uv run python -m benchmarks.gen_benchmarks "${GEN_ARGS[@]}"

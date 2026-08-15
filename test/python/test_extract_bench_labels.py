@@ -6,12 +6,10 @@ These cover both direct C parsing and recovery from generated assembly files
 that need to resolve back to their original C benchmark source.
 """
 
-import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from extract_bench_labels import extract_bench_labels
+from benchmarks.extract_bench_labels import extract_bench_labels
 
 # Order follows the BENCH() calls in special_function_call_benchmark.c's main().
 SPECIAL_FUNCTION_LABELS = [
@@ -43,13 +41,14 @@ SPECIAL_FUNCTION_LABELS = [
 class TestExtractBenchLabels(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.project_root = Path(__file__).resolve().parent.parent
+        cls.project_root = Path(__file__).resolve().parents[2]
 
     def test_extracts_labels_from_special_function_c_source(self):
         source = (
             self.project_root
             / "scripts"
-            / "hardcoded_benchmarks"
+            / "benchmarks"
+            / "hardcoded"
             / "special_function_call_benchmark.c"
         )
 

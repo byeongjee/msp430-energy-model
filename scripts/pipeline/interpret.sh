@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Interpret MSP430 assembly program
-# Usage: ./scripts/interpret.sh --asm FILE.asm --data FILE.data [options]
+# Usage: ./scripts/pipeline/interpret.sh --asm FILE.asm --data FILE.data [options]
 
 # Setup script directory before sourcing common
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
