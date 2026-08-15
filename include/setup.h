@@ -320,17 +320,29 @@ int putchar(int c) {
 
 NOINLINE void initialize(void) {
   WDTCTL = WDTPW | WDTHOLD; // Stop WDT
-  PM5CTL0 &= ~LOCKLPM5;     // Unlock I/O (FRAM parts)
+
+  // Drive every GPIO output-low before unlocking LPM5: pins left unconfigured
+  // become floating inputs whose mid-rail buffers leak, and that leakage is
+  // integrated into the energy of every measured event. This also matches the
+  // port state the measured programs run under outside the training setup.
+  // The measurement pins P1.2 and P1.3 are covered by PADIR/PAOUT.
+  PAOUT = 0; // P1/P2
+  PADIR = 0xFFFF;
+  PBOUT = 0; // P3/P4
+  PBDIR = 0xFFFF;
+  PCOUT = 0; // P5/P6
+  PCDIR = 0xFFFF;
+  PDOUT = 0; // P7/P8
+  PDDIR = 0xFFFF;
+  PJOUT = 0;
+  PJDIR = 0xFFFF;
+
+  PM5CTL0 &= ~LOCKLPM5; // Unlock I/O (FRAM parts)
 
   // Copy SRAM-resident code from FRAM load address to RAM execution address
   copy_text_sram();
 
   clockSetup();
-
-  // Measurement pins
-  P1DIR |= BIT2 | BIT3;
-  P1OUT &= ~BIT3;
-  P1OUT &= ~BIT2;
 
   __delay_cycles(CLOCK_HZ * 10);
 
