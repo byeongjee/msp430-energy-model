@@ -39,7 +39,7 @@ INLINE void bench_xor_immediate_register(void) {
   uint16_t dst = 0x0000;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\n"
-      "  xor.w #0xFFFF, %[dst]\n"
+      "  xor.w #0xFFFE, %[dst]\n"
       ".endr\n"
       : [dst] "+r"(dst)
       : 
@@ -54,9 +54,9 @@ INLINE void bench_xor_immediate_indexed(void) {
   uint16_t* base_dst2 = (bench_xor_immediate_indexed_dst_buf + 8) + 16;
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) " / 3" "\n"
-      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst0])\n"
-      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst1])\n"
-      "  xor.w #0xFFFF, %c[offs_dst](%[base_dst2])\n"
+      "  xor.w #0xFFFE, %c[offs_dst](%[base_dst0])\n"
+      "  xor.w #0xFFFE, %c[offs_dst](%[base_dst1])\n"
+      "  xor.w #0xFFFE, %c[offs_dst](%[base_dst2])\n"
       ".endr\n"
       : 
       : [base_dst0] "r"(base_dst0), [base_dst1] "r"(base_dst1), [base_dst2] "r"(base_dst2), [offs_dst] "i"(OFFS)

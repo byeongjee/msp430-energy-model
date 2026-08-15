@@ -587,10 +587,13 @@ DEFAULT_REGISTER_DST_VALUE = "0x1234"
 DEFAULT_SINGLE_OPERAND_DST_VALUE = "0x2222"
 DEFAULT_CONSTANT_DST_VALUE = "0x3333"
 
+# 0xFFFF is an MSP430 constant-generator value, so "xor #0xFFFF, Rn" assembles to
+# the emulated INV and is disassembled as inv_register. 0xFFFE keeps 15 of the 16
+# bits toggling while forcing a real immediate operand.
 DUAL_OPERAND_TOGGLE_SEEDS = {
     "xor": {
         "register_src": "0xFFFF",
-        "immediate_src": "0xFFFF",
+        "immediate_src": "0xFFFE",
         "register_dst": "0x0000",
     }
 }
