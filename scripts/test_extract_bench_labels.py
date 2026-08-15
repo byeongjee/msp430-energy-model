@@ -13,6 +13,32 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from extract_bench_labels import extract_bench_labels
 
+# Order follows the BENCH() calls in special_function_call_benchmark.c's main().
+SPECIAL_FUNCTION_LABELS = [
+    "bench_call___mspabi_divu",
+    "bench_call___mspabi_divi",
+    "bench_call___mspabi_divli",
+    "bench_call___mspabi_mpyi",
+    "bench_call___mspabi_mpyl",
+    "bench_call___mspabi_remu",
+    "bench_call___mspabi_remul",
+    "bench_call___mspabi_mpyll",
+    "bench_call___mspabi_addd",
+    "bench_call___mspabi_subd",
+    "bench_call___mspabi_mpyd",
+    "bench_call___mspabi_divd",
+    "bench_call___mspabi_addf",
+    "bench_call___mspabi_mpyf",
+    "bench_call___mspabi_divf",
+    "bench_call___mspabi_cvtdf",
+    "bench_call___mspabi_cvtfd",
+    "bench_call___mspabi_fltuld",
+    "bench_call___mspabi_fltulf",
+    "bench_call___mspabi_fixfli",
+    "bench_call_cos",
+    "bench_call_sin",
+]
+
 
 class TestExtractBenchLabels(unittest.TestCase):
     @classmethod
@@ -29,14 +55,7 @@ class TestExtractBenchLabels(unittest.TestCase):
 
         self.assertEqual(
             extract_bench_labels(source),
-            [
-                "bench_call___mspabi_divu",
-                "bench_call___mspabi_divi",
-                "bench_call___mspabi_divli",
-                "bench_call___mspabi_mpyi",
-                "bench_call___mspabi_mpyl",
-                "bench_call___mspabi_remu",
-            ],
+            SPECIAL_FUNCTION_LABELS,
         )
 
     def test_extracts_labels_from_generated_br_immediate_assembly(self):
@@ -69,14 +88,7 @@ class TestExtractBenchLabels(unittest.TestCase):
 
         self.assertEqual(
             extract_bench_labels(asm),
-            [
-                "bench_call___mspabi_divu",
-                "bench_call___mspabi_divi",
-                "bench_call___mspabi_divli",
-                "bench_call___mspabi_mpyi",
-                "bench_call___mspabi_mpyl",
-                "bench_call___mspabi_remu",
-            ],
+            SPECIAL_FUNCTION_LABELS,
         )
 
 
