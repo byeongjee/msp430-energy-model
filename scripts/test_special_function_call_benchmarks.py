@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from benchmark.common import (
     HARDCODED_BENCHMARKS,
+    SPECIAL_FUNCTION_CALL_BENCHMARKS,
     get_hardcoded_benchmarks,
 )
 from gen_benchmarks import (
@@ -41,7 +42,7 @@ def read_all_keys() -> list[str]:
 SPECIAL_KEYS = [
     key
     for key in read_all_keys()
-    if key.startswith("call___mspabi_")
+    if key in SPECIAL_FUNCTION_CALL_BENCHMARKS
 ]
 
 
