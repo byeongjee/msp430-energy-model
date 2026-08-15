@@ -144,7 +144,13 @@ Utilities for trace analysis including memory region classification (FRAM/SRAM) 
 ### Python Scripts (scripts/)
 
 #### Measurement and Analysis
-- `measure.py`: Interfaces with Otii Ace Pro to measure energy consumption
+- `measure.py`: Flash, run, and measure one program (see `docs/measurement_setup.md`)
+- `flash.py`: Flash a program without measuring it
+- `check_switchboard.py`: Verify that the switchboard relays connect and isolate the ez-FET
+- `measurement/`: Package behind the three scripts above. `device/otii.py` (Otii
+  session, switchboard relays), `device/flash.py` (mspdebug `flash_and_hold`),
+  `device/recording.py` (recording and CSV export), plus `errors.py` and
+  `log.py`.
 - `preprocess.py`: Processes raw measurements into CSV format
 - `generate_comparison_report.py`: Compare estimated vs measured energy
 - `generate_distribution_report.py`: Analyze energy distributions
