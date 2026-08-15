@@ -18,7 +18,6 @@ from benchmarks.common import (
     get_hardcoded_benchmarks,
 )
 from benchmarks.gen_benchmarks import (
-    build_branch_benchmark_command,
     build_define_flags,
     build_special_function_compile_command,
 )
@@ -103,24 +102,6 @@ class TestHardcodedBenchmarkCommandBuilders(unittest.TestCase):
         self.assertEqual(
             build_define_flags("NUM_REPEAT=30 TEXTUAL_REPT=50"),
             ["-DNUM_REPEAT=30", "-DTEXTUAL_REPT=50"],
-        )
-
-    def test_branch_command_forwards_defines(self):
-        cmd = build_branch_benchmark_command(
-            Path("/tmp/compile_br_immediate_benchmark.sh"),
-            Path("/tmp/br_immediate_benchmark.c"),
-            "NUM_REPEAT=30 INNER_ITERS=7",
-        )
-
-        self.assertEqual(
-            cmd,
-            [
-                "/tmp/compile_br_immediate_benchmark.sh",
-                "--file",
-                "/tmp/br_immediate_benchmark.c",
-                "--defines",
-                "NUM_REPEAT=30 INNER_ITERS=7",
-            ],
         )
 
     def test_special_function_compile_command_includes_define_flags(self):

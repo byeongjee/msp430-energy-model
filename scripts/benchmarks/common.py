@@ -289,6 +289,19 @@ MODEL_BENCHMARKS: Dict[str, List[Dict[str, str]]] = {
 }
 
 
+def normalize_generated_asm_isa(asm_path: Path) -> None:
+    """Rewrite base-ISA attributes so generated .S files reassemble by default.
+
+    The compiler emits `.mspabi_attribute 4, 1` for base MSP430 code. Our
+    default `.S` build path targets the selected MCU ISA, so normalize that
+    attribute to the MCU-compatible value before copying generated assembly out.
+    """
+    text = asm_path.read_text()
+    updated = text.replace(".mspabi_attribute 4, 1", ".mspabi_attribute 4, 2")
+    if updated != text:
+        asm_path.write_text(updated)
+
+
 def get_hardcoded_benchmarks(
     granularity: Union[str, Granularity],
 ) -> Dict[str, Dict[str, Any]]:
