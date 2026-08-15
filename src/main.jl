@@ -221,7 +221,8 @@ function main()
                 error("interpret mode only supports a single --data-dump file")
             end
             run_interpret(
-                asm_files[1], max_steps;
+                asm_files[1],
+                max_steps;
                 data_dump=isnothing(data_dumps) ? nothing : data_dumps[1],
                 model_str=args["model"],
                 intercept_special_calls=args["intercept-special-calls"],

@@ -40,39 +40,39 @@ include("test_special_function_calls.jl")
 # Define test suites with their names and runner functions
 const TEST_SUITES = Dict(
     "interpreter" => (
-        description = "Interpreter fixture tests",
-        runner = filter_pattern -> run_all_fixtures(filter_pattern),
-        has_subfilter = true,  # This suite supports sub-filtering by fixture name
+        description="Interpreter fixture tests",
+        runner=filter_pattern -> run_all_fixtures(filter_pattern),
+        has_subfilter=true,  # This suite supports sub-filtering by fixture name
     ),
     "train" => (
-        description = "Training module tests",
-        runner = _ -> run_train_tests(),
-        has_subfilter = false,
+        description="Training module tests",
+        runner=_ -> run_train_tests(),
+        has_subfilter=false,
     ),
     "estimate" => (
-        description = "Estimation module tests",
-        runner = _ -> run_estimate_tests(),
-        has_subfilter = false,
+        description="Estimation module tests",
+        runner=_ -> run_estimate_tests(),
+        has_subfilter=false,
     ),
     "br_immediate" => (
-        description = "BR immediate benchmark tests",
-        runner = _ -> run_br_immediate_tests(),
-        has_subfilter = false,
+        description="BR immediate benchmark tests",
+        runner=_ -> run_br_immediate_tests(),
+        has_subfilter=false,
     ),
     "sram" => (
-        description = "SRAM code execution tests",
-        runner = _ -> run_sram_code_tests(),
-        has_subfilter = false,
+        description="SRAM code execution tests",
+        runner=_ -> run_sram_code_tests(),
+        has_subfilter=false,
     ),
     "stack_events" => (
-        description = "Stack event tracking tests",
-        runner = _ -> run_stack_events_tests(),
-        has_subfilter = false,
+        description="Stack event tracking tests",
+        runner=_ -> run_stack_events_tests(),
+        has_subfilter=false,
     ),
     "special_function_calls" => (
-        description = "Special function call key tests",
-        runner = _ -> run_special_function_call_tests(),
-        has_subfilter = false,
+        description="Special function call key tests",
+        runner=_ -> run_special_function_call_tests(),
+        has_subfilter=false,
     ),
 )
 
@@ -84,7 +84,9 @@ Pattern matching behavior:
 - If pattern matches any suite name exactly, only matching suites run
 - Otherwise, pattern is passed to interpreter for fixture filtering
 """
-function should_run_suite(suite_name::String, pattern::Union{Regex,Nothing}, suite_names::Vector{String})
+function should_run_suite(
+    suite_name::String, pattern::Union{Regex,Nothing}, suite_names::Vector{String}
+)
     if isnothing(pattern)
         return (true, nothing)
     end
@@ -148,7 +150,7 @@ function run_all_tests(pattern::Union{Regex,Nothing}=nothing)
     if isempty(suites_to_run)
         println("No test suites matched pattern: $(pattern.pattern)")
         println("Available suites: $(join(suite_names, ", "))")
-        return
+        return nothing
     end
 
     println("Running test suites: $(join(suites_to_run, ", "))")
@@ -283,7 +285,13 @@ function run_train_tests()
                 output_file = joinpath(tempdir(), "test_params_$(model_str).json")
 
                 Train.run_train(
-                    [asm_content], [energy_df], output_file, 1000, 10, model_str, "dominant-key"
+                    [asm_content],
+                    [energy_df],
+                    output_file,
+                    1000,
+                    10,
+                    model_str,
+                    "dominant-key",
                 )
 
                 @test isfile(output_file)
@@ -437,13 +445,11 @@ function run_train_tests()
         @testset "Upper-bound LP tie-break minimizes parameter sum" begin
             key_a = (:mov, :register, :register)
             key_b = (:add, :register, :register)
-            traces = ExecutionTrace[
-                [
-                    ExecutionEvent(key_a, 1.0),
-                    ExecutionEvent(key_a, 1.0),
-                    ExecutionEvent(key_b, 1.0),
-                ],
-            ]
+            traces = ExecutionTrace[[
+                ExecutionEvent(key_a, 1.0),
+                ExecutionEvent(key_a, 1.0),
+                ExecutionEvent(key_b, 1.0),
+            ],]
             training_data = TrainingData(traces, [5.0])
             model = Model.create_model("mean_per_addressing_mode")
             config = Model.create_training_config(model, 10, "upper-bound-lp")
@@ -466,23 +472,25 @@ function run_train_tests()
             @test event3.key == (:call_memcpy, :bytes)
 
             # Verify default feature_value is 1.0 for regular events
-            inst = Instruction(:mov, [Operand(:R5, :register), Operand(:R6, :register)], :word)
+            inst = Instruction(
+                :mov, [Operand(:R5, :register), Operand(:R6, :register)], :word
+            )
             regular_event = ExecutionEvent(Val{Inst}, inst, PerAddressingMode)
             @test regular_event.feature_value == 1.0
         end
 
         @testset "With-mem-access training treats FRAM hits as baseline" begin
-            trace = ExecutionTrace[
-                [
-                    ExecutionEvent(Types.FRAMReadHit, nothing, Any[]),
-                    ExecutionEvent((:mov, :register, :register), 1.0),
-                    ExecutionEvent(Types.FRAMReadMiss, nothing, Any[]),
-                ],
-            ]
+            trace = ExecutionTrace[[
+                ExecutionEvent(Types.FRAMReadHit, nothing, Any[]),
+                ExecutionEvent((:mov, :register, :register), 1.0),
+                ExecutionEvent(Types.FRAMReadMiss, nothing, Any[]),
+            ],]
             training_data = TrainingData(trace, [5.0])
             model = Model.create_model("mean_per_addressing_mode_with_mem_access")
 
-            A, B, sorted_keys = Model.build_training_matrix(training_data, model.granularity)
+            A, B, sorted_keys = Model.build_training_matrix(
+                training_data, model.granularity
+            )
 
             @test size(A) == (1, 2)
             @test B == [5.0]
@@ -518,11 +526,7 @@ function run_train_tests()
             model = Model.create_model("mean_per_addressing_mode_constant")
 
             event_traces, energies = Train.process_training_data(
-                asm_content,
-                energy_df,
-                100000,
-                model.granularity;
-                data_dump=data_file,
+                asm_content, energy_df, 100000, model.granularity; data_dump=data_file
             )
 
             @test length(event_traces) == 1
@@ -540,12 +544,7 @@ function run_estimate_tests()
             output_file = joinpath(tempdir(), "test_estimate_output.json")
 
             Estimation.run_estimate(
-                asm_content,
-                params_dict,
-                100000,
-                10,
-                output_file,
-                nothing
+                asm_content, params_dict, 100000, 10, output_file, nothing
             )
 
             @test isfile(output_file)
@@ -560,14 +559,7 @@ function run_estimate_tests()
             asm_content = load_test_asm_content_for_estimate()
             params_dict = create_test_params_dict("mean_per_instruction")
 
-            Estimation.run_estimate(
-                asm_content,
-                params_dict,
-                100000,
-                10,
-                nothing,
-                nothing
-            )
+            Estimation.run_estimate(asm_content, params_dict, 100000, 10, nothing, nothing)
 
             @test true
         end
@@ -578,18 +570,13 @@ function run_estimate_tests()
             for model_type in [
                 "mean_per_instruction",
                 "mean_per_addressing_mode",
-                "mean_per_addressing_mode_constant"
+                "mean_per_addressing_mode_constant",
             ]
                 params_dict = create_test_params_dict(model_type)
                 output_file = joinpath(tempdir(), "test_estimate_$(model_type).json")
 
                 Estimation.run_estimate(
-                    asm_content,
-                    params_dict,
-                    100000,
-                    10,
-                    output_file,
-                    nothing
+                    asm_content, params_dict, 100000, 10, output_file, nothing
                 )
 
                 @test isfile(output_file)
@@ -602,12 +589,7 @@ function run_estimate_tests()
             invalid_params = Dict("parameters" => Dict("mov" => 100.0))
 
             @test_throws ErrorException Estimation.run_estimate(
-                asm_content,
-                invalid_params,
-                100000,
-                10,
-                nothing,
-                nothing
+                asm_content, invalid_params, 100000, 10, nothing, nothing
             )
         end
 
@@ -632,19 +614,14 @@ function run_estimate_tests()
                 100000,
                 10,
                 "mean_per_instruction",
-                "dominant-key"
+                "dominant-key",
             )
 
             params_dict = JSON.parsefile(params_file)
 
             estimate_output = joinpath(tempdir(), "test_estimate_trained.json")
             Estimation.run_estimate(
-                asm_content,
-                params_dict,
-                100000,
-                10,
-                estimate_output,
-                nothing
+                asm_content, params_dict, 100000, 10, estimate_output, nothing
             )
 
             @test isfile(estimate_output)
@@ -656,8 +633,7 @@ function run_estimate_tests()
         @testset "With-mem-access estimation ignores FRAM hit events" begin
             model = Model.create_model("mean_per_addressing_mode_with_mem_access")
             model.params = Dict(
-                (:mov, :register, :register) => 2.0,
-                (:FRAMReadMiss,) => 3.0,
+                (:mov, :register, :register) => 2.0, (:FRAMReadMiss,) => 3.0
             )
             config = Model.create_estimation_config(model, 10)
             execution_trace = ExecutionTrace([

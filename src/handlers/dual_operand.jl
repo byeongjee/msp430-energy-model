@@ -85,7 +85,8 @@ function execute!(
     max_val = get_data_size_mask(data_size)
     masked_dst = apply_data_size_mask(dst_val, data_size)
     masked_src = apply_data_size_mask(src_val, data_size)
-    state.flags[:C] = (UInt64(masked_dst) + UInt64(masked_src) + UInt64(carry)) > UInt64(max_val)
+    state.flags[:C] =
+        (UInt64(masked_dst) + UInt64(masked_src) + UInt64(carry)) > UInt64(max_val)
     _sync_sr_with_flags!(state)
     result_events = set_operand_value!(
         state, ops[2], result, data_size, inst, should_track_memory_access
@@ -215,7 +216,13 @@ function execute!(
     result = UInt32(0)
 
     # Number of nibbles depends on data size: byte=2, word=4, address=5
-    num_nibbles = data_size == :byte ? 2 : data_size == :word ? 4 : 5
+    num_nibbles = if data_size == :byte
+        2
+    elseif data_size == :word
+        4
+    else
+        5
+    end
 
     for i in 0:(num_nibbles - 1)
         shift = i * 4
@@ -241,8 +248,20 @@ function execute!(
     state.flags[:C] = carry != 0
 
     # Apply data size mask for Z and N flag calculation
-    mask = data_size == :byte ? UInt32(0xFF) : data_size == :word ? UInt32(0xFFFF) : UInt32(0xFFFFF)
-    msb_bit = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+    mask = if data_size == :byte
+        UInt32(0xFF)
+    elseif data_size == :word
+        UInt32(0xFFFF)
+    else
+        UInt32(0xFFFFF)
+    end
+    msb_bit = if data_size == :byte
+        UInt32(0x80)
+    elseif data_size == :word
+        UInt32(0x8000)
+    else
+        UInt32(0x80000)
+    end
 
     masked_result = result & mask
     state.flags[:Z] = masked_result == 0

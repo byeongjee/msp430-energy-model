@@ -2,19 +2,10 @@ module TraceMetrics
 
 using Logging
 using ..Types:
-    ExecutionTrace,
-    Inst,
-    FRAMReadHit,
-    FRAMReadMiss,
-    FRAMWrite,
-    SRAMRead,
-    SRAMWrite
+    ExecutionTrace, Inst, FRAMReadHit, FRAMReadMiss, FRAMWrite, SRAMRead, SRAMWrite
 
 export FRAM_RANGES,
-    SRAM_RANGES,
-    build_memory_regions,
-    classify_region,
-    compute_event_accesses
+    SRAM_RANGES, build_memory_regions, classify_region, compute_event_accesses
 
 const FRAM_RANGES = [(0x04000, 0x043FFF)]
 const SRAM_RANGES = [(0x1C00, 0x3BFF)]

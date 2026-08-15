@@ -99,9 +99,8 @@ end
     # Generate energy observations for each execution_trace
     for (i, execution_trace) in enumerate(training_data.execution_traces)
         actual_energy_consumption =
-            {(:actual_energy_consumption, i)} ~ single_program_energy_model(
-                execution_trace, learned_params, model_granularity
-            )
+            {(:actual_energy_consumption, i)} ~
+            single_program_energy_model(execution_trace, learned_params, model_granularity)
 
         {(:observed_energy_consumption, i)} ~ normal(actual_energy_consumption, sigma)
     end

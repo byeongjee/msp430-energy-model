@@ -96,7 +96,8 @@ GammaPerInstruction() = GammaModel(PerOpcode, "gamma_per_instruction")
 GammaPerAddressingMode() = GammaModel(PerAddressingMode, "gamma_per_addressing_mode")
 
 """Gamma distribution model with per-addressing-mode-constant granularity."""
-GammaPerAddressingModeConstant() = GammaModel(PerAddressingModeConstant, "gamma_per_addressing_mode_constant")
+GammaPerAddressingModeConstant() =
+    GammaModel(PerAddressingModeConstant, "gamma_per_addressing_mode_constant")
 
 # Mean models (single instruction)
 """Mean-based model with per-instruction (opcode) granularity."""
@@ -106,21 +107,28 @@ MeanPerInstruction() = MeanModel(PerOpcode, "mean_per_instruction")
 MeanPerAddressingMode() = MeanModel(PerAddressingMode, "mean_per_addressing_mode")
 
 """Mean-based model with per-addressing-mode-constant granularity."""
-MeanPerAddressingModeConstant() = MeanModel(PerAddressingModeConstant, "mean_per_addressing_mode_constant")
+MeanPerAddressingModeConstant() =
+    MeanModel(PerAddressingModeConstant, "mean_per_addressing_mode_constant")
 
 # Mean models with memory access tracking
 """Mean-based model with per-instruction granularity and memory access event tracking."""
-MeanPerInstructionWithMemAccess() = MeanModel(PerOpcodeWithMemAccess, "mean_per_instruction_with_mem_access")
+MeanPerInstructionWithMemAccess() =
+    MeanModel(PerOpcodeWithMemAccess, "mean_per_instruction_with_mem_access")
 
 """Mean-based model with per-addressing-mode granularity and memory access event tracking."""
-MeanPerAddressingModeWithMemAccess() = MeanModel(PerAddressingModeWithMemAccess, "mean_per_addressing_mode_with_mem_access")
+MeanPerAddressingModeWithMemAccess() =
+    MeanModel(PerAddressingModeWithMemAccess, "mean_per_addressing_mode_with_mem_access")
 
 """Mean-based model with per-addressing-mode-constant granularity and memory access event tracking."""
-MeanPerAddressingModeConstantWithMemAccess() = MeanModel(PerAddressingModeConstantWithMemAccess, "mean_per_addressing_mode_constant_with_mem_access")
+MeanPerAddressingModeConstantWithMemAccess() = MeanModel(
+    PerAddressingModeConstantWithMemAccess,
+    "mean_per_addressing_mode_constant_with_mem_access",
+)
 
 # Mean pair model
 """Mean-based model for consecutive instruction pairs with per-addressing-mode-constant granularity."""
-MeanPerPairAddressingModeConstant() = MeanPairModel(PerAddressingModeConstant, "mean_per_pair_addressing_mode_constant")
+MeanPerPairAddressingModeConstant() =
+    MeanPairModel(PerAddressingModeConstant, "mean_per_pair_addressing_mode_constant")
 
 # Model registry: maps model name strings to constructor functions
 const MODEL_REGISTRY = Dict{String,Function}(
@@ -132,7 +140,8 @@ const MODEL_REGISTRY = Dict{String,Function}(
     "mean_per_addressing_mode_constant" => MeanPerAddressingModeConstant,
     "mean_per_instruction_with_mem_access" => MeanPerInstructionWithMemAccess,
     "mean_per_addressing_mode_with_mem_access" => MeanPerAddressingModeWithMemAccess,
-    "mean_per_addressing_mode_constant_with_mem_access" => MeanPerAddressingModeConstantWithMemAccess,
+    "mean_per_addressing_mode_constant_with_mem_access" =>
+        MeanPerAddressingModeConstantWithMemAccess,
     "mean_per_pair_addressing_mode_constant" => MeanPerPairAddressingModeConstant,
 )
 
