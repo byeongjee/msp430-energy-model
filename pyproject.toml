@@ -15,7 +15,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "black>=25.9.0",
+    "ruff==0.16.3",
 ]
 
 [project.scripts]
@@ -36,3 +36,18 @@ packages = [
 # Editable installs put scripts/ itself on sys.path, so `pem` always runs the
 # working tree and type checkers resolve the same files.
 dev-mode-dirs = ["scripts"]
+
+[tool.ruff]
+src = ["scripts"]
+# Python snippets inside documentation are fragments, not statements, and ruff
+# rewrites keyword arguments into assignments when it formats them.
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+ignore = [
+    # Plotting and measurement helpers deliberately swallow any backend or
+    # device failure and fall back to a default.
+    "BLE001",
+    # Report timestamps are local wall-clock time on purpose.
+    "DTZ005",
+]

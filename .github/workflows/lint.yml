@@ -1,0 +1,45 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+# julia-actions/cache prunes its own old caches, which needs write access.
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Julia
+      uses: julia-actions/setup-julia@v2
+      with:
+        version: '1.11.7'
+
+    - name: Cache Julia packages
+      uses: julia-actions/cache@v2
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Install Python dependencies
+      run: uv sync
+
+    - name: Check Julia formatting
+      run: julia tools/julia-format/format.jl --check
+
+    - name: Check Python formatting
+      run: uv run ruff format --check scripts test/python
+
+    - name: Lint Python
+      run: uv run ruff check scripts test/python
