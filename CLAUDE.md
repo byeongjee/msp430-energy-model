@@ -154,7 +154,6 @@ Utilities for trace analysis including memory region classification (FRAM/SRAM) 
 - `preprocess.py`: Processes raw measurements into CSV format
 - `generate_comparison_report.py`: Compare estimated vs measured energy
 - `generate_distribution_report.py`: Analyze energy distributions
-- `analyze_least_squares.py`: Analyze least-squares training results
 
 #### Benchmark Generation
 - `gen_benchmarks.py`: Generate synthetic benchmarks for training
