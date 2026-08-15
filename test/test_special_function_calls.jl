@@ -11,11 +11,7 @@ using .Types:
     PerAddressingModeConstant,
     PerOpcode
 using .Model:
-    parse_key_string,
-    create_model,
-    load_params!,
-    create_estimation_config,
-    estimate_energy
+    parse_key_string, create_model, load_params!, create_estimation_config, estimate_energy
 
 """
 Test special function call key generation and serialization round-trip.
@@ -34,7 +30,8 @@ function run_special_function_call_tests()
 
         @testset "parse_key_string still works for normal keys" begin
             @test parse_key_string("call_immediate") == (:call, :immediate)
-            @test parse_key_string("mov_immediate_register") == (:mov, :immediate, :register)
+            @test parse_key_string("mov_immediate_register") ==
+                (:mov, :immediate, :register)
             @test parse_key_string("ret") == (:ret,)
             @test parse_key_string("nop") == (:nop,)
             @test parse_key_string("rlam_immediate_2") == (:rlam, :immediate, 2)
@@ -49,20 +46,16 @@ function run_special_function_call_tests()
 
         @testset "Multiplier absolute addresses remap to dedicated keys" begin
             reshi_read = Instruction(
-                :mov,
-                [Operand(UInt32(0x04CC), :absolute), Operand(:R9, :register)],
-                :word,
+                :mov, [Operand(UInt32(0x04CC), :absolute), Operand(:R9, :register)], :word
             )
             regular_absolute_read = Instruction(
-                :mov,
-                [Operand(UInt32(0x1C00), :absolute), Operand(:R9, :register)],
-                :word,
+                :mov, [Operand(UInt32(0x1C00), :absolute), Operand(:R9, :register)], :word
             )
 
             @test Types.get_instruction_key(reshi_read, PerAddressingMode) ==
-                  (:mov, :RESHI, :register)
+                (:mov, :RESHI, :register)
             @test Types.get_instruction_key(regular_absolute_read, PerAddressingMode) ==
-                  (:mov, :absolute, :register)
+                (:mov, :absolute, :register)
         end
 
         @testset "Key serialization produces correct string" begin
@@ -77,10 +70,7 @@ function run_special_function_call_tests()
                 model,
                 Dict(
                     "model" => "mean_per_addressing_mode",
-                    "parameters" => Dict(
-                        "call_memcpy" => 2.0,
-                        "call_memcpy_bytes" => 0.5,
-                    ),
+                    "parameters" => Dict("call_memcpy" => 2.0, "call_memcpy_bytes" => 0.5),
                 ),
             )
 
@@ -98,7 +88,9 @@ function run_special_function_call_tests()
         @testset "Interpreter handles special function calls" begin
             # Compile the test program
             @info "Compiling special function calls test program..."
-            run(`uv run pem disasm --file test/fixtures/c_programs/special_function_calls.c`)
+            run(
+                `uv run pem disasm --file test/fixtures/c_programs/special_function_calls.c`
+            )
 
             asm_file = "build/asm/special_function_calls.asm"
             data_file = "build/asm/special_function_calls.data"
@@ -108,18 +100,19 @@ function run_special_function_call_tests()
 
             # Read and parse assembly file
             asm_content = read(asm_file, String)
-            instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
+            instructions, address_info, _base_address = Interpreter.parse_asm_string(
+                asm_content
+            )
             func_addrs = Parser.find_functions_from_string(asm_content)
 
             # Verify the special functions exist in the disassembly
             has_divi = haskey(func_addrs, "__mspabi_divi")
             has_divli = haskey(func_addrs, "__mspabi_divli")
             has_divu = haskey(func_addrs, "__mspabi_divu")
-            has_mpyi = any(name -> haskey(func_addrs, name), [
-                "__mspabi_mpyi",
-                "__mspabi_mpyi_f5hw",
-                "__mulhi2",
-            ])
+            has_mpyi = any(
+                name -> haskey(func_addrs, name),
+                ["__mspabi_mpyi", "__mspabi_mpyi_f5hw", "__mulhi2"],
+            )
             has_remu = haskey(func_addrs, "__mspabi_remu")
             if !has_divi
                 @warn "No __mspabi_divi in disassembly — compiler may have optimized it away"
@@ -139,8 +132,12 @@ function run_special_function_call_tests()
 
             @testset "PerAddressingMode granularity" begin
                 final_state, event_traces = Interpreter.interpret_program(
-                    instructions, address_info, func_addrs, 100000,
-                    PerAddressingMode; data_file=data_file,
+                    instructions,
+                    address_info,
+                    func_addrs,
+                    100000,
+                    PerAddressingMode;
+                    data_file=data_file,
                     intercept_special_calls=true,
                 )
 
@@ -168,8 +165,12 @@ function run_special_function_call_tests()
 
             @testset "PerAddressingModeConstant granularity" begin
                 final_state, event_traces = Interpreter.interpret_program(
-                    instructions, address_info, func_addrs, 100000,
-                    PerAddressingModeConstant; data_file=data_file,
+                    instructions,
+                    address_info,
+                    func_addrs,
+                    100000,
+                    PerAddressingModeConstant;
+                    data_file=data_file,
                     intercept_special_calls=true,
                 )
 
@@ -187,8 +188,12 @@ function run_special_function_call_tests()
 
             @testset "PerOpcode granularity" begin
                 final_state, event_traces = Interpreter.interpret_program(
-                    instructions, address_info, func_addrs, 100000,
-                    PerOpcode; data_file=data_file,
+                    instructions,
+                    address_info,
+                    func_addrs,
+                    100000,
+                    PerOpcode;
+                    data_file=data_file,
                     intercept_special_calls=true,
                 )
 

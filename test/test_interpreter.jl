@@ -124,20 +124,7 @@ function compare_states(interpreter_state::Dict, gdb_state::Dict)
     # Compare registers
     # - SR excluded due to GDB simulator bug (see docstring)
     # - R13, R14, R15 excluded as they are scratch registers per MSP430 ABI
-    for reg in [
-        "PC",
-        "SP",
-        "R3",
-        "R4",
-        "R5",
-        "R6",
-        "R7",
-        "R8",
-        "R9",
-        "R10",
-        "R11",
-        "R12",
-    ]
+    for reg in ["PC", "SP", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12"]
         interp_val = interpreter_state["registers"][reg]
         gdb_val = gdb_state["registers"][reg]
 
@@ -285,7 +272,9 @@ function test_fixture(fixture_path::String)
                 println("\n⚠️  Memory test FAILED: $test_name")
                 println("Memory differences:")
                 for (addr, diff) in memory_diffs
-                    println("  $addr: got $(diff["interpreter"]), expected $(diff["expected"])")
+                    println(
+                        "  $addr: got $(diff["interpreter"]), expected $(diff["expected"])"
+                    )
                 end
                 println()
             end

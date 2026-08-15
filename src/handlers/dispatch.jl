@@ -111,9 +111,7 @@ should_advance_pc(::JumpHandler, state::MachineState, ops::Vector{Operand})::Boo
 should_advance_pc(::RptHandler, state::MachineState, ops::Vector{Operand})::Bool = false
 
 # MOV/MOVA to PC acts as a branch: don't advance if destination is PC
-function should_advance_pc(
-    ::MovHandler, state::MachineState, ops::Vector{Operand}
-)::Bool
+function should_advance_pc(::MovHandler, state::MachineState, ops::Vector{Operand})::Bool
     # Don't advance if destination operand is PC (R0)
     if length(ops) >= 2 && ops[2].mode == :register && ops[2].value == :PC
         return false

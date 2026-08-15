@@ -18,20 +18,17 @@ Drop degenerate measurement rows that cannot correspond to real benchmark events
 These occasionally appear as zero-duration, zero-energy segments at the start of
 preprocessed CSVs due to GPIO boundary artifacts during measurement.
 """
-function drop_degenerate_measurements(
-    energy_df::DataFrame
-)::Tuple{DataFrame,Int}
+function drop_degenerate_measurements(energy_df::DataFrame)::Tuple{DataFrame,Int}
     if !("duration_s" in names(energy_df) && "energy_nJ" in names(energy_df))
         return energy_df, 0
     end
 
-    degenerate_mask =
-        map(eachrow(energy_df)) do row
-            !ismissing(row.duration_s) &&
-                !ismissing(row.energy_nJ) &&
-                iszero(row.duration_s) &&
-                iszero(row.energy_nJ)
-        end
+    degenerate_mask = map(eachrow(energy_df)) do row
+        !ismissing(row.duration_s) &&
+            !ismissing(row.energy_nJ) &&
+            iszero(row.duration_s) &&
+            iszero(row.energy_nJ)
+    end
 
     dropped_count = count(degenerate_mask)
     if dropped_count == 0
@@ -72,15 +69,21 @@ function process_training_data(
     end
 
     _, event_traces = Interpreter.interpret_program(
-        instructions, address_info, func_addrs, max_steps, model_granularity;
-        data_file=data_dump, intercept_special_calls=intercept_special_calls,
+        instructions,
+        address_info,
+        func_addrs,
+        max_steps,
+        model_granularity;
+        data_file=data_dump,
+        intercept_special_calls=intercept_special_calls,
     )
 
     filtered_energy_df, dropped_count = drop_degenerate_measurements(energy_df)
     if dropped_count > 0
         @warn "Dropped degenerate zero-length zero-energy measurements before training" dropped_count =
-            dropped_count original_rows = nrow(energy_df) filtered_rows =
-            nrow(filtered_energy_df)
+            dropped_count original_rows = nrow(energy_df) filtered_rows = nrow(
+            filtered_energy_df
+        )
     end
 
     energies = filtered_energy_df.energy_nJ
@@ -140,11 +143,16 @@ function run_train(
     effective_data_dumps =
         isnothing(data_dumps) ? fill(nothing, length(asm_contents)) : data_dumps
 
-    for (asm_content, energy_df, data_dump) in zip(asm_contents, energy_dfs, effective_data_dumps)
-        event_traces, energies =
-            process_training_data(asm_content, energy_df, max_steps, granularity;
-                data_dump=data_dump,
-                intercept_special_calls=intercept_special_calls)
+    for (asm_content, energy_df, data_dump) in
+        zip(asm_contents, energy_dfs, effective_data_dumps)
+        event_traces, energies = process_training_data(
+            asm_content,
+            energy_df,
+            max_steps,
+            granularity;
+            data_dump=data_dump,
+            intercept_special_calls=intercept_special_calls,
+        )
         append!(all_event_traces, event_traces)
         append!(all_energies, energies)
     end

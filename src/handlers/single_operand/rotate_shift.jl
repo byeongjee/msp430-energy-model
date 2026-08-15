@@ -33,8 +33,7 @@ function execute!(
 
         # Update SR with V flag
         state.registers[:SR] =
-            (state.registers[:SR] & ~UInt32(0x0100)) |
-            (state.flags[:V] ? 0x0100 : 0x0000)
+            (state.registers[:SR] & ~UInt32(0x0100)) | (state.flags[:V] ? 0x0100 : 0x0000)
 
         result
     end
@@ -257,10 +256,8 @@ function execute!(
         state.flags[:C] = !state.flags[:Z]
 
         state.registers[:SR] =
-            (state.registers[:SR] & ~UInt32(0x0107)) |
-            (state.flags[:V] ? 0x0100 : 0x0000) |
-            (state.flags[:N] ? 0x0004 : 0x0000) |
-            (state.flags[:Z] ? 0x0002 : 0x0000) |
+            (state.registers[:SR] & ~UInt32(0x0107)) | (state.flags[:V] ? 0x0100 : 0x0000) |
+            (state.flags[:N] ? 0x0004 : 0x0000) | (state.flags[:Z] ? 0x0002 : 0x0000) |
             (state.flags[:C] ? 0x0001 : 0x0000)
 
         result
@@ -308,10 +305,8 @@ function execute!(
         # Update SR with flags (update V/C/Z/N)
         state.registers[:SR] =
             (state.registers[:SR] & 0x0008) |  # Preserve GIE (bit 3)
-            (state.flags[:V] ? 0x0100 : 0x0000) |
-            (state.flags[:N] ? 0x0004 : 0x0000) |
-            (state.flags[:Z] ? 0x0002 : 0x0000) |
-            (state.flags[:C] ? 0x0001 : 0x0000)
+            (state.flags[:V] ? 0x0100 : 0x0000) | (state.flags[:N] ? 0x0004 : 0x0000) |
+            (state.flags[:Z] ? 0x0002 : 0x0000) | (state.flags[:C] ? 0x0001 : 0x0000)
 
         result
     end
@@ -336,7 +331,13 @@ function execute!(
     )
     append!(events, read_events)
     # MSB depends on data size: bit 7 for byte, bit 15 for word, bit 19 for address
-    msb_mask = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+    msb_mask = if data_size == :byte
+        UInt32(0x80)
+    elseif data_size == :word
+        UInt32(0x8000)
+    else
+        UInt32(0x80000)
+    end
     # Second-to-MSB mask for overflow detection
     second_msb_mask = msb_mask >> 1
     new_carry = (operand_val & msb_mask) != 0
@@ -344,7 +345,8 @@ function execute!(
     state.flags[:C] = new_carry
     # V flag: set if MSB changes during shift (bit MSB XOR bit MSB-1 before shift)
     # This indicates arithmetic overflow (sign change)
-    state.flags[:V] = ((operand_val & msb_mask) != 0) != ((operand_val & second_msb_mask) != 0)
+    state.flags[:V] =
+        ((operand_val & msb_mask) != 0) != ((operand_val & second_msb_mask) != 0)
     update_flags_simple!(state, result, data_size)
     # Update SR to include V flag
     state.registers[:SR] =
@@ -380,7 +382,13 @@ function execute!(
     append!(events, dst_events)
 
     # MSB depends on data size: bit 7 for byte, bit 15 for word, bit 19 for address
-    msb_mask = data_size == :byte ? UInt32(0x80) : data_size == :word ? UInt32(0x8000) : UInt32(0x80000)
+    msb_mask = if data_size == :byte
+        UInt32(0x80)
+    elseif data_size == :word
+        UInt32(0x8000)
+    else
+        UInt32(0x80000)
+    end
     result = dst_val
     overflow = false
     for i in 1:shift_count
@@ -399,8 +407,7 @@ function execute!(
     update_flags_simple!(state, result, data_size)
     # Update SR to include V flag
     state.registers[:SR] =
-        (state.registers[:SR] & ~UInt32(0x0100)) |
-        (state.flags[:V] ? 0x0100 : 0x0000)
+        (state.registers[:SR] & ~UInt32(0x0100)) | (state.flags[:V] ? 0x0100 : 0x0000)
     write_events = set_operand_value!(
         state, ops[2], result, data_size, inst, should_track_memory_access
     )

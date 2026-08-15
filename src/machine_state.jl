@@ -34,42 +34,49 @@ const RES3_ADDR = UInt32(0x04EA)      # 32-bit result word 3 (highest)
 # Dispatch tables for multiplier write operations
 # 16-bit mode: writing sets mode and captures operand 1
 const MULTIPLIER_16BIT_MODE = Dict{UInt32,Symbol}(
-    MPY_ADDR  => :mpy,
-    MPYS_ADDR => :mpys,
-    MAC_ADDR  => :mac,
-    MACS_ADDR => :macs,
+    MPY_ADDR => :mpy, MPYS_ADDR => :mpys, MAC_ADDR => :mac, MACS_ADDR => :macs
 )
 
 # 32-bit mode (low word): writing sets mode and captures low 16 bits of operand 1
 const MULTIPLIER_32BIT_LOW_MODE = Dict{UInt32,Symbol}(
-    MPY32L_ADDR  => :mpy32,
+    MPY32L_ADDR => :mpy32,
     MPYS32L_ADDR => :mpys32,
-    MAC32L_ADDR  => :mac32,
+    MAC32L_ADDR => :mac32,
     MACS32L_ADDR => :macs32,
 )
 
 # 32-bit high word addresses: writing only updates high 16 bits (mode already set by low write)
-const MULTIPLIER_32BIT_HIGH_ADDRS = Set([MPY32H_ADDR, MPYS32H_ADDR, MAC32H_ADDR, MACS32H_ADDR])
+const MULTIPLIER_32BIT_HIGH_ADDRS = Set([
+    MPY32H_ADDR, MPYS32H_ADDR, MAC32H_ADDR, MACS32H_ADDR
+])
 
 # Dispatch tables for multiplier read operations
 # Result registers: map address to bit shift for extracting from 64-bit result
 const MULTIPLIER_RESULT_SHIFT = Dict{UInt32,Int}(
     RESLO_ADDR => 0,
-    RES0_ADDR  => 0,
+    RES0_ADDR => 0,
     RESHI_ADDR => 16,
-    RES1_ADDR  => 16,
-    RES2_ADDR  => 32,
-    RES3_ADDR  => 48,
+    RES1_ADDR => 16,
+    RES2_ADDR => 32,
+    RES3_ADDR => 48,
 )
 
 # All operand 1 low addresses (for reading low 16 bits of op1_value)
 const MULTIPLIER_OP1_LOW_ADDRS = Set([
-    MPY_ADDR, MPYS_ADDR, MAC_ADDR, MACS_ADDR,
-    MPY32L_ADDR, MPYS32L_ADDR, MAC32L_ADDR, MACS32L_ADDR,
+    MPY_ADDR,
+    MPYS_ADDR,
+    MAC_ADDR,
+    MACS_ADDR,
+    MPY32L_ADDR,
+    MPYS32L_ADDR,
+    MAC32L_ADDR,
+    MACS32L_ADDR,
 ])
 
 # All operand 1 high addresses (for reading high 16 bits of op1_value)
-const MULTIPLIER_OP1_HIGH_ADDRS = Set([MPY32H_ADDR, MPYS32H_ADDR, MAC32H_ADDR, MACS32H_ADDR])
+const MULTIPLIER_OP1_HIGH_ADDRS = Set([
+    MPY32H_ADDR, MPYS32H_ADDR, MAC32H_ADDR, MACS32H_ADDR
+])
 
 const DEBUG_MAGIC_U16 = UInt32(0x0010)
 const DEBUG_MAGIC_I16 = UInt32(0x0012)
@@ -94,9 +101,9 @@ Data size information for MSP430 operations.
 - bytes: Number of bytes for the data size
 """
 const DATA_SIZE_INFO = (
-    byte    = (mask = UInt32(0xFF),    msb = UInt32(0x80),    bytes = 1),
-    word    = (mask = UInt32(0xFFFF),  msb = UInt32(0x8000),  bytes = 2),
-    address = (mask = UInt32(0xFFFFF), msb = UInt32(0x80000), bytes = 4),
+    byte=(mask=UInt32(0xFF), msb=UInt32(0x80), bytes=1),
+    word=(mask=UInt32(0xFFFF), msb=UInt32(0x8000), bytes=2),
+    address=(mask=UInt32(0xFFFFF), msb=UInt32(0x80000), bytes=4),
 )
 
 """
@@ -534,7 +541,9 @@ function read_memory(
     use_cache = _is_fram_address(aligned_addr)
 
     # Helper to read a word from aligned address
-    read_word = (a) -> use_cache ? _cache_read_word(state, a) : (_read_word_uncached(state, a), false)
+    read_word =
+        (a) ->
+            use_cache ? _cache_read_word(state, a) : (_read_word_uncached(state, a), false)
 
     if data_size == :byte
         word, _ = read_word(aligned_addr)
@@ -574,26 +583,40 @@ function read_c_string(state::MachineState, addr::UInt32)::WithEvent{String}
     return (String(take!(io)), events)
 end
 
-function _handle_debug_magic_write!(state::MachineState, addr::UInt32, value::UInt16)::Nothing
+function _handle_debug_magic_write!(
+    state::MachineState, addr::UInt32, value::UInt16
+)::Nothing
     pc = state.registers[:PC]
     sp = state.registers[:SP]
 
     if addr == DEBUG_MAGIC_U16
         printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
-        println(stderr, "u16 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $value")
+        println(
+            stderr,
+            "u16 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $value",
+        )
     elseif addr == DEBUG_MAGIC_I16
         signed_val = reinterpret(Int16, value)
         printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
-        println(stderr, "i16 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $signed_val")
+        println(
+            stderr,
+            "i16 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $signed_val",
+        )
     elseif addr == DEBUG_MAGIC_HEX
         printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
-        println(stderr, "hex pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): 0x$(string(value, base=16, pad=4))")
+        println(
+            stderr,
+            "hex pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): 0x$(string(value, base=16, pad=4))",
+        )
     elseif addr == DEBUG_MAGIC_CHR
         char_val = Char(value & 0xFF)
         if char_val == '\n'
             buffered = String(take!(state.debug_char_buffer))
             printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
-            println(stderr, "char pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $buffered")
+            println(
+                stderr,
+                "char pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $buffered",
+            )
         else
             print(state.debug_char_buffer, char_val)
         end
@@ -602,12 +625,18 @@ function _handle_debug_magic_write!(state::MachineState, addr::UInt32, value::UI
     elseif addr == DEBUG_MAGIC_U32_HI
         full_value = UInt32(state.debug_u32_buffer) | (UInt32(value) << 16)
         printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
-        println(stderr, "u32 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $full_value")
+        println(
+            stderr,
+            "u32 pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $full_value",
+        )
     elseif addr == DEBUG_MAGIC_STR
         ptr = UInt32(value)
         text, _ = read_c_string(state, ptr)
         printstyled(stderr, "[DEBUG] "; color=:cyan, bold=true)
-        println(stderr, "str pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $text")
+        println(
+            stderr,
+            "str pc=0x$(string(pc; base=16, pad=4)) sp=0x$(string(sp; base=16, pad=5)): $text",
+        )
     end
 
     return nothing
@@ -701,7 +730,7 @@ function _handle_multiplier_write!(state::MachineState, addr::UInt32, value::UIn
     if mode_16 !== nothing
         m.op1_mode = mode_16
         m.op1_value = UInt32(value)
-        return
+        return nothing
     end
 
     # 32-bit mode low registers: set mode and store low 16 bits of operand 1
@@ -709,13 +738,13 @@ function _handle_multiplier_write!(state::MachineState, addr::UInt32, value::UIn
     if mode_32 !== nothing
         m.op1_mode = mode_32
         m.op1_value = (m.op1_value & 0xFFFF0000) | UInt32(value)
-        return
+        return nothing
     end
 
     # 32-bit mode high registers: store high 16 bits of operand 1 (mode already set)
     if addr in MULTIPLIER_32BIT_HIGH_ADDRS
         m.op1_value = (m.op1_value & 0x0000FFFF) | (UInt32(value) << 16)
-        return
+        return nothing
     end
 
     # Operand 2 registers
@@ -798,17 +827,26 @@ function write_memory!(
     end
 
     # Determine byte length for cache invalidation
-    byte_len = data_size == :byte ? 1 : data_size == :word ? 2 : data_size == :address ? 4 : 0
+    byte_len = if data_size == :byte
+        1
+    elseif data_size == :word
+        2
+    elseif data_size == :address
+        4
+    else
+        0
+    end
     byte_len == 0 && error("Unknown data size: $data_size")
 
     # Invalidate cache for FRAM writes
-    _is_fram_address(aligned_addr) && _invalidate_cache_range!(state, aligned_addr, byte_len)
+    _is_fram_address(aligned_addr) &&
+        _invalidate_cache_range!(state, aligned_addr, byte_len)
 
     # Write to memory
     if data_size == :byte
         old_word = get(state.memory, aligned_addr, UInt16(0))
-        new_word = (addr & 1) == 0 ?
-            UInt16((old_word & 0xFF00) | (value & 0xFF)) :  # Even: lower byte
+        new_word =
+            (addr & 1) == 0 ? UInt16((old_word & 0xFF00) | (value & 0xFF)) :  # Even: lower byte
             UInt16((old_word & 0x00FF) | ((value & 0xFF) << 8))  # Odd: upper byte
         state.memory[aligned_addr] = new_word
     elseif data_size == :word
@@ -938,7 +976,9 @@ function get_operand_value(
     elseif operand.mode == :absolute
         # Absolute addressing: &address
         @assert isa(operand.value, Integer) "Absolute mode: operand.value must be Integer, got $(typeof(operand.value))"
-        read_memory(state, UInt32(operand.value), data_size, inst, should_track_memory_access)
+        read_memory(
+            state, UInt32(operand.value), data_size, inst, should_track_memory_access
+        )
     else
         error("Unknown addressing mode: $(operand.mode)")
     end
@@ -1038,10 +1078,8 @@ Call after modifying flags to keep SR in sync.
 function _sync_sr_with_flags!(state::MachineState)::Nothing
     state.registers[:SR] =
         (state.registers[:SR] & ~UInt32(0x0107)) |  # Preserve GIE/CPU mode bits
-        (state.flags[:V] ? 0x0100 : 0x0000) |
-        (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000) |
-        (state.flags[:C] ? 0x0001 : 0x0000)
+        (state.flags[:V] ? 0x0100 : 0x0000) | (state.flags[:N] ? 0x0004 : 0x0000) |
+        (state.flags[:Z] ? 0x0002 : 0x0000) | (state.flags[:C] ? 0x0001 : 0x0000)
     return nothing
 end
 
@@ -1054,11 +1092,7 @@ Overflow: Set if both operands have same sign but result has different sign.
 Note: DADD has custom BCD flag handling and does not use this function.
 """
 function update_flags_add!(
-    state::MachineState,
-    result::UInt32,
-    dst::UInt32,
-    src::UInt32,
-    data_size::Symbol=:word,
+    state::MachineState, result::UInt32, dst::UInt32, src::UInt32, data_size::Symbol=:word
 )::Nothing
     masked_result = apply_data_size_mask(result, data_size)
     masked_dst = apply_data_size_mask(dst, data_size)
@@ -1095,11 +1129,7 @@ Overflow: Set if operands have different signs and result sign differs from dst.
 Note: XOR and AND have custom flag handling (V, C differ from SUB) and do not use this function.
 """
 function update_flags_sub!(
-    state::MachineState,
-    result::UInt32,
-    dst::UInt32,
-    src::UInt32,
-    data_size::Symbol=:word,
+    state::MachineState, result::UInt32, dst::UInt32, src::UInt32, data_size::Symbol=:word
 )::Nothing
     masked_result = apply_data_size_mask(result, data_size)
     masked_dst = apply_data_size_mask(dst, data_size)
@@ -1141,8 +1171,7 @@ function update_flags_simple!(
     # Update status register
     state.registers[:SR] =
         (state.registers[:SR] & ~UInt32(0x0007)) |  # Preserve V/GIE/CPU mode bits, clear C/N/Z
-        (state.flags[:N] ? 0x0004 : 0x0000) |
-        (state.flags[:Z] ? 0x0002 : 0x0000) |
+        (state.flags[:N] ? 0x0004 : 0x0000) | (state.flags[:Z] ? 0x0002 : 0x0000) |
         (state.flags[:C] ? 0x0001 : 0x0000)
 
     return nothing

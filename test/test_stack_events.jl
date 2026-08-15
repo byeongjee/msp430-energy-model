@@ -27,7 +27,9 @@ function run_stack_events_tests()
 
             # Read and parse assembly file
             asm_content = read(asm_file, String)
-            instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
+            instructions, address_info, _base_address = Interpreter.parse_asm_string(
+                asm_content
+            )
             func_addrs = Parser.find_functions_from_string(asm_content)
 
             # Execute the program with memory access tracking
@@ -43,7 +45,9 @@ function run_stack_events_tests()
 
             # Compute memory access counts for each event
             memory_regions = TraceMetrics.build_memory_regions()
-            access_counts = TraceMetrics.compute_event_accesses(event_traces, memory_regions)
+            access_counts = TraceMetrics.compute_event_accesses(
+                event_traces, memory_regions
+            )
 
             # We expect 2 events:
             # Event 1: CALL/RET - should have SRAM write (CALL) and SRAM read (RET)

@@ -359,8 +359,7 @@ Each call emits an intercept event (key_symbol,) with feature_value=DEFAULT_FEAT
 and if size_register is not nothing, a slope event (key_symbol, :bytes) with feature_value=register_value.
 """
 const FEATURE_FUNCTIONS = Dict{String,Tuple{Symbol,Union{Symbol,Nothing}}}(
-    "memcpy"  => (:call_memcpy, :R14),
-    "memset"  => (:call_memset, :R14),
+    "memcpy" => (:call_memcpy, :R14), "memset" => (:call_memset, :R14)
 )
 
 """
@@ -396,7 +395,9 @@ function interpret_program(
         func_addr = get(func_addrs, func_name, nothing)
         if !isnothing(func_addr)
             feature_func_addrs[func_addr] = (func_name, key_sym, size_reg)
-            @debug "Feature function found" name=func_name address="0x" * string(func_addr; base=16, pad=4)
+            @debug "Feature function found" name=func_name address="0x" * string(
+                func_addr; base=16, pad=4
+            )
         end
     end
 
@@ -495,11 +496,17 @@ function interpret_program(
                     func_name, key_sym, size_reg = feature_func_addrs[call_target]
                     @debug "Emitting feature events for $func_name at 0x$(string(old_pc, base=16, pad=4))"
                     # Intercept event (fixed cost per call)
-                    push!(current_execution_trace, ExecutionEvent((key_sym,), DEFAULT_FEATURE_VALUE))
+                    push!(
+                        current_execution_trace,
+                        ExecutionEvent((key_sym,), DEFAULT_FEATURE_VALUE),
+                    )
                     # Slope event (variable cost proportional to size)
                     if !isnothing(size_reg)
                         byte_count = Float64(state.registers[size_reg])
-                        push!(current_execution_trace, ExecutionEvent((key_sym, :bytes), byte_count))
+                        push!(
+                            current_execution_trace,
+                            ExecutionEvent((key_sym, :bytes), byte_count),
+                        )
                     end
                     state.registers[:PC] = address_info[current_addr_idx + 1][1]
                     continue
@@ -523,17 +530,23 @@ function interpret_program(
                 # Check for special functions that should be treated as single instructions
                 # Only applies when intercept_special_calls is enabled AND inside an event block
                 special_function = false
-                for (func_name, canonical_sym) in (intercept_special_calls && in_event ? SPECIAL_CALL_FUNCTIONS : Dict{String,Symbol}())
+                for (func_name, canonical_sym) in (
+                    intercept_special_calls && in_event ? SPECIAL_CALL_FUNCTIONS :
+                    Dict{String,Symbol}()
+                )
                     func_addr = get(func_addrs, func_name, nothing)
                     if func_addr !== nothing && func_addr == call_target
                         @debug "Special function call to $func_name (canonical: $canonical_sym) at 0x$(string(old_pc, base=16, pad=4))"
-                        key = if model_granularity == PerOpcode ||
-                                 model_granularity == PerOpcodeWithMemAccess
-                            (inst.opcode,)
-                        else
-                            (inst.opcode, canonical_sym)
-                        end
-                        event = ExecutionEvent(Inst, inst, Any[], key, DEFAULT_FEATURE_VALUE)
+                        key =
+                            if model_granularity == PerOpcode ||
+                                model_granularity == PerOpcodeWithMemAccess
+                                (inst.opcode,)
+                            else
+                                (inst.opcode, canonical_sym)
+                            end
+                        event = ExecutionEvent(
+                            Inst, inst, Any[], key, DEFAULT_FEATURE_VALUE
+                        )
                         push!(current_execution_trace, event)
                         state.registers[:PC] = address_info[current_addr_idx + 1][1]
                         special_function = true

@@ -135,11 +135,9 @@ function parse_key_string(key_str::String)::Key
 
     # Normal parsing: split by underscore, convert integers
     key_parts = split(key_str, "_")
-    return tuple(
-        [
-            let parsed = tryparse(Int, string(p))
-                parsed !== nothing ? parsed : Symbol(p)
-            end for p in key_parts
-        ]...,
-    )
+    return tuple([
+        let parsed = tryparse(Int, string(p))
+            parsed !== nothing ? parsed : Symbol(p)
+        end for p in key_parts
+    ]...)
 end

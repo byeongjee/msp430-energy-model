@@ -85,7 +85,7 @@ the entire call (CALL + body + RET) is modeled as a single event with key
 Maps all known symbol names (including GCC internal aliases) to their canonical
 key symbol. For example, __mulhi2 and __mspabi_mpyi_f5hw both map to :__mspabi_mpyi.
 """
-const SPECIAL_CALL_FUNCTIONS = Dict{String, Symbol}(
+const SPECIAL_CALL_FUNCTIONS = Dict{String,Symbol}(
     "__mspabi_divi" => :__mspabi_divi,
     "__mspabi_divli" => :__mspabi_divli,
     "__mspabi_divu" => :__mspabi_divu,

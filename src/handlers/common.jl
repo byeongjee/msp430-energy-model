@@ -15,10 +15,13 @@ Throws ArgumentError if validation fails (instead of silently returning).
 """
 function require_operand_count(ops::Vector{Operand}, required::Int, opcode::Symbol)
     if length(ops) < required
-        throw(ArgumentError("$opcode requires at least $required operand(s), got $(length(ops))"))
+        throw(
+            ArgumentError(
+                "$opcode requires at least $required operand(s), got $(length(ops))"
+            ),
+        )
     end
 end
-
 
 # ============================================================================
 # Single-Operand Common Pattern

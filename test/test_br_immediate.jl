@@ -35,7 +35,9 @@ function run_br_immediate_tests()
 
             # Read and parse assembly file
             asm_content = read(asm_file, String)
-            instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
+            instructions, address_info, _base_address = Interpreter.parse_asm_string(
+                asm_content
+            )
             func_addrs = Parser.find_functions_from_string(asm_content)
 
             # Count br instructions in the parsed assembly
@@ -98,7 +100,9 @@ function run_br_immediate_tests()
             @test isfile(data_file)
 
             asm_content = read(asm_file, String)
-            instructions, address_info, _base_address = Interpreter.parse_asm_string(asm_content)
+            instructions, address_info, _base_address = Interpreter.parse_asm_string(
+                asm_content
+            )
             func_addrs = Parser.find_functions_from_string(asm_content)
 
             br_count = count(inst -> inst.opcode == :br, instructions)

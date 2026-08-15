@@ -126,8 +126,7 @@ A[i,j] = count of key j in execution trace i
 B[i] = measured energy of execution trace i
 """
 function build_training_matrix(
-    training_data::TrainingData,
-    model_granularity::Union{Nothing,ModelGranularity}=nothing,
+    training_data::TrainingData, model_granularity::Union{Nothing,ModelGranularity}=nothing
 )
     # Collect all unique instruction keys
     all_keys = Set{Key}()
@@ -194,8 +193,7 @@ function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingD
     @info "Upper-bound LP system built" num_keys = num_keys
 
     row_feature_mass = vec(sum(A; dims=2))
-    infeasible_rows =
-        findall(i -> iszero(row_feature_mass[i]) && B[i] > 0, eachindex(B))
+    infeasible_rows = findall(i -> iszero(row_feature_mass[i]) && B[i] > 0, eachindex(B))
     if !isempty(infeasible_rows)
         error(
             "Upper-bound LP is infeasible: $(length(infeasible_rows)) training samples have positive measured energy but no active features",
@@ -231,7 +229,8 @@ function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingD
     JuMP.@constraint(
         lp,
         total_slack_constraint,
-        sum(slack[i] for i in 1:num_execution_traces) <= optimal_total_slack + slack_tolerance,
+        sum(slack[i] for i in 1:num_execution_traces) <=
+            optimal_total_slack + slack_tolerance,
     )
     JuMP.@objective(lp, Min, sum(x[j] for j in 1:num_keys))
     JuMP.optimize!(lp)
@@ -250,8 +249,7 @@ function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingD
 
     min_slack_before_correction = minimum(slack_values)
     if min_slack_before_correction < -1e-8
-        correction_factor =
-            max(1.0, maximum(B ./ max.(B_pred, 1e-12))) * (1 + 1e-9)
+        correction_factor = max(1.0, maximum(B ./ max.(B_pred, 1e-12))) * (1 + 1e-9)
         x_values .*= correction_factor
         B_pred = A * x_values
         slack_values = B_pred .- B
@@ -274,9 +272,10 @@ function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingD
     binding_constraints_count = count(slack_values .<= 1e-7)
     underestimation_violations = count(slack_values .< -1e-8)
 
-    @info "Upper-bound LP metrics" total_slack = round(total_slack; digits=6) min_slack =
-        round(min_slack; digits=6) max_slack = round(max_slack; digits=6) binding_constraints =
-        binding_constraints_count underestimation_violations = underestimation_violations
+    @info "Upper-bound LP metrics" total_slack = round(total_slack; digits=6) min_slack = round(
+        min_slack; digits=6
+    ) max_slack = round(max_slack; digits=6) binding_constraints = binding_constraints_count underestimation_violations =
+        underestimation_violations
     @info "Goodness of fit metrics" R² = round(r_squared; digits=6) RMSE = round(
         rmse; digits=3
     ) MAE = round(mae; digits=3) Max_Error = round(max_error; digits=3)
@@ -298,8 +297,8 @@ function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingD
         end
 
         relative_errors = [
-            iszero(B[i]) ? (iszero(B_pred[i]) ? 0.0 : -Inf) : (B[i] - B_pred[i]) / B[i] * 100 for
-            i in eachindex(B)
+            iszero(B[i]) ? (iszero(B_pred[i]) ? 0.0 : -Inf) :
+            (B[i] - B_pred[i]) / B[i] * 100 for i in eachindex(B)
         ]
         column_coverage = [count(A[:, j] .> 0) for j in 1:num_keys]
 
@@ -307,7 +306,8 @@ function learn_params_upper_bound_lp!(model::MeanModel, training_data::TrainingD
         svd_result = svd(A)
         singular_values = svd_result.S
         nonzero_sv = filter(s -> s > 1e-10, singular_values)
-        condition_number = length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
+        condition_number =
+            length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
 
         debug_data = Dict{String,Any}(
             "metadata" => Dict(
@@ -445,7 +445,8 @@ function learn_params_least_squares!(
         singular_values = svd_result.S
         # Condition number is ratio of largest to smallest non-zero singular value
         nonzero_sv = filter(s -> s > 1e-10, singular_values)
-        condition_number = length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
+        condition_number =
+            length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
 
         debug_data = Dict{String,Any}(
             "metadata" => Dict(
@@ -507,7 +508,9 @@ function learn_params_map!(model::MeanModel, training_data::TrainingData)
     sigma_obs = median(B) * 0.05
     lambda = (sigma_obs / sigma0)^2
 
-    @info "MAP prior parameters" prior_median_nJ=exp(mu0) sigma0=sigma0 sigma_obs=round(sigma_obs; digits=3) lambda=round(lambda; digits=6)
+    @info "MAP prior parameters" prior_median_nJ=exp(mu0) sigma0=sigma0 sigma_obs=round(
+        sigma_obs; digits=3
+    ) lambda=round(lambda; digits=6)
 
     # Initialize from clamped LS solution (fallback to prior if singular)
     y0 = try
@@ -541,10 +544,17 @@ function learn_params_map!(model::MeanModel, training_data::TrainingData)
     end
 
     # Optimize
-    result = Optim.optimize(objective, gradient!, y0, LBFGS(),
-        Optim.Options(iterations=10000, g_tol=1e-8, show_trace=false))
+    result = Optim.optimize(
+        objective,
+        gradient!,
+        y0,
+        LBFGS(),
+        Optim.Options(; iterations=10000, g_tol=1e-8, show_trace=false),
+    )
 
-    @info "MAP optimization" converged=Optim.converged(result) iterations=Optim.iterations(result) minimum=round(Optim.minimum(result); digits=3)
+    @info "MAP optimization" converged=Optim.converged(result) iterations=Optim.iterations(
+        result
+    ) minimum=round(Optim.minimum(result); digits=3)
 
     y_opt = Optim.minimizer(result)
     x = exp.(y_opt)
@@ -559,12 +569,16 @@ function learn_params_map!(model::MeanModel, training_data::TrainingData)
     B_pred = A * x
     residuals, r_squared, rmse, mae, max_error = compute_fit_metrics(B, B_pred)
 
-    @info "Goodness of fit metrics" R²=round(r_squared; digits=6) RMSE=round(rmse; digits=3) MAE=round(mae; digits=3) Max_Error=round(max_error; digits=3)
+    @info "Goodness of fit metrics" R²=round(r_squared; digits=6) RMSE=round(rmse; digits=3) MAE=round(
+        mae; digits=3
+    ) Max_Error=round(max_error; digits=3)
 
     # All parameters should be positive
     min_energy = minimum(values(model.params))
     max_energy = maximum(values(model.params))
-    @info "Parameter range" min_energy=round(min_energy; digits=6) max_energy=round(max_energy; digits=6) all_positive=(min_energy > 0)
+    @info "Parameter range" min_energy=round(min_energy; digits=6) max_energy=round(
+        max_energy; digits=6
+    ) all_positive=(min_energy > 0)
 
     # Debug dump support (same env var as least-squares)
     debug_dump_path = get(ENV, "JULIA_LS_DEBUG_DUMP_PATH", nothing)
@@ -590,7 +604,8 @@ function learn_params_map!(model::MeanModel, training_data::TrainingData)
         svd_result = svd(A)
         singular_values = svd_result.S
         nonzero_sv = filter(s -> s > 1e-10, singular_values)
-        condition_number = length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
+        condition_number =
+            length(nonzero_sv) > 0 ? maximum(nonzero_sv) / minimum(nonzero_sv) : Inf
 
         debug_data = Dict{String,Any}(
             "metadata" => Dict(
@@ -620,10 +635,8 @@ function learn_params_map!(model::MeanModel, training_data::TrainingData)
             "singular_values" => singular_values,
             # Store A as a sparse representation to save space
             # Each entry is [row, col, value] for non-zero entries
-            "matrix_A_sparse" => [
-                [i, j, A[i, j]] for i in 1:num_traces for
-                j in 1:num_keys if A[i, j] > 0
-            ],
+            "matrix_A_sparse" =>
+                [[i, j, A[i, j]] for i in 1:num_traces for j in 1:num_keys if A[i, j] > 0],
             "matrix_A_shape" => [num_traces, num_keys],
         )
 

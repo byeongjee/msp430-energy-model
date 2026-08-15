@@ -137,8 +137,9 @@ function log_key_breakdown(
     )
 
     @info "$label key breakdown" unique_keys = length(sorted_keys) total_execution_events =
-        total_execution_events total_estimated_energy =
-        round(total_estimated_energy; digits=3)
+        total_execution_events total_estimated_energy = round(
+        total_estimated_energy; digits=3
+    )
 
     for key in sorted_keys
         @info "$label key" key = key count = key_counts[key] feature_sum = round(
@@ -230,7 +231,8 @@ function run_estimate(
     event_debug_info = Vector{Dict{String,Any}}()
     estimate_debug_path = get(ENV, "JULIA_ESTIMATE_DEBUG_DUMP_PATH", nothing)
     should_log_key_counts =
-        !isnothing(estimate_debug_path) || env_flag_enabled("JULIA_ESTIMATE_PRINT_KEY_COUNTS")
+        !isnothing(estimate_debug_path) ||
+        env_flag_enabled("JULIA_ESTIMATE_PRINT_KEY_COUNTS")
 
     for (event_idx, execution_trace) in enumerate(execution_traces)
         @info "Execution trace" length = length(execution_trace)

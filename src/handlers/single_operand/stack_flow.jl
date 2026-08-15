@@ -26,7 +26,12 @@ function execute!(
     )
     # Use write_memory! to track stack writes as events
     write_events = write_memory!(
-        state, state.registers[:SP], operand_val, data_size, inst, should_track_memory_access
+        state,
+        state.registers[:SP],
+        operand_val,
+        data_size,
+        inst,
+        should_track_memory_access,
     )
     append!(events, write_events)
     return events
@@ -66,7 +71,12 @@ function execute!(
     )
     # Use write_memory! to track stack writes as events
     write_events = write_memory!(
-        state, state.registers[:SP], UInt32(return_addr), :word, inst, should_track_memory_access
+        state,
+        state.registers[:SP],
+        UInt32(return_addr),
+        :word,
+        inst,
+        should_track_memory_access,
     )
     append!(events, write_events)
     state.registers[:PC] = operand_val
@@ -139,7 +149,12 @@ function execute!(
     # Write high 4 bits to SP+2
     high_word = UInt32((return_addr >> 16) & 0xF)
     write_events_high = write_memory!(
-        state, state.registers[:SP] + UInt32(2), high_word, :word, inst, should_track_memory_access
+        state,
+        state.registers[:SP] + UInt32(2),
+        high_word,
+        :word,
+        inst,
+        should_track_memory_access,
     )
     append!(events, write_events_high)
 
@@ -278,7 +293,12 @@ function execute!(
 
             # Use write_memory! to track stack writes as events
             write_events = write_memory!(
-                state, state.registers[:SP], UInt32(reg_val), data_size, inst, should_track_memory_access
+                state,
+                state.registers[:SP],
+                UInt32(reg_val),
+                data_size,
+                inst,
+                should_track_memory_access,
             )
             append!(events, write_events)
         end
