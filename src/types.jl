@@ -77,8 +77,8 @@ end
 const constant_aware_opcodes = [:rlam, :rrum, :pushm, :popm, :rpt]
 
 """
-MSP430 ABI runtime library functions that should be treated as single composite
-instructions for energy modeling. When a CALL/CALLA targets one of these functions,
+MSP430 ABI runtime library and libm functions that should be treated as single
+composite instructions for energy modeling. When a CALL/CALLA targets one of these,
 the entire call (CALL + body + RET) is modeled as a single event with key
 (:call, :__funcname) instead of the generic (:call, :immediate).
 
@@ -96,6 +96,22 @@ const SPECIAL_CALL_FUNCTIONS = Dict{String, Symbol}(
     "__mspabi_mpyl_f5hw" => :__mspabi_mpyl,
     "__mulsi2" => :__mspabi_mpyl,
     "__mspabi_remu" => :__mspabi_remu,
+    "__mspabi_remul" => :__mspabi_remul,
+    "__mspabi_mpyll" => :__mspabi_mpyll,
+    "__mspabi_addd" => :__mspabi_addd,
+    "__mspabi_subd" => :__mspabi_subd,
+    "__mspabi_mpyd" => :__mspabi_mpyd,
+    "__mspabi_divd" => :__mspabi_divd,
+    "__mspabi_addf" => :__mspabi_addf,
+    "__mspabi_mpyf" => :__mspabi_mpyf,
+    "__mspabi_divf" => :__mspabi_divf,
+    "__mspabi_cvtdf" => :__mspabi_cvtdf,
+    "__mspabi_cvtfd" => :__mspabi_cvtfd,
+    "__mspabi_fltuld" => :__mspabi_fltuld,
+    "__mspabi_fltulf" => :__mspabi_fltulf,
+    "__mspabi_fixfli" => :__mspabi_fixfli,
+    "cos" => :cos,
+    "sin" => :sin,
 )
 
 # MSP430 multiplier-mapped memory addresses (Table 9-65 of MSP430FR5994 datasheet)

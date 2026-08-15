@@ -54,7 +54,10 @@ endif
 INCLUDES := -I$(MSP430GCC_SUPPORT_PATH)/include -I$(MEASUREMENT_INCLUDE_PATH)
 # Use custom linker script that includes .text_sram section for SRAM-resident code
 LDFLAGS := -L$(MSP430GCC_SUPPORT_PATH)/include -T $(MEASUREMENT_INCLUDE_PATH)/msp430fr5994.ld
-export INCLUDES LDFLAGS
+# Libraries must follow the translation unit on the link line, so they are kept
+# separate from LDFLAGS. libm supplies cos/sin for the special-call benchmarks.
+LDLIBS := -lm
+export INCLUDES LDFLAGS LDLIBS
 
 # Directories
 SRC_DIR := examples/c_programs
@@ -113,7 +116,7 @@ endif
 	if [ -n "$(DEFINES)" ]; then \
 		echo "  DEFINES=$(DEFINES)"; \
 	fi; \
-	$(CC) $$COMPILE_FLAGS $(DEFINE_FLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE); \
+	$(CC) $$COMPILE_FLAGS $(DEFINE_FLAGS) $(INCLUDES) $(LDFLAGS) -o $(BUILD_DIR)/$$BASENAME.elf $(FILE) $(LDLIBS); \
 	echo "✓ Compilation successful: $(BUILD_DIR)/$$BASENAME.elf"
 
 disasm: compile | $(ASM_DIR) ## Compile and disassemble (FILE=<file.c|file.S>)

@@ -174,6 +174,22 @@ SPECIAL_FUNCTION_CALL_BENCHMARKS = {
     "call___mspabi_mpyi": "Signed 16-bit multiplication via __mspabi_mpyi",
     "call___mspabi_mpyl": "Signed 32-bit multiplication via __mspabi_mpyl",
     "call___mspabi_remu": "Unsigned 16-bit remainder via __mspabi_remu",
+    "call___mspabi_remul": "Unsigned 32-bit remainder via __mspabi_remul",
+    "call___mspabi_mpyll": "Signed 64-bit multiplication via __mspabi_mpyll",
+    "call___mspabi_addd": "Double-precision addition via __mspabi_addd",
+    "call___mspabi_subd": "Double-precision subtraction via __mspabi_subd",
+    "call___mspabi_mpyd": "Double-precision multiplication via __mspabi_mpyd",
+    "call___mspabi_divd": "Double-precision division via __mspabi_divd",
+    "call___mspabi_addf": "Single-precision addition via __mspabi_addf",
+    "call___mspabi_mpyf": "Single-precision multiplication via __mspabi_mpyf",
+    "call___mspabi_divf": "Single-precision division via __mspabi_divf",
+    "call___mspabi_cvtdf": "Double-to-float conversion via __mspabi_cvtdf",
+    "call___mspabi_cvtfd": "Float-to-double conversion via __mspabi_cvtfd",
+    "call___mspabi_fltuld": "Unsigned-long-to-double conversion via __mspabi_fltuld",
+    "call___mspabi_fltulf": "Unsigned-long-to-float conversion via __mspabi_fltulf",
+    "call___mspabi_fixfli": "Float-to-signed-long conversion via __mspabi_fixfli",
+    "call_cos": "Double-precision cosine via libm cos (requires -lm)",
+    "call_sin": "Double-precision sine via libm sin (requires -lm)",
 }
 
 HARDCODED_BENCHMARKS = {

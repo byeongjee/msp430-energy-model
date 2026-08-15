@@ -220,7 +220,7 @@ measure_and_preprocess() {
 
     # Compile
     log_step "Compiling $base"
-    $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
+    $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file" ${LDLIBS:-}
     log_success "Compiled: $BUILD_DIR/${base}.elf"
 
     # Measure (flash is done inside measure.py via --reset_cmd with GPO2 control)
@@ -274,7 +274,7 @@ compile_and_disasm() {
     compile_flags=$(get_compile_flags "$file")
 
     # Compile
-    $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
+    $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file" ${LDLIBS:-}
     log_info "Compiled: $BUILD_DIR/${base}.elf"
 
     # Disassemble
