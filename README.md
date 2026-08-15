@@ -55,13 +55,9 @@ which is required to automate measurement through scripts.
 - `OTII_USERNAME`: Your Otii username (with Automation Toolbox license).
 - `OTII_PASSWORD`: Your Otii password (with Automation Toolbox license).
 
-4. Hardware setup:
-    1. Connect both MSP430 and Otii Ace Pro
-    to the host computer.
-    2. Connect the voltage cables from Otii Ace Pro to MSP430 (black to GND, red to 3V3).
-    3. Connect the GPI cables from Otii Ace Pro to MSP430 (GPI1 to P1.2, GPI2 to P1.3, and DGND to GND).
-
-See [Physical setup](examples/images/physical-setup.jpg) for the physical setup.
+4. Hardware setup: see [Measurement setup](docs/measurement_setup.md) for the
+wiring, including the Qoitech Switchboard that isolates the ez-FET debugger
+from the target while it is measured.
 
 Now we are ready to measure energy consumption.
 We assume that the program uses `include/setup.h` to toggle GPI pins for
