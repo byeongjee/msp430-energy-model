@@ -98,7 +98,7 @@ function run_special_function_call_tests()
         @testset "Interpreter handles special function calls" begin
             # Compile the test program
             @info "Compiling special function calls test program..."
-            run(`make disasm FILE=test/fixtures/c_programs/special_function_calls.c`)
+            run(`uv run pem disasm --file test/fixtures/c_programs/special_function_calls.c`)
 
             asm_file = "build/asm/special_function_calls.asm"
             data_file = "build/asm/special_function_calls.data"

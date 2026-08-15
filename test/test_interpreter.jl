@@ -305,7 +305,7 @@ function run_all_fixtures(filter_pattern::Union{Regex,Nothing}=nothing)
 
     if !isdir(fixtures_dir)
         @warn "Fixtures directory not found: $fixtures_dir"
-        @warn "Please create fixtures using: test/scripts/create_fixture.sh"
+        @warn "Please create fixtures using: uv run pem create-fixture"
         return nothing
     end
 
@@ -313,7 +313,7 @@ function run_all_fixtures(filter_pattern::Union{Regex,Nothing}=nothing)
 
     if isempty(fixture_files)
         @warn "No fixture files found in: $fixtures_dir"
-        @warn "Please create fixtures using: test/scripts/create_fixture.sh"
+        @warn "Please create fixtures using: uv run pem create-fixture"
         return nothing
     end
 

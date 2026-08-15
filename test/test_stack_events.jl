@@ -17,7 +17,7 @@ function run_stack_events_tests()
         @testset "Stack operations generate SRAM events" begin
             # Compile the stack events test program
             @info "Compiling stack events test program..."
-            run(`make disasm FILE=test/fixtures/c_programs/stack_events.c`)
+            run(`uv run pem disasm --file test/fixtures/c_programs/stack_events.c`)
 
             asm_file = "build/asm/stack_events.asm"
             data_file = "build/asm/stack_events.data"
