@@ -14,7 +14,7 @@ VOLTAGE="${VOLTAGE_DEFAULT}"
 MAX_CURRENT="${MAX_CURRENT_DEFAULT}"
 TEMP_DIR="${TEMP_DIR:-${TEMP_DIR_DEFAULT}}"
 REPORT_DIR="${REPORT_DIR:-${REPORT_DIR_DEFAULT}}"
-SKIP_RESET=""
+SKIP_FLASH=""
 MAX_STEPS=""
 N_SAMPLES=""
 MODEL="gamma_per_instruction"
@@ -62,7 +62,7 @@ Optional arguments:
   --estimate-defines "MACROS"  Space-separated compiler macros for estimation file (e.g., "FOO=1 BAR")
   --intercept-special-calls  Model __mspabi_* helper calls as single composite instructions
   --report-dir DIR          Directory for comparison report (default: ./report)
-  --skip-reset              Skip device reset during measurement
+  --skip-flash              Measure the program already on the target
   --keep-intermediates      Keep intermediate files and suggest resume commands
   --help                    Show this help message
 
@@ -163,8 +163,8 @@ while [[ $# -gt 0 ]]; do
             REPORT_DIR="$2"
             shift 2
             ;;
-        --skip-reset)
-            SKIP_RESET="--skip_reset"
+        --skip-flash)
+            SKIP_FLASH="--skip-flash"
             shift
             ;;
         --keep-intermediates)
@@ -372,7 +372,7 @@ if [[ $SKIP_TRAINING -eq 0 ]]; then
     [[ -n "$MODEL" ]] && TRAIN_ARGS+=("--model" "$MODEL")
     [[ -n "$INFERENCE" ]] && TRAIN_ARGS+=("--inference" "$INFERENCE")
     [[ -n "$TRAIN_DEFINES" ]] && TRAIN_ARGS+=("--defines" "$TRAIN_DEFINES")
-    [[ -n "$SKIP_RESET" ]] && TRAIN_ARGS+=("--skip-reset")
+    [[ -n "$SKIP_FLASH" ]] && TRAIN_ARGS+=("--skip-flash")
     [[ $KEEP_INTERMEDIATES -eq 1 ]] && TRAIN_ARGS+=("--keep-intermediates")
     [[ $INTERCEPT_SPECIAL_CALLS -eq 1 ]] && TRAIN_ARGS+=("--intercept-special-calls")
 

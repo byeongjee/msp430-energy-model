@@ -1,0 +1,29 @@
+"""Logging configuration for the measurement scripts."""
+
+from __future__ import annotations
+
+import logging
+import sys
+
+_DEBUG_FMT = logging.Formatter("%(levelname)s [%(name)s]: %(message)s")
+_DEFAULT_FMT = logging.Formatter("%(levelname)s: %(message)s")
+
+
+class _Formatter(logging.Formatter):
+    """Minimal for INFO+, module-prefixed for DEBUG."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        if record.levelno <= logging.DEBUG:
+            return _DEBUG_FMT.format(record)
+        return _DEFAULT_FMT.format(record)
+
+
+def setup_logging(level_name: str) -> None:
+    """Configure the measurement root logger. Called once from a CLI entry point."""
+    level = getattr(logging, level_name.upper())
+    root = logging.getLogger("measurement")
+    root.setLevel(level)
+    if not root.handlers:
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(_Formatter())
+        root.addHandler(handler)

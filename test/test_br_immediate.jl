@@ -5,16 +5,22 @@ using .Types: MachineState, Instruction, Inst, get_inst
 """
 Test that br_immediate benchmark executes the correct number of br instructions.
 
-The benchmark should execute TEXTUAL_REPT * INNER_ITERS br instructions.
-With current defaults (TEXTUAL_REPT=100, INNER_ITERS=10), this is 1,000 br instructions.
+The benchmark executes TEXTUAL_REPT * INNER_ITERS br instructions. Both counts are
+passed to the benchmark generator below instead of relying on the defaults in
+include/setup.h, which are retuned for measurement stability and would otherwise
+silently invalidate the expected values here.
 """
+const BR_TEXTUAL_REPT = 100
+const BR_INNER_ITERS = 10
+const BR_DEFINES = "TEXTUAL_REPT=$(BR_TEXTUAL_REPT) INNER_ITERS=$(BR_INNER_ITERS)"
+
 function run_br_immediate_tests()
     @testset "BR Immediate Benchmark" begin
         @testset "br_immediate instruction count" begin
             # Generate br_immediate_benchmark.S via the branch benchmark helper
             @info "Generating br_immediate_benchmark.S..."
             run(
-                `bash -c "./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c"`,
+                `./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_immediate_benchmark.c --defines $BR_DEFINES`,
             )
 
             # Now compile and disassemble the .S file
@@ -47,21 +53,16 @@ function run_br_immediate_tests()
                 data_file=data_file,
             )
 
-            # Expected: TEXTUAL_REPT (100) br instructions per inner iteration
-            # INNER_ITERS (10) iterations
-            # Total: 100 * 10 = 1,000 br instructions should be executed
-            TEXTUAL_REPT = 100
-            INNER_ITERS = 10
-            expected_br_executions = TEXTUAL_REPT * INNER_ITERS
+            expected_br_executions = BR_TEXTUAL_REPT * BR_INNER_ITERS
 
             @info "Expected br executions" expected = expected_br_executions
 
             # Verify the benchmark has the expected structure
             # There should be TEXTUAL_REPT br instructions in the assembly
-            if br_count != TEXTUAL_REPT
-                @error "Expected $TEXTUAL_REPT br instructions in assembly, got $br_count"
+            if br_count != BR_TEXTUAL_REPT
+                @error "Expected $BR_TEXTUAL_REPT br instructions in assembly, got $br_count"
             end
-            @test br_count == TEXTUAL_REPT
+            @test br_count == BR_TEXTUAL_REPT
 
             # Count how many times br was executed by checking event traces
             total_br_executions = 0
@@ -84,7 +85,7 @@ function run_br_immediate_tests()
         @testset "br_indexed instruction count" begin
             @info "Generating br_indexed_benchmark.S..."
             run(
-                `bash -c "./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_indexed_benchmark.c"`,
+                `./scripts/compile_br_immediate_benchmark.sh --file scripts/hardcoded_benchmarks/br_indexed_benchmark.c --defines $BR_DEFINES`,
             )
 
             @info "Compiling and disassembling .S file..."
@@ -112,11 +113,9 @@ function run_br_immediate_tests()
                 data_file=data_file,
             )
 
-            TEXTUAL_REPT = 100
-            INNER_ITERS = 10
-            expected_br_executions = TEXTUAL_REPT * INNER_ITERS
+            expected_br_executions = BR_TEXTUAL_REPT * BR_INNER_ITERS
 
-            @test br_count == TEXTUAL_REPT
+            @test br_count == BR_TEXTUAL_REPT
 
             total_br_executions = 0
             for trace in event_traces
