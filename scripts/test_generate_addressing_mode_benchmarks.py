@@ -196,7 +196,8 @@ INLINE void bench_inc_register(void) {
         self.assertIn("uint16_t dst = 0x0000;", bench["code"])
         self.assertIn("xor.w %[src], %[dst]", bench["code"])
 
-    def test_xor_immediate_register_uses_all_ones_immediate(self):
+    def test_xor_immediate_register_avoids_constant_generator(self):
+        """0xFFFF would assemble to the emulated INV and be measured as inv_register."""
         specs = create_dual_operand_specs("xor")
         spec = next(
             s for s in specs if s.src_mode == "immediate" and s.dst_mode == "register"
@@ -204,7 +205,7 @@ INLINE void bench_inc_register(void) {
 
         bench = generate_benchmark(spec)
 
-        self.assertIn("xor.w #0xFFFF, %[dst]", bench["code"])
+        self.assertIn("xor.w #0xFFFE, %[dst]", bench["code"])
         self.assertIn("uint16_t dst = 0x0000;", bench["code"])
 
     def test_inv_register_uses_toggle_seed(self):
