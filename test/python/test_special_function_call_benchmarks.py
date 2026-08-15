@@ -25,22 +25,22 @@ from benchmarks.gen_benchmarks import (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ALL_KEYS_FILE = PROJECT_ROOT / "all_keys.txt"
 SPECIAL_BENCHMARK_SOURCE = (
-    PROJECT_ROOT / "scripts" / "benchmarks" / "hardcoded" / "special_function_call_benchmark.c"
+    PROJECT_ROOT
+    / "scripts"
+    / "benchmarks"
+    / "hardcoded"
+    / "special_function_call_benchmark.c"
 )
 
 
 def read_all_keys() -> list[str]:
     return [
-        key
-        for key in re.split(r"[\s,]+", ALL_KEYS_FILE.read_text().strip())
-        if key
+        key for key in re.split(r"[\s,]+", ALL_KEYS_FILE.read_text().strip()) if key
     ]
 
 
 SPECIAL_KEYS = [
-    key
-    for key in read_all_keys()
-    if key in SPECIAL_FUNCTION_CALL_BENCHMARKS
+    key for key in read_all_keys() if key in SPECIAL_FUNCTION_CALL_BENCHMARKS
 ]
 
 
@@ -50,7 +50,9 @@ class TestHardcodedBenchmarksRegistry(unittest.TestCase):
     def test_special_function_keys_in_registry(self):
         """All special function call keys from all_keys.txt exist in the registry."""
         for key in SPECIAL_KEYS:
-            self.assertIn(key, HARDCODED_BENCHMARKS, f"{key} not in HARDCODED_BENCHMARKS")
+            self.assertIn(
+                key, HARDCODED_BENCHMARKS, f"{key} not in HARDCODED_BENCHMARKS"
+            )
 
     def test_special_function_keys_share_same_source(self):
         """All special function call keys point to the same benchmark C file."""
@@ -62,15 +64,19 @@ class TestHardcodedBenchmarksRegistry(unittest.TestCase):
         """Special function call benchmarks appear for addressing_mode granularity."""
         hardcoded = get_hardcoded_benchmarks("addressing_mode")
         for key in SPECIAL_KEYS:
-            self.assertIn(key, hardcoded,
-                f"{key} not in get_hardcoded_benchmarks('addressing_mode')")
+            self.assertIn(
+                key,
+                hardcoded,
+                f"{key} not in get_hardcoded_benchmarks('addressing_mode')",
+            )
 
     def test_special_function_keys_not_in_opcode(self):
         """Special function call benchmarks should NOT appear for opcode granularity."""
         hardcoded = get_hardcoded_benchmarks("opcode")
         for key in SPECIAL_KEYS:
-            self.assertNotIn(key, hardcoded,
-                f"{key} should not be in opcode granularity")
+            self.assertNotIn(
+                key, hardcoded, f"{key} should not be in opcode granularity"
+            )
 
     def test_source_file_exists(self):
         """The benchmark C source file exists."""
@@ -83,7 +89,9 @@ class TestHardcodedBenchmarksRegistry(unittest.TestCase):
         source_text = SPECIAL_BENCHMARK_SOURCE.read_text()
 
         for key in SPECIAL_KEYS:
-            self.assertIn(f"bench_{key}", source_text, f"Missing benchmark function for {key}")
+            self.assertIn(
+                f"bench_{key}", source_text, f"Missing benchmark function for {key}"
+            )
             self.assertIn(
                 f"BENCH(bench_{key}());",
                 source_text,
@@ -140,21 +148,32 @@ class TestListBenchmarks(unittest.TestCase):
     def test_list_benchmarks_addressing_mode(self):
         """benchmarks.list_benchmarks includes special function call keys for addressing_mode."""
         result = subprocess.run(
-            [sys.executable, "-m", "benchmarks.list_benchmarks",
-             "--granularity", "addressing_mode"],
+            [
+                sys.executable,
+                "-m",
+                "benchmarks.list_benchmarks",
+                "--granularity",
+                "addressing_mode",
+            ],
             capture_output=True,
+            check=False,
             text=True,
             env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT / "scripts")},
         )
-        self.assertEqual(result.returncode, 0, f"benchmarks.list_benchmarks failed: {result.stderr}")
+        self.assertEqual(
+            result.returncode, 0, f"benchmarks.list_benchmarks failed: {result.stderr}"
+        )
         data = json.loads(result.stdout)
 
         hardcoded_names = {
             entry["name"] for entry in data.get("hardcoded_benchmarks", [])
         }
         for key in SPECIAL_KEYS:
-            self.assertIn(key, hardcoded_names,
-                f"{key} not in list_benchmarks output hardcoded_benchmarks")
+            self.assertIn(
+                key,
+                hardcoded_names,
+                f"{key} not in list_benchmarks output hardcoded_benchmarks",
+            )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Common utilities for benchmark generation scripts.
 
@@ -10,13 +9,13 @@ and generate_addressing_mode_benchmarks.py, including:
 - File generation utilities
 """
 
+import copy
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-import copy
-from typing import List, Dict, Any, Tuple, Optional, Union
-from jinja2 import Template
+from typing import Any
 
+from jinja2 import Template
 
 # ============================================================================
 # Constants
@@ -273,7 +272,7 @@ HARDCODED_BENCHMARKS = {
 #
 # Keyed by granularity, each entry is a list of benchmarks to include.
 
-MODEL_BENCHMARKS: Dict[str, List[Dict[str, str]]] = {
+MODEL_BENCHMARKS: dict[str, list[dict[str, str]]] = {
     "addressing_mode_with_mem_access": [
         {
             "path": "scripts/benchmarks/hardcoded/cache_benchmark.c",
@@ -303,8 +302,8 @@ def normalize_generated_asm_isa(asm_path: Path) -> None:
 
 
 def get_hardcoded_benchmarks(
-    granularity: Union[str, Granularity],
-) -> Dict[str, Dict[str, Any]]:
+    granularity: str | Granularity,
+) -> dict[str, dict[str, Any]]:
     """Return hardcoded benchmarks that apply to the given granularity.
 
     Args:
@@ -322,8 +321,8 @@ def get_hardcoded_benchmarks(
 
 
 def get_model_benchmarks(
-    granularity: Union[str, Granularity],
-) -> List[Dict[str, str]]:
+    granularity: str | Granularity,
+) -> list[dict[str, str]]:
     """Return model-specific benchmarks for the given granularity.
 
     These benchmarks are always included when using the specified granularity,
@@ -344,7 +343,7 @@ def get_model_benchmarks(
 # ============================================================================
 
 
-def _default_constraints() -> Dict[str, str]:
+def _default_constraints() -> dict[str, str]:
     """Factory for default constraints dict."""
     return {"outputs": "", "inputs": "", "clobbers": '"cc"'}
 
@@ -360,22 +359,22 @@ class InstructionSpec:
     """
 
     opcode: str
-    src_mode: Optional[str] = None
-    dst_mode: Optional[str] = None
-    constant: Optional[int] = None
+    src_mode: str | None = None
+    dst_mode: str | None = None
+    constant: int | None = None
     asm_template: str = ""
     post_asm: str = ""
-    variables: List[Dict[str, str]] = field(default_factory=list)
-    constraints: Dict[str, str] = field(default_factory=_default_constraints)
-    key_override: Optional[Tuple] = None
-    inner_opcode: Optional[str] = None
-    composite_group: Optional[str] = None
-    support_declarations: List[str] = field(default_factory=list)
+    variables: list[dict[str, str]] = field(default_factory=list)
+    constraints: dict[str, str] = field(default_factory=_default_constraints)
+    key_override: tuple | None = None
+    inner_opcode: str | None = None
+    composite_group: str | None = None
+    support_declarations: list[str] = field(default_factory=list)
     repeat_count_expr: str = "STR(TEXTUAL_REPT)"
-    instruction_lines: List[str] = field(default_factory=list)
-    post_asm_lines: List[str] = field(default_factory=list)
+    instruction_lines: list[str] = field(default_factory=list)
+    post_asm_lines: list[str] = field(default_factory=list)
 
-    def get_key(self) -> Tuple:
+    def get_key(self) -> tuple:
         """Get the parameter key for this instruction (matches model_common.jl)"""
         if self.key_override is not None:
             return self.key_override
@@ -414,9 +413,9 @@ class ConstraintBuilder:
     """
 
     def __init__(self):
-        self._outputs: List[str] = []
-        self._inputs: List[str] = []
-        self._clobbers: List[str] = ['"cc"']  # Always clobber condition codes
+        self._outputs: list[str] = []
+        self._inputs: list[str] = []
+        self._clobbers: list[str] = ['"cc"']  # Always clobber condition codes
 
     def add_output(self, name: str, constraint: str, var: str) -> "ConstraintBuilder":
         """Add an output operand.
@@ -483,7 +482,7 @@ class ConstraintBuilder:
                 self._clobbers.append(clobber)
         return self
 
-    def build(self) -> Dict[str, str]:
+    def build(self) -> dict[str, str]:
         """Build the final constraints dictionary."""
         return {
             "outputs": ", ".join(self._outputs),
@@ -510,7 +509,7 @@ class AddressingModeSpec:
 
     # Variables to declare (list of dicts with name_suffix, type, value)
     # name_suffix is appended to the operand prefix (e.g., "src" + "_reset" = "src_reset")
-    variables: List[Dict[str, str]] = field(default_factory=list)
+    variables: list[dict[str, str]] = field(default_factory=list)
 
     # Whether this mode requires memory clobber
     needs_memory_clobber: bool = False
@@ -520,10 +519,10 @@ class AddressingModeSpec:
 
     # For building constraints - list of (name_suffix, constraint_type, is_output)
     # constraint_type is "r" for register, "i" for immediate, "+r" for read-write
-    constraint_specs: List[Tuple[str, str, bool]] = field(default_factory=list)
+    constraint_specs: list[tuple[str, str, bool]] = field(default_factory=list)
 
 
-def _build_addressing_mode_specs() -> Dict[str, AddressingModeSpec]:
+def _build_addressing_mode_specs() -> dict[str, AddressingModeSpec]:
     """Build the addressing mode specification registry."""
     return {
         # Source modes
@@ -655,11 +654,7 @@ def _make_isolated_buffer_declaration(symbol: str, value: str) -> str:
     if value == "0x0000":
         initializer = "{0}"
     else:
-        initializer = (
-            "{ [0 ... "
-            f"{ISOLATED_MEMORY_BUFFER_SIZE - 1}"
-            f"] = {value} }}"
-        )
+        initializer = f"{{ [0 ... {ISOLATED_MEMORY_BUFFER_SIZE - 1}] = {value} }}"
     return (
         f"static volatile uint16_t {symbol}[{ISOLATED_MEMORY_BUFFER_SIZE}] "
         f"__attribute__((aligned(64))) = {initializer};"
@@ -667,7 +662,7 @@ def _make_isolated_buffer_declaration(symbol: str, value: str) -> str:
 
 
 def _set_variable_value(
-    variables: List[Dict[str, str]], variable_name: str, value: str
+    variables: list[dict[str, str]], variable_name: str, value: str
 ) -> None:
     for variable in variables:
         if variable["name"] == variable_name:
@@ -680,11 +675,11 @@ CACHE_THRASH_POINTER_WORD_OFFSETS = (0, 8, 16)
 THREE_ADDRESS_REPEAT_COUNT_EXPR = 'STR(TEXTUAL_REPT) " / 3"'
 
 
-def _get_instruction_lines(spec: InstructionSpec) -> List[str]:
+def _get_instruction_lines(spec: InstructionSpec) -> list[str]:
     return spec.instruction_lines or [spec.asm_template]
 
 
-def _get_post_asm_lines(spec: InstructionSpec) -> List[str]:
+def _get_post_asm_lines(spec: InstructionSpec) -> list[str]:
     if spec.post_asm_lines:
         return spec.post_asm_lines
     if spec.post_asm:
@@ -693,7 +688,7 @@ def _get_post_asm_lines(spec: InstructionSpec) -> List[str]:
 
 
 def _replace_variable_with_triplet(
-    variables: List[Dict[str, str]], variable_name: str
+    variables: list[dict[str, str]], variable_name: str
 ) -> bool:
     for idx, variable in enumerate(variables):
         if variable["name"] != variable_name:
@@ -728,7 +723,7 @@ def _replace_constraint_binding(
     return constraint.replace(original, replacement, 1)
 
 
-def _expand_triplet_lines(lines: List[str], variable_name: str) -> List[str]:
+def _expand_triplet_lines(lines: list[str], variable_name: str) -> list[str]:
     token = f"%[{variable_name}]"
     if not any(token in line for line in lines):
         return lines
@@ -786,7 +781,11 @@ def apply_three_address_fram_read_pattern(spec: InstructionSpec) -> None:
     """
 
     if spec.src_mode == "indexed":
-        base_var = "base_src" if any(v["name"] == "base_src" for v in spec.variables) else "base"
+        base_var = (
+            "base_src"
+            if any(v["name"] == "base_src" for v in spec.variables)
+            else "base"
+        )
         _apply_three_address_pointer_pattern(
             spec,
             variable_name=base_var,
@@ -828,9 +827,13 @@ def apply_three_address_fram_read_pattern(spec: InstructionSpec) -> None:
 def apply_isolated_memory_layout_to_dual_spec(spec: InstructionSpec) -> None:
     if spec.opcode not in ISOLATED_MEMORY_DUAL_OPCODES:
         return
-    if spec.src_mode not in {"indexed", "symbolic", "absolute", "indirect", "autoincrement"} and (
-        spec.dst_mode not in {"indexed", "symbolic", "absolute"}
-    ):
+    if spec.src_mode not in {
+        "indexed",
+        "symbolic",
+        "absolute",
+        "indirect",
+        "autoincrement",
+    } and (spec.dst_mode not in {"indexed", "symbolic", "absolute"}):
         return
 
     src_seed = get_dual_operand_register_src_value(spec.opcode)
@@ -931,7 +934,7 @@ def apply_isolated_memory_layout_to_single_spec(spec: InstructionSpec) -> None:
     spec.asm_template = f"{spec.opcode}.w {operand_asm}"
 
 
-def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
+def create_dual_operand_specs(opcode: str) -> list[InstructionSpec]:
     """Create instruction specs for dual-operand instructions (add, mov, cmp, etc.)
 
     Generates all combinations of:
@@ -1042,12 +1045,12 @@ def create_dual_operand_specs(opcode: str) -> List[InstructionSpec]:
     return specs
 
 
-def create_multiplier_mov_specs(include_constant: bool) -> List[InstructionSpec]:
+def create_multiplier_mov_specs(include_constant: bool) -> list[InstructionSpec]:
     """Create mov specs that access multiplier-mapped memory addresses.
 
     These accesses behave differently in hardware and should get distinct parameter keys.
     """
-    specs: List[InstructionSpec] = []
+    specs: list[InstructionSpec] = []
     constants = [1, 2, 3, 4, 5] if include_constant else [1]
 
     for name, addr in MULTIPLIER_REGISTERS:
@@ -1125,64 +1128,64 @@ def create_multiplier_mov_specs(include_constant: bool) -> List[InstructionSpec]
     return specs
 
 
-def create_single_operand_specs(opcode: str) -> List[InstructionSpec]:
+def create_single_operand_specs(opcode: str) -> list[InstructionSpec]:
     """Create instruction specs for single-operand instructions (inc, dec, etc.)"""
     specs = []
 
     # reg
     spec = InstructionSpec(
-            opcode=opcode,
-            src_mode="register",
-            asm_template=f"{opcode}.w %[dst]",
-            variables=[
-                {
-                    "name": "dst",
-                    "type": "uint16_t",
-                    "value": get_single_operand_register_dst_value(opcode),
-                }
-            ],
-            constraints={
-                "outputs": '[dst] "+r"(dst)',
-                "inputs": "",
-                "clobbers": '"cc"',
-            },
-        )
+        opcode=opcode,
+        src_mode="register",
+        asm_template=f"{opcode}.w %[dst]",
+        variables=[
+            {
+                "name": "dst",
+                "type": "uint16_t",
+                "value": get_single_operand_register_dst_value(opcode),
+            }
+        ],
+        constraints={
+            "outputs": '[dst] "+r"(dst)',
+            "inputs": "",
+            "clobbers": '"cc"',
+        },
+    )
     specs.append(spec)
 
     # idx
     spec = InstructionSpec(
-            opcode=opcode,
-            src_mode="indexed",
-            asm_template=f"{opcode}.w %c[offs](%[base])",
-            variables=[{"name": "base", "type": "uint16_t*", "value": "BASE_PTR"}],
-            constraints={
-                "outputs": "",
-                "inputs": '[base] "r"(base), [offs] "i"(OFFS)',
-                "clobbers": '"cc", "memory"',
-            },
-        )
+        opcode=opcode,
+        src_mode="indexed",
+        asm_template=f"{opcode}.w %c[offs](%[base])",
+        variables=[{"name": "base", "type": "uint16_t*", "value": "BASE_PTR"}],
+        constraints={
+            "outputs": "",
+            "inputs": '[base] "r"(base), [offs] "i"(OFFS)',
+            "clobbers": '"cc", "memory"',
+        },
+    )
     apply_isolated_memory_layout_to_single_spec(spec)
     specs.append(spec)
 
     # sym
     spec = InstructionSpec(
-            opcode=opcode,
-            src_mode="symbolic",
-            asm_template=f"{opcode}.w sym_data",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
-        )
+        opcode=opcode,
+        src_mode="symbolic",
+        asm_template=f"{opcode}.w sym_data",
+        variables=[],
+        constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
+    )
     apply_isolated_memory_layout_to_single_spec(spec)
     specs.append(spec)
 
     # abs
     spec = InstructionSpec(
-            opcode=opcode,
-            src_mode="absolute",
-            asm_template=f"{opcode}.w &sym_data",
-            variables=[],
-            constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
-        )
+        opcode=opcode,
+        src_mode="absolute",
+        asm_template=f"{opcode}.w &sym_data",
+        variables=[],
+        constraints={"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'},
+    )
     apply_isolated_memory_layout_to_single_spec(spec)
     specs.append(spec)
 
@@ -1193,17 +1196,17 @@ DEFAULT_RPT_COUNTS = list(range(1, 16))
 
 
 def create_rpt_specs(
-    base_specs: List[InstructionSpec],
-    repeat_counts: List[int] = None,
+    base_specs: list[InstructionSpec],
+    repeat_counts: list[int] | None = None,
     include_constant: bool = False,
-) -> List[InstructionSpec]:
+) -> list[InstructionSpec]:
     """Wrap base specs into RPT variants.
 
     - Always generate a register-count variant (non-constant)
     - If include_constant is True, also generate immediate-count variants for repeat_counts
     """
     repeat_counts = repeat_counts or DEFAULT_RPT_COUNTS
-    specs: List[InstructionSpec] = []
+    specs: list[InstructionSpec] = []
 
     for base in base_specs:
         # Register-count variant (non-constant granularity)
@@ -1252,9 +1255,9 @@ def create_rpt_specs(
 def create_constant_imm_to_reg_specs(
     opcode: str,
     include_constant: bool,
-    composite_group: Optional[str],
+    composite_group: str | None,
     max_constant: int,
-) -> List[InstructionSpec]:
+) -> list[InstructionSpec]:
     """Create constant-aware instruction specs of the form: opcode #const, reg
 
     Args:
@@ -1304,13 +1307,13 @@ def create_jump_spec(opcode: str) -> InstructionSpec:
     )
 
 
-def create_call_specs() -> List[InstructionSpec]:
+def create_call_specs() -> list[InstructionSpec]:
     """Create instruction specs for call (single operand)"""
     specs = []
     modes = ["register", "immediate", "indexed", "symbolic", "absolute"]
 
     for mode in modes:
-        variables: List[Dict[str, Any]] = []
+        variables: list[dict[str, Any]] = []
         constraints = {"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'}
 
         if mode == "register":
@@ -1345,8 +1348,8 @@ def create_call_specs() -> List[InstructionSpec]:
 
 
 def create_no_operand_specs(
-    opcode: str, *, composite_group: str = None
-) -> List[InstructionSpec]:
+    opcode: str, *, composite_group: str | None = None
+) -> list[InstructionSpec]:
     """Create spec for no-operand instructions (e.g., ret)"""
     return [
         InstructionSpec(
@@ -1360,7 +1363,7 @@ def create_no_operand_specs(
     ]
 
 
-def create_dint_specs() -> List[InstructionSpec]:
+def create_dint_specs() -> list[InstructionSpec]:
     """Create spec for dint with a following nop to satisfy assembler requirements."""
     return [
         InstructionSpec(
@@ -1373,18 +1376,18 @@ def create_dint_specs() -> List[InstructionSpec]:
     ]
 
 
-def create_reti_specs() -> List[InstructionSpec]:
+def create_reti_specs() -> list[InstructionSpec]:
     """Create spec for reti (no operand) grouped with push composite."""
     return create_no_operand_specs("reti", composite_group=COMPOSITE_PUSH_AND_RETI)
 
 
-def create_push_specs() -> List[InstructionSpec]:
+def create_push_specs() -> list[InstructionSpec]:
     """Create instruction specs for push (single operand)"""
     specs = []
     modes = ["register", "immediate", "indexed", "symbolic", "absolute"]
 
     for mode in modes:
-        variables: List[Dict[str, Any]] = []
+        variables: list[dict[str, Any]] = []
         constraints = {"outputs": "", "inputs": "", "clobbers": '"cc", "memory"'}
 
         if mode == "register":
@@ -1423,7 +1426,7 @@ def create_push_specs() -> List[InstructionSpec]:
     return specs
 
 
-def create_pop_specs() -> List[InstructionSpec]:
+def create_pop_specs() -> list[InstructionSpec]:
     """Create instruction specs for pop (single operand, register only)
 
     Pop is an emulated instruction equivalent to: mov @SP+, dst
@@ -1452,7 +1455,7 @@ def create_pop_specs() -> List[InstructionSpec]:
     return specs
 
 
-def create_opcode_specs() -> List[InstructionSpec]:
+def create_opcode_specs() -> list[InstructionSpec]:
     """Create one representative spec per opcode (granularity: opcode)"""
     specs = []
 
@@ -1550,7 +1553,7 @@ def create_opcode_specs() -> List[InstructionSpec]:
 
 def create_addressing_mode_specs(
     include_constant: bool = False,
-) -> List[InstructionSpec]:
+) -> list[InstructionSpec]:
     """Create specs for addressing-mode-based granularities.
 
     Args:
@@ -1559,7 +1562,7 @@ def create_addressing_mode_specs(
     Note: Hardcoded benchmarks (br_immediate, fram_cache) are handled separately
     via the HARDCODED_BENCHMARKS registry.
     """
-    specs: List[InstructionSpec] = []
+    specs: list[InstructionSpec] = []
 
     for opcode in DUAL_OPERAND_OPCODES:
         specs.extend(create_dual_operand_specs(opcode))
@@ -1569,12 +1572,8 @@ def create_addressing_mode_specs(
 
     specs.extend(create_multiplier_mov_specs(include_constant=include_constant))
 
-    specs.extend(
-        create_constant_imm_to_reg_specs("rlam", include_constant, None, 4)
-    )
-    specs.extend(
-        create_constant_imm_to_reg_specs("rrum", include_constant, None, 4)
-    )
+    specs.extend(create_constant_imm_to_reg_specs("rlam", include_constant, None, 4))
+    specs.extend(create_constant_imm_to_reg_specs("rrum", include_constant, None, 4))
     specs.extend(
         create_constant_imm_to_reg_specs(
             "pushm", include_constant, COMPOSITE_PUSHM_AND_POPM, 16
@@ -1608,7 +1607,7 @@ def create_addressing_mode_specs(
     return specs
 
 
-def normalize_granularity(granularity: Union[str, Granularity]) -> str:
+def normalize_granularity(granularity: str | Granularity) -> str:
     """Normalize user-facing granularity to canonical string form.
 
     Args:
@@ -1623,8 +1622,8 @@ def normalize_granularity(granularity: Union[str, Granularity]) -> str:
 
 
 def get_instruction_specs(
-    granularity: Union[str, Granularity],
-) -> List[InstructionSpec]:
+    granularity: str | Granularity,
+) -> list[InstructionSpec]:
     """Return instruction specs for the requested benchmark granularity.
 
     This returns only programmatically-generated instruction benchmarks.
@@ -1712,14 +1711,14 @@ int main(void) {
 # ============================================================================
 
 
-def generate_benchmark_file(benchmarks: List[Dict[str, Any]], output_path: Path):
+def generate_benchmark_file(benchmarks: list[dict[str, Any]], output_path: Path):
     """Generate a single C file with multiple benchmarks"""
     content = FILE_TEMPLATE.render(benchmarks=benchmarks)
     output_path.write_text(content)
 
 
 def generate_batched_files(
-    benchmarks: List[Dict[str, Any]],
+    benchmarks: list[dict[str, Any]],
     output_dir: Path,
     batch_size: int,
     file_prefix: str = "batch",

@@ -83,7 +83,7 @@ def wait_for_gpi1_fall(session: OtiiSession, rec: Any, timeout: float) -> float:
 
 
 def _clamp(value: int, low: int, high: int) -> int:
-    return low if value < low else high if value > high else value
+    return low if value < low else min(value, high)
 
 
 def _digital_events(rec: Any, device_id: str, channel: str) -> list[dict]:
@@ -118,7 +118,7 @@ def export_csv(
 
     def to_index(timestamp: float, round_: bool = False) -> int:
         offset = (timestamp - t0) / interval
-        index = int(round(offset)) if round_ else int(offset + 1e-12)
+        index = round(offset) if round_ else int(offset + 1e-12)
         return _clamp(index, 0, sample_count - 1)
 
     i_end = to_index(t_end)

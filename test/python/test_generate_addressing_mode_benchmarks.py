@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test cases for gen_benchmarks.py (addressing_mode granularity)
 
@@ -15,18 +14,21 @@ from pathlib import Path
 
 # Add parent directory to path for imports
 from benchmarks.common import (
-    InstructionSpec,
     FILE_TEMPLATE,
-    get_instruction_specs,
-    get_hardcoded_benchmarks,
-    get_model_benchmarks,
+    UNSAFE_OPCODES,
+    InstructionSpec,
     create_dint_specs,
     create_dual_operand_specs,
     create_push_specs,
     create_single_operand_specs,
-    UNSAFE_OPCODES,
+    get_hardcoded_benchmarks,
+    get_instruction_specs,
+    get_model_benchmarks,
 )
-from benchmarks.gen_benchmarks import generate_benchmark, generate_instruction_benchmarks
+from benchmarks.gen_benchmarks import (
+    generate_benchmark,
+    generate_instruction_benchmarks,
+)
 
 
 class TestGeneratedCode(unittest.TestCase):
@@ -301,9 +303,7 @@ INLINE void bench_inc_register(void) {
 
     def test_get_instruction_specs_applies_three_address_pattern_to_indexed_reads(self):
         specs = get_instruction_specs("addressing_mode")
-        spec = next(
-            s for s in specs if s.get_key() == ("add", "indexed", "register")
-        )
+        spec = next(s for s in specs if s.get_key() == ("add", "indexed", "register"))
 
         bench = generate_benchmark(spec)
 
@@ -311,21 +311,13 @@ INLINE void bench_inc_register(void) {
         self.assertIn("uint16_t* base_src0 = BASE_PTR;", bench["code"])
         self.assertIn("uint16_t* base_src1 = (BASE_PTR) + 8;", bench["code"])
         self.assertIn("uint16_t* base_src2 = (BASE_PTR) + 16;", bench["code"])
-        self.assertIn(
-            '"  add.w %c[offs_src](%[base_src0]), %[dst]\\n"', bench["code"]
-        )
-        self.assertIn(
-            '"  add.w %c[offs_src](%[base_src1]), %[dst]\\n"', bench["code"]
-        )
-        self.assertIn(
-            '"  add.w %c[offs_src](%[base_src2]), %[dst]\\n"', bench["code"]
-        )
+        self.assertIn('"  add.w %c[offs_src](%[base_src0]), %[dst]\\n"', bench["code"])
+        self.assertIn('"  add.w %c[offs_src](%[base_src1]), %[dst]\\n"', bench["code"])
+        self.assertIn('"  add.w %c[offs_src](%[base_src2]), %[dst]\\n"', bench["code"])
 
     def test_get_instruction_specs_skips_three_address_pattern_for_mov_store_only(self):
         specs = get_instruction_specs("addressing_mode")
-        spec = next(
-            s for s in specs if s.get_key() == ("mov", "register", "indexed")
-        )
+        spec = next(s for s in specs if s.get_key() == ("mov", "register", "indexed"))
 
         bench = generate_benchmark(spec)
 
@@ -460,7 +452,15 @@ INLINE void bench_inc_register(void) {
             combinations.add((spec.src_mode, spec.dst_mode))
 
         # Expected combinations
-        src_modes = ["register", "immediate", "indexed", "symbolic", "absolute", "indirect", "autoincrement"]
+        src_modes = [
+            "register",
+            "immediate",
+            "indexed",
+            "symbolic",
+            "absolute",
+            "indirect",
+            "autoincrement",
+        ]
         dst_modes = ["register", "indexed", "symbolic", "absolute"]
 
         expected_combinations = set()
@@ -498,7 +498,9 @@ INLINE void bench_inc_register(void) {
         """Autoincrement addressing should treat the pointer register as read-write."""
         specs = create_dual_operand_specs("mov")
         spec = next(
-            s for s in specs if s.src_mode == "autoincrement" and s.dst_mode == "register"
+            s
+            for s in specs
+            if s.src_mode == "autoincrement" and s.dst_mode == "register"
         )
 
         bench = generate_benchmark(spec)
@@ -603,9 +605,7 @@ class TestCompositeGeneration(unittest.TestCase):
         lookup = {spec.get_key_str(): spec for spec in specs}
         payload = [{"key": "call_immediate"}, {"key": "ret"}]
 
-        benches = generate_instruction_benchmarks(
-            payload, lookup, "addressing_mode"
-        )
+        benches = generate_instruction_benchmarks(payload, lookup, "addressing_mode")
         names = [b["name"] for b in benches]
 
         self.assertIn("call_and_ret", names)
@@ -634,7 +634,7 @@ class TestCompositeGeneration(unittest.TestCase):
         self.assertIn("#3", composite3["code"])
         self.assertIn("mov_register_register", names)
         self.assertFalse(
-            any(n.startswith("pushm_immediate") or n.startswith("popm_immediate") for n in names)
+            any(n.startswith(("pushm_immediate", "popm_immediate")) for n in names)
         )
 
     def test_push_and_reti_composite(self):
@@ -652,7 +652,9 @@ class TestCompositeGeneration(unittest.TestCase):
         self.assertIn("push_and_reti", names)
         self.assertEqual(names.count("push_and_reti"), 1)
         self.assertIn("add_register_register", names)
-        residual_push = [n for n in names if n.startswith("push_") and n != "push_and_reti"]
+        residual_push = [
+            n for n in names if n.startswith("push_") and n != "push_and_reti"
+        ]
         self.assertEqual(residual_push, [])
         self.assertNotIn("reti", names)
 

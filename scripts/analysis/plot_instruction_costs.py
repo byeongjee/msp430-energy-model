@@ -6,17 +6,19 @@ This script reads a JSON file containing instruction energy parameters (alpha, b
 and visualizes their distributions in a grid layout.
 """
 
-import json
 import argparse
+import json
 import math
-import numpy as np
+import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.stats import gamma
 
 
 def load_energy_params(filename):
     """Load energy parameters from JSON file."""
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         return json.load(f)
 
 
@@ -39,7 +41,7 @@ def calculate_grid_layout(num_items, rows=None, cols=None):
         # Validate that grid is large enough
         if rows * cols < num_items:
             raise ValueError(
-                f"Grid size {rows}x{cols} = {rows*cols} cells is too small "
+                f"Grid size {rows}x{cols} = {rows * cols} cells is too small "
                 f"for {num_items} instructions. Need at least {num_items} cells."
             )
         return rows, cols
@@ -75,30 +77,30 @@ def plot_distributions(energy_params, rows, cols, output_path=None):
     # Single plot mode: all distributions in one frame
     if rows is None and cols is None:
         fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-        fig.suptitle('Instruction Cost Distributions', fontsize=16, fontweight='bold')
+        fig.suptitle("Instruction Cost Distributions", fontsize=16, fontweight="bold")
 
         # Use a colormap for different instructions
         colors = plt.cm.tab20(np.linspace(0, 1, num_instructions))
 
         for idx, instruction in enumerate(instructions):
             params = energy_params[instruction]
-            alpha = params['alpha']
-            beta = params['beta']
+            alpha = params["alpha"]
+            beta = params["beta"]
 
             # Plot gamma distribution
             y = gamma.pdf(x, a=alpha, scale=beta)
             ax.plot(x, y, linewidth=2, label=instruction, color=colors[idx])
 
-        ax.set_xlabel('Cost (nJ)', fontsize=12)
-        ax.set_ylabel('Density', fontsize=12)
-        ax.grid(True, alpha=0.3, linestyle='--')
-        ax.legend(loc='upper right', fontsize=8, ncol=2)
+        ax.set_xlabel("Cost (nJ)", fontsize=12)
+        ax.set_ylabel("Density", fontsize=12)
+        ax.grid(True, alpha=0.3, linestyle="--")
+        ax.legend(loc="upper right", fontsize=8, ncol=2)
         plt.tight_layout()
 
     # Grid mode: each instruction in separate subplot
     else:
         fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 3 * rows))
-        fig.suptitle('Instruction Cost Distributions', fontsize=16, fontweight='bold')
+        fig.suptitle("Instruction Cost Distributions", fontsize=16, fontweight="bold")
 
         # Flatten axes array for easier indexing
         if rows == 1 and cols == 1:
@@ -108,36 +110,41 @@ def plot_distributions(energy_params, rows, cols, output_path=None):
         for idx, instruction in enumerate(instructions):
             ax = axes_flat[idx]
             params = energy_params[instruction]
-            alpha = params['alpha']
-            beta = params['beta']
+            alpha = params["alpha"]
+            beta = params["beta"]
 
             # Plot gamma distribution
             y = gamma.pdf(x, a=alpha, scale=beta)
 
-            ax.plot(x, y, linewidth=2, color='steelblue')
-            ax.fill_between(x, y, alpha=0.3, color='steelblue')
-            ax.set_title(f'{instruction}', fontweight='bold', fontsize=10)
-            ax.set_xlabel('Cost (nJ)', fontsize=8)
-            ax.set_ylabel('Density', fontsize=8)
-            ax.grid(True, alpha=0.3, linestyle='--')
+            ax.plot(x, y, linewidth=2, color="steelblue")
+            ax.fill_between(x, y, alpha=0.3, color="steelblue")
+            ax.set_title(f"{instruction}", fontweight="bold", fontsize=10)
+            ax.set_xlabel("Cost (nJ)", fontsize=8)
+            ax.set_ylabel("Density", fontsize=8)
+            ax.grid(True, alpha=0.3, linestyle="--")
             ax.tick_params(labelsize=8)
 
             # Add statistics as text
             mean = alpha * beta
-            std = math.sqrt(alpha * beta**2)
-            ax.text(0.98, 0.98, f'α={alpha:.2f}\nβ={beta:.2f}\nμ={mean:.2f}',
-                    transform=ax.transAxes, fontsize=7,
-                    verticalalignment='top', horizontalalignment='right',
-                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            ax.text(
+                0.98,
+                0.98,
+                f"α={alpha:.2f}\nβ={beta:.2f}\nμ={mean:.2f}",
+                transform=ax.transAxes,
+                fontsize=7,
+                verticalalignment="top",
+                horizontalalignment="right",
+                bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5},
+            )
 
         # Hide unused subplots
         for idx in range(num_instructions, len(axes_flat)):
-            axes_flat[idx].axis('off')
+            axes_flat[idx].axis("off")
 
         plt.tight_layout()
 
     if output_path:
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        plt.savefig(output_path, dpi=300, bbox_inches="tight")
         print(f"Plot saved to: {output_path}")
     else:
         plt.show()
@@ -156,38 +163,49 @@ def parse_grid_layout(layout_str):
     if not layout_str:
         return None, None
 
-    parts = layout_str.lower().split('x')
+    parts = layout_str.lower().split("x")
     if len(parts) != 2:
-        raise ValueError(f"Invalid grid layout format: {layout_str}. Expected format: NxM")
+        raise ValueError(
+            f"Invalid grid layout format: {layout_str}. Expected format: NxM"
+        )
 
     try:
         rows = int(parts[0])
         cols = int(parts[1])
         return rows, cols
     except ValueError:
-        raise ValueError(f"Invalid grid layout format: {layout_str}. Expected integers.")
+        raise ValueError(
+            f"Invalid grid layout format: {layout_str}. Expected integers."
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Plot instruction cost distributions from energy parameters JSON file.',
+        description="Plot instruction cost distributions from energy parameters JSON file.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   %(prog)s energy_params.json
   %(prog)s energy_params.json --grid 4x4
   %(prog)s energy_params.json --grid 3x5 --output instruction_costs.png
-        """
+        """,
     )
 
-    parser.add_argument('filename',
-                        help='Path to JSON file containing energy parameters')
-    parser.add_argument('--grid', '-g',
-                        help='Grid layout in format NxM (e.g., 4x4). If not specified, all distributions are plotted in a single frame.',
-                        default=None)
-    parser.add_argument('--output', '-o',
-                        help='Output file path for saving the plot. Shows interactively if not specified.',
-                        default=None)
+    parser.add_argument(
+        "filename", help="Path to JSON file containing energy parameters"
+    )
+    parser.add_argument(
+        "--grid",
+        "-g",
+        help="Grid layout in format NxM (e.g., 4x4). If not specified, all distributions are plotted in a single frame.",
+        default=None,
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        help="Output file path for saving the plot. Shows interactively if not specified.",
+        default=None,
+    )
 
     args = parser.parse_args()
 
@@ -223,5 +241,5 @@ Examples:
     return 0
 
 
-if __name__ == '__main__':
-    exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

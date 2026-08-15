@@ -22,32 +22,30 @@ import argparse
 import json
 import os
 import shlex
-import sys
 import shutil
 import subprocess
+import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
+
 from jinja2 import Template
 
-from pipeline import config
-from benchmarks.compile_branch_benchmark import generate_assembly
 from benchmarks.common import (
+    COMPOSITE_CALL_AND_RET,
+    COMPOSITE_PUSH_AND_POP,
+    COMPOSITE_PUSH_AND_RETI,
+    COMPOSITE_PUSHM_AND_POPM,
+    SPECIAL_FUNCTION_CALL_BENCHMARKS,
+    UNSAFE_OPCODES,
     InstructionSpec,
-    generate_benchmark_file,
     generate_batched_files,
+    generate_benchmark_file,
     get_instruction_specs,
-    get_hardcoded_benchmarks,
     normalize_generated_asm_isa,
     normalize_granularity,
-    UNSAFE_OPCODES,
-    HARDCODED_BENCHMARKS,
-    SPECIAL_FUNCTION_CALL_BENCHMARKS,
-    COMPOSITE_CALL_AND_RET,
-    COMPOSITE_PUSHM_AND_POPM,
-    COMPOSITE_PUSH_AND_RETI,
-    COMPOSITE_PUSH_AND_POP,
 )
-
+from benchmarks.compile_branch_benchmark import generate_assembly
+from pipeline import config
 
 # ============================================================================
 # Jinja2 Templates
@@ -98,7 +96,7 @@ INLINE void bench_{{ name }}(void) {
 )
 
 
-def build_define_flags(defines: str) -> List[str]:
+def build_define_flags(defines: str) -> list[str]:
     """Convert a space-separated DEFINES string into compiler flags."""
     if not defines:
         return []
@@ -112,7 +110,7 @@ def build_special_function_compile_command(
     defines: str,
     asm_path: Path,
     src_c_file: Path,
-) -> List[str]:
+) -> list[str]:
     """Build the compiler command for special-function-call benchmark assembly."""
     return [
         cc,
@@ -132,7 +130,7 @@ def build_special_function_compile_command(
 # ============================================================================
 
 
-def generate_call_and_ret_benchmark(source_keys=None) -> Dict[str, Any]:
+def generate_call_and_ret_benchmark(source_keys=None) -> dict[str, Any]:
     """Generate a composite benchmark that measures call+ret together."""
     name = COMPOSITE_CALL_AND_RET
     code = """
@@ -156,24 +154,21 @@ INLINE void bench_call_and_ret(void) {
 
 def generate_pushm_and_popm_benchmark(
     source_keys=None, word_count: int = 1
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate a composite benchmark that balances pushm/popm in one loop."""
     name = f"{COMPOSITE_PUSHM_AND_POPM}_{word_count}"
-    code = """
-INLINE void bench_%(name)s(void) {
+    code = f"""
+INLINE void bench_{name}(void) {{
   REPEAT_INNER_ITERS(__asm__ volatile(
       ".rept " STR(TEXTUAL_REPT) "\\n"
-      "  pushm #%(cnt)s, r10\\n"
-      "  popm #%(cnt)s, r10\\n"
+      "  pushm #{word_count}, r10\\n"
+      "  popm #{word_count}, r10\\n"
       ".endr\\n"
       : 
       : 
       : "r10", "r11", "cc", "memory"));
-}
-""" % {
-        "name": name,
-        "cnt": word_count,
-    }
+}}
+"""
     return {
         "name": name,
         "code": code,
@@ -183,7 +178,7 @@ INLINE void bench_%(name)s(void) {
     }
 
 
-def generate_push_and_reti_benchmark(source_keys=None) -> Dict[str, Any]:
+def generate_push_and_reti_benchmark(source_keys=None) -> dict[str, Any]:
     """Generate a composite benchmark that measures push+reti via an interrupt stub."""
     name = COMPOSITE_PUSH_AND_RETI
     code = """
@@ -205,7 +200,7 @@ INLINE void bench_push_and_reti(void) {
     }
 
 
-def generate_push_and_pop_benchmark(source_keys=None) -> Dict[str, Any]:
+def generate_push_and_pop_benchmark(source_keys=None) -> dict[str, Any]:
     """Generate a composite benchmark that measures push+pop together.
 
     This ensures the stack is balanced - each push is followed by a pop.
@@ -238,7 +233,7 @@ INLINE void bench_push_and_pop(void) {
 # ============================================================================
 
 
-def generate_benchmark(spec: InstructionSpec) -> Dict[str, Any]:
+def generate_benchmark(spec: InstructionSpec) -> dict[str, Any]:
     """Generate a benchmark for a single instruction"""
     name = spec.get_key_str()
     instruction_lines = spec.instruction_lines or [spec.asm_template]
@@ -266,13 +261,13 @@ def generate_benchmark(spec: InstructionSpec) -> Dict[str, Any]:
 
 
 def generate_instruction_benchmarks(
-    instructions_data: List[Dict[str, Any]],
-    spec_lookup: Dict[str, InstructionSpec],
+    instructions_data: list[dict[str, Any]],
+    spec_lookup: dict[str, InstructionSpec],
     granularity: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Generate benchmarks for a list of instruction payloads"""
     benchmarks = []
-    composite_requests: Dict[str, Dict[str, Any]] = {}
+    composite_requests: dict[str, dict[str, Any]] = {}
 
     for inst_data in instructions_data:
         key = inst_data["key"]
@@ -330,7 +325,7 @@ def generate_instruction_benchmarks(
 # ============================================================================
 
 
-def merge_variables(vars1: List[Dict], vars2: List[Dict]) -> List[Dict]:
+def merge_variables(vars1: list[dict], vars2: list[dict]) -> list[dict]:
     """Merge variable lists, avoiding duplicates"""
     merged = {}
     for var in vars1 + vars2:
@@ -340,7 +335,7 @@ def merge_variables(vars1: List[Dict], vars2: List[Dict]) -> List[Dict]:
     return list(merged.values())
 
 
-def merge_constraints(c1: Dict[str, str], c2: Dict[str, str]) -> Dict[str, str]:
+def merge_constraints(c1: dict[str, str], c2: dict[str, str]) -> dict[str, str]:
     """Merge constraints from two instructions"""
     outputs_set = set()
     for c in [c1["outputs"], c2["outputs"]]:
@@ -368,7 +363,7 @@ def merge_constraints(c1: Dict[str, str], c2: Dict[str, str]) -> Dict[str, str]:
 
 def generate_pair_benchmark(
     spec1: InstructionSpec, spec2: InstructionSpec
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate a benchmark for a pair of instructions"""
     name = f"{spec1.get_key_str()}__{spec2.get_key_str()}"
 
@@ -403,9 +398,9 @@ def generate_pair_benchmark(
 
 
 def generate_pair_benchmarks(
-    pairs_data: List[Dict[str, Any]],
-    spec_lookup: Dict[str, InstructionSpec],
-) -> List[Dict[str, Any]]:
+    pairs_data: list[dict[str, Any]],
+    spec_lookup: dict[str, InstructionSpec],
+) -> list[dict[str, Any]]:
     """Generate benchmarks for a list of pair payloads"""
     benchmarks = []
     for pair_data in pairs_data:
@@ -442,7 +437,7 @@ def generate_pair_benchmarks(
 
 def load_payload(
     input_path: Path, granularity: str
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Load instructions or pairs from JSON input.
 
     Returns:
@@ -461,8 +456,8 @@ def load_payload(
 
     is_pair = normalize_granularity(granularity).endswith("pair")
     key = "pairs" if is_pair else "instructions"
-    hardcoded: List[Dict[str, Any]] = []
-    model_benchmarks: List[Dict[str, Any]] = []
+    hardcoded: list[dict[str, Any]] = []
+    model_benchmarks: list[dict[str, Any]] = []
 
     if isinstance(data, dict):
         if key not in data:
@@ -473,7 +468,9 @@ def load_payload(
     elif isinstance(data, list):
         payload = data
     else:
-        raise ValueError("Invalid JSON format. Expected object or array")
+        raise ValueError(  # noqa: TRY004 - malformed file content, not a caller type error
+            "Invalid JSON format. Expected object or array"
+        )
 
     print(f"Loaded {len(payload)} {key} from {source}", file=sys.stderr)
     return payload, hardcoded, model_benchmarks
@@ -481,7 +478,7 @@ def load_payload(
 
 def get_all_instruction_specs(
     granularity: str = "instruction",
-) -> List[InstructionSpec]:
+) -> list[InstructionSpec]:
     """Compatibility wrapper for callers expecting get_all_instruction_specs"""
     return get_instruction_specs(normalize_granularity(granularity))
 
@@ -545,7 +542,9 @@ def main():
     args = parser.parse_args()
 
     normalized = normalize_granularity(args.granularity)
-    payload, requested_hardcoded, model_benchmarks = load_payload(args.input, normalized)
+    payload, requested_hardcoded, model_benchmarks = load_payload(
+        args.input, normalized
+    )
 
     def is_safe(spec):
         outer_ok = spec.opcode not in UNSAFE_OPCODES
@@ -672,7 +671,7 @@ def main():
                         )
                     except subprocess.CalledProcessError as e:
                         print(
-                            f"ERROR: Failed to compile special function call benchmark",
+                            "ERROR: Failed to compile special function call benchmark",
                             file=sys.stderr,
                         )
                         print(
@@ -689,7 +688,7 @@ def main():
                 # Copy .S to output directory (same file for all special-call keys)
                 basename = src_c_file.stem
                 src_s_file = repo_root / "build" / "asm" / f"{basename}.S"
-                dst_s_file = args.output_dir / f"special_function_call_benchmark.S"
+                dst_s_file = args.output_dir / "special_function_call_benchmark.S"
 
                 if not src_s_file.exists():
                     raise FileNotFoundError(

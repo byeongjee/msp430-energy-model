@@ -3,8 +3,8 @@
 import os
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from pipeline.errors import PipelineError
 
@@ -12,7 +12,7 @@ from pipeline.errors import PipelineError
 def run(cmd: Sequence[object], env: dict | None = None) -> None:
     """Run a command, letting it write to this process's stdout/stderr."""
     argv = [str(arg) for arg in cmd]
-    result = subprocess.run(argv, env=env)
+    result = subprocess.run(argv, env=env, check=False)
     if result.returncode != 0:
         raise PipelineError(f"Command failed ({result.returncode}): {' '.join(argv)}")
 
@@ -28,6 +28,7 @@ def capture(
         stderr=subprocess.STDOUT if stderr_to_stdout else None,
         text=True,
         env=env,
+        check=False,
     )
     if result.returncode != 0:
         raise PipelineError(

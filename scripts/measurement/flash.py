@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Flash an ELF to the MSP430 through the switchboard-connected ez-FET.
 
 Ends where a measurement run does: the target is isolated from the debugger

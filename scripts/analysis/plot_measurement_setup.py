@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-import argparse, csv, math, os, sys
-from typing import Tuple
-import numpy as np
+import argparse
+import csv
+import math
+import os
+import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 # ---------- streaming window finder ----------
-def find_window_first(csv_path: str, gpi1_col="gpi1") -> Tuple[int, int, int]:
+def find_window_first(csv_path: str, gpi1_col="gpi1") -> tuple[int, int, int]:
     """
     Find FIRST gpi1 window: first 0->1 to subsequent 1->0.
     Returns (rise_idx, start_idx, end_idx).
@@ -93,7 +97,7 @@ def downsample_envelope(x: np.ndarray, y: np.ndarray, max_points: int):
     buckets = max_points
     size = n // buckets
     if size < 2:
-        step = int(math.ceil(n / max_points))
+        step = math.ceil(n / max_points)
         return x[::step], y[::step]
     xs, ys = [], []
     for i in range(buckets):
@@ -224,8 +228,8 @@ def main():
     dt_rise = local_dt_around(rise_idx)
     dt_fall = local_dt_around(i_end)
 
-    pre_extra = int(round(args.pre_context / max(dt_rise, 1e-15)))
-    post_extra = int(round(args.post_context / max(dt_fall, 1e-15)))
+    pre_extra = round(args.pre_context / max(dt_rise, 1e-15))
+    post_extra = round(args.post_context / max(dt_fall, 1e-15))
 
     i_start2 = max(0, i_start - pre_extra)
     i_end2 = min(len(ts_all) - 1, i_end + post_extra)
@@ -360,18 +364,34 @@ def main():
 
         # Two parallel diagonal lines forming // pattern
         # Left slash
-        ax1.plot([break_pos - gap - d, break_pos - gap + d],
-                [slash_y - slash_height, slash_y + slash_height],
-                color='black', linewidth=2.5, clip_on=False, zorder=10)
+        ax1.plot(
+            [break_pos - gap - d, break_pos - gap + d],
+            [slash_y - slash_height, slash_y + slash_height],
+            color="black",
+            linewidth=2.5,
+            clip_on=False,
+            zorder=10,
+        )
         # Right slash
-        ax1.plot([break_pos + gap - d, break_pos + gap + d],
-                [slash_y - slash_height, slash_y + slash_height],
-                color='black', linewidth=2.5, clip_on=False, zorder=10)
+        ax1.plot(
+            [break_pos + gap - d, break_pos + gap + d],
+            [slash_y - slash_height, slash_y + slash_height],
+            color="black",
+            linewidth=2.5,
+            clip_on=False,
+            zorder=10,
+        )
 
         # Add white background to make it stand out
-        ax1.plot([break_pos - gap - d*1.2, break_pos + gap + d*1.2],
-                [slash_y, slash_y],
-                color='white', linewidth=6, clip_on=False, zorder=9, solid_capstyle='butt')
+        ax1.plot(
+            [break_pos - gap - d * 1.2, break_pos + gap + d * 1.2],
+            [slash_y, slash_y],
+            color="white",
+            linewidth=6,
+            clip_on=False,
+            zorder=9,
+            solid_capstyle="butt",
+        )
 
     ax1.grid(True, linewidth=0.3, alpha=0.5)
     ax1.legend(loc="upper left", fontsize=8, frameon=False)

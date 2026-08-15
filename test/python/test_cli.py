@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test the pem commands: compile, disasm, interpret, clean.
 
@@ -52,6 +51,7 @@ class PemTestCase(unittest.TestCase):
         return subprocess.run(
             [sys.executable, "-m", "pipeline.cli", *args],
             capture_output=True,
+            check=False,
             text=True,
             cwd=self.project_root,
             env=env,
