@@ -191,7 +191,7 @@ build_julia_flags() {
 #   CC, CFLAGS, ASMFLAGS, INCLUDES, LDFLAGS - Compiler settings
 #   BUILD_DIR - Build output directory
 #   VOLTAGE, MAX_CURRENT - Measurement settings
-#   SKIP_RESET - If set, passed to measure.py
+#   SKIP_FLASH - If set, passed to measure.py
 #   MEASURE_PY, PREPROCESS_PY - Python script paths
 #
 # Returns:
@@ -223,15 +223,15 @@ measure_and_preprocess() {
     $CC $compile_flags $define_flags $INCLUDES $LDFLAGS -o "$BUILD_DIR/${base}.elf" "$file"
     log_success "Compiled: $BUILD_DIR/${base}.elf"
 
-    # Measure (flash is done inside measure.py via --reset_cmd with GPO2 control)
+    # Measure (measure.py flashes through the switchboard-connected ez-FET)
     log_step "Flashing and measuring energy consumption for $base"
     log_info "Voltage: $VOLTAGE V, Max current: $MAX_CURRENT A"
     uv run python "$MEASURE_PY" \
+        "$BUILD_DIR/${base}.elf" \
         --voltage "$VOLTAGE" \
-        --max_current "$MAX_CURRENT" \
+        --max-current "$MAX_CURRENT" \
         --outfile "$raw_csv" \
-        --reset_cmd "mspdebug tilib 'prog $BUILD_DIR/${base}.elf' 'exit'" \
-        ${SKIP_RESET:-}
+        ${SKIP_FLASH:-}
     log_success "Raw measurement saved: $raw_csv"
 
     # Preprocess
