@@ -113,6 +113,23 @@ def list_pair_keys(specs: List[InstructionSpec]) -> dict:
     }
 
 
+def build_listing(granularity: str) -> dict:
+    """Create the JSON payload listing every benchmark of a granularity"""
+    normalized = normalize_granularity(granularity)
+
+    def is_safe(spec: InstructionSpec) -> bool:
+        outer_ok = spec.opcode not in UNSAFE_OPCODES
+        inner = getattr(spec, "inner_opcode", None)
+        inner_ok = True if inner is None else inner not in UNSAFE_OPCODES
+        return outer_ok and inner_ok
+
+    specs = [spec for spec in get_instruction_specs(normalized) if is_safe(spec)]
+
+    if normalized.endswith("pair"):
+        return list_pair_keys(specs)
+    return list_instruction_keys(specs, normalized)
+
+
 def main():
     parser = argparse.ArgumentParser(description="List benchmark keys as JSON")
     parser.add_argument(
@@ -140,19 +157,7 @@ def main():
 
     args = parser.parse_args()
 
-    normalized = normalize_granularity(args.granularity)
-    def is_safe(spec: InstructionSpec) -> bool:
-        outer_ok = spec.opcode not in UNSAFE_OPCODES
-        inner = getattr(spec, "inner_opcode", None)
-        inner_ok = True if inner is None else inner not in UNSAFE_OPCODES
-        return outer_ok and inner_ok
-
-    specs = [spec for spec in get_instruction_specs(normalized) if is_safe(spec)]
-
-    if normalized.endswith("pair"):
-        output_data = list_pair_keys(specs)
-    else:
-        output_data = list_instruction_keys(specs, normalized)
+    output_data = build_listing(args.granularity)
 
     if args.output:
         args.output.write_text(json.dumps(output_data, indent=2))

@@ -29,12 +29,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from jinja2 import Template
 
+from pipeline import config
+from benchmarks.compile_branch_benchmark import generate_assembly
 from benchmarks.common import (
     InstructionSpec,
     generate_benchmark_file,
     generate_batched_files,
     get_instruction_specs,
     get_hardcoded_benchmarks,
+    normalize_generated_asm_isa,
     normalize_granularity,
     UNSAFE_OPCODES,
     HARDCODED_BENCHMARKS,
@@ -95,34 +98,11 @@ INLINE void bench_{{ name }}(void) {
 )
 
 
-def normalize_generated_asm_isa(asm_path: Path) -> None:
-    """Rewrite base-ISA attributes so generated .S files reassemble by default.
-
-    The compiler emits `.mspabi_attribute 4, 1` for base MSP430 code. Our
-    default `.S` build path targets the selected MCU ISA, so normalize that
-    attribute to the MCU-compatible value before copying generated assembly out.
-    """
-    text = asm_path.read_text()
-    updated = text.replace(".mspabi_attribute 4, 1", ".mspabi_attribute 4, 2")
-    if updated != text:
-        asm_path.write_text(updated)
-
-
 def build_define_flags(defines: str) -> List[str]:
     """Convert a space-separated DEFINES string into compiler flags."""
     if not defines:
         return []
     return [f"-D{token}" for token in defines.split() if token]
-
-
-def build_branch_benchmark_command(
-    compile_script: Path, src_c_file: Path, defines: str
-) -> List[str]:
-    """Build the helper command for hardcoded branch benchmark generation."""
-    cmd = [str(compile_script), "--file", str(src_c_file)]
-    if defines:
-        cmd.extend(["--defines", defines])
-    return cmd
 
 
 def build_special_function_compile_command(
@@ -642,49 +622,12 @@ def main():
             if name in {"br_immediate", "br_indexed"}:
                 # Branch benchmarks require two-pass compilation to resolve the
                 # control-flow targets used in the hand-written assembly.
-                compile_script = (
-                    repo_root
-                    / "scripts"
-                    / "benchmarks"
-                    / "compile_br_immediate_benchmark.sh"
-                )
                 print(
                     f"Generating {name}.S via branch benchmark helper...",
                     file=sys.stderr,
                 )
-                try:
-                    subprocess.run(
-                        build_branch_benchmark_command(
-                            compile_script, src_c_file, args.defines
-                        ),
-                        check=True,
-                        cwd=str(repo_root),
-                        capture_output=True,
-                        text=True,
-                    )
-                except subprocess.CalledProcessError as e:
-                    print(
-                        f"ERROR: Failed to compile hardcoded benchmark {name}",
-                        file=sys.stderr,
-                    )
-                    print(f"STDOUT: {e.stdout}", file=sys.stderr)
-                    print(f"STDERR: {e.stderr}", file=sys.stderr)
-                    raise
-
-                # Copy the generated .S file from build/asm/ to output directory
-                basename = src_c_file.stem
-                src_s_file = repo_root / "build" / "asm" / f"{basename}.S"
+                src_s_file = generate_assembly(config.load(), src_c_file, args.defines)
                 dst_s_file = args.output_dir / f"{name}.S"
-
-                if not src_s_file.exists():
-                    print(
-                        f"ERROR: Expected .S file not found: {src_s_file}",
-                        file=sys.stderr,
-                    )
-                    raise FileNotFoundError(
-                        f"Generated .S file not found: {src_s_file}"
-                    )
-
                 shutil.copy(src_s_file, dst_s_file)
                 print(
                     f"✓ Generated and copied hardcoded benchmark: {dst_s_file}",
