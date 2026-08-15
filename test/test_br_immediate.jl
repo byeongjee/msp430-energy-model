@@ -14,6 +14,30 @@ const BR_TEXTUAL_REPT = 100
 const BR_INNER_ITERS = 10
 const BR_DEFINES = "TEXTUAL_REPT=$(BR_TEXTUAL_REPT) INNER_ITERS=$(BR_INNER_ITERS)"
 
+"""
+Count the br instructions inside the function starting at `func_name`.
+
+Counting them over the whole disassembly is not stable: the indexed benchmark's
+jump table sits in .text, so objdump decodes it as instructions, and every table
+entry pointing at an address whose low nibble is 0 decodes as a br (destination
+register 0 is the PC). Which entries those are shifts with the code layout of
+everything preceding the table.
+"""
+function count_br_in_function(
+    instructions::Vector{Instruction},
+    address_info::Vector{Tuple{UInt32,UInt32}},
+    func_addrs::Dict{String,UInt32},
+    func_name::String,
+)
+    start_addr = func_addrs[func_name]
+    later_addrs = filter(>(start_addr), collect(values(func_addrs)))
+    stop_addr = isempty(later_addrs) ? typemax(UInt32) : minimum(later_addrs)
+
+    return count(eachindex(instructions)) do i
+        instructions[i].opcode == :br && start_addr <= address_info[i][1] < stop_addr
+    end
+end
+
 function run_br_immediate_tests()
     @testset "BR Immediate Benchmark" begin
         @testset "br_immediate instruction count" begin
@@ -41,7 +65,9 @@ function run_br_immediate_tests()
             func_addrs = Parser.find_functions_from_string(asm_content)
 
             # Count br instructions in the parsed assembly
-            br_count = count(inst -> inst.opcode == :br, instructions)
+            br_count = count_br_in_function(
+                instructions, address_info, func_addrs, "bench_br_immediate_loop_header"
+            )
             @info "Total br instructions in assembly" br_count
 
             # Execute the program (use finest granularity for tests)
@@ -105,7 +131,9 @@ function run_br_immediate_tests()
             )
             func_addrs = Parser.find_functions_from_string(asm_content)
 
-            br_count = count(inst -> inst.opcode == :br, instructions)
+            br_count = count_br_in_function(
+                instructions, address_info, func_addrs, "bench_br_indexed_loop_header"
+            )
             @info "Total br instructions in assembly" br_count
 
             final_state, event_traces = Interpreter.interpret_program(
