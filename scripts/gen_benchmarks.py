@@ -38,6 +38,7 @@ from benchmark.common import (
     normalize_granularity,
     UNSAFE_OPCODES,
     HARDCODED_BENCHMARKS,
+    SPECIAL_FUNCTION_CALL_BENCHMARKS,
     COMPOSITE_CALL_AND_RET,
     COMPOSITE_PUSHM_AND_POPM,
     COMPOSITE_PUSH_AND_RETI,
@@ -686,7 +687,7 @@ def main():
                     f"✓ Generated and copied hardcoded benchmark: {dst_s_file}",
                     file=sys.stderr,
                 )
-            elif name.startswith("call___mspabi_"):
+            elif name in SPECIAL_FUNCTION_CALL_BENCHMARKS:
                 # Special function call benchmarks need -mhwmult=none.
                 # All special-call keys share one source file; compile to .S once.
                 if not compiled_special_function:
