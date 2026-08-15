@@ -1,6 +1,6 @@
 # Hardcoded Benchmarks
 
-This directory contains benchmarks that use handwritten control flow and need a helper script to emit stable `.S` sources for the normal pipeline.
+This directory contains benchmarks that use handwritten control flow and need a helper command to emit stable `.S` sources for the normal pipeline.
 
 ## br_immediate
 
@@ -8,10 +8,10 @@ The `br_immediate` benchmark creates a chain of `br` (branch) instructions where
 
 ### Compilation
 
-**Important:** Do not compile this file using `make compile` or `make disasm` directly. Use the helper script that emits a standalone `.S` file:
+**Important:** Do not compile this file using `pem compile` or `pem disasm` directly. Use the helper command that emits a standalone `.S` file:
 
 ```bash
-./scripts/benchmarks/compile_br_immediate_benchmark.sh --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c
+uv run pem compile-branch-benchmark --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c
 ```
 
 ### How Assembly Generation Works
@@ -24,25 +24,25 @@ This generates `build/asm/br_immediate_benchmark.S` which can then be compiled n
 
 ### Using the Generated .S File
 
-After generating the `.S` file, you can use it with all make targets:
+After generating the `.S` file, you can use it with all `pem` commands:
 
 ```bash
 # Compile to ELF
-make compile FILE=build/asm/br_immediate_benchmark.S
+uv run pem compile --file build/asm/br_immediate_benchmark.S
 
 # Disassemble
-make disasm FILE=build/asm/br_immediate_benchmark.S
+uv run pem disasm --file build/asm/br_immediate_benchmark.S
 
 # Interpret
-make interpret FILE=build/asm/br_immediate_benchmark.S
+uv run pem interpret --file build/asm/br_immediate_benchmark.S
 ```
 
 ### Custom Defines
 
-You can pass custom defines to the helper script:
+You can pass custom defines to the helper command:
 
 ```bash
-./scripts/benchmarks/compile_br_immediate_benchmark.sh \
+uv run pem compile-branch-benchmark \
     --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c \
     --defines "TEXTUAL_REPT=50 INNER_ITERS=200"
 ```
@@ -51,7 +51,7 @@ You can pass custom defines to the helper script:
 
 When `gen_benchmarks.py` encounters a hardcoded benchmark:
 
-1. Automatically runs the branch benchmark helper
+1. Automatically calls `benchmarks.compile_branch_benchmark.generate_assembly`
 2. Copies the generated `.S` file to the output directory
 
 Example:
@@ -103,7 +103,7 @@ All of the special-call keys share one source file, so it is compiled only once 
 ## Adding New Hardcoded Benchmarks
 
 1. Create the benchmark C file in this directory
-2. Update `scripts/benchmarks/compile_br_immediate_benchmark.sh` to handle the new benchmark:
+2. Update `scripts/benchmarks/compile_branch_benchmark.py` to handle the new benchmark:
    - Add any custom assembly-generation logic
    - Add benchmark name to supported list
 3. Add an `InstructionSpec` in `scripts/benchmarks/common.py` with:

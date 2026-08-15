@@ -1,6 +1,6 @@
 # Energy Measurement Setup
 
-`make analyze_distribution`, `make train`, and `make train_and_estimate` measure
+`pem analyze-distribution`, `pem train`, and `pem train-and-estimate` measure
 an MSP430FR5994 powered by an Otii Ace Pro at a fixed voltage. This document is
 the single source of truth for the setup's wiring and software.
 
@@ -114,4 +114,4 @@ target until the next run closes them.
    and `OTII_PASSWORD` (the scripts start and stop `otii_server` themselves).
 2. Install `mspdebug` with the TI library backend (`tilib`).
 3. Install the Python dependencies: `uv sync`.
-4. Measure, e.g.: `make analyze_distribution FILES=examples/misc/simple.c`.
+4. Measure, e.g.: `uv run pem analyze-distribution --files examples/misc/simple.c`.
