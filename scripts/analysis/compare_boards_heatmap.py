@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import json
 import argparse
+import json
 from pathlib import Path
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # -----------------------------------------------------------------------------
 # This script draws a heatmap of instruction costs across multiple boards.

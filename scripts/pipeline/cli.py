@@ -14,7 +14,7 @@ from pipeline import (
     train,
 )
 from pipeline import train_and_estimate as train_and_estimate_pipeline
-from pipeline.config import MAX_CURRENT_DEFAULT, VOLTAGE_DEFAULT, GRANULARITY_TO_MODEL
+from pipeline.config import GRANULARITY_TO_MODEL, MAX_CURRENT_DEFAULT, VOLTAGE_DEFAULT
 from pipeline.errors import PipelineError
 from pipeline.measure import MeasurementSettings
 

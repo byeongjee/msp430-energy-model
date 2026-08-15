@@ -45,7 +45,7 @@ def calculate_statistics(data):
 
 def plot_distribution(data, title, output_path, color="steelblue", stats=None):
     """Plot a histogram distribution."""
-    fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
+    _fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
 
     # Calculate optimal number of bins using Freedman-Diaconis rule
     # This works better for varying sample sizes
@@ -64,7 +64,7 @@ def plot_distribution(data, title, output_path, color="steelblue", stats=None):
         n_bins = 10
 
     # Create histogram
-    n, bins, patches = ax.hist(
+    n, _bins, _patches = ax.hist(
         data,
         bins=n_bins,
         density=True,
@@ -135,7 +135,7 @@ def plot_comparison(
     n_bins_meas = calculate_bins(measured_data)
 
     # Estimated distribution
-    n1, bins1, _ = ax1.hist(
+    n1, _bins1, _ = ax1.hist(
         estimated_data,
         bins=n_bins_est,
         density=True,
@@ -149,12 +149,12 @@ def plot_comparison(
         color="red",
         linewidth=2.5,
         linestyle="-",
-        label=f'Mean: {estimated_stats["mean"]:.2f} nJ',
+        label=f"Mean: {estimated_stats['mean']:.2f} nJ",
     )
     ax1.text(
         estimated_stats["mean"],
         n1.max() * 0.9,
-        f'σ={estimated_stats["std"]:.2f} nJ',
+        f"σ={estimated_stats['std']:.2f} nJ",
         fontsize=8,
         color="red",
         ha="center",
@@ -167,7 +167,7 @@ def plot_comparison(
     ax1.grid(True, alpha=0.3, linestyle="--")
 
     # Measured distribution
-    n2, bins2, _ = ax2.hist(
+    n2, _bins2, _ = ax2.hist(
         measured_data,
         bins=n_bins_meas,
         density=True,
@@ -181,12 +181,12 @@ def plot_comparison(
         color="red",
         linewidth=2.5,
         linestyle="-",
-        label=f'Mean: {measured_stats["mean"]:.2f} nJ',
+        label=f"Mean: {measured_stats['mean']:.2f} nJ",
     )
     ax2.text(
         measured_stats["mean"],
         n2.max() * 0.9,
-        f'σ={measured_stats["std"]:.2f} nJ',
+        f"σ={measured_stats['std']:.2f} nJ",
         fontsize=8,
         color="red",
         ha="center",
@@ -322,7 +322,11 @@ def main():
             mean_diff_pct = (mean_diff / measured_stats["mean"]) * 100
             std_diff = estimated_stats["std"] - measured_stats["std"]
             # Handle division by zero when std is 0 (single sample case)
-            std_diff_pct = (std_diff / measured_stats["std"]) * 100 if measured_stats["std"] > 0 else np.nan
+            std_diff_pct = (
+                (std_diff / measured_stats["std"]) * 100
+                if measured_stats["std"] > 0
+                else np.nan
+            )
             all_errors.append(mean_diff_pct)
 
             # Write to report

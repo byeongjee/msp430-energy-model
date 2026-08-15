@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import json
 import argparse
+import json
 from pathlib import Path
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # -----------------------------------------------------------------------------
 # A scatter plot between two boards shows whether key *ratios*

@@ -6,23 +6,22 @@ Outputs event labels that can be used for naming in reports and CSV files.
 
 import argparse
 import json
-from pathlib import Path
 import re
 import sys
-
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def extract_bench_labels_from_c_content(content):
     """Extract BENCH() labels from C source content."""
-    main_pattern = r'int\s+main\s*\([^)]*\)\s*\{(.*)\}'
+    main_pattern = r"int\s+main\s*\([^)]*\)\s*\{(.*)\}"
     main_match = re.search(main_pattern, content, re.DOTALL)
     if not main_match:
         return []
 
     main_body = main_match.group(1)
-    bench_pattern = r'BENCH\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^)]*\)\s*\)'
+    bench_pattern = r"BENCH\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^)]*\)\s*\)"
     return re.findall(bench_pattern, main_body)
 
 
@@ -113,14 +112,16 @@ def extract_bench_labels(file_path, visited=None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Extract function names from BENCH() macros in C source files'
+        description="Extract function names from BENCH() macros in C source files"
     )
-    parser.add_argument('--input', required=True,
-                       help='Path to C source file')
-    parser.add_argument('--output', required=True,
-                       help='Path to output JSON file')
-    parser.add_argument('--format', choices=['json', 'text'], default='json',
-                       help='Output format (default: json)')
+    parser.add_argument("--input", required=True, help="Path to C source file")
+    parser.add_argument("--output", required=True, help="Path to output JSON file")
+    parser.add_argument(
+        "--format",
+        choices=["json", "text"],
+        default="json",
+        help="Output format (default: json)",
+    )
 
     args = parser.parse_args()
 
@@ -135,11 +136,11 @@ def main():
             print(f"  Event {i}: {label}")
 
     # Save to output file
-    if args.format == 'json':
-        with open(args.output, 'w') as f:
+    if args.format == "json":
+        with open(args.output, "w") as f:
             json.dump(labels, f, indent=2)
     else:  # text format
-        with open(args.output, 'w') as f:
+        with open(args.output, "w") as f:
             for label in labels:
                 f.write(f"{label}\n")
 
@@ -147,5 +148,5 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

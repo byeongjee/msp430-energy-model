@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test cases for gen_benchmarks.py (pair granularities)
 
@@ -10,12 +9,11 @@ Or: uv run python -m unittest discover -s test/python -k test_generate_pair_benc
 """
 
 import unittest
-from pathlib import Path
 
 # Add parent directory to path for imports
 from benchmarks.common import (
-    InstructionSpec,
     FILE_TEMPLATE,
+    InstructionSpec,
     create_dual_operand_specs,
     create_single_operand_specs,
 )
@@ -334,7 +332,6 @@ INLINE void bench_jmp_symbolic__inc_register(void) {
 }
 """
         self.assertEqual(result["code"].strip(), expected_code.strip())
-
 
 
 class TestKeyGeneration(unittest.TestCase):

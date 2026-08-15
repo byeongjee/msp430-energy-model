@@ -20,6 +20,7 @@ def run(pattern: str = "") -> int:
             *([pattern] if pattern else []),
         ],
         env=julia_env(),
+        check=False,
     )
 
     print("\nRunning Python test suite...")
@@ -37,6 +38,7 @@ def run(pattern: str = "") -> int:
             *(["-k", pattern] if pattern else []),
         ],
         cwd=PROJECT_ROOT,
+        check=False,
     )
     python_code = python.returncode
     if python_code == _NO_TESTS_MATCHED:

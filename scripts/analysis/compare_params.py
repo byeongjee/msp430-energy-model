@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import json
 from pathlib import Path
@@ -13,7 +12,9 @@ def load_parameter_dict(path: Path) -> tuple[str | None, dict[str, float]]:
 
     parameters = data.get("parameters")
     if not isinstance(parameters, dict):
-        raise ValueError(f"{path} does not contain a top-level 'parameters' dict")
+        raise ValueError(  # noqa: TRY004 - malformed file content, not a caller type error
+            f"{path} does not contain a top-level 'parameters' dict"
+        )
 
     return data.get("model"), {str(k): float(v) for k, v in parameters.items()}
 
@@ -39,7 +40,9 @@ def print_summary(
     top_k: int,
 ):
     delta = values_b - values_a
-    ratio = np.divide(values_b, values_a, out=np.full_like(values_b, np.nan), where=values_a != 0)
+    ratio = np.divide(
+        values_b, values_a, out=np.full_like(values_b, np.nan), where=values_a != 0
+    )
     abs_delta = np.abs(delta)
 
     print(f"Compared keys: {len(keys)}")
@@ -80,7 +83,9 @@ def plot_comparison(
         1, 2, figsize=(14, 6), gridspec_kw={"width_ratios": [1.2, 1.0]}
     )
 
-    ax_scatter.scatter(values_a, values_b, alpha=0.75, color="steelblue", edgecolors="none")
+    ax_scatter.scatter(
+        values_a, values_b, alpha=0.75, color="steelblue", edgecolors="none"
+    )
 
     diag_min = min(values_a.min(), values_b.min())
     diag_max = max(values_a.max(), values_b.max())
@@ -94,7 +99,9 @@ def plot_comparison(
     )
 
     for idx in top_indices:
-        ax_scatter.scatter(values_a[idx], values_b[idx], color="darkorange", s=50, zorder=3)
+        ax_scatter.scatter(
+            values_a[idx], values_b[idx], color="darkorange", s=50, zorder=3
+        )
         ax_scatter.annotate(
             keys[idx],
             (values_a[idx], values_b[idx]),

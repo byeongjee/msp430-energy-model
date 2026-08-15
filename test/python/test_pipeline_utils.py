@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test the pipeline utility functions: defines, file expansion and granularity mapping.
 
@@ -10,6 +9,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 from pipeline import defines
 from pipeline.config import Config, granularity_to_model
@@ -149,7 +149,7 @@ class TestSegmentMatching(unittest.TestCase):
 
 
 class TestGranularityMapping(unittest.TestCase):
-    EXPECTED_MAPPINGS = {
+    EXPECTED_MAPPINGS: ClassVar[dict[str, str]] = {
         "opcode": "mean_per_instruction",
         "addressing_mode": "mean_per_addressing_mode",
         "addressing_mode_constant": "mean_per_addressing_mode_constant",

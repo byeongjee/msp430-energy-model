@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Check that the switchboard relays connect and isolate the ez-FET.
 
 Closes the relays and expects mspdebug to reach the target, then opens them
@@ -28,6 +27,7 @@ def debugger_reaches_target() -> bool:
         result = subprocess.run(
             ["mspdebug", "tilib", "exit"],
             capture_output=True,
+            check=False,
             text=True,
             timeout=_MSPDEBUG_TIMEOUT_SECONDS,
         )

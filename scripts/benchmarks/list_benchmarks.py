@@ -19,19 +19,18 @@ import json
 import sys
 from itertools import combinations
 from pathlib import Path
-from typing import List
 
 from benchmarks.common import (
+    UNSAFE_OPCODES,
     InstructionSpec,
-    get_instruction_specs,
     get_hardcoded_benchmarks,
+    get_instruction_specs,
     get_model_benchmarks,
     normalize_granularity,
-    UNSAFE_OPCODES,
 )
 
 
-def list_instruction_keys(specs: List[InstructionSpec], granularity: str) -> dict:
+def list_instruction_keys(specs: list[InstructionSpec], granularity: str) -> dict:
     """Create JSON payload for instruction-level benchmarks"""
     instructions = []
     for spec in specs:
@@ -75,7 +74,7 @@ def list_instruction_keys(specs: List[InstructionSpec], granularity: str) -> dic
     return result
 
 
-def list_pair_keys(specs: List[InstructionSpec]) -> dict:
+def list_pair_keys(specs: list[InstructionSpec]) -> dict:
     """Create JSON payload for pair benchmarks"""
     pairs = []
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import pandas as pd
-from scipy import integrate
 import argparse
 import json
+
+import pandas as pd
+from scipy import integrate
 
 
 def preprocess_csv(input, output, event_labels=None):
@@ -55,9 +56,9 @@ def preprocess_csv(input, output, event_labels=None):
 
     # Drop spurious zero-length zero-energy segments caused by GPIO boundary artifacts.
     if not output_df.empty:
-        degenerate_mask = (
-            output_df["duration_s"].abs().eq(0) & output_df["energy_nJ"].abs().eq(0)
-        )
+        degenerate_mask = output_df["duration_s"].abs().eq(0) & output_df[
+            "energy_nJ"
+        ].abs().eq(0)
         dropped_count = int(degenerate_mask.sum())
         if dropped_count:
             output_df = output_df.loc[~degenerate_mask].reset_index(drop=True)
@@ -81,11 +82,15 @@ def preprocess_csv(input, output, event_labels=None):
             for label in event_labels:
                 label_list.extend([label] * segments_per_event)
 
-            output_df['event_label'] = label_list
-            print(f"Added event labels: {num_events} events, {segments_per_event} segments per event")
+            output_df["event_label"] = label_list
+            print(
+                f"Added event labels: {num_events} events, {segments_per_event} segments per event"
+            )
         else:
-            print(f"Warning: Number of segments ({num_segments}) is not evenly divisible by number of events ({num_events})")
-            print(f"Skipping event label assignment")
+            print(
+                f"Warning: Number of segments ({num_segments}) is not evenly divisible by number of events ({num_events})"
+            )
+            print("Skipping event label assignment")
 
     # Save to CSV
     output_df.to_csv(output, index=False)
@@ -101,7 +106,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--input", help="Path to input CSV file")
     parser.add_argument("--output", help="Path to output CSV file")
-    parser.add_argument("--event-labels", help="Path to JSON file containing event labels (optional)")
+    parser.add_argument(
+        "--event-labels", help="Path to JSON file containing event labels (optional)"
+    )
 
     args = parser.parse_args()
 
@@ -109,7 +116,7 @@ if __name__ == "__main__":
     event_labels = None
     if args.event_labels:
         try:
-            with open(args.event_labels, 'r') as f:
+            with open(args.event_labels, "r") as f:
                 event_labels = json.load(f)
             print(f"Loaded {len(event_labels)} event labels from {args.event_labels}")
         except Exception as e:
