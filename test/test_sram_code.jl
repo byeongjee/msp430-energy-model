@@ -14,7 +14,7 @@ function run_sram_code_tests()
         @testset "SRAM code execution isolation" begin
             # Compile the SRAM code benchmark
             @info "Compiling SRAM code benchmark..."
-            run(`make disasm FILE=examples/misc/sram_code_benchmark.c`)
+            run(`uv run pem disasm --file examples/misc/sram_code_benchmark.c`)
 
             asm_file = "build/asm/sram_code_benchmark.asm"
             data_file = "build/asm/sram_code_benchmark.data"

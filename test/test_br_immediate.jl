@@ -20,12 +20,12 @@ function run_br_immediate_tests()
             # Generate br_immediate_benchmark.S via the branch benchmark helper
             @info "Generating br_immediate_benchmark.S..."
             run(
-                `./scripts/benchmarks/compile_br_immediate_benchmark.sh --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c --defines $BR_DEFINES`,
+                `uv run pem compile-branch-benchmark --file scripts/benchmarks/hardcoded/br_immediate_benchmark.c --defines $BR_DEFINES`,
             )
 
             # Now compile and disassemble the .S file
             @info "Compiling and disassembling .S file..."
-            run(`bash -c "make disasm FILE=build/asm/br_immediate_benchmark.S"`)
+            run(`uv run pem disasm --file build/asm/br_immediate_benchmark.S`)
 
             asm_file = "build/asm/br_immediate_benchmark.asm"
             data_file = "build/asm/br_immediate_benchmark.data"
@@ -85,11 +85,11 @@ function run_br_immediate_tests()
         @testset "br_indexed instruction count" begin
             @info "Generating br_indexed_benchmark.S..."
             run(
-                `./scripts/benchmarks/compile_br_immediate_benchmark.sh --file scripts/benchmarks/hardcoded/br_indexed_benchmark.c --defines $BR_DEFINES`,
+                `uv run pem compile-branch-benchmark --file scripts/benchmarks/hardcoded/br_indexed_benchmark.c --defines $BR_DEFINES`,
             )
 
             @info "Compiling and disassembling .S file..."
-            run(`bash -c "make disasm FILE=build/asm/br_indexed_benchmark.S"`)
+            run(`uv run pem disasm --file build/asm/br_indexed_benchmark.S`)
 
             asm_file = "build/asm/br_indexed_benchmark.asm"
             data_file = "build/asm/br_indexed_benchmark.data"
