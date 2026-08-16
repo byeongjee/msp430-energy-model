@@ -49,7 +49,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--gpi-wait-timeout",
         type=float,
-        default=30.0,
+        # Training batches run for minutes at NUM_REPEAT=30 (each event pulse
+        # carries 0.2 s of guard delay, cos/sin helpers longer still).
+        default=1800.0,
         help="Timeout (s) waiting for the GPI1 falling edge",
     )
     parser.add_argument(
