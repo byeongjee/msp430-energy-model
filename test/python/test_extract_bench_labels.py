@@ -5,10 +5,15 @@ These cover both direct C parsing and recovery from generated assembly files
 that need to resolve back to their original C benchmark source.
 """
 
+import dataclasses
+import tempfile
 import unittest
 from pathlib import Path
 
+from benchmarks.compile_branch_benchmark import generate_assembly
 from benchmarks.extract_bench_labels import extract_bench_labels
+from pipeline import config
+from pipeline.build import compile_source
 
 # Order follows the BENCH() calls in special_function_call_benchmark.c's main().
 SPECIAL_FUNCTION_LABELS = [
@@ -41,6 +46,13 @@ class TestExtractBenchLabels(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.project_root = Path(__file__).resolve().parents[2]
+        cls.hardcoded_dir = cls.project_root / "scripts" / "benchmarks" / "hardcoded"
+        cls.temp_dir = tempfile.TemporaryDirectory()
+        cls.cfg = dataclasses.replace(config.load(), asm_dir=Path(cls.temp_dir.name))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp_dir.cleanup()
 
     def test_extracts_labels_from_special_function_c_source(self):
         source = (
@@ -57,21 +69,23 @@ class TestExtractBenchLabels(unittest.TestCase):
         )
 
     def test_extracts_labels_from_generated_br_immediate_assembly(self):
-        asm = self.project_root / "training_data" / "bao_asplos27" / "br_immediate.S"
+        asm = generate_assembly(
+            self.cfg, self.hardcoded_dir / "br_immediate_benchmark.c"
+        )
 
         self.assertEqual(extract_bench_labels(asm), ["bench_br_immediate"])
 
     def test_extracts_labels_from_generated_br_indexed_assembly(self):
-        asm = self.project_root / "training_data" / "bao_asplos27" / "br_indexed.S"
+        asm = generate_assembly(self.cfg, self.hardcoded_dir / "br_indexed_benchmark.c")
 
         self.assertEqual(extract_bench_labels(asm), ["bench_br_indexed"])
 
     def test_extracts_labels_from_generated_special_function_assembly(self):
-        asm = (
-            self.project_root
-            / "training_data"
-            / "bao_asplos27"
-            / "special_function_call_benchmark.S"
+        asm = compile_source(
+            self.cfg,
+            self.hardcoded_dir / "special_function_call_benchmark.c",
+            extra_flags=["-S", "-mhwmult=none"],
+            output=self.cfg.asm_dir / "special_function_call_benchmark.S",
         )
 
         self.assertEqual(

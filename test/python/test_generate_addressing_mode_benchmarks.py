@@ -8,22 +8,17 @@ Run with: make test
 Or: uv run python -m unittest discover -s test/python -k test_generate_addressing_mode_benchmarks
 """
 
-import re
 import unittest
-from pathlib import Path
 
 # Add parent directory to path for imports
 from benchmarks.common import (
     FILE_TEMPLATE,
-    UNSAFE_OPCODES,
     InstructionSpec,
     create_dint_specs,
     create_dual_operand_specs,
     create_push_specs,
     create_single_operand_specs,
-    get_hardcoded_benchmarks,
     get_instruction_specs,
-    get_model_benchmarks,
 )
 from benchmarks.gen_benchmarks import (
     generate_benchmark,
@@ -657,47 +652,6 @@ class TestCompositeGeneration(unittest.TestCase):
         ]
         self.assertEqual(residual_push, [])
         self.assertNotIn("reti", names)
-
-
-class TestAllKeysCoverage(unittest.TestCase):
-    """Ensure all_keys.txt can be satisfied by the addressing-mode listing."""
-
-    def test_all_keys_covered_by_addressing_mode_listing(self):
-        def is_safe(spec: InstructionSpec) -> bool:
-            outer_ok = spec.opcode not in UNSAFE_OPCODES
-            inner = getattr(spec, "inner_opcode", None)
-            inner_ok = True if inner is None else inner not in UNSAFE_OPCODES
-            return outer_ok and inner_ok
-
-        instruction_names = {
-            spec.get_key_str()
-            for spec in get_instruction_specs("addressing_mode")
-            if is_safe(spec)
-        }
-        hardcoded_names = set(get_hardcoded_benchmarks("addressing_mode").keys())
-        model_names = {
-            entry["name"]
-            for entry in get_model_benchmarks("addressing_mode")
-            if "name" in entry
-        }
-        available_names = instruction_names | hardcoded_names | model_names
-
-        all_keys_path = (
-            Path(__file__).resolve().parents[2]
-            / "training_data"
-            / "bao_asplos27"
-            / "all_keys.txt"
-        )
-        requested_keys = {
-            key for key in re.split(r"[\s,]+", all_keys_path.read_text().strip()) if key
-        }
-
-        missing = sorted(requested_keys - available_names)
-        self.assertEqual(
-            missing,
-            [],
-            f"Keys in all_keys.txt missing from addressing_mode listing: {missing}",
-        )
 
 
 if __name__ == "__main__":
