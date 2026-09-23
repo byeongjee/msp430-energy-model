@@ -47,7 +47,9 @@ class TestExtractBenchLabels(unittest.TestCase):
     def setUpClass(cls):
         cls.project_root = Path(__file__).resolve().parents[2]
         cls.hardcoded_dir = cls.project_root / "scripts" / "benchmarks" / "hardcoded"
-        cls.temp_dir = tempfile.TemporaryDirectory()
+        temp_root = cls.project_root / "tmp"
+        temp_root.mkdir(exist_ok=True)
+        cls.temp_dir = tempfile.TemporaryDirectory(dir=temp_root)
         cls.cfg = dataclasses.replace(config.load(), asm_dir=Path(cls.temp_dir.name))
 
     @classmethod
