@@ -33,7 +33,9 @@ class PemTestCase(unittest.TestCase):
             raise unittest.SkipTest(f"Test file not found: {cls.TEST_C_FILE}")
 
     def setUp(self):
-        self.temp_dir = tempfile.mkdtemp()
+        temp_root = self.project_root / "tmp"
+        temp_root.mkdir(exist_ok=True)
+        self.temp_dir = tempfile.mkdtemp(dir=temp_root)
         self.build_dir = Path(self.temp_dir) / "build"
         self.asm_dir = Path(self.temp_dir) / "asm"
 
