@@ -682,7 +682,12 @@ class TestAllKeysCoverage(unittest.TestCase):
         }
         available_names = instruction_names | hardcoded_names | model_names
 
-        all_keys_path = Path(__file__).resolve().parents[2] / "all_keys.txt"
+        all_keys_path = (
+            Path(__file__).resolve().parents[2]
+            / "training_data"
+            / "bao_asplos27"
+            / "all_keys.txt"
+        )
         requested_keys = {
             key for key in re.split(r"[\s,]+", all_keys_path.read_text().strip()) if key
         }
