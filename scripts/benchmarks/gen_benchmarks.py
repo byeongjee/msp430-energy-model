@@ -13,7 +13,7 @@ USAGE:
     python -m benchmarks.gen_benchmarks \
         --granularity addressing_mode_pair \
         --input jl_pairs.json \
-        --output-dir training_data/pairs \
+        --output-dir pair_benchmarks \
         --batch 10 \
         --start-batch 0
 """
