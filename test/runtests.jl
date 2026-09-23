@@ -514,7 +514,7 @@ function run_train_tests()
         end
 
         @testset "process_training_data uses data dump for br_indexed jump table" begin
-            run(`uv run pem disasm --file training_data/checkpoint_insertion/br_indexed.S`)
+            run(`uv run pem disasm --file training_data/bao_asplos27/br_indexed.S`)
 
             asm_file = "build/asm/br_indexed.asm"
             data_file = "build/asm/br_indexed.data"

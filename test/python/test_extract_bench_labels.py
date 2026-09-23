@@ -57,22 +57,12 @@ class TestExtractBenchLabels(unittest.TestCase):
         )
 
     def test_extracts_labels_from_generated_br_immediate_assembly(self):
-        asm = (
-            self.project_root
-            / "training_data"
-            / "checkpoint_insertion"
-            / "br_immediate.S"
-        )
+        asm = self.project_root / "training_data" / "bao_asplos27" / "br_immediate.S"
 
         self.assertEqual(extract_bench_labels(asm), ["bench_br_immediate"])
 
     def test_extracts_labels_from_generated_br_indexed_assembly(self):
-        asm = (
-            self.project_root
-            / "training_data"
-            / "checkpoint_insertion"
-            / "br_indexed.S"
-        )
+        asm = self.project_root / "training_data" / "bao_asplos27" / "br_indexed.S"
 
         self.assertEqual(extract_bench_labels(asm), ["bench_br_indexed"])
 
@@ -80,7 +70,7 @@ class TestExtractBenchLabels(unittest.TestCase):
         asm = (
             self.project_root
             / "training_data"
-            / "checkpoint_insertion"
+            / "bao_asplos27"
             / "special_function_call_benchmark.S"
         )
 
