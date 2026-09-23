@@ -6,7 +6,6 @@ Or: uv run python -m unittest discover -s test/python -k test_special_function_c
 
 import json
 import os
-import re
 import subprocess
 import sys
 import unittest
@@ -23,7 +22,6 @@ from benchmarks.gen_benchmarks import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALL_KEYS_FILE = PROJECT_ROOT / "training_data" / "bao_asplos27" / "all_keys.txt"
 SPECIAL_BENCHMARK_SOURCE = (
     PROJECT_ROOT
     / "scripts"
@@ -33,22 +31,14 @@ SPECIAL_BENCHMARK_SOURCE = (
 )
 
 
-def read_all_keys() -> list[str]:
-    return [
-        key for key in re.split(r"[\s,]+", ALL_KEYS_FILE.read_text().strip()) if key
-    ]
-
-
-SPECIAL_KEYS = [
-    key for key in read_all_keys() if key in SPECIAL_FUNCTION_CALL_BENCHMARKS
-]
+SPECIAL_KEYS = list(SPECIAL_FUNCTION_CALL_BENCHMARKS)
 
 
 class TestHardcodedBenchmarksRegistry(unittest.TestCase):
     """Test that special function call benchmarks are registered correctly."""
 
     def test_special_function_keys_in_registry(self):
-        """All special function call keys from all_keys.txt exist in the registry."""
+        """All special function call keys exist in the registry."""
         for key in SPECIAL_KEYS:
             self.assertIn(
                 key, HARDCODED_BENCHMARKS, f"{key} not in HARDCODED_BENCHMARKS"
