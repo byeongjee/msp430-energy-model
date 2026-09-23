@@ -92,7 +92,7 @@ uv run pem disasm --file <file.c>                   # Compile and disassemble
 uv run pem flash --file <file.c>                    # Flash binary to microcontroller
 uv run pem analyze-distribution --files <pattern>   # Flash, measure, and analyze energy distribution
 uv run pem gen-benchmarks --file <file.c>           # Generate the benchmarks a program needs
-uv run pem gen-benchmarks-from-keys --keys all_keys.txt --output-dir <dir>
+uv run pem gen-benchmarks-from-keys --keys training_data/bao_asplos27/all_keys.txt --output-dir <dir>
 uv run pem compile-branch-benchmark --file <file.c> # Two-pass build of a hardcoded branch benchmark
 uv run pem create-fixture --file <file.c> --name <name>  # Create an interpreter test fixture
 uv run pem info                                     # Show build and toolchain information

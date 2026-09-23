@@ -23,7 +23,7 @@ from benchmarks.gen_benchmarks import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALL_KEYS_FILE = PROJECT_ROOT / "all_keys.txt"
+ALL_KEYS_FILE = PROJECT_ROOT / "training_data" / "bao_asplos27" / "all_keys.txt"
 SPECIAL_BENCHMARK_SOURCE = (
     PROJECT_ROOT
     / "scripts"
