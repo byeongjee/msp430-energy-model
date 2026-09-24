@@ -1,9 +1,10 @@
 """Single-file commands: compile, disassemble, interpret, estimate, flash, info, clean."""
 
 import shutil
+import subprocess
 from pathlib import Path
 
-from pipeline import log
+from pipeline import container, log
 from pipeline.build import compile_and_disasm, compile_source
 from pipeline.config import PROJECT_ROOT, Config, granularity_to_model
 from pipeline.process import run_julia, run_module
@@ -116,5 +117,8 @@ def info(cfg: Config) -> None:
     print()
     print("Toolchain status:")
     for name, tool in (("MSP430 GCC", cfg.cc), ("MSP430 OBJDUMP", cfg.objdump)):
-        status = "✓ found" if tool.is_file() else "❌ not found"
+        result = subprocess.run(
+            container.command([tool, "--version"]), capture_output=True, check=False
+        )
+        status = "✓ found" if result.returncode == 0 else "❌ not found"
         print(f"{name}: {status}: {tool}")

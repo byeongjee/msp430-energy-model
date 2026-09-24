@@ -64,18 +64,9 @@ class Config:
         return self.asmflags if source.suffix == ".S" else self.cflags
 
 
-def _env_path(name: str) -> Path:
-    value = os.environ.get(name)
-    if not value:
-        raise PipelineError(
-            f"{name} is not set. Please set it in your environment or .env file"
-        )
-    return Path(value)
-
-
 def load() -> Config:
-    toolchain = _env_path("MSP430GCC_TOOLCHAIN_PATH")
-    support = _env_path("MSP430GCC_SUPPORT_PATH")
+    toolchain = Path("/opt/msp430-gcc")
+    support = Path("/opt/msp430-support")
 
     device = os.environ.get("MSP430_DEVICE", DEVICE_DEFAULT)
     # Force the base MSP430 ISA so the default pipeline does not emit MSP430X-only

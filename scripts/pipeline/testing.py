@@ -3,6 +3,7 @@
 import subprocess
 import sys
 
+from pipeline import container
 from pipeline.config import PROJECT_ROOT
 from pipeline.process import julia_env
 
@@ -13,12 +14,14 @@ def run(pattern: str = "") -> int:
     """Run both test suites and return the exit code for the CLI."""
     print("Running Julia test suite...")
     julia = subprocess.run(
-        [
-            "julia",
-            f"--project={PROJECT_ROOT}",
-            str(PROJECT_ROOT / "test" / "runtests.jl"),
-            *([pattern] if pattern else []),
-        ],
+        container.command(
+            [
+                "julia",
+                f"--project={PROJECT_ROOT}",
+                str(PROJECT_ROOT / "test" / "runtests.jl"),
+                *([pattern] if pattern else []),
+            ]
+        ),
         env=julia_env(),
         check=False,
     )

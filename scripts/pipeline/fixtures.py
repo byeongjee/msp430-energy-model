@@ -5,7 +5,7 @@ import re
 import shutil
 from pathlib import Path
 
-from pipeline import log
+from pipeline import container, log
 from pipeline.build import compile_source, disassemble
 from pipeline.config import PROJECT_ROOT, Config
 from pipeline.errors import PipelineError
@@ -76,9 +76,6 @@ def _parse_memory(output: str) -> dict[str, int]:
 
 def run_gdb(cfg: Config, elf: Path, data_file: Path | None = None) -> dict:
     """Run an ELF binary in the GDB simulator and return its final state."""
-    if not cfg.gdb.is_file():
-        raise PipelineError(f"GDB not found: {cfg.gdb}")
-
     register_commands = [
         f'printf "{name}:0x%04x\\n", ${name.lower()}' for name in _REGISTERS
     ]
@@ -96,12 +93,14 @@ def run_gdb(cfg: Config, elf: Path, data_file: Path | None = None) -> dict:
         'printf "MEMORY_END\\n"',
     ]
     output = capture(
-        [
-            cfg.gdb,
-            elf,
-            "-batch",
-            *(flag for command in commands for flag in ("-ex", command)),
-        ],
+        container.command(
+            [
+                cfg.gdb,
+                elf,
+                "-batch",
+                *(flag for command in commands for flag in ("-ex", command)),
+            ]
+        ),
         stderr_to_stdout=True,
     )
 

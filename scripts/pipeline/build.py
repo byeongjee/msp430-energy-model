@@ -3,8 +3,8 @@
 import re
 from pathlib import Path
 
+from pipeline import container, log
 from pipeline import defines as defines_util
-from pipeline import log
 from pipeline.config import Config
 from pipeline.files import source_basename
 from pipeline.process import capture, run
@@ -39,18 +39,20 @@ def compile_source(
     elf.parent.mkdir(parents=True, exist_ok=True)
 
     run(
-        [
-            cfg.cc,
-            *cfg.compile_flags(source),
-            *(extra_flags or []),
-            *defines_util.to_flags(defines),
-            *cfg.includes,
-            *cfg.ldflags,
-            "-o",
-            elf,
-            source,
-            *cfg.ldlibs,
-        ]
+        container.command(
+            [
+                cfg.cc,
+                *cfg.compile_flags(source),
+                *(extra_flags or []),
+                *defines_util.to_flags(defines),
+                *cfg.includes,
+                *cfg.ldflags,
+                "-o",
+                elf,
+                source,
+                *cfg.ldlibs,
+            ]
+        )
     )
     return elf
 
@@ -69,26 +71,28 @@ def disassemble(cfg: Config, elf: Path, asm_file: Path, data_file: Path) -> None
 
     cleaned_elf = elf.with_name(f"{elf.stem}_cleaned.elf")
     run(
-        [
-            cfg.objcopy,
-            "--wildcard",
-            *(f"--strip-symbol={symbol}" for symbol in _STRIPPED_SYMBOLS),
-            elf,
-            cleaned_elf,
-        ]
+        container.command(
+            [
+                cfg.objcopy,
+                "--wildcard",
+                *(f"--strip-symbol={symbol}" for symbol in _STRIPPED_SYMBOLS),
+                elf,
+                cleaned_elf,
+            ]
+        )
     )
-    asm_file.write_text(capture([cfg.objdump, "-d", cleaned_elf]))
+    asm_file.write_text(capture(container.command([cfg.objdump, "-d", cleaned_elf])))
     cleaned_elf.unlink()
 
     # Section headers give the VMA→LMA translation needed for initialized globals.
     headers = ["# Section headers: Name Size VMA LMA"]
-    for line in capture([cfg.objdump, "-h", elf]).splitlines():
+    for line in capture(container.command([cfg.objdump, "-h", elf])).splitlines():
         match = _SECTION_HEADER.match(line)
         if match:
             headers.append(f"# {' '.join(match.groups())}")
 
     section_flags = [flag for section in _DATA_SECTIONS for flag in ("-j", section)]
-    dump = capture([cfg.objdump, "-s", *section_flags, elf])
+    dump = capture(container.command([cfg.objdump, "-s", *section_flags, elf]))
     data_file.write_text("\n".join(headers) + "\n\n" + dump)
 
 
