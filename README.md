@@ -5,38 +5,14 @@ MSP430FR5994 microcontroller programs using probabilistic methods.
 
 ## Setup
 
-### 1. Install MSP430 GCC toolchain
-We use the MSP430 GCC toolchain to compile C programs to MSP430 binaries.
-Install and set the following environment variables:
+Install [Docker](https://docs.docker.com/get-docker/) and
+[uv](https://docs.astral.sh/uv/), then run `uv sync`.
 
-- `MSP430GCC_TOOLCHAIN_PATH`: The path to the MSP430 GCC toolchain root directory (without `/bin` postfix).
-  - Download "toolchain only" from [here](https://www.ti.com/tool/download/MSP430-GCC-OPENSOURCE/9.3.1.2)
-that fits your platform.
+`pem` runs the MSP430 GCC toolchain and Julia inside a Docker image, which it
+builds on first use. Run `pem` from inside the repository, and keep the files
+you pass to it inside the repository.
 
-- `MSP430GCC_SUPPORT_PATH`: The path to the MSP430 GCC support files root directory (without `/include` postfix).
-  - Download "Header and Support Files" from
-  [here](https://www.ti.com/tool/download/MSP430-GCC-OPENSOURCE/9.3.1.2). This is platform independent.
-
-Set these environment variables before running any commands.
-
-### 2. Install Julia Dependencies
-
-This project uses Julia's package manager with `Project.toml` and `Manifest.toml` for reproducible dependency management.
-
-First time setup:
-
-```bash
-julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
-```
-
-### 2. Install Python Dependencies
-
-Scripts for measuring and analyzing energy consumption are written in Python.
-We use `uv` to manage Python dependencies.
-
-Run `uv sync` to install the dependencies.
-
-### 3. Set Otii (For energy measurement only)
+### Otii (for energy measurement only)
 We use Otii Ace Pro to measure energy consumption.
 
 1. Install Otii Software from [here](https://www.qoitech.com/software/).
