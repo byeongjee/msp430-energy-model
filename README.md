@@ -28,16 +28,20 @@ you pass to it inside the repository.
      --batch 10 --output-dir tmp/bao_asplos27
    ```
 
-2. Train the model from the energy measured at 3.3 V. We already generated the
-   benchmarks and measured their energy, and committed both in
-   `training_data/bao_asplos27`, so this step needs no hardware:
+2. Measure the energy of the benchmarks at 3.3 V and train the model. This
+   needs the measurement hardware (see [Energy measurement](#energy-measurement)):
 
    ```bash
-   uv run pem train --files "training_data/bao_asplos27/*.{c,S}" \
-     --training-segments-csv "training_data/bao_asplos27/segments/3v3/*_segments.csv" \
+   uv run pem train --files "tmp/bao_asplos27/*.{c,S}" \
      --defines "NUM_REPEAT=30" --model mean_per_addressing_mode \
      --inference upper-bound-lp --intercept-special-calls --params params.json
    ```
+
+   To see how training works without hardware, use our sample measurement
+   results by adding
+   `--training-segments-csv "training_data/bao_asplos27/sample_segments/*_segments.csv"`;
+   the parameters trained from them are in
+   `training_data/bao_asplos27/expected_params.json`.
 
 ## Others
 
