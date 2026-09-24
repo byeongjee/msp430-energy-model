@@ -114,4 +114,4 @@ target until the next run closes them.
    and `OTII_PASSWORD` (the scripts start and stop `otii_server` themselves).
 2. Install `mspdebug` with the TI library backend (`tilib`).
 3. Install the Python dependencies: `uv sync`.
-4. Measure, e.g.: `uv run pem analyze-distribution --files examples/misc/simple.c`.
+4. Measure, e.g.: `uv run pem analyze-distribution --files examples/validation_suite/register_only.c`.
