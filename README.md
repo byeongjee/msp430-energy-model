@@ -61,7 +61,10 @@ which is required to automate measurement through scripts.
 - `OTII_USERNAME`: Your Otii username (with Automation Toolbox license).
 - `OTII_PASSWORD`: Your Otii password (with Automation Toolbox license).
 
-4. Hardware setup: see [Measurement setup](docs/measurement_setup.md) for the
+4. Install [mspdebug](https://github.com/dlbeer/mspdebug) with the TI library
+backend (`tilib`), which flashes the program to the target.
+
+5. Hardware setup: see [Measurement setup](docs/measurement_setup.md) for the
 wiring, including the Qoitech Switchboard that isolates the ez-FET debugger
 from the target while it is measured.
 
