@@ -45,7 +45,7 @@ from benchmarks.common import (
     normalize_granularity,
 )
 from benchmarks.compile_branch_benchmark import generate_assembly
-from pipeline import config
+from pipeline import config, container
 
 # ============================================================================
 # Jinja2 Templates
@@ -663,7 +663,7 @@ def main():
                     )
                     try:
                         subprocess.run(
-                            compile_cmd,
+                            container.command(compile_cmd, repo_root),
                             check=True,
                             cwd=str(repo_root),
                             capture_output=True,

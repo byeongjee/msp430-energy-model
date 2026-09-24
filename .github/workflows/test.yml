@@ -14,46 +14,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Julia
-      uses: julia-actions/setup-julia@v2
-      with:
-        version: '1.11.7'
-
-    - name: Cache Julia packages
-      uses: julia-actions/cache@v2
-
-    - name: Cache MSP430 toolchain
-      id: cache-msp430
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/msp430-gcc
-          ~/msp430-support
-        key: msp430-gcc-9.3.1.2
-
-    - name: Install MSP430 GCC toolchain
-      if: steps.cache-msp430.outputs.cache-hit != 'true'
-      run: |
-        cd ~
-        # Download toolchain
-        wget https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-LlCjWuAbzH/9.3.1.2/msp430-gcc-9.3.1.11_linux64.tar.bz2
-        tar -xjf msp430-gcc-9.3.1.11_linux64.tar.bz2
-        mv msp430-gcc-9.3.1.11_linux64 msp430-gcc
-
-        # Download support files
-        wget https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-LlCjWuAbzH/9.3.1.2/msp430-gcc-support-files-1.212.zip
-        unzip msp430-gcc-support-files-1.212.zip
-        mv msp430-gcc-support-files msp430-support
-
-    - name: Set MSP430 environment variables
-      run: |
-        echo "MSP430GCC_TOOLCHAIN_PATH=$HOME/msp430-gcc" >> $GITHUB_ENV
-        echo "MSP430GCC_SUPPORT_PATH=$HOME/msp430-support" >> $GITHUB_ENV
-
-    - name: Install Julia dependencies
-      run: |
-        julia --project=. -e 'using Pkg; Pkg.instantiate()'
-
     - name: Install uv
       uses: astral-sh/setup-uv@v5
       with:

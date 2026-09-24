@@ -6,6 +6,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from pipeline import container
 from pipeline.errors import PipelineError
 
 
@@ -43,13 +44,15 @@ def run_module(module: str, args: Sequence[object], env: dict | None = None) -> 
 
 
 def julia_command(project_root: Path, mode: str, args: Sequence[object]) -> list[str]:
-    return [
-        "julia",
-        f"--project={project_root}",
-        str(project_root / "src" / "main.jl"),
-        mode,
-        *[str(arg) for arg in args],
-    ]
+    return container.command(
+        [
+            "julia",
+            f"--project={project_root}",
+            str(project_root / "src" / "main.jl"),
+            mode,
+            *[str(arg) for arg in args],
+        ]
+    )
 
 
 def julia_env() -> dict:
